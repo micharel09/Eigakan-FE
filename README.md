@@ -1,4 +1,4 @@
-# 🎬 Eigakan-FE - Your Ultimate Movie Watching Experience
+# 🎬 Eigakan - Your Ultimate Movie Watching Experience
 
 ## 🌟 About The Project
 
@@ -18,8 +18,4 @@ Eigakan is a modern, responsive web application for movie enthusiasts. Built wit
 - [Vite](https://vitejs.dev/)
 - [Tailwind CSS](https://tailwindcss.com/)
 
-### Prerequisites
 
-- npm
-  ```sh
-  npm install npm@latest -g
