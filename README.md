@@ -1,8 +1,25 @@
-# React + Vite
+# 🎬 Eigakan-FE - Your Ultimate Movie Watching Experience
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🌟 About The Project
 
-Currently, two official plugins are available:
+Eigakan is a modern, responsive web application for movie enthusiasts. Built with React, Vite, and Tailwind CSS, it offers a seamless and enjoyable movie browsing and watching experience.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🚀 Features
+
+- 🎥 Browse a vast collection of movies
+- 🔍 Advanced search and filtering options
+- 👤 User profiles and watchlists
+- 💬 Movie reviews and ratings
+- 📱 Fully responsive design
+
+### 🛠️ Built With
+
+- [React](https://reactjs.org/)
+- [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+
+### Prerequisites
+
+- npm
+  ```sh
+  npm install npm@latest -g
