@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import authService from "../apis/Auth/auth";
 
 const LoginPage = () => {
@@ -17,10 +18,13 @@ const LoginPage = () => {
     try {
       const response = await authService.login(email, password);
       if (response.success) {
+        toast.success("Login successful!");
         navigate("/");
+      } else {
+        setError(response.message || "");
       }
     } catch (error) {
-      setError(error.message);
+      setError(error.message || "");
     } finally {
       setLoading(false);
     }

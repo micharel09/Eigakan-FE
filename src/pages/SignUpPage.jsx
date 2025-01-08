@@ -1,17 +1,49 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import authService from "../apis/Auth/auth";
 
 const SignUpPage = () => {
   const { searchParams } = new URL(document.location);
   const emailValue = searchParams.get("email");
 
   const [email, setEmail] = useState(emailValue || "");
-  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSignUp = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
-    console.log({ email, username, password });
+    setError("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await authService.signup(
+        email,
+        password,
+        confirmPassword,
+        fullName
+      );
+      if (response.success) {
+        toast.success("Sign up successful! Please log in.");
+        navigate("/login");
+      } else {
+        setError(response.message || "");
+      }
+    } catch (error) {
+      setError(error.message || "");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,6 +60,12 @@ const SignUpPage = () => {
             Sign Up
           </h1>
 
+          {error && (
+            <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded">
+              {error}
+            </div>
+          )}
+
           <form className="space-y-4" onSubmit={handleSignUp}>
             <div>
               <label
@@ -43,23 +81,27 @@ const SignUpPage = () => {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                required
               />
             </div>
 
             <div>
               <label
-                htmlFor="username"
+                htmlFor="fullName"
                 className="text-sm font-medium text-gray-300 block"
               >
-                Username
+                Full Name
               </label>
               <input
                 type="text"
                 className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring"
-                placeholder="johndoe"
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                placeholder="John Doe"
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                disabled={loading}
+                required
               />
             </div>
 
@@ -77,15 +119,37 @@ const SignUpPage = () => {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="text-sm font-medium text-gray-300 block"
+              >
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring"
+                placeholder="••••••••"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                required
               />
             </div>
 
             <button
               className="w-full py-2 bg-red-600 text-white font-semibold rounded-md
-							hover:bg-red-700
-						"
+              hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed
+            "
+              disabled={loading}
             >
-              Sign up
+              {loading ? "Signing up..." : "Sign up"}
             </button>
           </form>
           <div className="text-center text-gray-400">
