@@ -1,43 +1,61 @@
-import axios from 'axios';
-import toast from 'react-hot-toast';
+import axios from "axios";
 
-const API_URL = 'https://localhost:7192/api';
+const API_URL = "https://localhost:7192/api/Auth";
 
-export const authService = {
+const authService = {
+  listeners: [],
+
   async login(email, password) {
     try {
-      const response = await axios.post(`${API_URL}/Auth/Login`, {
-        email,
-        password
-      });
-      
-      if (response.data.success) {
-        localStorage.setItem('user', JSON.stringify(response.data.data));
-        toast.success('Login successful!');
-        return response.data;
-      }
-      throw new Error(response.data.message || 'Login failed');
-    } catch (error) {
-      if (error.response) {
-        toast.error(error.response.data.message || 'Login failed');
-        throw new Error(error.response.data.message || 'Login failed');
-      }
-      toast.error('Network error occurred');
-      throw new Error('Network error occurred');
+      const res = await axios.post(`${API_URL}/Login`, { email, password });
+      localStorage.setItem("user", JSON.stringify(res.data));
+      localStorage.setItem("token", res.data.token);
+      this.notifyListeners();
+      return res.data;
+    } catch (err) {
+      throw err.response?.data || {};
     }
   },
 
-
-  logout() {
-    localStorage.removeItem('user');
-    toast.success('Logged out successfully');
+  async signup(email, password, confirmPassword, fullName) {
+    try {
+      const res = await axios.post(`${API_URL}/Register`, {
+        email,
+        password,
+        confirmPassword,
+        fullName,
+      });
+      return res.data;
+    } catch (err) {
+      throw err.response?.data || {};
+    }
   },
 
   getCurrentUser() {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
-  }
+    const userString = localStorage.getItem("user");
+    if (userString) {
+      return JSON.parse(userString);
+    }
+    return null;
+  },
+
+  logout() {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    this.notifyListeners();
+  },
+
+  addListener(listener) {
+    this.listeners.push(listener);
+  },
+
+  removeListener(listener) {
+    this.listeners = this.listeners.filter((l) => l !== listener);
+  },
+
+  notifyListeners() {
+    this.listeners.forEach((listener) => listener());
+  },
 };
 
 export default authService;
-
