@@ -1,13 +1,29 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import authService from "../apis/Auth/auth";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    console.log({ email, password });
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await authService.login(email, password);
+      if (response.success) {
+        navigate("/");
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,6 +40,12 @@ const LoginPage = () => {
             Sign In
           </h1>
 
+          {error && (
+            <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded">
+              {error}
+            </div>
+          )}
+
           <form className="space-y-4" onSubmit={handleLogin}>
             <div>
               <label
@@ -39,6 +61,7 @@ const LoginPage = () => {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
               />
             </div>
 
@@ -56,15 +79,17 @@ const LoginPage = () => {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
             </div>
 
             <button
               className="w-full py-2 bg-red-600 text-white font-semibold rounded-md
-							hover:bg-red-700
-						"
+              hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed
+            "
+              disabled={loading}
             >
-              Sign up
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
           <div className="text-center text-gray-400">
