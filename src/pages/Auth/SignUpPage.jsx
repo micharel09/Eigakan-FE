@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import authService from "../apis/Auth/auth";
+import authService from "../../apis/Auth/auth";
 
 const SignUpPage = () => {
   const { searchParams } = new URL(document.location);

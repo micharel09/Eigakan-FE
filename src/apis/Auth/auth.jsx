@@ -1,21 +1,22 @@
 import axios from "axios";
 
-const API_URL = "https://localhost:7192/api/Auth";
+const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Auth";
 
 const authService = {
   listeners: [],
 
   async login(email, password) {
     try {
-      const res = await axios.post(`${API_URL}/Login`, { email, password });
-      localStorage.setItem("user", JSON.stringify(res.data));
-      localStorage.setItem("token", res.data.token);
+      const res = await axios.post(`${API_URL}/Login`, { email, password }, { maxRedirects: 0 }); // thêm maxRedirects: 0 để tránh redirect
       this.notifyListeners();
       return res.data;
     } catch (err) {
       throw err.response?.data || {};
     }
   },
+  
+
+
 
   async signup(email, password, confirmPassword, fullName) {
     try {
@@ -42,6 +43,10 @@ const authService = {
   logout() {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem('fullName');
+    localStorage.removeItem('avatar');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userId');
     this.notifyListeners();
   },
 

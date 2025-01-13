@@ -1,5 +1,5 @@
 import React from "react";
-import Navbar from "../../Components/Navbar";
+import Navbar from "../../components/Header/Navbar";
 
 const HomeScreen = () => {
   return (

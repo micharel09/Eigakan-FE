@@ -1,13 +1,20 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App.jsx";
 import "./index.css";
-import { BrowserRouter } from "react-router-dom";
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { RouterProvider } from 'react-router-dom';
+import createRouter from './routers';
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-	<React.StrictMode>
-		<BrowserRouter>
-			<App />
-		</BrowserRouter>
-	</React.StrictMode>
+const container = document.getElementById('root');
+let root;
+
+// Kiểm tra và tạo `root` chỉ một lần
+if (!root) {
+  root = createRoot(container);
+}
+
+root.render(
+  <StrictMode>
+    <RouterProvider router={createRouter()} />
+  </StrictMode>,
 );

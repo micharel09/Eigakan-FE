@@ -1,7 +1,7 @@
 import { LogOut, Menu, Search } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import authService from "../apis/Auth/auth";
+import authService from "../../apis/Auth/auth";
 
 const Navbar = () => {
   const [user, setUser] = useState(authService.getCurrentUser());
