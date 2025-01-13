@@ -36,7 +36,6 @@ const Navbar = () => {
           <img src="/Eigakan-logo.png" alt="logo" className="w-32 sm:w-40" />
         </Link>
 
-        {/* desktop nav items */}
         <div className="hidden sm:flex gap-2 items-center">
           <Link to={"/"} className="hover:underline">
             Movies
@@ -81,7 +80,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* mobile nav items */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40">
           <div className="bg-white w-64 h-full absolute right-0 p-4">

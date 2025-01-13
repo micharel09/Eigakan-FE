@@ -11,7 +11,7 @@ const authService = {
       this.notifyListeners();
       return res.data;
     } catch (err) {
-      throw err.response?.data || {};
+      throw err.response?.data || err.message;
     }
   },
   
@@ -20,7 +20,7 @@ const authService = {
 
   async signup(email, password, confirmPassword, fullName) {
     try {
-      const res = await axios.post(`${API_URL}/Register`, {
+      const res = await axios.post(`${API_URL}/SignUp`, {
         email,
         password,
         confirmPassword,
