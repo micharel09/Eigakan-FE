@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import authService from "../apis/Auth/auth";
+import authService from "../../apis/Auth/auth";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -16,18 +16,35 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await authService.login(email, password);
-      if (response.success) {
-        toast.success("Login successful!");
-        navigate("/");
+      const res = await authService.login(email, password);
+    
+      if (res && res.success === true && res.data) {
+        // Lưu thông tin người dùng vào localStorage
+        localStorage.setItem("user", JSON.stringify(res.data));
+        localStorage.setItem('token', res.message);
+        localStorage.setItem('fullName', res.data.fullName);
+        localStorage.setItem('avatar', res.data.picture);
+        localStorage.setItem('role', res.data.roleName);
+        localStorage.setItem('userId', res.data.userId);
+    
+        if(res.data.roleName === "ADMIN") {
+          navigate('/Dashboard')
+        }else{
+          navigate('/'); 
+        }
+        
       } else {
-        setError(response.message || "");
+        // Hiển thị thông báo lỗi từ phản hồi API
+        setError(res.message || "Login failed.");
       }
     } catch (error) {
-      setError(error.message || "");
+      // Hiển thị lỗi hệ thống
+      setError(error.message || "An error occurred. Please try again.");
     } finally {
+      // Tắt trạng thái loading
       setLoading(false);
     }
+    
   };
 
   return (

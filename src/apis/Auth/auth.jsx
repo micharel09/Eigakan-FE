@@ -7,21 +7,16 @@ const authService = {
 
   async login(email, password) {
     try {
-      const { data } = await axios.post(`${API_URL}/Login`, {
-        email,
-        password,
-      });
-      if (data.success) {
-        localStorage.setItem("user", JSON.stringify(data.data));
-        localStorage.setItem("token", data.message);
-        this.notifyListeners();
-        return data;
-      }
-      throw data;
+      const res = await axios.post(`${API_URL}/Login`, { email, password }, { maxRedirects: 0 }); // thêm maxRedirects: 0 để tránh redirect
+      this.notifyListeners();
+      return res.data;
     } catch (err) {
       throw err.response?.data || err.message;
     }
   },
+  
+
+
 
   async signup(email, password, confirmPassword, fullName) {
     try {
@@ -46,7 +41,12 @@ const authService = {
   },
 
   logout() {
-    localStorage.clear();
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem('fullName');
+    localStorage.removeItem('avatar');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userId');
     this.notifyListeners();
   },
 
