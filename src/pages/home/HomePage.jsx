@@ -169,7 +169,6 @@ const HomePage = () => {
       </div>
       <div className="h-2 w-full bg-[#232323]" aria-hidden="true" />
       {/* 4th section*/}
-      <Footer />
     </div>
   );
 };
