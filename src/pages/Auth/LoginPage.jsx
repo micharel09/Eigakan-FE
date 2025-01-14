@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import authService from "../../apis/Auth/auth";
+import { Helmet } from "react-helmet";
+import Navbar from "../../components/Header/Navbar";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -17,22 +19,21 @@ const LoginPage = () => {
 
     try {
       const res = await authService.login(email, password);
-    
+
       if (res && res.success === true && res.data) {
         // Lưu thông tin người dùng vào localStorage
         localStorage.setItem("user", JSON.stringify(res.data));
-        localStorage.setItem('token', res.message);
-        localStorage.setItem('fullName', res.data.fullName);
-        localStorage.setItem('avatar', res.data.picture);
-        localStorage.setItem('role', res.data.roleName);
-        localStorage.setItem('userId', res.data.userId);
-    
-        if(res.data.roleName === "ADMIN") {
-          navigate('/Dashboard')
-        }else{
-          navigate('/'); 
+        localStorage.setItem("token", res.message);
+        localStorage.setItem("fullName", res.data.fullName);
+        localStorage.setItem("avatar", res.data.picture);
+        localStorage.setItem("role", res.data.roleName);
+        localStorage.setItem("userId", res.data.userId);
+
+        if (res.data.roleName === "ADMIN") {
+          navigate("/Dashboard");
+        } else {
+          navigate("/homescreen");
         }
-        
       } else {
         // Hiển thị thông báo lỗi từ phản hồi API
         setError(res.message || "Login failed.");
@@ -44,16 +45,15 @@ const LoginPage = () => {
       // Tắt trạng thái loading
       setLoading(false);
     }
-    
   };
 
   return (
     <div className="h-screen w-full hero-bg">
-      <header className="max-w-6xl mx-auto flex items-center justify-between p-4">
-        <Link to={"/"}>
-          <img src="/Eigakan-logo.png" alt="logo" className="w-52" />
-        </Link>
-      </header>
+      <Helmet>
+        <title>Login</title>
+      </Helmet>
+      {/* Navbar */}
+      <Navbar />
 
       <div className="flex justify-center items-center mt-20 mx-3">
         <div className="w-full max-w-md p-8 space-y-6 bg-black/60 rounded-lg shadow-md">
