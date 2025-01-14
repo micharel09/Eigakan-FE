@@ -2,8 +2,8 @@ import { ChevronRight } from "lucide-react";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Header/Navbar";
+import { Helmet } from "react-helmet";
 import Footer from "../../components/Footer/Footer";
-
 
 const HomePage = () => {
   const [email, setEmail] = useState("");
@@ -16,9 +16,12 @@ const HomePage = () => {
 
   return (
     <div className="hero-bg relative">
+      <Helmet>
+        <title>Homepage</title>
+      </Helmet>
       {/* Navbar */}
       <Navbar />
-      
+
       {/* hero section */}
       <div className="flex flex-col items-center justify-center text-center py-40 text-white max-w-6xl mx-auto">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
@@ -168,9 +171,7 @@ const HomePage = () => {
       {/* 4th section*/}
       <Footer />
     </div>
-    
   );
-  
 };
 
 export default HomePage;

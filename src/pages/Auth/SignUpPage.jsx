@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import authService from "../../apis/Auth/auth";
+import Navbar from "../../components/Header/Navbar";
 
 const SignUpPage = () => {
   const { searchParams } = new URL(document.location);
@@ -48,11 +49,11 @@ const SignUpPage = () => {
 
   return (
     <div className="h-screen w-full hero-bg">
-      <header className="max-w-6xl mx-auto flex items-center justify-between p-4">
-        <Link to={"/"}>
-          <img src="/Eigakan-logo.png" alt="logo" className="w-52" />
-        </Link>
-      </header>
+      <Helmet>
+        <title>SignUp</title>
+      </Helmet>
+      {/* Navbar */}
+      <Navbar />
 
       <div className="flex justify-center items-center mt-20 mx-3">
         <div className="w-full max-w-md p-8 space-y-6 bg-black/60 rounded-lg shadow-md">

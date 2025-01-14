@@ -32,7 +32,7 @@ const Navbar = () => {
   return (
     <header className="max-w-6xl mx-auto flex items-center justify-between p-4 h-20 text-white">
       <div className="flex items-center gap-10 z-50">
-        <Link to={"/"}>
+        <Link to={"/homepage"}>
           <img src="/Eigakan-logo.png" alt="logo" className="w-32 sm:w-40" />
         </Link>
 
