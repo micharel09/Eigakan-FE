@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import authService from "../../apis/Auth/auth";
 import Navbar from "../../components/Header/Navbar";
+import { Helmet } from "react-helmet";
 
 const SignUpPage = () => {
   const { searchParams } = new URL(document.location);

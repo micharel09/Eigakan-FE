@@ -32,7 +32,7 @@ const LoginPage = () => {
         if (res.data.roleName === "ADMIN") {
           navigate("/Dashboard");
         } else {
-          navigate("/");
+          navigate("/homescreen");
         }
       } else {
         // Hiển thị thông báo lỗi từ phản hồi API

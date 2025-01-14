@@ -37,7 +37,7 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden sm:flex gap-2 items-center">
-          <Link to={"/"} className="hover:underline">
+          <Link to={"/homescreen"} className="hover:underline">
             Movies
           </Link>
           <Link to={"/"} className="hover:underline">
