@@ -5,11 +5,11 @@ const Footer = () => {
         <p className="text-balance text-center text-sm leading-loose text-muted-foreground md:text-left">
           Built by{" "}
           <a
-            href="https://github.com/burakorkmez"
+            href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
             target="_blank"
             className="font-medium underline underline-offset-4"
           >
-            Me??
+            SP25-group5-475-Eigakan
           </a>
         </p>
       </div>

@@ -12,8 +12,6 @@ const HomeScreen = () => {
       <Helmet>
         <title>HomeScreen</title>
       </Helmet>
-      {/* Navbar */}
-      <Navbar />
       <Slider />
       <ProductionHouse />
       <HrMovieCard />

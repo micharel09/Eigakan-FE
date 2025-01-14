@@ -19,8 +19,6 @@ const HomePage = () => {
       <Helmet>
         <title>Homepage</title>
       </Helmet>
-      {/* Navbar */}
-      <Navbar />
 
       {/* hero section */}
       <div className="flex flex-col items-center justify-center text-center py-40 text-white max-w-6xl mx-auto">
