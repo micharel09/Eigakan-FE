@@ -1,6 +1,6 @@
 import React from "react";
 import GenresList from "./GenresList";
-import MovieList from "./Movielist";
+import MovieList from "./MovieList";
 
 function GenreMovieList() {
   return (
