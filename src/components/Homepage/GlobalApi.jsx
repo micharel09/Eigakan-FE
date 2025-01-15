@@ -1,19 +1,39 @@
 import axios from "axios";
 
-const movieBaseUrl="https://api.themoviedb.org/3"
-const api_key='c6139f0bab8230733e79b230a484860b'
+const movieBaseUrl = "https://api.themoviedb.org/3";
+const api_key = "c6139f0bab8230733e79b230a484860b";
 
-const movieByGenreBaseURL='https://api.themoviedb.org/3/discover/movie?api_key=c6139f0bab8230733e79b230a484860b';
+const movieByGenreBaseURL =
+  "https://api.themoviedb.org/3/discover/movie?api_key=c6139f0bab8230733e79b230a484860b";
 
+const getTrendingVideos = axios.get(
+  movieBaseUrl + "/trending/all/day?api_key=" + api_key
+);
 
-// https://api.themoviedb.org/3/movie/550?api_key=c6139f0bab8230733e79b230a484860b
-const getTrendingVideos=axios.get(movieBaseUrl+
-    "/trending/all/day?api_key="+api_key);
-    const getMovieByGenreId=(id)=>
-        axios.get(movieByGenreBaseURL+"&with_genres="+id)
+const getMovieByGenreId = (id) =>
+  axios.get(movieByGenreBaseURL + "&with_genres=" + id);
 
+const getMovieDetails = async (movieId) => {
+  try {
+    const response = await axios.get(
+      `${movieBaseUrl}/movie/${movieId}?api_key=${api_key}&append_to_response=videos,credits`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching movie details:", error);
+    throw error;
+  }
+};
 
-    export default{
-        getTrendingVideos,
-        getMovieByGenreId
-    }
+const searchMovies = (query) =>
+  axios.get(`${movieBaseUrl}/search/movie?api_key=${api_key}&query=${query}`);
+const getSimilarMovies = (movieId) =>
+  axios.get(`${movieBaseUrl}/movie/${movieId}/similar?api_key=${api_key}`);
+
+export default {
+  getTrendingVideos,
+  getMovieByGenreId,
+  getMovieDetails,
+  searchMovies,
+  getSimilarMovies,
+};

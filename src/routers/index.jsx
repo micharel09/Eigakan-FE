@@ -4,6 +4,8 @@ import LoginPage from "../pages/Auth/LoginPage.jsx";
 import SignupPage from "../pages/Auth/SignUpPage.jsx";
 import HomeScreen from "../pages/home/HomeScreen.jsx";
 import HomePage from "../pages/home/HomePage.jsx";
+import WatchPage from "../pages/Watchpage/WatchPage.jsx";
+import MoviePage from "../pages/MoviePage/MoviePage.jsx";
 
 // Kiểm tra xem người dùng đã đăng nhập chưa
 const PrivateRoute = ({ children }) => {
@@ -40,6 +42,27 @@ const createRouter = () =>
       path: "*",
       element: <h1>404 - Page Not Found</h1>,
     },
+
+    {
+      path: "/movie/:movieId",
+      element: <MoviePage />,
+    },
+    {
+      path: "/watch/:movieId",
+      element: <WatchPage />,
+    },
+    {
+      path: "/search",
+      element: <SearchPage />,
+    },
+    {
+      path: "/homepage",
+      element: <HomePage />,
+    },
+    {
+      path: "/homescreen",
+      element: <HomeScreen />,
+    },
     {
       path: "/dashboard",
       element: (
@@ -49,14 +72,6 @@ const createRouter = () =>
           <Dashboard />
         </PrivateRoute>
       ),
-    },
-    {
-      path: "/homepage",
-      element: <HomePage />,
-    },
-    {
-      path: "/homescreen",
-      element: <HomeScreen />,
     },
   ]);
 
