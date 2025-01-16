@@ -6,6 +6,7 @@ import HomePage from "../pages/home/HomePage";
 import WatchPage from "../pages/Watchpage/WatchPage.jsx";
 import SearchPage from "../pages/home/Search.jsx";
 import MoviePage from "../pages/MoviePage/MoviePage.jsx";
+import PrivateRoute from "./PrivateRoute";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user") !== null;
@@ -21,9 +22,12 @@ const routes = [
   },
   {
     path: "/dashboard",
-    element: <Dashboard />,
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <Dashboard />
+      </PrivateRoute>
+    ),
     layout: "AdvertiserLayout",
-    private: true,
   },
   { path: "/login", element: <LoginPage /> },
   {
