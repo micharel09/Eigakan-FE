@@ -1,11 +1,12 @@
 import React from "react";
 import "./index.css";
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { RouterProvider } from 'react-router-dom';
-import createRouter from './routers/createRouter'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { RouterProvider } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import createRouter from "./routers/createRouter";
 
-const container = document.getElementById('root');
+const container = document.getElementById("root");
 let root;
 
 // Kiểm tra và tạo `root` chỉ một lần
@@ -16,5 +17,6 @@ if (!root) {
 root.render(
   <StrictMode>
     <RouterProvider router={createRouter()} />
-  </StrictMode>,
+    <Toaster position="top-right" />
+  </StrictMode>
 );

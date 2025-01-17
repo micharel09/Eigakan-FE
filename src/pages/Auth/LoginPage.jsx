@@ -29,6 +29,8 @@ const LoginPage = () => {
         localStorage.setItem("role", res.data.roleName);
         localStorage.setItem("userId", res.data.userId);
 
+        toast.success("Login successful!");
+
         if (res.data.roleName === "ADMIN") {
           navigate("/Dashboard");
         } else {
