@@ -6,6 +6,7 @@ import HomePage from "../pages/home/HomePage";
 import WatchPage from "../pages/Watchpage/WatchPage.jsx";
 import SearchPage from "../pages/home/Search.jsx";
 import MoviePage from "../pages/MoviePage/MoviePage.jsx";
+import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
 
 const isLoggedIn = () => {
@@ -22,16 +23,23 @@ const routes = [
   },
   {
     path: "/dashboard",
-    element: <Dashboard />,
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <Dashboard />
+      </PrivateRoute>
+    ),
     layout: "AdminLayout",
     private: true,
   },
+
   { path: "/login", element: <LoginPage /> },
+  
   {
     path: "/movie/:movieId",
     element: <MoviePage />,
     layout: "UserLayout",
   },
+
   { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
   {
     path: "/search",
