@@ -7,7 +7,7 @@ const movieByGenreBaseURL =
   "https://api.themoviedb.org/3/discover/movie?api_key=c6139f0bab8230733e79b230a484860b";
 
 const getTrendingVideos = axios.get(
-  movieBaseUrl + "/trending/all/day?api_key=" + api_key
+  `${movieBaseUrl}/trending/all/day?api_key=${api_key}&append_to_response=runtime`
 );
 
 const getMovieByGenreId = (id) =>
@@ -30,10 +30,23 @@ const searchMovies = (query) =>
 const getSimilarMovies = (movieId) =>
   axios.get(`${movieBaseUrl}/movie/${movieId}/similar?api_key=${api_key}`);
 
+const getMovieImages = async (movieId) => {
+  try {
+    const response = await axios.get(
+      `${movieBaseUrl}/movie/${movieId}/images?api_key=${api_key}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching movie images:", error);
+    throw error;
+  }
+};
+
 export default {
   getTrendingVideos,
   getMovieByGenreId,
   getMovieDetails,
+  getMovieImages,
   searchMovies,
   getSimilarMovies,
 };

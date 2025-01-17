@@ -33,7 +33,7 @@ const routes = [
   },
 
   { path: "/login", element: <LoginPage /> },
-  
+
   {
     path: "/movie/:movieId",
     element: <MoviePage />,
