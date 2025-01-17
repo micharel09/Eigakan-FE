@@ -7,6 +7,7 @@ import WatchPage from "../pages/Watchpage/WatchPage.jsx";
 import SearchPage from "../pages/home/Search.jsx";
 import MoviePage from "../pages/MoviePage/MoviePage.jsx";
 import PrivateRoute from "./PrivateRoute";
+import User from "../pages/Admin/User/User.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user") !== null;
@@ -27,14 +28,18 @@ const routes = [
         <Dashboard />
       </PrivateRoute>
     ),
-    layout: "AdvertiserLayout",
+    layout: "AdminLayout",
+    private: true,
   },
+
   { path: "/login", element: <LoginPage /> },
+  
   {
     path: "/movie/:movieId",
     element: <MoviePage />,
     layout: "UserLayout",
   },
+
   { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
   {
     path: "/search",
@@ -45,6 +50,7 @@ const routes = [
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
+  { path: "/user", element: <User />, layout: "AdminLayout" },
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
 

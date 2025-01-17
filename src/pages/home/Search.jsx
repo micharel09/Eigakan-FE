@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, SearchIcon } from "lucide-react";
