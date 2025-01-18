@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import Navbar from "../components/Header/Navbar";
 import Footer from "../components/Footer/Footer";
 import { useLocation } from "react-router-dom";
@@ -17,7 +17,15 @@ const UserLayout = ({ children }) => {
         ${!isHomeScreen && !isAuthPage ? "min-h-screen pt-20" : ""}
       `}
       >
-        {children}
+        <Suspense
+          fallback={
+            <div className="loading-container">
+              <div className="loading-spinner" />
+            </div>
+          }
+        >
+          {children}
+        </Suspense>
       </main>
       {!isAuthPage && <Footer />}
     </div>

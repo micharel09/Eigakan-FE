@@ -4,19 +4,7 @@ import AdminLayout from "../Layout/AdminLayout";
 import UserLayout from "../Layout/UserLayout";
 import PrivateRoute from "./PrivateRoute";
 import AdvertiserLayout from "../Layout/AdvertiserLayout";
-import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
-
-// Add ScrollToTop component
-const ScrollToTop = () => {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
-  return null;
-};
+import ScrollToTop from "../components/Header/ScrollToTop";
 
 const renderWithLayout = (route) => {
   let Layout;
@@ -38,15 +26,11 @@ const renderWithLayout = (route) => {
   );
 
   return Layout ? (
-    <Layout>
-      <ScrollToTop />
-      {content}
-    </Layout>
+    <ScrollToTop>
+      <Layout>{content}</Layout>
+    </ScrollToTop>
   ) : (
-    <>
-      <ScrollToTop />
-      {content}
-    </>
+    content
   );
 };
 

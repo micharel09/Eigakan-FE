@@ -53,6 +53,13 @@ const getPersonCredits = (personId) =>
     `${movieBaseUrl}/person/${personId}/combined_credits?api_key=${api_key}`
   );
 
+const getTopRatedMovies = axios.get(
+  `${movieBaseUrl}/movie/top_rated?api_key=${api_key}&sort_by=vote_average.desc&vote_count.gte=1000`
+);
+
+const getTopRatedTVShows = (page = 1) =>
+  axios.get(`${movieBaseUrl}/tv/top_rated?api_key=${api_key}&page=${page}`);
+
 export default {
   getTrendingVideos,
   getMovieByGenreId,
@@ -63,4 +70,6 @@ export default {
   getPopularPeople,
   getPersonDetails,
   getPersonCredits,
+  getTopRatedMovies,
+  getTopRatedTVShows,
 };
