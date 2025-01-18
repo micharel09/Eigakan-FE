@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Switch } from "antd"; // Import Switch from antd
+import { notification, Switch } from "antd"; // Import Switch from antd
 import UserApi from "../../../apis/User/user";
 import { Pagination } from "antd";
 
@@ -47,14 +47,35 @@ const User = () => {
 };
 
 
-const handleStatusChange = (id, checked) => {
-  // Update user status when switch changes
-  const updatedUsers = users.map((user) =>
-    user.id === id ? { ...user, status: checked } : user
-  );
-  setUsers(updatedUsers);
-  console.log(`User ID ${id} status changed to ${checked ? 'Active' : 'Inactive'}`);
+const handleStatusChange = async (id, checked) => {
+  try {
+    const data = {
+      id,
+      status: checked ? 0 : 1, 
+    };
+
+    console.log(`Sending data to API:`, data);
+
+    // Gọi API
+    const response = await UserApi.updateActive(data);  
+    if (response && response.status === 200) {
+      // Nếu API thành công, cập nhật trạng thái trong danh sách người dùng
+      const updatedUsers = users.map((user) =>
+        user.id === id
+          ? { ...user, status: data.status === 0 ? "NORMAL" : "INACTIVE" }
+          : user
+      );
+      setUsers(updatedUsers);
+      notification.success({ message: 'Updated user status successfully.' });
+    } else {
+      console.error(`Failed to update status for user ID ${id}`);
+      notification.error({ message: 'Updated user status successfully.' });
+    }
+  } catch (error) {
+    console.error(`Error updating status for user ID ${id}:`, error.message);
+  }
 };
+
 
 
 useEffect(() => {
@@ -193,14 +214,24 @@ useEffect(() => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
                           {user.email} 
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                          {user.roleName} 
+                        <td
+                          className={`px-6 py-4 whitespace-nowrap text-sm ${
+                            user.roleName === "ADMIN"
+                              ? "text-red-600"
+                              : user.roleName === "USER"
+                              ? "text-green-500"
+                              : "text-black"
+                          }`}
+                        >
+                          {user.roleName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
                           <Switch
-                            checkedChildren="ACTIVE"
+                            checkedChildren="NORMAL"
                             unCheckedChildren="INACTIVE"
                             defaultChecked={user.status}
+                            checked={user.status === "NORMAL"}
+                            onChange={(checked) => handleStatusChange(user.id , checked)}
                           />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
@@ -214,13 +245,13 @@ useEffect(() => {
               {/* Pagination */}
               <div className="py-3 px-4 flex justify-end">
               <Pagination
-  current={tableParams.pagination.current}
-  pageSize={tableParams.pagination.pageSize}
-  total={tableParams.pagination.total} // Total user count
-  onChange={handlePageChange} // Handle page change
-  showSizeChanger
-  pageSizeOptions={[10, 20, 30, 40]}
-/>
+                current={tableParams.pagination.current}
+                pageSize={tableParams.pagination.pageSize}
+                total={tableParams.pagination.total} // Total user count
+                onChange={handlePageChange} // Handle page change
+                showSizeChanger
+                pageSizeOptions={[10, 20, 30, 40]}
+              />
 
               </div>
             </div>
