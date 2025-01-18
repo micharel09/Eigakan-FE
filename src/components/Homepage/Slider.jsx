@@ -99,23 +99,22 @@ function Slider() {
   if (!movieList.length) return null;
 
   return (
-    <div className="relative h-[80vh] bg-black">
+    <div className="relative h-[80vh] bg-black overflow-hidden">
       {movieList.map((movie, index) => (
         <div
           key={movie.id}
-          className={`absolute inset-0 transition-opacity duration-1000
-            ${
-              index === currentIndex
-                ? "opacity-100 visible"
-                : "opacity-0 invisible"
-            }`}
+          className={`absolute inset-0 transition-opacity duration-1000 ${
+            index === currentIndex
+              ? "opacity-100 visible"
+              : "opacity-0 invisible"
+          }`}
         >
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/50 to-black/90 z-10" />
+          <div className="absolute inset-0 transform scale-110">
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10" />
             <img
               src={IMAGE_BASE_URL + movie.backdrop_path}
               alt={movie.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transform scale-105 transition-transform duration-10000 animate-slow-zoom"
             />
           </div>
 

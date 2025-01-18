@@ -11,18 +11,22 @@ import User from "../pages/Admin/User/User.jsx";
 import PopularPeople from "../pages/Actor/PopularPeople.jsx";
 import PersonDetail from "../pages/Actor/PersonDetail";
 
-const isLoggedIn = () => {
-  const loggedIn = localStorage.getItem("user") !== null;
-  console.log("isLoggedIn:", loggedIn); // Debugging log
-  return loggedIn;
+const isLoggedIn = () => Boolean(localStorage.getItem("user"));
+
+const LAYOUTS = {
+  USER: "UserLayout",
+  ADMIN: "AdminLayout",
 };
 
 const routes = [
   {
     path: "/",
     element: isLoggedIn() ? <HomePage /> : <HomeScreen />,
-    layout: "UserLayout",
+    layout: LAYOUTS.USER,
   },
+  { path: "/login", element: <LoginPage /> },
+  { path: "/signup", element: <SignupPage /> },
+
   {
     path: "/dashboard",
     element: (
@@ -30,39 +34,53 @@ const routes = [
         <Dashboard />
       </PrivateRoute>
     ),
-    layout: "AdminLayout",
+    layout: LAYOUTS.ADMIN,
     private: true,
   },
-
-  { path: "/login", element: <LoginPage /> },
+  {
+    path: "/user",
+    element: <User />,
+    layout: LAYOUTS.ADMIN,
+  },
 
   {
     path: "/movie/:movieId",
     element: <MoviePage />,
-    layout: "UserLayout",
+    layout: LAYOUTS.USER,
   },
-
-  { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
+  {
+    path: "/watch/:movieId",
+    element: <WatchPage />,
+    layout: LAYOUTS.USER,
+  },
   {
     path: "/search",
     element: <SearchPage />,
-    layout: "UserLayout",
+    layout: LAYOUTS.USER,
   },
 
-  { path: "/signup", element: <SignupPage /> },
-  { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
-  { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
-  { path: "/user", element: <User />, layout: "AdminLayout" },
   {
     path: "/people",
     element: <PopularPeople />,
-    layout: "UserLayout",
+    layout: LAYOUTS.USER,
   },
   {
     path: "/person/:id",
     element: <PersonDetail />,
-    layout: "UserLayout",
+    layout: LAYOUTS.USER,
   },
+
+  {
+    path: "/homepage",
+    element: <HomePage />,
+    layout: LAYOUTS.USER,
+  },
+  {
+    path: "/homescreen",
+    element: <HomeScreen />,
+    layout: LAYOUTS.USER,
+  },
+
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
 

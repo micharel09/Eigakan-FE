@@ -19,11 +19,25 @@ function MovieList({ genreId, index_ }) {
   };
 
   const slideRight = (element) => {
-    element.scrollLeft += 500;
+    const firstItem = element.children[0];
+    const itemWidth = firstItem?.offsetWidth || 0;
+    const scrollAmount = itemWidth * 3; // Scroll 3 items
+
+    element.scrollBy({
+      left: scrollAmount,
+      behavior: "smooth",
+    });
   };
 
   const slideLeft = (element) => {
-    element.scrollLeft -= 500;
+    const firstItem = element.children[0];
+    const itemWidth = firstItem?.offsetWidth || 0;
+    const scrollAmount = itemWidth * 3;
+
+    element.scrollBy({
+      left: -scrollAmount,
+      behavior: "smooth",
+    });
   };
 
   return (
