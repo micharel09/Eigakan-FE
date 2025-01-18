@@ -8,6 +8,8 @@ import SearchPage from "../pages/home/Search.jsx";
 import MoviePage from "../pages/MoviePage/MoviePage.jsx";
 import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
+import PopularPeople from "../pages/Actor/PopularPeople.jsx";
+import PersonDetail from "../pages/Actor/PersonDetail";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user") !== null;
@@ -33,7 +35,7 @@ const routes = [
   },
 
   { path: "/login", element: <LoginPage /> },
-  
+
   {
     path: "/movie/:movieId",
     element: <MoviePage />,
@@ -51,6 +53,16 @@ const routes = [
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
   { path: "/user", element: <User />, layout: "AdminLayout" },
+  {
+    path: "/people",
+    element: <PopularPeople />,
+    layout: "UserLayout",
+  },
+  {
+    path: "/person/:id",
+    element: <PersonDetail />,
+    layout: "UserLayout",
+  },
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
 

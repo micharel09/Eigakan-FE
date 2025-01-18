@@ -22,7 +22,7 @@ const MoviePage = () => {
           GlobalApi.getSimilarMovies(movieId),
         ]);
         setMovie(movieData);
-        setSimilarMovies(similarData.data.results.slice(0, 8)); // Get first 8 similar movies
+        setSimilarMovies(similarData.data.results.slice(0, 4));
       } catch (error) {
         console.error("Error:", error);
       } finally {
@@ -54,53 +54,55 @@ const MoviePage = () => {
       <Helmet>
         <title>{movie.title} - Eigakan</title>
       </Helmet>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          {trailer ? (
-            <div className="aspect-video rounded-lg overflow-hidden">
-              <ReactPlayer
-                url={`https://www.youtube.com/watch?v=${trailer.key}`}
-                width="100%"
-                height="100%"
-                controls
-                playing
-              />
-            </div>
-          ) : (
-            <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center">
-              <img
-                src={`${IMAGE_BASE_URL}${movie.backdrop_path}`}
-                alt={movie.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-        </div>
 
-        <div className="lg:col-span-1">
-          <h1 className="text-3xl font-bold mb-4">{movie.title}</h1>
+      {/* Main Content */}
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Left Column - Poster & Watch Button */}
+        <div className="md:w-1/3 flex flex-col gap-4">
+          <div className="relative overflow-hidden rounded-lg">
+            <img
+              src={
+                movie.poster_path
+                  ? `${IMAGE_BASE_URL}${movie.poster_path}`
+                  : "/placeholder.svg"
+              }
+              alt={movie.title}
+              className="w-full aspect-[2/3] object-cover rounded-lg"
+            />
+          </div>
           <Link
             to={`/watch/${movie.id}`}
-            className="inline-block bg-red-600 text-white px-4 py-2 rounded-md mb-4 hover:bg-red-700 transition-colors"
+            className="w-full bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 transition-colors font-semibold text-center"
           >
             Watch Now
           </Link>
-          <div className="space-y-4">
-            <div>
-              <p className="text-gray-400">Release Date</p>
-              <p>{new Date(movie.release_date).toLocaleDateString()}</p>
+        </div>
+
+        {/* Right Column - Info & Trailer */}
+        <div className="md:w-2/3">
+          <div className="flex flex-col h-full">
+            {/* Movie Title */}
+            <h1 className="text-4xl font-bold mb-4">{movie.title}</h1>
+
+            {/* Basic Info */}
+            <div className="flex items-center gap-6 mb-4">
+              <div>
+                <p className="text-gray-400 text-sm">Release Date</p>
+                <p className="font-semibold">
+                  {new Date(movie.release_date).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Rating</p>
+                <p className="font-semibold">
+                  {movie.vote_average.toFixed(1)} / 10
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-400">Rating</p>
-              <p>{movie.vote_average.toFixed(1)} / 10</p>
-            </div>
-            <div>
-              <p className="text-gray-400">Overview</p>
-              <p className="text-sm leading-relaxed">{movie.overview}</p>
-            </div>
-            <div>
-              <p className="text-gray-400">Genres</p>
-              <div className="flex flex-wrap gap-2 mt-1">
+
+            {/* Genres */}
+            <div className="mb-4">
+              <div className="flex flex-wrap gap-2">
                 {movie.genres.map((genre) => (
                   <span
                     key={genre.id}
@@ -111,6 +113,26 @@ const MoviePage = () => {
                 ))}
               </div>
             </div>
+
+            {/* Overview */}
+            <div className="mb-4">
+              <p className="text-sm leading-relaxed">{movie.overview}</p>
+            </div>
+
+            {/* Trailer */}
+            {trailer && (
+              <div className="mt-auto">
+                <div className="aspect-video rounded-lg overflow-hidden">
+                  <ReactPlayer
+                    url={`https://www.youtube.com/watch?v=${trailer.key}`}
+                    width="100%"
+                    height="100%"
+                    controls
+                    playing
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

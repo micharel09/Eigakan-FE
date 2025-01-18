@@ -3,12 +3,11 @@ import Navbar from "../components/Header/Navbar";
 import Footer from "../components/Footer/Footer";
 import { useLocation } from "react-router-dom";
 
-const UserLayout = ({ children }) => {
+const VipLayout = ({ children }) => {
   const location = useLocation();
   const isHomeScreen = location.pathname === "/homescreen";
   const isAuthPage =
     location.pathname === "/login" || location.pathname === "/signup";
-  const isWatchPage = location.pathname.includes("/watch/");
 
   return (
     <div>
@@ -16,7 +15,6 @@ const UserLayout = ({ children }) => {
       <main
         className={`
         ${!isHomeScreen && !isAuthPage ? "min-h-screen pt-20" : ""}
-        ${isWatchPage ? "px-[20%]" : ""}
       `}
       >
         <Suspense
@@ -34,4 +32,4 @@ const UserLayout = ({ children }) => {
   );
 };
 
-export default UserLayout;
+export default VipLayout;

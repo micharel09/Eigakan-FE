@@ -49,7 +49,7 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="h-screen w-full hero-bg">
+    <div className="min-h-screen pt-20 h-screen w-full hero-bg">
       <Helmet>
         <title>SignUp</title>
       </Helmet>
