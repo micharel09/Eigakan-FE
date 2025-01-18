@@ -21,17 +21,13 @@ const UserApi = {
 
     async updateActive (data) {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.patch(`${API_URL}/ActiveDeactive_User`, data, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
+            const response = await axios.patch(`${API_URL}/ActiveDeactive_User`, data);
+            return response;
+          } catch (error) {
+            console.error("API error:", error.message);
+            return error.response;
+          }
         }
-    }
 }
 
 
