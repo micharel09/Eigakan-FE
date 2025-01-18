@@ -131,6 +131,12 @@ const Navbar = () => {
             >
               Search History
             </Link>
+            <Link
+              to={"/people"}
+              className="hover:text-red-500 transition-colors"
+            >
+              People
+            </Link>
           </div>
         </div>
 
@@ -276,6 +282,13 @@ const Navbar = () => {
                   onClick={toggleMobileMenu}
                 >
                   Search History
+                </Link>
+                <Link
+                  to={"/people"}
+                  className="hover:underline"
+                  onClick={toggleMobileMenu}
+                >
+                  People
                 </Link>
                 {user ? (
                   <button

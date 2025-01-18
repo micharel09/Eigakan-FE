@@ -42,6 +42,17 @@ const getMovieImages = async (movieId) => {
   }
 };
 
+const getPopularPeople = (page = 1) =>
+  axios.get(`${movieBaseUrl}/person/popular?api_key=${api_key}&page=${page}`);
+
+const getPersonDetails = (personId) =>
+  axios.get(`${movieBaseUrl}/person/${personId}?api_key=${api_key}`);
+
+const getPersonCredits = (personId) =>
+  axios.get(
+    `${movieBaseUrl}/person/${personId}/combined_credits?api_key=${api_key}`
+  );
+
 export default {
   getTrendingVideos,
   getMovieByGenreId,
@@ -49,4 +60,7 @@ export default {
   getMovieImages,
   searchMovies,
   getSimilarMovies,
+  getPopularPeople,
+  getPersonDetails,
+  getPersonCredits,
 };
