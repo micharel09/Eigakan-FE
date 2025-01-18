@@ -9,26 +9,36 @@ const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
 function Slider() {
   const [movieList, setMovieList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    GlobalApi.getTopRatedMovies.then(async (resp) => {
-      const topMovies = resp.data.results.slice(0, 5);
+    const fetchMovies = async () => {
+      try {
+        const resp = await GlobalApi.getTopRatedMovies;
+        const topMovies = resp.data.results.slice(0, 5);
 
-      const moviesWithDetails = await Promise.all(
-        topMovies.map(async (movie) => {
-          const details = await GlobalApi.getMovieDetails(movie.id);
-          const images = await GlobalApi.getMovieImages(movie.id);
-          return {
-            ...movie,
-            runtime: details.runtime,
-            logos: images.logos,
-            genres: details.genres,
-          };
-        })
-      );
+        const moviesWithDetails = await Promise.all(
+          topMovies.map(async (movie) => {
+            const details = await GlobalApi.getMovieDetails(movie.id);
+            const images = await GlobalApi.getMovieImages(movie.id);
+            return {
+              ...movie,
+              runtime: details.runtime,
+              logos: images.logos,
+              genres: details.genres,
+            };
+          })
+        );
 
-      setMovieList(moviesWithDetails);
-    });
+        setMovieList(moviesWithDetails);
+      } catch (error) {
+        console.error("Error fetching slider movies:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMovies();
   }, []);
 
   useEffect(() => {
@@ -37,6 +47,54 @@ function Slider() {
     }, 5000);
     return () => clearInterval(timer);
   }, [movieList.length]);
+
+  if (isLoading) {
+    return (
+      <div className="relative h-[80vh] bg-gray-900 animate-pulse">
+        <div className="absolute inset-0">
+          {/* Gradient background skeleton */}
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900" />
+
+          {/* Content skeleton */}
+          <div className="relative z-10 flex flex-col justify-center h-full ml-[5%] max-w-[45%]">
+            {/* Title skeleton */}
+            <div className="h-12 w-3/4 bg-gray-700 rounded-lg mb-6"></div>
+
+            {/* Info badges skeleton */}
+            <div className="flex items-center gap-6 mb-6">
+              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
+              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
+              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
+            </div>
+
+            {/* Genres skeleton */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-8 w-24 bg-gray-700 rounded-md"></div>
+              ))}
+            </div>
+
+            {/* Overview skeleton */}
+            <div className="space-y-2 mb-8">
+              <div className="h-4 w-full bg-gray-700 rounded"></div>
+              <div className="h-4 w-5/6 bg-gray-700 rounded"></div>
+              <div className="h-4 w-4/6 bg-gray-700 rounded"></div>
+            </div>
+
+            {/* Button skeleton */}
+            <div className="h-12 w-36 bg-gray-700 rounded-md"></div>
+          </div>
+        </div>
+
+        {/* Thumbnail skeletons */}
+        <div className="absolute bottom-6 right-16 flex gap-3 z-20">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="w-24 h-14 bg-gray-700 rounded-md"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!movieList.length) return null;
 

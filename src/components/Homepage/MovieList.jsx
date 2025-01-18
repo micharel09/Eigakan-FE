@@ -43,8 +43,8 @@ function MovieList({ genreId, index_ }) {
                   scrollbar-hide scroll-smooth pt-4 px-3 pb-4
                   snap-x snap-mandatory"
       >
-        {movieList.map((item, index) => (
-          <div key={index} className="snap-start">
+        {movieList.map((item) => (
+          <div key={item.id} className="snap-start">
             {index_ % 3 === 0 ? (
               <HrMovieCard movie={item} />
             ) : (

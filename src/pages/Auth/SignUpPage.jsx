@@ -47,13 +47,7 @@ const SignUpPage = () => {
       setLoading(false);
     }
   };
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner" />
-      </div>
-    );
-  }
+
   return (
     <div className="min-h-screen pt-20 h-screen w-full hero-bg">
       <Helmet>
