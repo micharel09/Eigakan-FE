@@ -20,12 +20,6 @@ const SignUpPage = () => {
   const handleSignUp = async (e) => {
     e.preventDefault();
     setError("");
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -36,13 +30,13 @@ const SignUpPage = () => {
         fullName
       );
       if (response.success) {
-        toast.success("Sign up successful! Please log in.");
+        toast.success(
+          "Sign up successful! Please check your email to verify your account."
+        );
         navigate("/login");
-      } else {
-        setError(response.message || "");
       }
     } catch (error) {
-      setError(error.message || "");
+      setError(error.message);
     } finally {
       setLoading(false);
     }

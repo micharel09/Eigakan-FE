@@ -10,23 +10,20 @@ import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
 import PopularPeople from "../pages/Actor/PopularPeople.jsx";
 import PersonDetail from "../pages/Actor/PersonDetail";
+import VerifyEmail from "../pages/Auth/VerifyEmail.jsx";
 
-const isLoggedIn = () => Boolean(localStorage.getItem("user"));
-
-const LAYOUTS = {
-  USER: "UserLayout",
-  ADMIN: "AdminLayout",
+const isLoggedIn = () => {
+  const loggedIn = localStorage.getItem("user") !== null;
+  console.log("isLoggedIn:", loggedIn); // Debugging log
+  return loggedIn;
 };
 
 const routes = [
   {
     path: "/",
     element: isLoggedIn() ? <HomePage /> : <HomeScreen />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
-  { path: "/login", element: <LoginPage /> },
-  { path: "/signup", element: <SignupPage /> },
-
   {
     path: "/dashboard",
     element: (
@@ -34,54 +31,57 @@ const routes = [
         <Dashboard />
       </PrivateRoute>
     ),
-    layout: LAYOUTS.ADMIN,
+    layout: "AdminLayout",
     private: true,
   },
-  {
-    path: "/user",
-    element: <User />,
-    layout: LAYOUTS.ADMIN,
-  },
-
+  { path: "/login", element: <LoginPage /> },
+  { path: "/signup", element: <SignupPage /> },
   {
     path: "/movie/:movieId",
     element: <MoviePage />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
   {
     path: "/watch/:movieId",
     element: <WatchPage />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
   {
     path: "/search",
     element: <SearchPage />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
-
-  {
-    path: "/people",
-    element: <PopularPeople />,
-    layout: LAYOUTS.USER,
-  },
-  {
-    path: "/person/:id",
-    element: <PersonDetail />,
-    layout: LAYOUTS.USER,
-  },
-
   {
     path: "/homepage",
     element: <HomePage />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
   {
     path: "/homescreen",
     element: <HomeScreen />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
-
+  {
+    path: "/user",
+    element: <User />,
+    layout: "AdminLayout",
+  },
+  {
+    path: "/people",
+    element: <PopularPeople />,
+    layout: "UserLayout",
+  },
+  {
+    path: "/person/:id",
+    element: <PersonDetail />,
+    layout: "UserLayout",
+  },
   { path: "*", element: <h1>404 - Page Not Found</h1> },
+  {
+    path: "/:token",
+    element: <VerifyEmail />,
+    layout: "UserLayout",
+  },
 ];
 
 export default routes;
