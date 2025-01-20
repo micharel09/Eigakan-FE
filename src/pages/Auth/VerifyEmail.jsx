@@ -13,14 +13,21 @@ const VerifyEmail = () => {
   useEffect(() => {
     const verifyEmail = async () => {
       try {
-        // Lấy full URL và token
-        const currentUrl = window.location.href;
-        console.log("Current URL:", currentUrl);
+        // Get token from URL
+        const pathname = window.location.pathname;
+        console.log("Current pathname:", pathname);
 
-        // Lấy token từ pathname và chuyển về lowercase
-        let token = window.location.pathname.substring(1);
-        token = token.toLowerCase(); // BE có thể cần token lowercase
+        // Extract token from different URL patterns
+        let token;
+        if (pathname.includes("verify-email/")) {
+          token = pathname.split("verify-email/")[1];
+        } else {
+          // Remove leading slash
+          token = pathname.substring(1);
+        }
 
+        // Clean up token
+        token = token.replace(/[^a-zA-Z0-9]/g, "");
         console.log("Extracted token:", token);
 
         if (!token) {
@@ -29,14 +36,17 @@ const VerifyEmail = () => {
           return;
         }
 
-        // Gọi API verify
+        // Call verify API
         const response = await authService.verifyEmail(token);
         console.log("API Response:", response);
 
         if (response?.status === 200) {
           setMessage("Email verified successfully!");
           toast.success("Email verified successfully! You can now login.");
-          setTimeout(() => navigate("/login"), 3000);
+          // Redirect to login after success
+          setTimeout(() => {
+            navigate("/login");
+          }, 3000);
         } else {
           setMessage(
             "Verification failed. Please try again or contact support."
@@ -52,7 +62,7 @@ const VerifyEmail = () => {
       }
     };
 
-    // Chỉ verify khi có pathname (tránh verify với homepage)
+    // Only verify if we have a pathname
     if (window.location.pathname.length > 1) {
       verifyEmail();
     }
@@ -71,6 +81,14 @@ const VerifyEmail = () => {
             <p className="text-gray-300">
               Redirecting to login page in 3 seconds...
             </p>
+          )}
+          {!isVerifying && !message.includes("successfully") && (
+            <button
+              onClick={() => navigate("/login")}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Go to Login
+            </button>
           )}
         </div>
       </div>
