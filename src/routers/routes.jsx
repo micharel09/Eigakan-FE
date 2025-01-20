@@ -9,17 +9,27 @@ import MoviePage from "../pages/MoviePage/MoviePage.jsx";
 import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
 
+// Hàm kiểm tra người dùng đã đăng nhập hay chưa
 const isLoggedIn = () => {
-  const loggedIn = localStorage.getItem("user") !== null;
-  console.log("isLoggedIn:", loggedIn); // Debugging log
+  const loggedIn = localStorage.getItem("user");
   return loggedIn;
 };
 
+// Lấy giá trị role từ localStorage
+const role = localStorage.getItem("role") || "GUEST"; 
+
 const routes = [
+  //chỉnh url mặc định theo role
   {
     path: "/",
-    element: isLoggedIn() ? <HomePage /> : <HomeScreen />,
-    layout: "UserLayout",
+    element: role === "ADMIN" ? (
+      <Dashboard />
+    ) : role === "MEMBER" ? (
+      isLoggedIn() ? <HomeScreen /> : <HomeScreen />
+    ) : (
+      <HomeScreen />
+    ),
+    layout: role === "ADMIN" ? "AdminLayout" : role === "MEMBER" ? "UserLayout" : "GuestLayout",
   },
   {
     path: "/dashboard",
@@ -31,7 +41,7 @@ const routes = [
     layout: "AdminLayout",
     private: true,
   },
-
+  
   { path: "/login", element: <LoginPage /> },
   
   {
@@ -39,18 +49,20 @@ const routes = [
     element: <MoviePage />,
     layout: "UserLayout",
   },
-
+  
   { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
+  
   {
     path: "/search",
     element: <SearchPage />,
     layout: "UserLayout",
   },
-
+  
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
   { path: "/user", element: <User />, layout: "AdminLayout" },
+  
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
 
