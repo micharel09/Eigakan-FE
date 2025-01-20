@@ -61,9 +61,7 @@ const authService = {
   async verifyEmail(token) {
     try {
       console.log("Calling verify API with token:", token);
-      // Clean token and ensure it's properly formatted
-      const cleanToken = token.trim().toUpperCase();
-      const res = await axios.get(`${API_URL}/Auth/Verify/${cleanToken}`);
+      const res = await axios.get(`${API_URL}/Auth/Verify/${token}`);
       console.log("API Response:", res);
       return res;
     } catch (err) {

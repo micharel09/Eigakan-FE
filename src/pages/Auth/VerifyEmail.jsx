@@ -1,11 +1,11 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import authService from "../../apis/Auth/auth";
 import { toast } from "react-hot-toast";
 import Navbar from "../../components/Header/Navbar";
 
 const VerifyEmail = () => {
-  const location = useLocation();
+  const { token } = useParams();
   const navigate = useNavigate();
   const [message, setMessage] = useState("Verifying your account...");
   const [isVerifying, setIsVerifying] = useState(true);
@@ -13,22 +13,7 @@ const VerifyEmail = () => {
   useEffect(() => {
     const verifyEmail = async () => {
       try {
-        // Get token from URL
-        const pathname = window.location.pathname;
-        console.log("Current pathname:", pathname);
-
-        // Extract token from different URL patterns
-        let token;
-        if (pathname.includes("verify-email/")) {
-          token = pathname.split("verify-email/")[1];
-        } else {
-          // Remove leading slash
-          token = pathname.substring(1);
-        }
-
-        // Clean up token
-        token = token.replace(/[^a-zA-Z0-9]/g, "");
-        console.log("Extracted token:", token);
+        console.log("Token from params:", token);
 
         if (!token) {
           setMessage("No verification token found!");
@@ -36,22 +21,18 @@ const VerifyEmail = () => {
           return;
         }
 
-        // Call verify API
         const response = await authService.verifyEmail(token);
         console.log("API Response:", response);
 
         if (response?.status === 200) {
           setMessage("Email verified successfully!");
           toast.success("Email verified successfully! You can now login.");
-          // Redirect to login after success
-          setTimeout(() => {
-            navigate("/login");
-          }, 3000);
+          setTimeout(() => navigate("/login"), 3000);
         } else {
           setMessage(
             "Verification failed. Please try again or contact support."
           );
-          toast.error(response?.data?.message || "Verification failed!");
+          toast.error("Verification failed!");
         }
       } catch (error) {
         console.error("Verification error:", error);
@@ -62,11 +43,8 @@ const VerifyEmail = () => {
       }
     };
 
-    // Only verify if we have a pathname
-    if (window.location.pathname.length > 1) {
-      verifyEmail();
-    }
-  }, [location, navigate]);
+    verifyEmail();
+  }, [token, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-900">

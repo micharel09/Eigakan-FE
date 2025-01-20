@@ -78,12 +78,7 @@ const routes = [
   },
   { path: "*", element: <h1>404 - Page Not Found</h1> },
   {
-    path: "/verify-email/:token",
-    element: <VerifyEmail />,
-    layout: "UserLayout",
-  },
-  {
-    path: "/:token", // Fallback route cho URL từ email
+    path: "/Auth/Verify/:token",
     element: <VerifyEmail />,
     layout: "UserLayout",
   },
