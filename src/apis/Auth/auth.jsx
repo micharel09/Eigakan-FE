@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api";
+const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Auth";
 
 const authService = {
   listeners: [],
@@ -8,7 +8,7 @@ const authService = {
   async login(email, password) {
     try {
       const res = await axios.post(
-        `${API_URL}/Auth/Login`,
+        `${API_URL}/Login`,
         { email, password },
         { maxRedirects: 0 }
       ); // thêm maxRedirects: 0 để tránh redirect
@@ -21,7 +21,7 @@ const authService = {
 
   async signup(email, password, confirmPassword, fullName) {
     try {
-      const res = await axios.post(`${API_URL}/Auth/SignUp`, {
+      const res = await axios.post(`${API_URL}/SignUp`, {
         email,
         password,
         confirmPassword,
@@ -29,6 +29,12 @@ const authService = {
       });
       return res.data;
     } catch (err) {
+      if (err.response?.data?.errors) {
+        const firstError = Object.values(err.response.data.errors)[0];
+        throw {
+          message: Array.isArray(firstError) ? firstError[0] : firstError,
+        };
+      }
       throw err.response?.data || { message: "Network error" };
     }
   },
@@ -56,30 +62,6 @@ const authService = {
 
   notifyListeners() {
     this.listeners.forEach((listener) => listener());
-  },
-
-  async verifyEmail(token) {
-    try {
-      console.log("Calling verify API with token:", token);
-      const res = await axios.get(`${API_URL}/Auth/Verify/${token}`);
-      console.log("API Response:", res);
-      return res;
-    } catch (err) {
-      console.error("API Error:", err);
-      return err.response;
-    }
-  },
-
-  async sendVerificationEmail(email) {
-    try {
-      const encodedEmail = encodeURIComponent(email);
-      const res = await axios.get(
-        `${API_URL}/User/users/email/${encodedEmail}`
-      );
-      return res;
-    } catch (err) {
-      return err.response;
-    }
   },
 };
 
