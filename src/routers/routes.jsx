@@ -82,6 +82,11 @@ const routes = [
     element: <VerifyEmail />,
     layout: "UserLayout",
   },
+  {
+    path: "/:token", // Catch-all route để bắt token trực tiếp
+    element: <VerifyEmail />,
+    layout: "UserLayout",
+  },
 ];
 
 export default routes;
