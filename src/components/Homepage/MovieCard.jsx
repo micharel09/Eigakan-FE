@@ -5,8 +5,11 @@ const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
 
 function MovieCard({ movie }) {
   return (
-    <div className="flex-shrink-0 group">
-      <Link to={`/movie/${movie.id}`}>
+    <div className="flex-shrink-0 group animate-fade-up">
+      <Link
+        to={`/movie/${movie.id}`}
+        className="block transform transition-all duration-300 hover:scale-105 hover:-translate-y-2"
+      >
         <div className="relative overflow-hidden rounded-lg">
           <img
             src={IMAGE_BASE_URL + movie.poster_path || "/placeholder.svg"}

@@ -19,11 +19,25 @@ function MovieList({ genreId, index_ }) {
   };
 
   const slideRight = (element) => {
-    element.scrollLeft += 500;
+    const firstItem = element.children[0];
+    const itemWidth = firstItem?.offsetWidth || 0;
+    const scrollAmount = itemWidth * 3; // Scroll 3 items
+
+    element.scrollBy({
+      left: scrollAmount,
+      behavior: "smooth",
+    });
   };
 
   const slideLeft = (element) => {
-    element.scrollLeft -= 500;
+    const firstItem = element.children[0];
+    const itemWidth = firstItem?.offsetWidth || 0;
+    const scrollAmount = itemWidth * 3;
+
+    element.scrollBy({
+      left: -scrollAmount,
+      behavior: "smooth",
+    });
   };
 
   return (
@@ -43,8 +57,8 @@ function MovieList({ genreId, index_ }) {
                   scrollbar-hide scroll-smooth pt-4 px-3 pb-4
                   snap-x snap-mandatory"
       >
-        {movieList.map((item, index) => (
-          <div key={index} className="snap-start">
+        {movieList.map((item) => (
+          <div key={item.id} className="snap-start">
             {index_ % 3 === 0 ? (
               <HrMovieCard movie={item} />
             ) : (

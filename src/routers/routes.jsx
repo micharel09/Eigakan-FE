@@ -1,3 +1,4 @@
+
 import HomeScreen from "../pages/home/HomeScreen";
 import Dashboard from "../pages/Admin/Dashboard/Dashboard.jsx";
 import LoginPage from "../pages/Auth/LoginPage";
@@ -8,6 +9,8 @@ import SearchPage from "../pages/home/Search.jsx";
 import MoviePage from "../pages/MoviePage/MoviePage.jsx";
 import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
+import PopularPeople from "../pages/Actor/PopularPeople.jsx";
+import PersonDetail from "../pages/Actor/PersonDetail";
 
 // Hàm kiểm tra người dùng đã đăng nhập hay chưa
 const isLoggedIn = () => {
@@ -55,6 +58,16 @@ const routes = [
   {
     path: "/search",
     element: <SearchPage />,
+    layout: "UserLayout",
+  },
+  {
+    path: "/people",
+    element: <PopularPeople />,
+    layout: "UserLayout",
+  },
+  {
+    path: "/person/:id",
+    element: <PersonDetail />,
     layout: "UserLayout",
   },
   
