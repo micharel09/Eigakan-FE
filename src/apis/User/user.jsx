@@ -4,7 +4,7 @@ const API_URL = 'https://eigakan1111-001-site1.qtempurl.com/api/User'
 
 const UserApi = {
 
-    async getUsers (page = 1, pageSize = 2){
+    async getUsers (page = 1, pageSize = 0){
         try{
             const res = await axios.get(`${API_URL}/users`,{
                 params:{

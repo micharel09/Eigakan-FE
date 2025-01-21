@@ -1,3 +1,4 @@
+
 import HomeScreen from "../pages/home/HomeScreen";
 import Dashboard from "../pages/Admin/Dashboard/Dashboard.jsx";
 import LoginPage from "../pages/Auth/LoginPage";
@@ -11,22 +12,28 @@ import User from "../pages/Admin/User/User.jsx";
 import PopularPeople from "../pages/Actor/PopularPeople.jsx";
 import PersonDetail from "../pages/Actor/PersonDetail";
 
-const isLoggedIn = () => Boolean(localStorage.getItem("user"));
-
-const LAYOUTS = {
-  USER: "UserLayout",
-  ADMIN: "AdminLayout",
+// Hàm kiểm tra người dùng đã đăng nhập hay chưa
+const isLoggedIn = () => {
+  const loggedIn = localStorage.getItem("user");
+  return loggedIn;
 };
 
+// Lấy giá trị role từ localStorage
+const role = localStorage.getItem("role") || "GUEST"; 
+
 const routes = [
+  //chỉnh url mặc định theo role
   {
     path: "/",
-    element: isLoggedIn() ? <HomePage /> : <HomeScreen />,
-    layout: LAYOUTS.USER,
+    element: role === "ADMIN" ? (
+      <Dashboard />
+    ) : role === "MEMBER" ? (
+      isLoggedIn() ? <HomeScreen /> : <HomeScreen />
+    ) : (
+      <HomeScreen />
+    ),
+    layout: role === "ADMIN" ? "AdminLayout" : role === "MEMBER" ? "UserLayout" : "GuestLayout",
   },
-  { path: "/login", element: <LoginPage /> },
-  { path: "/signup", element: <SignupPage /> },
-
   {
     path: "/dashboard",
     element: (
@@ -34,53 +41,41 @@ const routes = [
         <Dashboard />
       </PrivateRoute>
     ),
-    layout: LAYOUTS.ADMIN,
+    layout: "AdminLayout",
     private: true,
   },
-  {
-    path: "/user",
-    element: <User />,
-    layout: LAYOUTS.ADMIN,
-  },
-
+  
+  { path: "/login", element: <LoginPage /> },
+  
   {
     path: "/movie/:movieId",
     element: <MoviePage />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
-  {
-    path: "/watch/:movieId",
-    element: <WatchPage />,
-    layout: LAYOUTS.USER,
-  },
+  
+  { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
+  
   {
     path: "/search",
     element: <SearchPage />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
-
   {
     path: "/people",
     element: <PopularPeople />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
   {
     path: "/person/:id",
     element: <PersonDetail />,
-    layout: LAYOUTS.USER,
+    layout: "UserLayout",
   },
-
-  {
-    path: "/homepage",
-    element: <HomePage />,
-    layout: LAYOUTS.USER,
-  },
-  {
-    path: "/homescreen",
-    element: <HomeScreen />,
-    layout: LAYOUTS.USER,
-  },
-
+  
+  { path: "/signup", element: <SignupPage /> },
+  { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
+  { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
+  { path: "/user", element: <User />, layout: "AdminLayout" },
+  
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
 
