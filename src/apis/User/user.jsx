@@ -4,7 +4,7 @@ const API_URL = 'https://eigakan1111-001-site1.qtempurl.com/api/User'
 
 const UserApi = {
 
-    async getUsers (page = 1, pageSize = 2){
+    async getUsers (page = 1, pageSize = 0){
         try{
             const res = await axios.get(`${API_URL}/users`,{
                 params:{
@@ -21,17 +21,13 @@ const UserApi = {
 
     async updateActive (data) {
         try {
-            const token = localStorage.getItem('token');
-            const res = await axios.patch(`${API_URL}/ActiveDeactive_User`, data, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
+            const response = await axios.patch(`${API_URL}/ActiveDeactive_User`, data);
+            return response;
+          } catch (error) {
+            console.error("API error:", error.message);
+            return error.response;
+          }
         }
-    }
 }
 
 
