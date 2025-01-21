@@ -1,4 +1,3 @@
-
 import HomeScreen from "../pages/home/HomeScreen";
 import Dashboard from "../pages/Admin/Dashboard/Dashboard.jsx";
 import LoginPage from "../pages/Auth/LoginPage";
@@ -11,6 +10,11 @@ import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
 import PopularPeople from "../pages/Actor/PopularPeople.jsx";
 import PersonDetail from "../pages/Actor/PersonDetail";
+import VerifyAccount from "../pages/Auth/VerifyAccount";
+import ForgotPassword from "../pages/Auth/ForgotPassword";
+import ResetPassword from "../pages/Auth/ResetPassword";
+import SignupSuccess from "../pages/Auth/SignupSuccess";
+import { Navigate } from "react-router-dom";
 
 // Hàm kiểm tra người dùng đã đăng nhập hay chưa
 const isLoggedIn = () => {
@@ -19,20 +23,38 @@ const isLoggedIn = () => {
 };
 
 // Lấy giá trị role từ localStorage
-const role = localStorage.getItem("role") || "GUEST"; 
+const role = localStorage.getItem("role") || "GUEST";
 
 const routes = [
+  {
+    path: "/",
+    element: <Navigate to="/homescreen" replace />,
+  },
+  {
+    path: "/homescreen",
+    element: <HomeScreen />,
+  },
   //chỉnh url mặc định theo role
   {
     path: "/",
-    element: role === "ADMIN" ? (
-      <Dashboard />
-    ) : role === "MEMBER" ? (
-      isLoggedIn() ? <HomeScreen /> : <HomeScreen />
-    ) : (
-      <HomeScreen />
-    ),
-    layout: role === "ADMIN" ? "AdminLayout" : role === "MEMBER" ? "UserLayout" : "GuestLayout",
+    element:
+      role === "ADMIN" ? (
+        <Dashboard />
+      ) : role === "MEMBER" ? (
+        isLoggedIn() ? (
+          <HomeScreen />
+        ) : (
+          <HomeScreen />
+        )
+      ) : (
+        <HomeScreen />
+      ),
+    layout:
+      role === "ADMIN"
+        ? "AdminLayout"
+        : role === "MEMBER"
+        ? "UserLayout"
+        : "GuestLayout",
   },
   {
     path: "/dashboard",
@@ -44,17 +66,17 @@ const routes = [
     layout: "AdminLayout",
     private: true,
   },
-  
+
   { path: "/login", element: <LoginPage /> },
-  
+
   {
     path: "/movie/:movieId",
     element: <MoviePage />,
     layout: "UserLayout",
   },
-  
+
   { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
-  
+
   {
     path: "/search",
     element: <SearchPage />,
@@ -70,12 +92,18 @@ const routes = [
     element: <PersonDetail />,
     layout: "UserLayout",
   },
-  
+
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
-  { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
   { path: "/user", element: <User />, layout: "AdminLayout" },
-  
+
+  { path: "/verify", element: <VerifyAccount /> },
+
+  { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/resetpassword", element: <ResetPassword /> },
+
+  { path: "/signup-success", element: <SignupSuccess /> },
+
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
 

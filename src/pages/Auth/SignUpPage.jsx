@@ -37,7 +37,7 @@ const SignUpPage = () => {
       );
       if (response.success) {
         toast.success("Sign up successful! Please log in.");
-        navigate("/login");
+        navigate("/signup-success");
       } else {
         setError(response.message || "");
       }

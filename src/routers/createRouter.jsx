@@ -5,7 +5,6 @@ import UserLayout from "../Layout/UserLayout";
 import PrivateRoute from "./PrivateRoute";
 import AdvertiserLayout from "../Layout/AdvertiserLayout";
 import ScrollToTop from "../components/Header/ScrollToTop";
-import VerifyEmail from "../pages/Auth/VerifyEmail";
 
 const renderWithLayout = (route) => {
   let Layout;
