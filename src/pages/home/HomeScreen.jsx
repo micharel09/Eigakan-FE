@@ -5,6 +5,7 @@ import {
   MovieListSkeleton,
 } from "../../components/Homepage/SkeletonUI";
 import FadeInSection from "../../components/Homepage/FadeInSection";
+import Navbar from "../../components/Header/Navbar";
 
 // Lazy load components
 const Slider = React.lazy(() => import("../../components/Homepage/Slider"));
@@ -20,41 +21,47 @@ const GenreMovieList = React.lazy(() =>
 
 const HomeScreen = () => {
   return (
-    <div className="min-h-screen bg-[#1A1C29]">
+    <div className="min-h-screen bg-[#161515]">
       <Helmet>
-        <title>Movies - Home</title>
+        <title>Home</title>
       </Helmet>
 
-      <div className="space-y-12">
-        <Suspense fallback={<SliderSkeleton />}>
-          <Slider />
-        </Suspense>
+      <div className="relative">
+        <div className="w-full h-screen">
+          <div className="space-y-12">
+            <Suspense fallback={<SliderSkeleton />}>
+              <Slider />
+            </Suspense>
 
-        <FadeInSection>
-          <Suspense fallback={<MovieListSkeleton />}>
-            <ProductionHouse />
-          </Suspense>
-        </FadeInSection>
+            <FadeInSection>
+              <Suspense fallback={<MovieListSkeleton />}>
+                <ProductionHouse />
+              </Suspense>
+            </FadeInSection>
 
-        <FadeInSection>
-          <Suspense fallback={<MovieListSkeleton />}>
-            <HrMovieCard />
-          </Suspense>
-        </FadeInSection>
+            <FadeInSection>
+              <Suspense fallback={<MovieListSkeleton />}>
+                <HrMovieCard />
+              </Suspense>
+            </FadeInSection>
 
-        <FadeInSection>
-          <Suspense
-            fallback={
-              <div className="space-y-8">
-                {[1, 2, 3].map((i) => (
-                  <MovieListSkeleton key={i} />
-                ))}
-              </div>
-            }
-          >
-            <GenreMovieList />
-          </Suspense>
-        </FadeInSection>
+            <FadeInSection>
+              <Suspense
+                fallback={
+                  <div className="space-y-8">
+                    {[1, 2, 3].map((i) => (
+                      <MovieListSkeleton key={i} />
+                    ))}
+                  </div>
+                }
+              >
+                <GenreMovieList />
+              </Suspense>
+            </FadeInSection>
+          </div>
+        </div>
+
+        <Navbar />
       </div>
     </div>
   );
