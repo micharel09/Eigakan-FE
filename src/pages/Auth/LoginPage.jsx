@@ -33,7 +33,9 @@ const LoginPage = () => {
         toast.success("Login successful!");
 
         if (res.data.roleName === "ADMIN") {
-          navigate("/Dashboard");
+          navigate("/dashboard");
+        } else if (res.data.roleName === "MANAGER") {
+          navigate("/manager/dashboard");
         } else {
           navigate("/homescreen");
         }

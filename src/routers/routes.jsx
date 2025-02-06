@@ -15,6 +15,10 @@ import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import SignupSuccess from "../pages/Auth/SignupSuccess";
 import { Navigate } from "react-router-dom";
+import ManagerDashboard from "../pages/Manager/Dashboard/Dashboard.jsx";
+import Subscription from "../pages/Manager/Subscription/Subscription.jsx";
+import NewsManagement from "../pages/Manager/News/NewsManagement.jsx";
+import NewsPage from "../pages/News/NewsPage.jsx";
 
 // Hàm kiểm tra người dùng đã đăng nhập hay chưa
 const isLoggedIn = () => {
@@ -103,6 +107,45 @@ const routes = [
   { path: "/resetpassword", element: <ResetPassword /> },
 
   { path: "/signup-success", element: <SignupSuccess /> },
+
+  {
+    path: "/manager/dashboard",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <ManagerDashboard />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/subscription",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <Subscription />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/news",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <NewsManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/news",
+    element: <NewsPage />,
+    layout: "UserLayout",
+  },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
