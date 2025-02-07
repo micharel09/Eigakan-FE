@@ -18,7 +18,6 @@ import SignupSuccess from "../pages/Auth/SignupSuccess";
 import VerifyAccount from "../pages/Auth/VerifyAccount";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
-import SignupSuccess from "../pages/Auth/SignupSuccess";
 import { Navigate } from "react-router-dom";
 import ManagerDashboard from "../pages/Manager/Dashboard/Dashboard.jsx";
 import Subscription from "../pages/Manager/Subscription/Subscription.jsx";
