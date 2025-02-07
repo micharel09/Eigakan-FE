@@ -6,9 +6,11 @@ const api_key = "c6139f0bab8230733e79b230a484860b";
 const movieByGenreBaseURL =
   "https://api.themoviedb.org/3/discover/movie?api_key=c6139f0bab8230733e79b230a484860b";
 
-const getTrendingVideos = axios.get(
-  `${movieBaseUrl}/trending/all/day?api_key=${api_key}&append_to_response=runtime`
-);
+const getTrendingMovies = () => {
+  return axios.get(
+    `${movieBaseUrl}/trending/movie/day?api_key=${api_key}&append_to_response=videos,credits`
+  );
+};
 
 const getMovieByGenreId = (id) =>
   axios.get(movieByGenreBaseURL + "&with_genres=" + id);
@@ -60,8 +62,13 @@ const getTopRatedMovies = axios.get(
 const getTopRatedTVShows = (page = 1) =>
   axios.get(`${movieBaseUrl}/tv/top_rated?api_key=${api_key}&page=${page}`);
 
+const getMovieCredits = (movieId) =>
+  axios.get(
+    `${movieBaseUrl}/movie/${movieId}/credits?api_key=${api_key}&language=en-US`
+  );
+
 export default {
-  getTrendingVideos,
+  getTrendingMovies,
   getMovieByGenreId,
   getMovieDetails,
   getMovieImages,
@@ -72,4 +79,5 @@ export default {
   getPersonCredits,
   getTopRatedMovies,
   getTopRatedTVShows,
+  getMovieCredits,
 };

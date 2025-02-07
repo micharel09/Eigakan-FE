@@ -9,6 +9,7 @@ const navLinks = [
   { path: "/", label: "TV Shows" },
   { path: "/favorites", label: "Favorite" },
   { path: "/people", label: "Popular People" },
+  { path: "/news", label: "News" },
   { path: "/history", label: "Search History" },
 ];
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Space, notification, Switch, Tag  } from "antd";
+import { Table, Button, Space, notification, Switch, Tag } from "antd";
 import UserApi from "../../../apis/User/user";
-import userRegisterApi from "../../../apis/UserRegister/userregister";
+import UserRegisterApi from "../../../apis/UserRegister/UserRegister.js";
 
 const UserRegister = () => {
   const [users, setUsers] = useState([]);
@@ -18,8 +18,11 @@ const UserRegister = () => {
   const fetchUsers = async (current, pageSize) => {
     setLoading(true);
     try {
-      const response = await userRegisterApi.getUserRegisters(current, pageSize);
-      console.log('response:', response.data);
+      const response = await UserRegisterApi.getUserRegisters(
+        current,
+        pageSize
+      );
+      console.log("response:", response.data);
       setUsers(response.data.users);
       setPagination({
         current,
@@ -82,7 +85,7 @@ const UserRegister = () => {
         </a>
       ),
     },
-    
+
     {
       title: "Email",
       dataIndex: "email",
@@ -96,10 +99,10 @@ const UserRegister = () => {
     },
 
     {
-        title: "Status",
-        dataIndex: "status",
-        key: "status",
-      },
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+    },
     {
       title: "Registed Date",
       dataIndex: "createDate",
@@ -110,21 +113,18 @@ const UserRegister = () => {
         return date.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }); // Chuyển sang giờ Việt Nam
       },
     },
-    
   ];
 
   return (
     <>
       <div className="flex justify-between">
-          <Space style={{ marginBottom: 16 }}>
-            <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
-            <Button onClick={() => setSortedInfo({})}>Clear sorters</Button>
-          </Space>
+        <Space style={{ marginBottom: 16 }}>
+          <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
+          <Button onClick={() => setSortedInfo({})}>Clear sorters</Button>
+        </Space>
 
-          <Button>Create
-            
-          </Button>
-        </div>
+        <Button>Create</Button>
+      </div>
       <Table
         columns={columns}
         dataSource={users}

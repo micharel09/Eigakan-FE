@@ -1,4 +1,3 @@
-
 import HomeScreen from "../pages/home/HomeScreen";
 import Dashboard from "../pages/Admin/Dashboard/Dashboard.jsx";
 import LoginPage from "../pages/Auth/LoginPage";
@@ -19,30 +18,45 @@ import SignupSuccess from "../pages/Auth/SignupSuccess";
 import VerifyAccount from "../pages/Auth/VerifyAccount";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
+import { Navigate } from "react-router-dom";
+import ManagerDashboard from "../pages/Manager/Dashboard/Dashboard.jsx";
+import Subscription from "../pages/Manager/Subscription/Subscription.jsx";
+import NewsManagement from "../pages/Manager/News/NewsManagement.jsx";
+import NewsPage from "../pages/News/NewsPage.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
   return loggedIn;
 };
 
-const role = localStorage.getItem("role") || "GUEST"; 
+const role = localStorage.getItem("role") || "GUEST";
 
 const routes = [
   //chỉnh url mặc định theo role
-  
-  //ADMIN 
+
+  //ADMIN
   {
     path: "/",
-    element: role === "ADMIN" ? (
-      <Dashboard />
-    ) : role === "MEMBER" ? (
-      isLoggedIn() ? <HomeScreen /> : <HomeScreen />
-    ) : (
-      <HomeScreen />
-    ),
-    layout: role === "ADMIN" ? "AdminLayout" : role === "MEMBER" ? "UserLayout" : "GuestLayout",
+    element:
+      role === "ADMIN" ? (
+        <Dashboard />
+      ) : role === "MEMBER" ? (
+        isLoggedIn() ? (
+          <HomeScreen />
+        ) : (
+          <HomeScreen />
+        )
+      ) : (
+        <HomeScreen />
+      ),
+    layout:
+      role === "ADMIN"
+        ? "AdminLayout"
+        : role === "MEMBER"
+        ? "UserLayout"
+        : "GuestLayout",
   },
-  
+
   {
     path: "/dashboard",
     element: (
@@ -57,15 +71,19 @@ const routes = [
   {
     path: "/userRegister",
     element: (
-      <PrivateRoute requiredRole="ADMIN"><UserRegister/></PrivateRoute>
+      <PrivateRoute requiredRole="ADMIN">
+        <UserRegister />
+      </PrivateRoute>
     ),
     layout: "AdminLayout",
   },
-  
+
   {
     path: "/userRegister/:id",
     element: (
-      <PrivateRoute requiredRole="ADMIN"><UserRegisterDetail/></PrivateRoute>
+      <PrivateRoute requiredRole="ADMIN">
+        <UserRegisterDetail />
+      </PrivateRoute>
     ),
     layout: "AdminLayout",
   },
@@ -73,32 +91,30 @@ const routes = [
   {
     path: "/userRegister/email/:email",
     element: (
-      <PrivateRoute requiredRole="ADMIN"><UserRegisterEmail/></PrivateRoute>
+      <PrivateRoute requiredRole="ADMIN">
+        <UserRegisterEmail />
+      </PrivateRoute>
     ),
     layout: "AdminLayout",
   },
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
-  
-  
-  //USER
-  { path: "/movie/:movieId", element: <MoviePage />, layout: "UserLayout",},
-  
-  { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
-  
-  { path: "/search", element: <SearchPage />, layout: "UserLayout"},
-  
-  { path: "/people", element: <PopularPeople />, layout: "UserLayout", },
-  
-  { path: "/person/:id", element: <PersonDetail />, layout: "UserLayout",},
-  
-  { path: "/profile", element: <Profile />, layout: "UserLayout", },
-  
-  { path: "/profile/:id",  element: <Profile />, layout: "UserLayout",},
-  
-  
 
-  
+  //USER
+  { path: "/movie/:movieId", element: <MoviePage />, layout: "UserLayout" },
+
+  { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
+
+  { path: "/search", element: <SearchPage />, layout: "UserLayout" },
+
+  { path: "/people", element: <PopularPeople />, layout: "UserLayout" },
+
+  { path: "/person/:id", element: <PersonDetail />, layout: "UserLayout" },
+
+  { path: "/profile", element: <Profile />, layout: "UserLayout" },
+
+  { path: "/profile/:id", element: <Profile />, layout: "UserLayout" },
+
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
@@ -109,6 +125,46 @@ const routes = [
   { path: "/resetpassword", element: <ResetPassword /> },
 
   { path: "/signup-success", element: <SignupSuccess /> },
+
+  {
+    path: "/manager/dashboard",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <ManagerDashboard />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/subscription",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <Subscription />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/news",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <NewsManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/news",
+    element: <NewsPage />,
+    layout: "UserLayout",
+  },
+
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
 

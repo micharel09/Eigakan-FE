@@ -11,13 +11,14 @@ const UserLayout = ({ children }) => {
   const isWatchPage = location.pathname.includes("/watch/");
 
   return (
-    <div>
-      {!isAuthPage && <Navbar />}
+    <div className="flex flex-col min-h-screen bg-gray-900">
+      {!isHomeScreen && !isAuthPage && <Navbar />}
       <main
         className={`
-        ${!isHomeScreen && !isAuthPage ? " pt-20" : ""}
-        ${isWatchPage ? "px-[20%]" : ""}
-      `}
+          flex-grow
+          ${!isHomeScreen && !isAuthPage ? "pt-20" : ""}
+          ${isWatchPage ? "px-[20%]" : ""}
+        `}
       >
         <Suspense
           fallback={
@@ -29,7 +30,7 @@ const UserLayout = ({ children }) => {
           {children}
         </Suspense>
       </main>
-      {!isAuthPage && <Footer />}
+      {!isAuthPage && <Footer className="mt-auto" />}
     </div>
   );
 };
