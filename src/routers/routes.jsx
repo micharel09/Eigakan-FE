@@ -10,20 +10,18 @@ import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
 import PopularPeople from "../pages/Actor/PopularPeople.jsx";
 import PersonDetail from "../pages/Actor/PersonDetail";
-import VerifyAccount from "../pages/Auth/VerifyAccount";
-import ForgotPassword from "../pages/Auth/ForgotPassword";
-import ResetPassword from "../pages/Auth/ResetPassword";
-import SignupSuccess from "../pages/Auth/SignupSuccess";
-import { Navigate } from "react-router-dom";
+import Profile from "../pages/Profile/Profile.jsx";
+import UserRegister from "../pages/Admin/UserRegister/UserRegister.jsx";
+import UserRegisterDetail from "../pages/Admin/UserRegister/UserRegisterDetail.jsx";
+import UserRegisterEmail from "../pages/Admin/UserRegister/UserRegisterEmail.jsx";
 
-// Hàm kiểm tra người dùng đã đăng nhập hay chưa
+
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
   return loggedIn;
 };
 
-// Lấy giá trị role từ localStorage
-const role = localStorage.getItem("role") || "GUEST";
+const role = localStorage.getItem("role") || "GUEST"; 
 
 const routes = [
   {
@@ -35,6 +33,8 @@ const routes = [
     element: <HomeScreen />,
   },
   //chỉnh url mặc định theo role
+  
+  //ADMIN 
   {
     path: "/",
     element:
@@ -56,6 +56,7 @@ const routes = [
         ? "UserLayout"
         : "GuestLayout",
   },
+  
   {
     path: "/dashboard",
     element: (
@@ -75,6 +76,37 @@ const routes = [
     layout: "UserLayout",
   },
 
+
+  {
+    path: "/userRegister",
+    element: (
+      <PrivateRoute requiredRole="ADMIN"><UserRegister/></PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+  
+  {
+    path: "/userRegister/:id",
+    element: (
+      <PrivateRoute requiredRole="ADMIN"><UserRegisterDetail/></PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/userRegister/email/:email",
+    element: (
+      <PrivateRoute requiredRole="ADMIN"><UserRegisterEmail/></PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  { path: "/user", element: <User />, layout: "AdminLayout" },
+  
+  
+  //USER
+  { path: "/movie/:movieId", element: <MoviePage />, layout: "UserLayout",},
+  
   { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
 
   {
@@ -93,6 +125,20 @@ const routes = [
     layout: "UserLayout",
   },
 
+  
+  { path: "/search", element: <SearchPage />, layout: "UserLayout"},
+  
+  { path: "/people", element: <PopularPeople />, layout: "UserLayout", },
+  
+  { path: "/person/:id", element: <PersonDetail />, layout: "UserLayout",},
+  
+  { path: "/profile", element: <Profile />, layout: "UserLayout", },
+  
+  { path: "/profile/:id",  element: <Profile />, layout: "UserLayout",},
+  
+  
+
+  
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/user", element: <User />, layout: "AdminLayout" },
@@ -104,6 +150,8 @@ const routes = [
 
   { path: "/signup-success", element: <SignupSuccess /> },
 
+  { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
+  { path: "/login", element: <LoginPage /> },
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
 
