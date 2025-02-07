@@ -15,7 +15,7 @@ const UserLayout = ({ children }) => {
       {!isAuthPage && <Navbar />}
       <main
         className={`
-        ${!isHomeScreen && !isAuthPage ? "min-h-screen pt-20" : ""}
+        ${!isHomeScreen && !isAuthPage ? " pt-20" : ""}
         ${isWatchPage ? "px-[20%]" : ""}
       `}
       >

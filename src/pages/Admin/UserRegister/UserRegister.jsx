@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Space, notification, Switch, Tag  } from "antd";
 import UserApi from "../../../apis/User/user";
+import userRegisterApi from "../../../apis/UserRegister/userregister";
 
-const User = () => {
+const UserRegister = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filteredInfo, setFilteredInfo] = useState({});
@@ -17,7 +18,8 @@ const User = () => {
   const fetchUsers = async (current, pageSize) => {
     setLoading(true);
     try {
-      const response = await UserApi.getUsers(current, pageSize);
+      const response = await userRegisterApi.getUserRegisters(current, pageSize);
+      console.log('response:', response.data);
       setUsers(response.data.users);
       setPagination({
         current,
@@ -68,12 +70,6 @@ const User = () => {
 
   const columns = [
     {
-      title: "Avatar",
-      dataIndex: "picture",
-      key: "picture",
-      render: (text) => <img src={text} alt="Avatar" className="w-8 h-8 rounded-full" />,
-    },
-    {
       title: "Name",
       dataIndex: "fullName",
       key: "fullName",
@@ -81,7 +77,7 @@ const User = () => {
       filteredValue: filteredInfo.fullName || null,
       onFilter: (value, record) => record.fullName.includes(value),
       render: (fullName, record) => (
-        <a href={`/user/${record.id}`} className="text-blue-400">
+        <a href={`/userRegister/${record.id}`} className="text-blue-400">
           {fullName}
         </a>
       ),
@@ -92,54 +88,20 @@ const User = () => {
       dataIndex: "email",
       key: "email",
     },
+
     {
-      title: "Role",
-      dataIndex: "roleName",
-      key: "roleName",
-      filters: [
-        { text: "Admin", value: "ADMIN" },
-        { text: "User", value: "USER" },
-      ],
-      filteredValue: filteredInfo.roleName || null,
-      onFilter: (value, record) => record.roleName === value,
-      render: (roleName) => {
-        const color =
-          roleName === "ADMIN"
-            ? "volcano"
-            : roleName === "MEMBER"
-            ? "green"
-            : roleName === "PUBLISHER"
-            ? "blue"
-            : roleName === "MANAGER"
-            ? "yellow"
-            : roleName === "VIP MEMBER"
-            ? "purple"
-            : "default"; 
-        return (
-          <Tag color={color} key={roleName}>
-            {roleName.toUpperCase()}
-          </Tag>
-        );
+      title: "Phone Number",
+      dataIndex: "phoneNumber",
+      key: "phoneNumber",
+    },
+
+    {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
       },
-      
-      
-    },
-    
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status, record) => (
-        <Switch
-          checkedChildren="NORMAL"
-          unCheckedChildren="INACTIVE"
-          checked={status === "NORMAL"}
-          onChange={(checked) => handleStatusChange(record.id, checked)}
-        />
-      ),
-    },
-    {
-      title: "Join Date",
+      title: "Registed Date",
       dataIndex: "createDate",
       key: "joinDate",
       sorter: (a, b) => new Date(a.createDate) - new Date(b.createDate),
@@ -175,4 +137,4 @@ const User = () => {
   );
 };
 
-export default User;
+export default UserRegister;
