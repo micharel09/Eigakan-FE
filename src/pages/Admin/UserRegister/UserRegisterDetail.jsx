@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom"; // Import để lấy id từ URL
 import { Badge, Descriptions, Button, Modal, Input, Spin } from "antd";
-import UserRegisterApi from "../../../apis/UserRegister/userregister";
+import UserRegisterApi from "../../../apis/UserRegister/UserRegister";
 import { formatDate } from "../../../utils/dateHelper";
 import Link from "antd/es/typography/Link";
 
@@ -44,7 +44,7 @@ const UserRegisterDetail = () => {
 
   useEffect(() => {
     fetchUserRegister();
-  }, [id]); 
+  }, [id]);
 
   // Nếu đang loading thì hiển thị spinner
   if (loading) {
@@ -63,14 +63,26 @@ const UserRegisterDetail = () => {
   // Cập nhật dữ liệu vào items
   const items = [
     { key: "1", label: "Name", children: userRegister.fullName },
-    { key: "2", label: "Email", children: (
-      <a href={`/userRegister/email/${userRegister.email}`} className="text-blue-500">
-        {userRegister.email}
-      </a>
-    )},
-    { key: "3", label: "Phone Number", children: userRegister.phoneNumber  },
+    {
+      key: "2",
+      label: "Email",
+      children: (
+        <a
+          href={`/userRegister/email/${userRegister.email}`}
+          className="text-blue-500"
+        >
+          {userRegister.email}
+        </a>
+      ),
+    },
+    { key: "3", label: "Phone Number", children: userRegister.phoneNumber },
     { key: "4", label: "File Name", children: userRegister.fileUrl },
-    { key: "5", label: "Registed Time", children:  formatDate( userRegister.createDate), span: 2 },
+    {
+      key: "5",
+      label: "Registed Time",
+      children: formatDate(userRegister.createDate),
+      span: 2,
+    },
     {
       key: "6",
       label: "Status",
