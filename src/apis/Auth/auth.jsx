@@ -29,7 +29,24 @@ const authService = {
       });
       return res.data;
     } catch (err) {
-      throw err.response?.data || {};
+      if (err.response?.data?.errors) {
+        const firstError = Object.values(err.response.data.errors)[0];
+        throw {
+          message: Array.isArray(firstError) ? firstError[0] : firstError,
+        };
+      }
+      throw err.response?.data || { message: "Network error" };
+    }
+  },
+
+  async verify(token) {
+    try {
+      const res = await axios.get(`${API_URL}/Verify`, {
+        params: { token },
+      });
+      return res.data;
+    } catch (err) {
+      throw err.response?.data || { message: "Verification failed" };
     }
   },
 
@@ -56,6 +73,32 @@ const authService = {
 
   notifyListeners() {
     this.listeners.forEach((listener) => listener());
+  },
+
+  async forgotPassword(email) {
+    try {
+      const res = await axios.post(`${API_URL}/Forgot-password`, { email });
+      return res.data;
+    } catch (err) {
+      throw (
+        err.response?.data || {
+          message: "Failed to process forgot password request",
+        }
+      );
+    }
+  },
+
+  async resetPassword(token, password, confirmPassword) {
+    try {
+      const res = await axios.post(`${API_URL}/Reset-password`, {
+        token,
+        password,
+        confirmPassword,
+      });
+      return res.data;
+    } catch (err) {
+      throw err.response?.data || { message: "Failed to reset password" };
+    }
   },
 };
 

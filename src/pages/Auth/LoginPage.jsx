@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import authService from "../../apis/Auth/auth";
 import { Helmet } from "react-helmet";
 import Navbar from "../../components/Header/Navbar";
+import { AiOutlineMail, AiOutlineLock } from "react-icons/ai";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -104,6 +105,16 @@ const LoginPage = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
+            </div>
+
+            <div className="mt-2">
+              <button
+                onClick={() => navigate("/forgot-password")}
+                type="button"
+                className="text-sm text-red-500 hover:underline"
+              >
+                Forgot Password?
+              </button>
             </div>
 
             <button
