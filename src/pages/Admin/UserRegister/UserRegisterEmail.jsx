@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Badge, Descriptions, Spin } from "antd";
-import UserRegisterApi from "../../../apis/UserRegister/UserRegister";
+import UserRegisterApi from "../../../apis/UserRegister/UserRegister.js";
 import { formatDate } from "../../../utils/dateHelper";
 import index from "antd/lib/typography/Base";
 

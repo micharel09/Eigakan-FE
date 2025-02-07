@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom"; // Import để lấy id từ URL
 import { Badge, Descriptions, Button, Modal, Input, Spin } from "antd";
-import UserRegisterApi from "../../../apis/UserRegister/UserRegister";
+import UserRegisterApi from "../../../apis/UserRegister/UserRegister.js";
 import { formatDate } from "../../../utils/dateHelper";
 import Link from "antd/es/typography/Link";
 

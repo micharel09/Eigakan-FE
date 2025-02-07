@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Space, notification, Switch, Tag } from "antd";
 import UserApi from "../../../apis/User/user";
-import UserRegisterApi from "../../../apis/UserRegister/UserRegister";
+import UserRegisterApi from "../../../apis/UserRegister/UserRegister.js";
 
 const UserRegister = () => {
   const [users, setUsers] = useState([]);
