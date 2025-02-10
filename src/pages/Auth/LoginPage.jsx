@@ -132,6 +132,12 @@ const LoginPage = () => {
               Sign up
             </Link>
           </div>
+          <div className="text-center text-gray-400">
+            Want your moive here ?{" "}
+            <Link to={"/registerPage"} className="text-red-500 hover:underline">
+              Join now
+            </Link>
+          </div>
         </div>
       </div>
     </div>

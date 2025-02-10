@@ -19,6 +19,7 @@ import SignupSuccess from "../pages/Auth/SignupSuccess";
 import VerifyAccount from "../pages/Auth/VerifyAccount";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
+import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -104,7 +105,7 @@ const routes = [
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
   { path: "/login", element: <LoginPage /> },
   { path: "/verify", element: <VerifyAccount /> },
-
+  { path: "/registerPage", element: <RegisterPage /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/resetpassword", element: <ResetPassword /> },
 
