@@ -4,6 +4,7 @@ import ReactPlayer from "react-player";
 import GlobalApi from "../../components/Homepage/GlobalApi";
 import { Loader2 } from "lucide-react";
 import { Helmet } from "react-helmet";
+import Loading from "../../components/Loading/Loading";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
 // This is a placeholder video URL. Replace it with your actual video source when available.
@@ -30,13 +31,7 @@ const WatchPage = () => {
     fetchMovieDetails();
   }, [movieId]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   if (!movie) {
     return <div className="text-center p-4">Movie not found</div>;

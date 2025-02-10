@@ -19,6 +19,9 @@ const Navbar = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const role = localStorage.getItem("role");
+  const isManager = role === "MANAGER";
+  const isInManagerPage = location.pathname.includes("/manager");
 
   useEffect(() => {
     const updateUser = () => setUser(authService.getCurrentUser());
@@ -44,29 +47,31 @@ const Navbar = () => {
             <img src="/Eigakan-logo.png" alt="logo" className="w-32 sm:w-40" />
           </Link>
 
-          <nav className="flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`relative py-2 text-sm font-medium transition-colors group
-                  ${
-                    location.pathname === link.path
-                      ? "text-red-500"
-                      : "text-white hover:text-red-400"
-                  }`}
-              >
-                {link.label}
-                <span
-                  className={`absolute bottom-0 left-0 w-full h-0.5 bg-red-500 transform scale-x-0 
-                  transition-transform duration-300 group-hover:scale-x-100
-                  ${location.pathname === link.path ? "scale-x-100" : ""}`}
-                />
-              </Link>
-            ))}
-          </nav>
+          <div className="flex-1 max-w-3xl mx-8">
+            <nav className="flex items-center justify-center gap-8">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`relative py-2 text-sm font-medium transition-colors group whitespace-nowrap
+                    ${
+                      location.pathname === link.path
+                        ? "text-red-500"
+                        : "text-white hover:text-red-400"
+                    }`}
+                >
+                  {link.label}
+                  <span
+                    className={`absolute bottom-0 left-0 w-full h-0.5 bg-red-500 transform scale-x-0 
+                    transition-transform duration-300 group-hover:scale-x-100
+                    ${location.pathname === link.path ? "scale-x-100" : ""}`}
+                  />
+                </Link>
+              ))}
+            </nav>
+          </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-[200px] justify-end">
             <SearchBar navigate={navigate} />
             {user ? (
               <ProfileMenu
@@ -92,6 +97,54 @@ const Navbar = () => {
               </Link>
             )}
           </div>
+
+          {isManager && (
+            <div className="flex items-center ml-4">
+              <Link
+                to={isInManagerPage ? "/homescreen" : "/manager/dashboard"}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg 
+                  text-sm font-medium transition-colors duration-200
+                  border border-red-500/20
+                  hover:bg-red-500/10 text-red-500"
+              >
+                {isInManagerPage ? (
+                  <>
+                    <span>View User Site</span>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </>
+                ) : (
+                  <>
+                    <span>Manager Dashboard</span>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </>
+                )}
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </nav>

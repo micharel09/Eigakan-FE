@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import GlobalApi from "../../components/Homepage/GlobalApi";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
+import Loading from "../../components/Loading/Loading";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
@@ -33,6 +34,8 @@ function PopularPeople() {
   const loadMore = () => {
     setPage((prev) => prev + 1);
   };
+
+  if (loading) return <Loading />;
 
   return (
     <div className="min-h-screen bg-[#161515] pt-24 px-4 sm:px-6 lg:px-8">

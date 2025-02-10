@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import GlobalApi from "../../components/Homepage/GlobalApi";
 import { PlayCircle, Clock, Calendar, Star, Info } from "lucide-react";
+import Loading from "../../components/Loading/Loading";
 
 // Lazy load các components không cần thiết ngay lập tức
 const ReactPlayer = React.lazy(() => import("react-player/lazy"));
@@ -217,9 +218,8 @@ const MoviePage = () => {
     fetchMovieData();
   }, [movieId]);
 
-  if (loading || !movie) {
-    return <div className="min-h-screen bg-gray-900" />; // Loading skeleton
-  }
+  if (loading) return <Loading />;
+  if (!movie) return <Loading />;
 
   const trailer =
     movie.videos?.results?.find((v) => v.type === "Trailer") ||

@@ -23,6 +23,7 @@ import ManagerDashboard from "../pages/Manager/Dashboard/Dashboard.jsx";
 import Subscription from "../pages/Manager/Subscription/Subscription.jsx";
 import NewsManagement from "../pages/Manager/News/NewsManagement.jsx";
 import NewsPage from "../pages/News/NewsPage.jsx";
+import NewsDetail from "../pages/News/NewsDetail";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -162,6 +163,12 @@ const routes = [
   {
     path: "/news",
     element: <NewsPage />,
+    layout: "UserLayout",
+  },
+
+  {
+    path: "/news/:id",
+    element: <NewsDetail />,
     layout: "UserLayout",
   },
 
