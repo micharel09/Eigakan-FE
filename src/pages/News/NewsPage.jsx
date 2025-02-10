@@ -147,10 +147,10 @@ const NewsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black">
-      {/* Hero Section - Phần header */}
-      <div className="relative py-12 px-4 overflow-hidden">
-        {/* Background pattern */}
+    <div className="min-h-screen bg-black">
+      {/* Hero Section */}
+      <div className="relative py-16 px-4 overflow-hidden">
+        {/* Background pattern với opacity thấp */}
         <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-5" />
 
         {/* Nội dung header */}
@@ -171,7 +171,7 @@ const NewsPage = () => {
             <input
               type="text"
               placeholder="Search news..."
-              className="w-full px-6 py-4 bg-gray-800/50 backdrop-blur-sm border border-gray-700 
+              className="w-full px-6 py-4 bg-gray-900/50 backdrop-blur-sm border border-gray-800 
                 rounded-full text-gray-200 placeholder-gray-500 outline-none focus:border-red-500
                 transition-all duration-300 shadow-lg"
             />
@@ -194,7 +194,7 @@ const NewsPage = () => {
           ))}
         </div>
 
-        {/* Nút Load More */}
+        {/* Load more button */}
         {allNews.length > 0 && hasMore && (
           <div className="flex justify-center mt-16">
             <button
