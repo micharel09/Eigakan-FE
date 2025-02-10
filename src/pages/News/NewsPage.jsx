@@ -4,48 +4,66 @@ import { Spin, Tag } from "antd";
 import NewsApi from "../../apis/News/news";
 import { Link } from "react-router-dom";
 import Loading from "../../components/Loading/Loading";
+import { notification } from "antd";
 
 const categories = ["All", "Reviews", "Film News", "Industry Updates"];
 
 const NewsPage = () => {
-  const [news, setNews] = useState([]);
+  // States cho quản lý danh sách tin tức
+  const [allNews, setAllNews] = useState([]); // Lưu trữ tất cả tin tức đã load
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const pageSize = 6;
+  const [page, setPage] = useState(1); // Trang hiện tại cho infinite scroll
+  const [hasMore, setHasMore] = useState(true); // Kiểm tra còn tin để load không
+  const pageSize = 6; // Số tin mỗi lần load
 
-  // Fetch news data
+  // Fetch tin tức từ API
   const fetchNews = async () => {
     try {
       const response = await NewsApi.getNews(page, pageSize);
-      if (response?.data?.success) {
-        // Chỉ lấy những news có status Active
+      if (response?.data?.success && Array.isArray(response.data.data)) {
+        // Lọc chỉ lấy những tin có status Active
         const activeNews = response.data.data.filter(
-          (item) => item.status === "Active"
+          (news) =>
+            news.status === "1" ||
+            news.status === 1 ||
+            news.status?.toLowerCase() === "active"
         );
 
+        // Xử lý data tùy theo trang
         if (page === 1) {
-          setNews(activeNews); // Reset list nếu là page đầu
+          setAllNews(activeNews); // Reset list nếu là trang đầu
         } else {
-          setNews((prev) => [...prev, ...activeNews]);
+          // Kiểm tra và chỉ thêm những tin chưa có để tránh trùng lặp
+          const newNews = activeNews.filter(
+            (news) => !allNews.some((existing) => existing.id === news.id)
+          );
+          setAllNews((prev) => [...prev, ...newNews]);
         }
 
-        // Kiểm tra nếu không còn data để load
-        if (activeNews.length < pageSize) {
-          setHasMore(false);
-        }
+        // Kiểm tra còn data để load tiếp không
+        setHasMore(activeNews.length >= pageSize);
+      } else {
+        notification.error({
+          message: "Error",
+          description: "Failed to fetch news data",
+        });
       }
     } catch (error) {
-      console.error("Error fetching news:", error);
+      notification.error({
+        message: "Error",
+        description: error.message || "Failed to fetch news",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // Load tin tức khi component mount hoặc page thay đổi
   useEffect(() => {
     fetchNews();
   }, [page]);
 
+  // Component hiển thị một tin tức
   const NewsCard = ({ news }) => (
     <Link to={`/news/${news.id}`}>
       <div
@@ -53,20 +71,20 @@ const NewsPage = () => {
         border border-gray-700/50 hover:border-red-500/50 transition-all duration-500
         hover:shadow-xl hover:shadow-red-500/10 h-[500px] flex flex-col"
       >
-        {/* Image container */}
+        {/* Phần ảnh của tin tức */}
         <div className="relative h-[220px] w-full overflow-hidden flex-shrink-0">
           <img
             src={news.picture || "/default-news.jpg"}
             alt={news.title}
             className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
           />
-          {/* Overlay gradient */}
+          {/* Overlay gradient cho ảnh */}
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/20 to-transparent opacity-60" />
         </div>
 
-        {/* Content */}
+        {/* Phần nội dung */}
         <div className="p-6 flex flex-col flex-grow">
-          {/* Meta info */}
+          {/* Thông tin meta (tác giả, ngày) */}
           <div className="flex items-center gap-3 mb-4 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <img
@@ -80,7 +98,7 @@ const NewsPage = () => {
             <time>{new Date(news.createDate).toLocaleDateString()}</time>
           </div>
 
-          {/* Title */}
+          {/* Tiêu đề tin tức */}
           <h2
             className="text-xl font-bold mb-3 text-white group-hover:text-red-500 
             transition-colors duration-300 line-clamp-2"
@@ -88,12 +106,12 @@ const NewsPage = () => {
             {news.title}
           </h2>
 
-          {/* Excerpt */}
+          {/* Tóm tắt nội dung */}
           <p className="text-gray-400 line-clamp-3 mb-4 text-sm leading-relaxed flex-grow">
             {news.content}
           </p>
 
-          {/* Read more */}
+          {/* Nút đọc thêm */}
           <div className="flex items-center text-red-500 text-sm font-medium group-hover:text-red-400 mt-auto">
             Read more
             <svg
@@ -116,21 +134,26 @@ const NewsPage = () => {
     </Link>
   );
 
+  // Xử lý load thêm tin tức
   const handleLoadMore = () => {
-    setPage((prev) => prev + 1);
+    if (!loading && hasMore) {
+      setPage((prev) => prev + 1);
+    }
   };
 
+  // Hiển thị loading khi lần đầu load trang
   if (loading && page === 1) {
     return <Loading />;
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black">
-      {/* Hero Section */}
-      <div className="relative py-12 px-4overflow-hidden">
+      {/* Hero Section - Phần header */}
+      <div className="relative py-12 px-4 overflow-hidden">
         {/* Background pattern */}
         <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-5" />
 
+        {/* Nội dung header */}
         <div className="relative max-w-7xl mx-auto text-center">
           <h1
             className="text-5xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent 
@@ -143,7 +166,7 @@ const NewsPage = () => {
             world of cinema
           </p>
 
-          {/* Search bar */}
+          {/* Thanh tìm kiếm */}
           <div className="max-w-2xl mx-auto relative">
             <input
               type="text"
@@ -163,16 +186,16 @@ const NewsPage = () => {
         </div>
       </div>
 
-      {/* News Grid */}
+      {/* Grid hiển thị tin tức */}
       <div className="max-w-7xl mx-auto px-4 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {news.map((item) => (
+          {allNews.map((item) => (
             <NewsCard key={item.id} news={item} />
           ))}
         </div>
 
-        {/* Load more button */}
-        {news.length > 0 && hasMore && (
+        {/* Nút Load More */}
+        {allNews.length > 0 && hasMore && (
           <div className="flex justify-center mt-16">
             <button
               onClick={handleLoadMore}

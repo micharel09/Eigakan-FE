@@ -10,17 +10,25 @@ import {
   Upload,
   notification,
   Tag,
+  Card,
+  Tooltip,
+  Typography,
 } from "antd";
 import {
   EditOutlined,
   DeleteOutlined,
   PlusOutlined,
   UploadOutlined,
+  EyeOutlined,
+  SearchOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import NewsApi from "../../../apis/News/news";
+import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
 const { TextArea } = Input;
+const { Title, Text } = Typography;
 
 const NEWS_STATUS = {
   ACTIVE: "Active",
@@ -29,9 +37,21 @@ const NEWS_STATUS = {
   DELETED: "Deleted",
 };
 
+// Constants cho việc map status từ số sang text
+const STATUS_MAP = {
+  1: "Active",
+  2: "Draft",
+  Active: "Active", // Hỗ trợ cả trường hợp status là text
+  Draft: "Draft",
+};
+
 const NewsManagement = () => {
-  const [news, setNews] = useState([]);
+  // States cho quản lý news
+  const [news, setNews] = useState([]); // Lưu trữ tất cả news từ API
+  const [filteredNews, setFilteredNews] = useState([]); // Lưu trữ news sau khi filter
   const [loading, setLoading] = useState(false);
+
+  // States cho modal và form
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [editingId, setEditingId] = useState(null);
@@ -40,12 +60,21 @@ const NewsManagement = () => {
     pageSize: 10,
     total: 0,
   });
+  const navigate = useNavigate();
+  const [previewData, setPreviewData] = useState(null);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
-  // Fetch news data
-  const fetchNews = async (page, pageSize) => {
+  // States cho filter và search
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState(null);
+
+  // Fetch news của manager hiện tại dựa theo userId
+  const fetchNews = async () => {
     setLoading(true);
     try {
-      const response = await NewsApi.getNews(page, pageSize);
+      const userId = localStorage.getItem("userId");
+      const response = await NewsApi.getNewsByUserId(userId);
+
       if (response?.data?.success) {
         setNews(response.data.data);
         setPagination({
@@ -69,29 +98,57 @@ const NewsManagement = () => {
   };
 
   useEffect(() => {
-    fetchNews(pagination.current, pagination.pageSize);
+    fetchNews();
   }, []);
 
   // Handle table change
   const handleTableChange = (newPagination, filters, sorter) => {
-    fetchNews(newPagination.current, newPagination.pageSize);
+    setPagination(newPagination);
   };
 
-  // Handle form submit
+  // Effect để filter news dựa trên searchText và statusFilter
+  useEffect(() => {
+    if (!news) return;
+
+    let result = [...news];
+
+    // Filter theo text (tìm kiếm trong title và content)
+    if (searchText) {
+      result = result.filter(
+        (item) =>
+          item.title?.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.content?.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+
+    // Filter theo status (Active/Draft)
+    if (statusFilter) {
+      result = result.filter((item) => {
+        const itemStatus = STATUS_MAP[item.status] || item.status;
+        const filterStatus = STATUS_MAP[statusFilter];
+        return itemStatus === filterStatus;
+      });
+    }
+
+    setFilteredNews(result);
+  }, [news, searchText, statusFilter]);
+
+  // Xử lý submit form khi create/update news
   const handleSubmit = async (values) => {
     try {
-      // Lấy URL ảnh đã upload từ form
+      setLoading(true);
       const imageUrl = form.getFieldValue("picture");
 
-      // Tạo news data với URL ảnh đã có
+      // Chuẩn bị data để gửi lên API
       const newsData = {
         title: values.title,
         content: values.content,
-        picture: imageUrl || "", // Sử dụng URL ảnh đã upload
-        status: "1",
+        picture: imageUrl || "",
+        status: values.status || "1", // Default là Active
         userId: localStorage.getItem("userId"),
       };
 
+      // Gọi API tương ứng (create/update)
       let response;
       if (editingId) {
         response = await NewsApi.updateNews(editingId, newsData);
@@ -100,24 +157,30 @@ const NewsManagement = () => {
       }
 
       if (response?.data?.success) {
+        setIsModalVisible(false);
+        form.resetFields();
+        await fetchNews(); // Refresh data sau khi create/update
+
         notification.success({
           message: editingId ? "Updated Successfully" : "Created Successfully",
           description: response.data.message,
+          key: "operation-success",
         });
-        setIsModalVisible(false);
-        form.resetFields();
-        fetchNews(pagination.current, pagination.pageSize);
       } else {
         notification.error({
           message: "Error",
           description: response?.data?.message || "Operation failed",
+          key: "operation-error",
         });
       }
     } catch (error) {
       notification.error({
         message: "Error",
         description: error.response?.data?.message || error.message,
+        key: "operation-error",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -138,7 +201,7 @@ const NewsManagement = () => {
               message: "Deleted Successfully",
               description: response.data.message,
             });
-            fetchNews(pagination.current, pagination.pageSize);
+            fetchNews();
           } else {
             notification.error({
               message: "Delete Failed",
@@ -164,7 +227,7 @@ const NewsManagement = () => {
           message: "Status Updated",
           description: response.data.message,
         });
-        fetchNews(pagination.current, pagination.pageSize);
+        fetchNews();
       } else {
         notification.error({
           message: "Status Update Failed",
@@ -179,16 +242,17 @@ const NewsManagement = () => {
     }
   };
 
+  // Xử lý upload ảnh
   const handleUpload = async (options) => {
     const { file } = options;
     try {
-      if (!file) {
-        throw new Error("No file selected");
-      }
+      // Validate file trước khi upload
+      if (!file) throw new Error("No file selected");
 
       const response = await NewsApi.uploadImage(file);
 
       if (response?.data?.status) {
+        // Set URL ảnh vào form sau khi upload thành công
         form.setFieldsValue({
           image: [file],
           picture: response.data.data[0].url,
@@ -209,80 +273,196 @@ const NewsManagement = () => {
     }
   };
 
-  const columns = [
-    {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
-    },
-    {
-      title: "Content",
-      dataIndex: "content",
-      key: "content",
-      ellipsis: true,
-    },
-    {
-      title: "Image",
-      dataIndex: "picture",
-      key: "picture",
-      render: (text) =>
-        text ? <img src={text} alt="news" style={{ width: 50 }} /> : "No image",
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => (
-        <Tag color={status === "Active" ? "green" : "red"}>{status}</Tag>
-      ),
-    },
-    {
-      title: "Action",
-      key: "action",
-      render: (_, record) => (
-        <Space>
-          <Button
-            onClick={() => {
-              setEditingId(record.id);
-              form.setFieldsValue(record);
-              setIsModalVisible(true);
-            }}
-          >
-            Edit
-          </Button>
-          <Button danger onClick={() => handleDelete(record.id)}>
-            Delete
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  // Thêm hàm xử lý preview
+  const handlePreview = (record) => {
+    setPreviewData(record);
+    setIsPreviewVisible(true);
+  };
+
+  // Thêm debounce cho search
+  const handleSearch = (value) => {
+    setSearchText(value);
+  };
+
+  // Handle status filter change
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value);
+  };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">News Management</h1>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setEditingId(null);
-            form.resetFields();
-            setIsModalVisible(true);
-          }}
-        >
-          Add News
-        </Button>
-      </div>
+    <div className="p-4 bg-gray-50 min-h-screen">
+      {/* Header Section - Thu gọn padding */}
+      <Card className="mb-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <Title level={3} className="!mb-1">
+              News Management
+            </Title>
+            <Text type="secondary" className="text-sm">
+              Manage all your news articles in one place
+            </Text>
+          </div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditingId(null);
+              form.resetFields();
+              setIsModalVisible(true);
+            }}
+            className="bg-blue-500 hover:bg-blue-600"
+          >
+            Add News
+          </Button>
+        </div>
+      </Card>
 
-      <Table
-        columns={columns}
-        dataSource={news}
-        rowKey="id"
-        pagination={pagination}
-        loading={loading}
-        onChange={handleTableChange}
-      />
+      {/* Filters Section - Thu gọn padding và spacing */}
+      <Card className="mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Input
+            placeholder="Search by title or content..."
+            prefix={<SearchOutlined className="text-gray-400" />}
+            className="rounded-lg"
+            allowClear
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+          <Select
+            placeholder="Filter by status"
+            className="w-full"
+            allowClear
+            onChange={handleStatusFilterChange}
+            value={statusFilter}
+          >
+            <Option value="1">Active</Option>
+            <Option value="2">Draft</Option>
+          </Select>
+          <Button
+            icon={<FilterOutlined />}
+            onClick={() => {
+              setSearchText("");
+              setStatusFilter(null);
+            }}
+            className="md:w-fit md:ml-auto"
+          >
+            Clear Filters
+          </Button>
+        </div>
+      </Card>
+
+      {/* Table Section - Điều chỉnh columns và spacing */}
+      <Card>
+        <Table
+          columns={[
+            {
+              title: "Title & Preview",
+              key: "title",
+              render: (_, record) => (
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
+                    <img
+                      src={record.picture || "/default-news.jpg"}
+                      alt={record.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 truncate">
+                      {record.title}
+                    </div>
+                    <Text type="secondary" className="text-sm truncate block">
+                      {record.content?.substring(0, 60)}...
+                    </Text>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              title: "Status",
+              dataIndex: "status",
+              key: "status",
+              width: 100,
+              render: (status) => {
+                const displayStatus = STATUS_MAP[status] || status;
+                return (
+                  <Tag
+                    color={
+                      displayStatus === "Active"
+                        ? "success"
+                        : displayStatus === "Draft"
+                        ? "warning"
+                        : "error"
+                    }
+                    className="px-2 py-0.5 text-xs rounded-full"
+                  >
+                    {displayStatus}
+                  </Tag>
+                );
+              },
+            },
+            {
+              title: "Created",
+              dataIndex: "createDate",
+              key: "createDate",
+              width: 120,
+              render: (date) => (
+                <Text type="secondary" className="text-sm">
+                  {new Date(date).toLocaleDateString()}
+                </Text>
+              ),
+            },
+            {
+              title: "Actions",
+              key: "action",
+              width: 120,
+              render: (_, record) => (
+                <Space size="small">
+                  <Tooltip title="Preview">
+                    <Button
+                      type="text"
+                      icon={<EyeOutlined />}
+                      onClick={() => handlePreview(record)}
+                      className="hover:text-blue-500"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Edit">
+                    <Button
+                      type="text"
+                      icon={<EditOutlined />}
+                      onClick={() => {
+                        setEditingId(record.id);
+                        form.setFieldsValue(record);
+                        setIsModalVisible(true);
+                      }}
+                      className="hover:text-blue-500"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Delete">
+                    <Button
+                      type="text"
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleDelete(record.id)}
+                      className="hover:text-red-500"
+                    />
+                  </Tooltip>
+                </Space>
+              ),
+            },
+          ]}
+          dataSource={filteredNews}
+          rowKey="id"
+          pagination={{
+            ...pagination,
+            total: filteredNews.length,
+            pageSize: 8, // Giảm số items mỗi trang
+            showSizeChanger: false, // Ẩn option thay đổi pageSize
+          }}
+          loading={loading}
+          onChange={handleTableChange}
+          className="rounded-lg overflow-hidden"
+          size="middle" // Giảm kích thước row
+        />
+      </Card>
 
       <Modal
         title={editingId ? "Edit News" : "Add News"}
@@ -350,6 +530,13 @@ const NewsManagement = () => {
             </Upload>
           </Form.Item>
 
+          <Form.Item name="status" label="Status" initialValue="1">
+            <Select>
+              <Option value="1">Active</Option>
+              <Option value="2">Draft</Option>
+            </Select>
+          </Form.Item>
+
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit">
@@ -366,6 +553,63 @@ const NewsManagement = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Preview Modal */}
+      <Modal
+        title="News Preview"
+        open={isPreviewVisible}
+        onCancel={() => setIsPreviewVisible(false)}
+        width={800}
+        footer={null}
+      >
+        {previewData && (
+          <div className="preview-container">
+            {/* Hero Section */}
+            <div className="relative h-[300px] w-full mb-6">
+              <img
+                src={previewData.picture || "/default-news.jpg"}
+                alt={previewData.title}
+                className="w-full h-full object-cover rounded-lg"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  {previewData.title}
+                </h1>
+                <div className="flex items-center text-gray-300 text-sm">
+                  <span>
+                    {new Date(previewData.createDate).toLocaleDateString()}
+                  </span>
+                  <span className="mx-2">•</span>
+                  <span>{previewData.userName || "Admin"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="prose max-w-none">
+              <p className="text-gray-600 whitespace-pre-line">
+                {previewData.content}
+              </p>
+            </div>
+
+            {/* Status Badge */}
+            <div className="mt-6">
+              <Tag
+                color={
+                  STATUS_MAP[previewData.status] === "Active"
+                    ? "green"
+                    : STATUS_MAP[previewData.status] === "Draft"
+                    ? "gold"
+                    : "red"
+                }
+              >
+                {STATUS_MAP[previewData.status] || previewData.status}
+              </Tag>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -1,25 +1,19 @@
 import axios from "axios"
 
 const API_URL = 'https://localhost:7192/api/News'
-const UPLOAD_URL = 'https://eigakan1111-001-site1.qtempurl.com/api/Media/Upload_Pictures'
 
 const NewsApi = {
-    // Get all news with pagination
-    async getNews(page = 1, pageSize = 10) {
+    // Get all news
+    async getNews() {
         try {
             const token = localStorage.getItem('token');
             const res = await axios.get(`${API_URL}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
-                },
-                params: {
-                    pageNumber: page,
-                    pageSize: pageSize
                 }
             });
             return res;
         } catch (err) {
-            console.error("API Error:", err);
             return err.response;
         }
     },
@@ -35,7 +29,6 @@ const NewsApi = {
             });
             return res;
         } catch (err) {
-            console.error("Get News Error:", err);
             return err.response;
         }
     },
@@ -83,7 +76,6 @@ const NewsApi = {
             });
             return res;
         } catch (err) {
-            console.error("Create Error:", err);
             return err.response;
         }
     },
@@ -110,7 +102,6 @@ const NewsApi = {
             });
             return res;
         } catch (err) {
-            console.error("Update Error:", err);
             return err.response;
         }
     },
@@ -119,7 +110,6 @@ const NewsApi = {
     async setInactive(id) {
         try {
             const token = localStorage.getItem('token');
-            console.log("Setting news inactive, ID:", id);
             
             // Sửa lại endpoint và body theo BE
             const res = await axios.patch(`${API_URL}/${id}/status`, {}, {
@@ -127,10 +117,8 @@ const NewsApi = {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            console.log("Set inactive response:", res);
             return res;
         } catch (err) {
-            console.error("Set inactive Error:", err);
             return err.response;
         }
     },
@@ -140,6 +128,21 @@ const NewsApi = {
         try {
             const token = localStorage.getItem('token');
             const res = await axios.delete(`${API_URL}/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return res;
+        } catch (err) {
+            return err.response;
+        }
+    },
+
+    // Get news by user ID
+    async getNewsByUserId(userId) {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API_URL}/user/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
