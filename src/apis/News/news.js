@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_URL = 'https://localhost:7192/api/News'
+const API_URL = 'https://eigakan1111-001-site1.qtempurl.com/api/News'
 
 const NewsApi = {
     // Get all news
@@ -55,23 +55,13 @@ const NewsApi = {
         }
     },
 
-    // Create new news
+    // Create news
     async createNews(data) {
         try {
             const token = localStorage.getItem('token');
-            const newsData = {
-                title: data.title,
-                content: data.content,
-                picture: data.picture,
-                url: data.url || '',
-                status: "1",
-                userId: localStorage.getItem('userId')
-            };
-
-            const res = await axios.post(API_URL, newsData, {
+            const res = await axios.post(`${API_URL}`, data, {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`
                 }
             });
             return res;
@@ -84,20 +74,9 @@ const NewsApi = {
     async updateNews(id, data) {
         try {
             const token = localStorage.getItem('token');
-            const newsData = {
-                id: id,
-                title: data.title,
-                content: data.content,
-                picture: data.picture,
-                url: data.url || '',
-                status: data.status || "1",
-                userId: localStorage.getItem('userId')
-            };
-
-            const res = await axios.put(`${API_URL}/${id}`, newsData, {
+            const res = await axios.put(`${API_URL}/${id}`, data, {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`
                 }
             });
             return res;
@@ -110,8 +89,6 @@ const NewsApi = {
     async setInactive(id) {
         try {
             const token = localStorage.getItem('token');
-            
-            // Sửa lại endpoint và body theo BE
             const res = await axios.patch(`${API_URL}/${id}/status`, {}, {
                 headers: {
                     'Authorization': `Bearer ${token}`
