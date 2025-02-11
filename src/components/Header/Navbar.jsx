@@ -21,7 +21,11 @@ const Navbar = () => {
   const location = useLocation();
   const role = localStorage.getItem("role");
   const isManager = role === "MANAGER";
+  const isAdmin = role === "ADMIN";
   const isInManagerPage = location.pathname.includes("/manager");
+  const isInAdminPage =
+    location.pathname.includes("/dashboard") ||
+    location.pathname.includes("/userRegister");
 
   useEffect(() => {
     const updateUser = () => setUser(authService.getCurrentUser());
@@ -98,16 +102,60 @@ const Navbar = () => {
             )}
           </div>
 
-          {isManager && (
+          {(isManager || isAdmin) && (
             <div className="flex items-center ml-4">
               <Link
-                to={isInManagerPage ? "/homescreen" : "/manager/dashboard"}
+                to={
+                  isManager
+                    ? isInManagerPage
+                      ? "/homescreen"
+                      : "/manager/dashboard"
+                    : isInAdminPage
+                    ? "/homescreen"
+                    : "/dashboard"
+                }
                 className="flex items-center gap-2 px-4 py-2 rounded-lg 
                   text-sm font-medium transition-colors duration-200
                   border border-red-500/20
                   hover:bg-red-500/10 text-red-500"
               >
-                {isInManagerPage ? (
+                {isManager ? (
+                  isInManagerPage ? (
+                    <>
+                      <span>View User Site</span>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      <span>Manager Dashboard</span>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </>
+                  )
+                ) : isInAdminPage ? (
                   <>
                     <span>View User Site</span>
                     <svg
@@ -126,7 +174,7 @@ const Navbar = () => {
                   </>
                 ) : (
                   <>
-                    <span>Manager Dashboard</span>
+                    <span>Admin Dashboard</span>
                     <svg
                       className="w-4 h-4"
                       fill="none"
