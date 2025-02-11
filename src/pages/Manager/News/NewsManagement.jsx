@@ -41,8 +41,11 @@ const NEWS_STATUS = {
 const STATUS_MAP = {
   1: "Active",
   2: "Draft",
-  Active: "Active", // Hỗ trợ cả trường hợp status là text
+  3: "Deleted",
+
+  Active: "Active",
   Draft: "Draft",
+  Deleted: "Deleted",
 };
 
 const NewsManagement = () => {
@@ -67,6 +70,9 @@ const NewsManagement = () => {
   // States cho filter và search
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState(null);
+
+  // New state for upload tracking
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch news của manager hiện tại dựa theo userId
   const fetchNews = async () => {
@@ -136,51 +142,35 @@ const NewsManagement = () => {
   // Xử lý submit form khi create/update news
   const handleSubmit = async (values) => {
     try {
-      setLoading(true);
-      const imageUrl = form.getFieldValue("picture");
-
-      // Chuẩn bị data để gửi lên API
-      const newsData = {
-        title: values.title,
-        content: values.content,
-        picture: imageUrl || "",
-        status: values.status || "1", // Default là Active
-        userId: localStorage.getItem("userId"),
+      const formData = {
+        ...values,
+        // Nếu không upload ảnh mới, giữ lại ảnh cũ
+        picture: values.picture || form.getFieldValue("picture"),
       };
 
-      // Gọi API tương ứng (create/update)
       let response;
       if (editingId) {
-        response = await NewsApi.updateNews(editingId, newsData);
+        response = await NewsApi.updateNews(editingId, formData);
       } else {
-        response = await NewsApi.createNews(newsData);
+        response = await NewsApi.createNews(formData);
       }
 
       if (response?.data?.success) {
-        setIsModalVisible(false);
-        form.resetFields();
-        await fetchNews(); // Refresh data sau khi create/update
-
         notification.success({
           message: editingId ? "Updated Successfully" : "Created Successfully",
           description: response.data.message,
-          key: "operation-success",
         });
+        setIsModalVisible(false);
+        form.resetFields();
+        fetchNews();
       } else {
-        notification.error({
-          message: "Error",
-          description: response?.data?.message || "Operation failed",
-          key: "operation-error",
-        });
+        throw new Error(response?.data?.message || "Operation failed");
       }
     } catch (error) {
       notification.error({
         message: "Error",
-        description: error.response?.data?.message || error.message,
-        key: "operation-error",
+        description: error.message,
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -244,7 +234,9 @@ const NewsManagement = () => {
 
   // Xử lý upload ảnh
   const handleUpload = async (options) => {
-    const { file } = options;
+    const { file, onSuccess, onError } = options;
+    setIsUploading(true);
+
     try {
       // Validate file trước khi upload
       if (!file) throw new Error("No file selected");
@@ -262,6 +254,7 @@ const NewsManagement = () => {
           message: "Upload Successful",
           description: response.data.message,
         });
+        onSuccess(response.data);
       } else {
         throw new Error(response?.data?.message || "Upload failed");
       }
@@ -270,6 +263,8 @@ const NewsManagement = () => {
         message: "Upload Failed",
         description: error.message || "Failed to upload image",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -287,6 +282,26 @@ const NewsManagement = () => {
   // Handle status filter change
   const handleStatusFilterChange = (value) => {
     setStatusFilter(value);
+  };
+
+  // Sửa lại phần xử lý khi click edit để set initial values
+  const handleEdit = (record) => {
+    setEditingId(record.id);
+    // Set initial values với cả picture và image
+    form.setFieldsValue({
+      ...record,
+      image: record.picture
+        ? [
+            {
+              uid: "-1",
+              name: "image.png",
+              status: "done",
+              url: record.picture,
+            },
+          ]
+        : [],
+    });
+    setIsModalVisible(true);
   };
 
   return (
@@ -336,6 +351,7 @@ const NewsManagement = () => {
           >
             <Option value="1">Active</Option>
             <Option value="2">Draft</Option>
+            <Option value="3">Deleted</Option>
           </Select>
           <Button
             icon={<FilterOutlined />}
@@ -429,11 +445,7 @@ const NewsManagement = () => {
                     <Button
                       type="text"
                       icon={<EditOutlined />}
-                      onClick={() => {
-                        setEditingId(record.id);
-                        form.setFieldsValue(record);
-                        setIsModalVisible(true);
-                      }}
+                      onClick={() => handleEdit(record)}
                       className="hover:text-blue-500"
                     />
                   </Tooltip>
@@ -468,6 +480,13 @@ const NewsManagement = () => {
         title={editingId ? "Edit News" : "Add News"}
         open={isModalVisible}
         onCancel={() => {
+          if (isUploading) {
+            notification.warning({
+              message: "Please wait",
+              description: "Image is still uploading...",
+            });
+            return;
+          }
           setIsModalVisible(false);
           form.resetFields();
         }}
@@ -477,7 +496,14 @@ const NewsManagement = () => {
           <Form.Item
             name="title"
             label="Title"
-            rules={[{ required: true, message: "Please input title!" }]}
+            rules={[
+              { required: true, message: "Please input title!" },
+              {
+                max: 50,
+                message: "Title cannot be longer than 50 characters!",
+              },
+              { min: 10, message: "Title must be at least 10 characters!" },
+            ]}
           >
             <Input />
           </Form.Item>
@@ -485,9 +511,16 @@ const NewsManagement = () => {
           <Form.Item
             name="content"
             label="Content"
-            rules={[{ required: true, message: "Please input content!" }]}
+            rules={[
+              { required: true, message: "Please input content!" },
+              { min: 50, message: "Content must be at least 50 characters!" },
+              {
+                max: 5000,
+                message: "Content cannot be longer than 5000 characters!",
+              },
+            ]}
           >
-            <Input.TextArea rows={4} />
+            <Input.TextArea rows={4} showCount maxLength={5000} />
           </Form.Item>
 
           <Form.Item
@@ -497,6 +530,7 @@ const NewsManagement = () => {
             getValueFromEvent={(e) => {
               return e?.fileList;
             }}
+            rules={[{ required: true, message: "Please upload an image!" }]}
           >
             <Upload
               customRequest={handleUpload}
@@ -539,14 +573,27 @@ const NewsManagement = () => {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit">
-                {editingId ? "Update" : "Create"}
+              <Button
+                type="primary"
+                htmlType="submit"
+                disabled={isUploading}
+                loading={loading}
+              >
+                {isUploading ? "Uploading..." : editingId ? "Update" : "Create"}
               </Button>
               <Button
                 onClick={() => {
+                  if (isUploading) {
+                    notification.warning({
+                      message: "Please wait",
+                      description: "Image is still uploading...",
+                    });
+                    return;
+                  }
                   setIsModalVisible(false);
                   form.resetFields();
                 }}
+                disabled={isUploading}
               >
                 Cancel
               </Button>
