@@ -174,14 +174,25 @@ const routes = [
   },
 
   {
-    path: "/api/Auth/Verify",
+    path: "/verify",
     element: <VerifyAccount />,
     layout: "UserLayout",
-    exact: true,
   },
 
   {
-    path: "/api/Auth/Reset-password",
+    path: "/resetpassword",
+    element: <ResetPassword />,
+    layout: "UserLayout",
+  },
+
+  // Routes cho URL hiện tại từ BE
+  {
+    path: "/api/Auth/Verify",
+    element: <VerifyAccount />,
+    layout: "UserLayout",
+  },
+  {
+    path: "/api/Auth/ForgotPassword",
     element: <ResetPassword />,
     layout: "UserLayout",
   },
