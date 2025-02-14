@@ -1,8 +1,26 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "routes": [
+    { 
+      "src": "/api/Auth/Verify", 
+      "dest": "/index.html" 
+    },
+    { 
+      "src": "/api/Auth/Reset-password", 
+      "dest": "/index.html" 
+    },
+    { 
+      "src": "/(.*)", 
+      "dest": "/index.html" 
     }
   ]
 }

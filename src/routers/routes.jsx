@@ -174,6 +174,12 @@ const routes = [
   },
 
   {
+    path: "/api/*",
+    element: <VerifyAccount />,
+    layout: "UserLayout",
+  },
+
+  {
     path: "/api/Auth/Verify",
     element: <VerifyAccount />,
     layout: "UserLayout",

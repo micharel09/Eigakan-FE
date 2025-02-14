@@ -18,6 +18,7 @@ const VerifyAccount = () => {
     const verifyAccount = async () => {
       try {
         const token = searchParams.get("token");
+        console.log("Current URL:", window.location.href);
         console.log("Verifying with token:", token);
 
         if (!token) {
