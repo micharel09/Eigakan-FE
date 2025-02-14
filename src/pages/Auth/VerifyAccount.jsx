@@ -18,6 +18,8 @@ const VerifyAccount = () => {
     const verifyAccount = async () => {
       try {
         const token = searchParams.get("token");
+        console.log("Verifying with token:", token);
+
         if (!token) {
           setStatus({
             loading: false,
@@ -27,14 +29,18 @@ const VerifyAccount = () => {
           return;
         }
 
-        await authService.verify(token);
-        setStatus({
-          loading: false,
-          success: true,
-          message: "Account verification successful!",
-        });
-        setTimeout(() => navigate("/homescreen"), 3000);
+        const response = await authService.verify(token);
+        console.log("Verify response:", response);
+        if (response.success) {
+          setStatus({
+            loading: false,
+            success: true,
+            message: response.message || "Account verification successful!",
+          });
+          setTimeout(() => navigate("/login"), 3000);
+        }
       } catch (error) {
+        console.error("Verify error:", error);
         setStatus({
           loading: false,
           success: false,

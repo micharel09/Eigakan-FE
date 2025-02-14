@@ -174,7 +174,7 @@ const routes = [
   },
 
   {
-    path: "/api/Auth/Verify/:token",
+    path: "/api/Auth/Verify",
     element: <VerifyAccount />,
     layout: "UserLayout",
   },
