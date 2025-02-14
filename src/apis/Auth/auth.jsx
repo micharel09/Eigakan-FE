@@ -77,7 +77,7 @@ const authService = {
 
   async forgotPassword(email) {
     try {
-      const res = await axios.post(`${API_URL}/ForgotPassword`, { email });
+      const res = await axios.post(`${API_URL}/Forgot-password`, { email });
       return res.data;
     } catch (err) {
       throw err.response?.data || { message: "Failed to process request" };
@@ -86,7 +86,7 @@ const authService = {
 
   async resetPassword(token, newPassword, confirmPassword) {
     try {
-      const res = await axios.post(`${API_URL}/ResetPassword`, {
+      const res = await axios.post(`${API_URL}/Reset-password`, {
         token,
         newPassword,
         confirmPassword,

@@ -174,7 +174,7 @@ const routes = [
   },
 
   {
-    path: "/api/Auth/ResetPassword",
+    path: "/api/Auth/ForgotPassword",
     element: <ResetPassword />,
   },
 
