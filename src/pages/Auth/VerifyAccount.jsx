@@ -18,7 +18,7 @@ const VerifyAccount = () => {
     const verifyAccount = async () => {
       try {
         const token = searchParams.get("token");
-        console.log("Current URL:", window.location.href);
+        console.log("Current path:", window.location.pathname);
         console.log("Verifying with token:", token);
 
         if (!token) {
@@ -31,7 +31,7 @@ const VerifyAccount = () => {
         }
 
         const response = await authService.verify(token);
-        console.log("Verify response:", response);
+        console.log("API Response:", response);
         if (response.success) {
           setStatus({
             loading: false,
