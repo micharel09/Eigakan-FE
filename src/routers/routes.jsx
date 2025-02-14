@@ -120,10 +120,6 @@ const routes = [
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
   { path: "/login", element: <LoginPage /> },
-  { path: "/verify", element: <VerifyAccount /> },
-
-  { path: "/forgot-password", element: <ForgotPassword /> },
-  { path: "/resetpassword", element: <ResetPassword /> },
 
   { path: "/signup-success", element: <SignupSuccess /> },
 
@@ -170,6 +166,21 @@ const routes = [
     path: "/news/:id",
     element: <NewsDetail />,
     layout: "UserLayout",
+  },
+
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+
+  {
+    path: "/api/Auth/ForgotPassword",
+    element: <ResetPassword />,
+  },
+
+  {
+    path: "/api/Auth/VerifyAccount",
+    element: <VerifyAccount />,
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
