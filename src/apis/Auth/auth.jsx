@@ -44,6 +44,9 @@ const authService = {
       const res = await axios.get(`${API_URL}/Verify`, {
         params: { token },
       });
+      if (!res.data.success) {
+        throw new Error(res.data.message);
+      }
       return res.data;
     } catch (err) {
       throw err.response?.data || { message: "Verification failed" };

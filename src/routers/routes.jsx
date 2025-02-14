@@ -174,13 +174,15 @@ const routes = [
   },
 
   {
-    path: "/api/Auth/ForgotPassword",
-    element: <ResetPassword />,
+    path: "/api/Auth/Verify/:token",
+    element: <VerifyAccount />,
+    layout: "UserLayout",
   },
 
   {
-    path: "/api/Auth/Verify",
-    element: <VerifyAccount />,
+    path: "/api/Auth/Reset-password",
+    element: <ResetPassword />,
+    layout: "UserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
