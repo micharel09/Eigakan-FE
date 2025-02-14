@@ -33,6 +33,18 @@ const isLoggedIn = () => {
 const role = localStorage.getItem("role") || "GUEST";
 
 const routes = [
+  // Đặt routes verify và reset password lên đầu
+  {
+    path: "/api/Auth/Verify",
+    element: <VerifyAccount />,
+    layout: "UserLayout",
+  },
+  {
+    path: "/api/Auth/ForgotPassword",
+    element: <ResetPassword />,
+    layout: "UserLayout",
+  },
+
   //chỉnh url mặc định theo role
 
   //ADMIN
@@ -166,21 +178,6 @@ const routes = [
     path: "/news/:id",
     element: <NewsDetail />,
     layout: "UserLayout",
-  },
-
-  {
-    path: "/forgot-password",
-    element: <ForgotPassword />,
-  },
-
-  {
-    path: "/api/Auth/ForgotPassword",
-    element: <ResetPassword />,
-  },
-
-  {
-    path: "/api/Auth/VerifyAccount",
-    element: <VerifyAccount />,
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
