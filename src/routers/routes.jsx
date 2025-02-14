@@ -174,12 +174,12 @@ const routes = [
   },
 
   {
-    path: "/api/Auth/ForgotPassword",
+    path: "/api/Auth/ResetPassword",
     element: <ResetPassword />,
   },
 
   {
-    path: "/api/Auth/VerifyAccount",
+    path: "/api/Auth/Verify",
     element: <VerifyAccount />,
   },
 

@@ -77,27 +77,23 @@ const authService = {
 
   async forgotPassword(email) {
     try {
-      const res = await axios.post(`${API_URL}/Forgot-password`, { email });
+      const res = await axios.post(`${API_URL}/ForgotPassword`, { email });
       return res.data;
     } catch (err) {
-      throw (
-        err.response?.data || {
-          message: "Failed to process forgot password request",
-        }
-      );
+      throw err.response?.data || { message: "Failed to process request" };
     }
   },
 
-  async resetPassword(token, password, confirmPassword) {
+  async resetPassword(token, newPassword, confirmPassword) {
     try {
-      const res = await axios.post(`${API_URL}/Reset-password`, {
+      const res = await axios.post(`${API_URL}/ResetPassword`, {
         token,
-        password,
+        newPassword,
         confirmPassword,
       });
       return res.data;
     } catch (err) {
-      throw err.response?.data || { message: "Failed to reset password" };
+      throw err.response?.data || { message: "Reset password failed" };
     }
   },
 };
