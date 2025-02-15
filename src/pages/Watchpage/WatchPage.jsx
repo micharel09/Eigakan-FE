@@ -5,6 +5,7 @@ import GlobalApi from "../../components/Homepage/GlobalApi";
 import { Loader2 } from "lucide-react";
 import { Helmet } from "react-helmet";
 import Loading from "../../components/Loading/Loading";
+import { Star } from "lucide-react";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
 // This is a placeholder video URL. Replace it with your actual video source when available.
@@ -81,9 +82,9 @@ const WatchPage = () => {
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
-                      className="text-2xl text-yellow-400 hover:text-yellow-300"
+                      className="text-2xl text-blue-500 hover:text-blue-300"
                     >
-                      ★
+                      <Star className="w-4 h-4" />
                     </button>
                   ))}
                 </div>
@@ -98,7 +99,7 @@ const WatchPage = () => {
                   rows="3"
                   placeholder="Viết bình luận của bạn..."
                 ></textarea>
-                <button className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                   Gửi bình luận
                 </button>
               </div>

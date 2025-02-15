@@ -47,7 +47,7 @@ function PopularPeople() {
                   }}
                 />
               </div>
-              <h2 className="text-white font-medium group-hover:text-blue-400 transition-colors">
+              <h2 className="text-white font-medium group-hover:text-[#FF009F] transition-colors">
                 {actor.name}
               </h2>
               <p className="text-sm text-gray-400">

@@ -5,6 +5,7 @@ import authService from "../../apis/Auth/auth";
 import { Helmet } from "react-helmet";
 import Navbar from "../../components/Header/Navbar";
 import { AiOutlineMail, AiOutlineLock } from "react-icons/ai";
+import { Spin } from "antd";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -40,14 +41,12 @@ const LoginPage = () => {
           navigate("/homescreen");
         }
       } else {
-        // Hiển thị thông báo lỗi từ phản hồi API
-        setError(res.message || "Login failed.");
+        setError(res.message || "Login failed");
       }
     } catch (error) {
-      // Hiển thị lỗi hệ thống
-      setError(error.message || "An error occurred. Please try again.");
+      // Hiển thị lỗi từ API
+      setError(error.message || "An error occurred during login");
     } finally {
-      // Tắt trạng thái loading
       setLoading(false);
     }
   };
@@ -82,12 +81,14 @@ const LoginPage = () => {
               </label>
               <input
                 type="email"
-                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring"
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg
+                focus:border-[#FF009F] hover:border-[#FF009F] transition-colors"
                 placeholder="you@example.com"
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                required
               />
             </div>
 
@@ -100,37 +101,52 @@ const LoginPage = () => {
               </label>
               <input
                 type="password"
-                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring"
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg
+                focus:border-[#FF009F] hover:border-[#FF009F] transition-colors"
                 placeholder="••••••••"
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
+                required
               />
             </div>
 
             <div className="mt-2">
-              <button
-                onClick={() => navigate("/forgot-password")}
-                type="button"
-                className="text-sm text-red-500 hover:underline"
+              <Link
+                to="/forgot-password"
+                className="text-[#FF009F] hover:text-[#D1007F] transition-colors"
               >
                 Forgot Password?
-              </button>
+              </Link>
             </div>
 
             <button
-              className="w-full py-2 bg-red-600 text-white font-semibold rounded-md
-              hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed
-            "
+              type="submit"
+              className={`w-full py-3 text-white rounded-lg transition-colors duration-300 
+              flex items-center justify-center gap-2
+              ${loading ? "bg-[#D1007F]" : "bg-[#FF009F] hover:bg-[#D1007F]"}`}
               disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? (
+                <Spin
+                  size="default"
+                  style={{
+                    color: "white",
+                    fontSize: "20px",
+                  }}
+                />
+              ) : (
+                "Login"
+              )}
             </button>
           </form>
           <div className="text-center text-gray-400">
             Don't have an account?{" "}
-            <Link to={"/signup"} className="text-red-500 hover:underline">
+            <Link
+              to={"/signup"}
+              className="text-[#FF009F] hover:text-[#D1007F]"
+            >
               Sign up
             </Link>
           </div>

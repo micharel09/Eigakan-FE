@@ -2,26 +2,34 @@ import React, { useState, useEffect } from "react";
 import {
   Table,
   Button,
+  Space,
   Modal,
   Form,
   Input,
-  Space,
-  Popconfirm,
-  message,
+  Card,
+  Tooltip,
+  Typography,
+  notification,
 } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  EyeOutlined,
+  SearchOutlined,
+  FilterOutlined,
+} from "@ant-design/icons";
 import genreService from "../../../apis/Genre/genre";
 
-const { TextArea } = Input;
+const { Title, Text } = Typography;
 
-function GenreManagement() {
+const GenreManagement = () => {
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingGenre, setEditingGenre] = useState(null);
   const [form] = Form.useForm();
-  const role = localStorage.getItem("role");
-  const isAdmin = role === "ADMIN";
+  const [searchText, setSearchText] = useState("");
 
   // Fetch genres
   const fetchGenres = async () => {
@@ -32,7 +40,10 @@ function GenreManagement() {
         setGenres(response.data);
       }
     } catch (error) {
-      message.error(error.message || "Failed to load genres");
+      notification.error({
+        message: "Error",
+        description: error.message || "Could not fetch genres",
+      });
     } finally {
       setLoading(false);
     }
@@ -42,167 +53,198 @@ function GenreManagement() {
     fetchGenres();
   }, []);
 
-  // Handle form submit
+  // Handle Modal
+  const showModal = (genre = null) => {
+    setEditingGenre(genre);
+    form.setFieldsValue(genre || {});
+    setIsModalVisible(true);
+  };
+
+  const handleCancel = () => {
+    form.resetFields();
+    setIsModalVisible(false);
+    setEditingGenre(null);
+  };
+
   const handleSubmit = async (values) => {
     try {
       if (editingGenre) {
-        const response = await genreService.updateGenre(
-          editingGenre.id,
-          values
-        );
-        if (response.success) {
-          message.success("Genre updated successfully");
-          setModalVisible(false);
-          form.resetFields();
-          fetchGenres();
-        }
+        // Update genre
+        await genreService.updateGenre(editingGenre.id, values);
+        notification.success({ message: "Genre updated successfully" });
       } else {
-        const response = await genreService.createGenre(values);
-        if (response.success) {
-          message.success("Genre added successfully");
-          setModalVisible(false);
-          form.resetFields();
-          fetchGenres();
-        }
+        // Create new genre
+        await genreService.createGenre(values);
+        notification.success({ message: "Genre created successfully" });
       }
+      handleCancel();
+      fetchGenres();
     } catch (error) {
-      message.error(error.message || "Operation failed");
+      notification.error({
+        message: "Error",
+        description: error.message || "Operation failed",
+      });
     }
   };
 
-  // Handle delete
+  // Handle Delete
   const handleDelete = async (id) => {
     try {
-      const response = await genreService.deleteGenre(id);
-      if (response.success) {
-        message.success("Genre deleted successfully");
-        setGenres((prevGenres) =>
-          prevGenres.filter((genre) => genre.id !== id)
-        );
-      }
+      await genreService.deleteGenre(id);
+      notification.success({ message: "Genre deleted successfully" });
+      fetchGenres();
     } catch (error) {
-      message.error(error.message || "Failed to delete genre");
-      console.error("Delete error:", error);
+      notification.error({
+        message: "Error",
+        description: error.message || "Could not delete genre",
+      });
     }
   };
+
+  // Filter genres based on search
+  const filteredGenres = genres.filter((genre) =>
+    genre.name.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   const columns = [
     {
-      title: "Genre Name",
+      title: "Name",
       dataIndex: "name",
       key: "name",
+      render: (text) => <Text>{text}</Text>,
     },
     {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      ellipsis: true,
+      render: (text) => (
+        <Text className="line-clamp-2" title={text}>
+          {text}
+        </Text>
+      ),
     },
-    ...(isAdmin
-      ? [
-          {
-            title: "Actions",
-            key: "action",
-            width: 150,
-            render: (_, record) => (
-              <Space>
-                <Button
-                  type="primary"
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    setEditingGenre(record);
-                    form.setFieldsValue(record);
-                    setModalVisible(true);
-                  }}
-                />
-                <Popconfirm
-                  title="Are you sure you want to delete?"
-                  onConfirm={() => handleDelete(record.id)}
-                >
-                  <Button danger icon={<DeleteOutlined />} />
-                </Popconfirm>
-              </Space>
-            ),
-          },
-        ]
-      : []),
+    {
+      title: "Actions",
+      key: "action",
+      width: 120,
+      render: (_, record) => (
+        <Space size="small">
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => showModal(record)}
+              className="hover:text-[#FF009F]"
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button
+              type="text"
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.id)}
+              className="hover:text-gray-500"
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
   ];
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Genre Management</h1>
-        {isAdmin && (
+    <div className="p-6">
+      <Card>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <Title level={4} className="!mb-0">
+              Genre Management
+            </Title>
+            <Text type="secondary">Manage all your genres in one place</Text>
+          </div>
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingGenre(null);
-              form.resetFields();
-              setModalVisible(true);
+            onClick={() => showModal()}
+            className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
+            style={{
+              backgroundColor: "#FF009F",
             }}
           >
             Add Genre
           </Button>
-        )}
-      </div>
+        </div>
 
-      <Table
-        columns={columns}
-        dataSource={genres}
-        rowKey="id"
-        loading={loading}
-        className="bg-white"
-        pagination={{
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `Total ${total} genres`,
-        }}
-      />
+        {/* Search Bar */}
+        <div className="mb-4">
+          <Input
+            placeholder="Search genres..."
+            prefix={<SearchOutlined />}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="max-w-xs focus:border-[#FF009F] hover:border-[#FF009F]"
+          />
+        </div>
 
+        {/* Genre Table */}
+        <Table
+          columns={columns}
+          dataSource={filteredGenres}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 8,
+            showSizeChanger: false,
+          }}
+        />
+      </Card>
+
+      {/* Add/Edit Modal */}
       <Modal
         title={editingGenre ? "Edit Genre" : "Add New Genre"}
-        open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-        }}
+        open={isModalVisible}
+        onCancel={handleCancel}
         footer={null}
       >
         <Form
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          className="mt-4"
+          initialValues={editingGenre}
         >
           <Form.Item
             name="name"
             label="Genre Name"
-            rules={[{ required: true, message: "Please enter genre name" }]}
+            rules={[{ required: true, message: "Please input genre name!" }]}
           >
-            <Input />
+            <Input className="focus:border-[#FF009F] hover:border-[#FF009F]" />
           </Form.Item>
 
           <Form.Item
             name="description"
             label="Description"
-            rules={[{ required: true, message: "Please enter description" }]}
+            rules={[{ required: true, message: "Please input description!" }]}
           >
-            <TextArea rows={4} />
+            <Input.TextArea
+              rows={4}
+              className="focus:border-[#FF009F] hover:border-[#FF009F]"
+            />
           </Form.Item>
 
-          <Form.Item className="mb-0 text-right">
-            <Space>
-              <Button onClick={() => setModalVisible(false)}>Cancel</Button>
-              <Button type="primary" htmlType="submit">
-                {editingGenre ? "Update" : "Add"}
-              </Button>
-            </Space>
-          </Form.Item>
+          <div className="flex justify-end gap-2">
+            <Button onClick={handleCancel}>Cancel</Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
+              style={{
+                backgroundColor: "#FF009F",
+              }}
+            >
+              {editingGenre ? "Update" : "Create"}
+            </Button>
+          </div>
         </Form>
       </Modal>
     </div>
   );
-}
+};
 
 export default GenreManagement;

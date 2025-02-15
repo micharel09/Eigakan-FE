@@ -11,11 +11,14 @@ const authService = {
         `${API_URL}/Login`,
         { email, password },
         { maxRedirects: 0 }
-      ); // thêm maxRedirects: 0 để tránh redirect
+      );
       this.notifyListeners();
       return res.data;
     } catch (err) {
-      throw err.response?.data || err.message;
+      if (err.response?.data) {
+        throw err.response.data;
+      }
+      throw { success: false, message: "Network error" };
     }
   },
 

@@ -101,7 +101,7 @@ const MovieHero = memo(({ movie, onTrailerClick }) => {
             <div className="flex gap-4">
               <Link
                 to={`/watch/${movie.id}`}
-                className="flex items-center gap-2 px-6 py-3 bg-red-600 rounded-lg hover:bg-red-700 
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700 
                   transition-colors font-semibold text-center group"
               >
                 <PlayCircle className="w-5 h-5 transition-transform group-hover:scale-110" />

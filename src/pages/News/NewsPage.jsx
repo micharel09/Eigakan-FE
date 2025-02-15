@@ -68,8 +68,8 @@ const NewsPage = () => {
     <Link to={`/news/${news.id}`}>
       <div
         className="group bg-gray-800/50 backdrop-blur-sm rounded-2xl overflow-hidden 
-        border border-gray-700/50 hover:border-red-500/50 transition-all duration-500
-        hover:shadow-xl hover:shadow-red-500/10 h-[500px] flex flex-col"
+        border border-gray-700/50 hover:border-[#FF009F]/50 transition-all duration-500
+        hover:shadow-xl hover:shadow-[#FF009F]/10 h-[500px] flex flex-col"
       >
         {/* Phần ảnh của tin tức */}
         <div className="relative h-[220px] w-full overflow-hidden flex-shrink-0">
@@ -90,7 +90,7 @@ const NewsPage = () => {
               <img
                 src="/avatar.jpg"
                 alt="Author"
-                className="w-8 h-8 rounded-full border-2 border-red-500/20"
+                className="w-8 h-8 rounded-full border-2 border-[#FF009F]/20"
               />
               <span>{news.userName || "Admin"}</span>
             </div>
@@ -100,7 +100,7 @@ const NewsPage = () => {
 
           {/* Tiêu đề tin tức */}
           <h2
-            className="text-xl font-bold mb-3 text-white group-hover:text-red-500 
+            className="text-xl font-bold mb-3 text-white group-hover:text-[#FF009F] 
             transition-colors duration-300 line-clamp-2"
           >
             {news.title}
@@ -112,7 +112,10 @@ const NewsPage = () => {
           </p>
 
           {/* Nút đọc thêm */}
-          <div className="flex items-center text-red-500 text-sm font-medium group-hover:text-red-400 mt-auto">
+          <div
+            className="flex items-center text-[#FF009F] text-sm font-medium 
+            group-hover:text-[#D1007F] mt-auto"
+          >
             Read more
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -157,7 +160,7 @@ const NewsPage = () => {
         <div className="relative max-w-7xl mx-auto text-center">
           <h1
             className="text-5xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent 
-            bg-gradient-to-r from-red-500 via-red-400 to-red-500"
+            bg-gradient-to-r from-[#FF009F] via-[#FF009F] to-[#FF009F]"
           >
             Eigakan News
           </h1>
@@ -172,12 +175,12 @@ const NewsPage = () => {
               type="text"
               placeholder="Search news..."
               className="w-full px-6 py-4 bg-gray-900/50 backdrop-blur-sm border border-gray-800 
-                rounded-full text-gray-200 placeholder-gray-500 outline-none focus:border-red-500
+                rounded-full text-gray-200 placeholder-gray-500 outline-none focus:border-[#FF009F]
                 transition-all duration-300 shadow-lg"
             />
             <button
               className="absolute right-2 top-1/2 -translate-y-1/2 p-3
-              bg-red-500 hover:bg-red-600 text-white rounded-full 
+              bg-[#FF009F] hover:bg-[#D1007F] text-white rounded-full 
               transition-all duration-300 transform hover:scale-105"
             >
               <SearchOutlined className="text-lg" />
@@ -200,10 +203,10 @@ const NewsPage = () => {
             <button
               onClick={handleLoadMore}
               disabled={loading}
-              className="px-8 py-4 bg-red-500 hover:bg-red-600 text-white rounded-full
+              className="px-8 py-4 bg-[#FF009F] hover:bg-[#D1007F] text-white rounded-full
                 transition-all duration-300 transform hover:scale-105 font-medium
                 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
-                shadow-lg hover:shadow-red-500/25"
+                shadow-lg hover:shadow-[#FF009F]/25"
             >
               {loading ? (
                 <Spin size="small" />
