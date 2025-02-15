@@ -1,27 +1,31 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { IoChevronBackOutline, IoChevronForwardOutline } from "react-icons/io5";
-import HrMovieCard from "./HrMovieCard";
 import MovieCard from "./MovieCard";
-import GlobalApi from "./GlobalApi";
+import movieService from "../../apis/Movie/movie";
 
 function MovieList({ genreId, index_ }) {
   const [movieList, setMovieList] = useState([]);
   const elementRef = useRef(null);
 
   useEffect(() => {
-    getMovieByGenreId();
+    getMovies();
   }, []);
 
-  const getMovieByGenreId = () => {
-    GlobalApi.getMovieByGenreId(genreId).then((resp) => {
-      setMovieList(resp.data.results);
-    });
+  const getMovies = async () => {
+    try {
+      const response = await movieService.getMovies();
+      if (response.success) {
+        setMovieList(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching movies:", error);
+    }
   };
 
   const slideRight = (element) => {
     const firstItem = element.children[0];
     const itemWidth = firstItem?.offsetWidth || 0;
-    const scrollAmount = itemWidth * 3; // Scroll 3 items
+    const scrollAmount = itemWidth * 3;
 
     element.scrollBy({
       left: scrollAmount,
@@ -41,41 +45,48 @@ function MovieList({ genreId, index_ }) {
   };
 
   return (
-    <div className="relative">
-      <IoChevronBackOutline
-        onClick={() => slideLeft(elementRef.current)}
-        className={`text-[50px] text-white
-           p-2 z-10 cursor-pointer 
-           hidden md:block absolute
-           ${index_ % 3 === 0 ? "mt-[80px]" : "mt-[150px]"}
-           hover:bg-gray-700/80 rounded-xl`}
-      />
+    <div className="relative px-4">
+      {/* Genre Title */}
+      <h2 className="text-2xl font-bold text-white mb-4">
+        {genreId === 28 ? "Top Trending" : "Movies"}
+      </h2>
 
-      <div
-        ref={elementRef}
-        className="flex overflow-x-auto gap-2 md:gap-4 lg:gap-8
-                  scrollbar-hide scroll-smooth pt-4 px-3 pb-4
-                  snap-x snap-mandatory"
-      >
-        {movieList.map((item) => (
-          <div key={item.id} className="snap-start">
-            {index_ % 3 === 0 ? (
-              <HrMovieCard movie={item} />
-            ) : (
+      {/* Movies Container */}
+      <div className="relative group">
+        {/* Left Navigation Button */}
+        <button
+          onClick={() => slideLeft(elementRef.current)}
+          className="absolute -left-4 top-1/2 -translate-y-1/2 z-40
+                   opacity-0 group-hover:opacity-100 transition-opacity
+                   bg-black/80 hover:bg-black p-2 rounded-r-lg"
+        >
+          <IoChevronBackOutline className="text-2xl text-white" />
+        </button>
+
+        {/* Movies Grid */}
+        <div
+          ref={elementRef}
+          className="grid grid-flow-col auto-cols-max gap-6
+                   overflow-x-auto scrollbar-hide scroll-smooth
+                   snap-x snap-mandatory py-4"
+        >
+          {movieList.map((item) => (
+            <div key={item.id} className="snap-start">
               <MovieCard movie={item} />
-            )}
-          </div>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
 
-      <IoChevronForwardOutline
-        onClick={() => slideRight(elementRef.current)}
-        className={`text-[50px] text-white hidden md:block
-           p-2 cursor-pointer z-10 top-0
-           absolute right-0 
-           ${index_ % 3 === 0 ? "mt-[80px]" : "mt-[150px]"}
-           hover:bg-gray-700/80 rounded-xl`}
-      />
+        {/* Right Navigation Button */}
+        <button
+          onClick={() => slideRight(elementRef.current)}
+          className="absolute -right-4 top-1/2 -translate-y-1/2 z-40
+                   opacity-0 group-hover:opacity-100 transition-opacity
+                   bg-black/80 hover:bg-black p-2 rounded-l-lg"
+        >
+          <IoChevronForwardOutline className="text-2xl text-white" />
+        </button>
+      </div>
     </div>
   );
 }

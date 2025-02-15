@@ -24,6 +24,7 @@ import Subscription from "../pages/Manager/Subscription/Subscription.jsx";
 import NewsManagement from "../pages/Manager/News/NewsManagement.jsx";
 import NewsPage from "../pages/News/NewsPage.jsx";
 import NewsDetail from "../pages/News/NewsDetail";
+import GenreManagement from "../pages/Admin/Genre/GenreManagement.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -181,6 +182,16 @@ const routes = [
   {
     path: "/api/Auth/Verify",
     element: <VerifyAccount />,
+  },
+
+  {
+    path: "/admin/genres",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <GenreManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },

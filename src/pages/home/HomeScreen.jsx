@@ -13,9 +13,6 @@ import Loading from "../../components/Loading/Loading";
 const ProductionHouse = React.lazy(() =>
   import("../../components/Homepage/ProductionHouse")
 );
-const HrMovieCard = React.lazy(() =>
-  import("../../components/Homepage/HrMovieCard")
-);
 const GenreMovieList = React.lazy(() =>
   import("../../components/Homepage/GenresMovieList")
 );
@@ -48,12 +45,6 @@ const HomeScreen = () => {
           <FadeInSection>
             <Suspense fallback={<MovieListSkeleton />}>
               <ProductionHouse />
-            </Suspense>
-          </FadeInSection>
-
-          <FadeInSection>
-            <Suspense fallback={<MovieListSkeleton />}>
-              <HrMovieCard />
             </Suspense>
           </FadeInSection>
 
