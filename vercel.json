@@ -11,6 +11,38 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
+    },
+    {
+      "source": "/(.*).js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).css",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/css"
+        }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "continue": true
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
