@@ -24,7 +24,7 @@ const Footer = () => {
               <li>
                 <a
                   href="/movies"
-                  className="hover:text-red-500 transition-colors"
+                  className="hover:text-blue-500 transition-colors"
                 >
                   Movies
                 </a>
@@ -32,7 +32,7 @@ const Footer = () => {
               <li>
                 <a
                   href="/news"
-                  className="hover:text-red-500 transition-colors"
+                  className="hover:text-blue-500 transition-colors"
                 >
                   News
                 </a>
@@ -40,7 +40,7 @@ const Footer = () => {
               <li>
                 <a
                   href="/about"
-                  className="hover:text-red-500 transition-colors"
+                  className="hover:text-blue-500 transition-colors"
                 >
                   About Us
                 </a>
@@ -56,7 +56,7 @@ const Footer = () => {
                 href="https://github.com/MNTuas/Eigakan"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-red-500 transition-colors"
+                className="text-gray-400 hover:text-blue-500 transition-colors"
               >
                 <GithubOutlined className="text-xl" />
               </a>
@@ -64,7 +64,7 @@ const Footer = () => {
                 href="#"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-red-500 transition-colors"
+                className="text-gray-400 hover:text-blue-500 transition-colors"
               >
                 <LinkedinOutlined className="text-xl" />
               </a>
@@ -84,7 +84,7 @@ const Footer = () => {
                 href="https://github.com/MNTuas/Eigakan"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-red-500 hover:text-red-400 transition-colors"
+                className="text-blue-500 hover:text-blue-400 transition-colors"
               >
                 SP25-group5-475
               </a>

@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import authService from "../../apis/Auth/auth";
 import Navbar from "../../components/Header/Navbar";
 import { Helmet } from "react-helmet";
+import { Spin } from "antd";
 
 const SignUpPage = () => {
   const { searchParams } = new URL(document.location);
@@ -78,7 +79,7 @@ const SignUpPage = () => {
               </label>
               <input
                 type="email"
-                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring"
+                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring focus:border-[#FF009F]"
                 placeholder="you@example.com"
                 id="email"
                 value={email}
@@ -97,7 +98,7 @@ const SignUpPage = () => {
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring"
+                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring focus:border-[#FF009F]"
                 placeholder="John Doe"
                 id="fullName"
                 value={fullName}
@@ -116,7 +117,7 @@ const SignUpPage = () => {
               </label>
               <input
                 type="password"
-                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring"
+                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring focus:border-[#FF009F]"
                 placeholder="••••••••"
                 id="password"
                 value={password}
@@ -135,7 +136,7 @@ const SignUpPage = () => {
               </label>
               <input
                 type="password"
-                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring"
+                className="w-full px-3 py-2 mt-1 border border-gray-700 rounded-md bg-transparent text-white focus:outline-none focus:ring focus:border-[#FF009F]"
                 placeholder="••••••••"
                 id="confirmPassword"
                 value={confirmPassword}
@@ -146,18 +147,21 @@ const SignUpPage = () => {
             </div>
 
             <button
-              className="w-full py-2 bg-red-600 text-white font-semibold rounded-md
-              hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed
-            "
+              type="submit"
+              className="w-full py-3 bg-[#FF009F] hover:bg-[#D1007F] text-white rounded-lg
+                transition-colors duration-300 flex items-center justify-center gap-2"
               disabled={loading}
             >
-              {loading ? "Signing up..." : "Sign up"}
+              {loading ? <Spin size="small" /> : "Sign Up"}
             </button>
           </form>
           <div className="text-center text-gray-400">
-            Already a member?{" "}
-            <Link to={"/login"} className="text-red-500 hover:underline">
-              Sign in
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-[#FF009F] hover:text-[#D1007F] transition-colors"
+            >
+              Login
             </Link>
           </div>
         </div>

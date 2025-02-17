@@ -60,13 +60,13 @@ const Navbar = () => {
                   className={`relative py-2 text-sm font-medium transition-colors group whitespace-nowrap
                     ${
                       location.pathname === link.path
-                        ? "text-red-500"
-                        : "text-white hover:text-red-400"
+                        ? "text-[#FF009F]"
+                        : "text-gray-300 hover:text-[#FF009F]"
                     }`}
                 >
                   {link.label}
                   <span
-                    className={`absolute bottom-0 left-0 w-full h-0.5 bg-red-500 transform scale-x-0 
+                    className={`absolute bottom-0 left-0 w-full h-0.5 bg-[#FF009F] transform scale-x-0 
                     transition-transform duration-300 group-hover:scale-x-100
                     ${location.pathname === link.path ? "scale-x-100" : ""}`}
                   />
@@ -93,9 +93,8 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/login"
-                className="px-5 py-2 rounded-full bg-red-500 hover:bg-red-600 
-                transition-all duration-200 text-sm font-medium transform hover:scale-105 
-                active:scale-95 shadow-lg hover:shadow-red-500/25"
+                className="px-5 py-2 rounded-full bg-[#FF009F] hover:bg-[#D1007F] 
+                transition-all duration-200 text-sm font-medium transform hover:scale-105"
               >
                 Login
               </Link>
@@ -116,8 +115,8 @@ const Navbar = () => {
                 }
                 className="flex items-center gap-2 px-4 py-2 rounded-lg 
                   text-sm font-medium transition-colors duration-200
-                  border border-red-500/20
-                  hover:bg-red-500/10 text-red-500"
+                  border border-[#FF009F]/20
+                  hover:bg-[#FF009F]/10 text-[#FF009F]"
               >
                 {isManager ? (
                   isInManagerPage ? (

@@ -454,7 +454,7 @@ const NewsManagement = () => {
                       type="text"
                       icon={<DeleteOutlined />}
                       onClick={() => handleDelete(record.id)}
-                      className="hover:text-red-500"
+                      className="hover:text-gray-500"
                     />
                   </Tooltip>
                 </Space>

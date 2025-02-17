@@ -201,8 +201,8 @@ const Slider = () => {
 
             <Link
               to={`/movie/${movie.id}`}
-              className="bg-red-600 text-white px-8 py-3 rounded-md 
-              hover:bg-red-700 transition-colors w-fit font-semibold text-lg"
+              className="bg-[#FF009F] text-white px-8 py-3 rounded-md 
+              hover:bg-[#D1007F] transition-colors w-fit font-semibold text-lg"
             >
               Watch Now
             </Link>

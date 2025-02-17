@@ -19,8 +19,8 @@ function MovieCard({ movie }) {
 
           {/* Gradient Overlay */}
           <div
-            className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent 
-                        opacity-60 group-hover:opacity-80 transition-opacity duration-300"
+            className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 
+            to-transparent opacity-60 transition-opacity duration-300"
           />
         </div>
 
@@ -32,7 +32,7 @@ function MovieCard({ movie }) {
           {/* Title */}
           <h3
             className="text-white font-semibold text-lg leading-tight mb-2 
-                       line-clamp-2 group-hover:text-red-500 transition-colors"
+                       line-clamp-2 transition-colors"
           >
             {movie.title}
           </h3>
@@ -49,6 +49,14 @@ function MovieCard({ movie }) {
                 <span>{movie.duration}m</span>
               </>
             )}
+          </div>
+
+          {/* Rating Badge */}
+          <div
+            className="absolute top-2 right-2 bg-[#FF009F]/90 text-white px-2 py-1 
+            rounded text-sm font-medium"
+          >
+            {movie.rating}
           </div>
         </div>
       </div>

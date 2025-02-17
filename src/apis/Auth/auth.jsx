@@ -11,11 +11,14 @@ const authService = {
         `${API_URL}/Login`,
         { email, password },
         { maxRedirects: 0 }
-      ); // thêm maxRedirects: 0 để tránh redirect
+      );
       this.notifyListeners();
       return res.data;
     } catch (err) {
-      throw err.response?.data || err.message;
+      if (err.response?.data) {
+        throw err.response.data;
+      }
+      throw { success: false, message: "Network error" };
     }
   },
 
@@ -41,11 +44,17 @@ const authService = {
 
   async verify(token) {
     try {
-      const res = await axios.get(`${API_URL}/Verify`, {
-        params: { token },
-      });
+      const res = await axios.get(`${API_URL}/Verify?token=${token}`);
+
+      console.log("API URL:", `${API_URL}/Verify?token=${token}`);
+      console.log("Response:", res);
+
+      if (!res.data.success) {
+        throw new Error(res.data.message);
+      }
       return res.data;
     } catch (err) {
+      console.error("API Error:", err);
       throw err.response?.data || { message: "Verification failed" };
     }
   },

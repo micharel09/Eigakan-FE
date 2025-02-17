@@ -8,6 +8,7 @@ import FadeInSection from "../../components/Homepage/FadeInSection";
 import Navbar from "../../components/Header/Navbar";
 import Slider from "../../components/Homepage/Slider";
 import Loading from "../../components/Loading/Loading";
+import { PlayCircle } from "lucide-react";
 
 // Lazy load components
 const ProductionHouse = React.lazy(() =>

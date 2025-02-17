@@ -98,10 +98,18 @@ const UserRegisterDetail = () => {
 
       {/* Thêm 2 button ở dưới */}
       <div style={{ marginTop: "20px", textAlign: "right" }}>
-        <Button type="primary" style={{ marginRight: "10px" }}>
+        <Button
+          type="primary"
+          style={{ marginRight: "10px" }}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
           Approve
         </Button>
-        <Button type="danger" onClick={handleReject}>
+        <Button
+          type="danger"
+          onClick={handleReject}
+          className="bg-gray-600 hover:bg-gray-700"
+        >
           Reject
         </Button>
       </div>
