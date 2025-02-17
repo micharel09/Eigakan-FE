@@ -10,29 +10,15 @@ export default defineConfig({
       plugins: [tailwindcss()],
     },
   },
-  base: '/',
+  base: './',
   build: {
     outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: [
-            'react',
-            'react-dom',
-            'react-router-dom'
-          ]
-        },
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
       }
     }
-  },
-  server: {
-    port: 3000,
-    strictPort: true,
-    host: true
   }
 })
