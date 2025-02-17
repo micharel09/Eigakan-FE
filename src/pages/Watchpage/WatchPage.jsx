@@ -1,16 +1,65 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense, memo } from "react";
 import { useParams } from "react-router-dom";
-import ReactPlayer from "react-player";
-import GlobalApi from "../../components/Homepage/GlobalApi";
-import { Loader2 } from "lucide-react";
+import movieService from "../../apis/Movie/movie";
 import { Helmet } from "react-helmet";
 import Loading from "../../components/Loading/Loading";
-import { Star } from "lucide-react";
+import { Star, Clock, Calendar, Info } from "lucide-react";
 
-const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
-// This is a placeholder video URL. Replace it with your actual video source when available.
-const PLACEHOLDER_VIDEO_URL =
-  "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
+// Tách các components để tối ưu re-renders
+const MovieInfo = memo(({ title, duration, releaseYear, rating }) => (
+  <div>
+    <h1 className="text-2xl md:text-4xl font-bold text-white mb-4">{title}</h1>
+    <div className="flex flex-wrap gap-4 text-gray-400">
+      <div className="flex items-center">
+        <Clock className="w-4 h-4 mr-2" />
+        <span>{duration} min</span>
+      </div>
+      <div className="flex items-center">
+        <Calendar className="w-4 h-4 mr-2" />
+        <span>{releaseYear}</span>
+      </div>
+      <div className="flex items-center">
+        <Star className="w-4 h-4 mr-2 text-yellow-500" />
+        <span>{rating}/10</span>
+      </div>
+    </div>
+  </div>
+));
+
+const VideoPlayer = memo(({ url, title }) => (
+  <div className="relative overflow-hidden">
+    <div className="w-full aspect-video bg-black">
+      <iframe
+        src={url}
+        title={title}
+        className="w-full h-full outline-none"
+        frameBorder="0"
+        allowFullScreen
+        scrolling="no"
+        style={{
+          overflow: "hidden",
+          border: "none",
+        }}
+        loading="lazy"
+      />
+    </div>
+  </div>
+));
+
+const CastMember = memo(({ actor }) => (
+  <div className="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors">
+    <img
+      src={actor.picture}
+      alt={actor.name}
+      className="w-full aspect-[3/4] object-cover"
+      loading="lazy"
+    />
+    <div className="p-4">
+      <h3 className="text-white font-medium truncate">{actor.name}</h3>
+      <p className="text-gray-400 text-sm truncate">{actor.job}</p>
+    </div>
+  </div>
+));
 
 const WatchPage = () => {
   const { movieId } = useParams();
@@ -20,8 +69,10 @@ const WatchPage = () => {
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
-        const data = await GlobalApi.getMovieDetails(movieId);
-        setMovie(data);
+        const response = await movieService.getMovieById(movieId);
+        if (response.success) {
+          setMovie(response.data);
+        }
       } catch (error) {
         console.error("Error:", error);
       } finally {
@@ -35,107 +86,89 @@ const WatchPage = () => {
   if (loading) return <Loading />;
 
   if (!movie) {
-    return <div className="text-center p-4">Movie not found</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg">
+          <Info className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-xl">Movie not found</p>
+        </div>
+      </div>
+    );
+  }
+
+  const movieUrl = movie.medias?.find((media) => media.type === "Movie")?.url;
+
+  if (!movieUrl) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg">
+          <Info className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-xl">Movie URL not available</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="w-full">
+    <div className="min-h-screen bg-gray-900">
       <Helmet>
         <title>Watch {movie.title} - Eigakan</title>
+        <meta name="description" content={movie.description} />
       </Helmet>
-      <div className="w-full">
-        <div className="w-full h-[calc(100vh-200px)] bg-black">
-          <ReactPlayer
-            url={PLACEHOLDER_VIDEO_URL}
-            width="100%"
-            height="100%"
-            controls
-            playing
+
+      <Suspense fallback={<Loading />}>
+        <VideoPlayer url={movieUrl} title={movie.title} />
+      </Suspense>
+
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        <div className="space-y-8">
+          <MovieInfo
+            title={movie.title}
+            duration={movie.duration}
+            releaseYear={movie.releaseYear}
+            rating={movie.rating}
           />
-        </div>
-        <div className="px-4 py-4">
-          <h1 className="text-3xl font-bold">{movie.title}</h1>
-          <div className="bg-gray-800 p-4 rounded-lg mt-4">
-            <h2 className="text-xl font-semibold mb-2">Movie Info</h2>
-            <p className="mb-2">
-              <span className="font-semibold">Release Date:</span>{" "}
-              {new Date(movie.release_date).toLocaleDateString()}
-            </p>
-            <p className="mb-2">
-              <span className="font-semibold">Rating:</span>{" "}
-              {movie.vote_average.toFixed(1)} / 10
-            </p>
-            <p className="mb-2">
-              <span className="font-semibold">Overview:</span> {movie.overview}
-            </p>
-          </div>
 
-          {/* Rating and Comments Section */}
-          <div className="mt-6">
-            <h2 className="text-2xl font-bold mb-4">Đánh giá & Bình luận</h2>
-
-            {/* Rating Section */}
-            <div className="bg-gray-800 p-4 rounded-lg mb-4">
-              <div className="flex items-center mb-4">
-                <div className="text-xl mr-4">Đánh giá:</div>
-                <div className="flex space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      className="text-2xl text-blue-500 hover:text-blue-300"
-                    >
-                      <Star className="w-4 h-4" />
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2">
+              <h2 className="text-xl font-semibold text-white mb-4">
+                Overview
+              </h2>
+              <p className="text-gray-300 leading-relaxed">
+                {movie.description}
+              </p>
             </div>
 
-            {/* Comments Section */}
-            <div className="bg-gray-800 p-4 rounded-lg">
-              <div className="mb-4">
-                <textarea
-                  className="w-full p-3 rounded bg-gray-700 text-white"
-                  rows="3"
-                  placeholder="Viết bình luận của bạn..."
-                ></textarea>
-                <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                  Gửi bình luận
-                </button>
+            <div className="space-y-4 bg-gray-800/50 p-4 rounded-lg">
+              <div>
+                <h3 className="text-lg font-medium text-white mb-2">
+                  Director
+                </h3>
+                <p className="text-gray-300">{movie.director}</p>
               </div>
-
-              {/* Sample Comments */}
-              <div className="space-y-4">
-                <div className="border-b border-gray-700 pb-4">
-                  <div className="flex items-center mb-2">
-                    <div className="w-8 h-8 bg-gray-600 rounded-full mr-2"></div>
-                    <div>
-                      <div className="font-bold">Người dùng 1</div>
-                      <div className="text-sm text-gray-400">2 giờ trước</div>
-                    </div>
-                  </div>
-                  <p className="text-gray-300">
-                    Phim rất hay, diễn viên đóng xuất sắc!
-                  </p>
-                </div>
-
-                <div className="border-b border-gray-700 pb-4">
-                  <div className="flex items-center mb-2">
-                    <div className="w-8 h-8 bg-gray-600 rounded-full mr-2"></div>
-                    <div>
-                      <div className="font-bold">Người dùng 2</div>
-                      <div className="text-sm text-gray-400">5 giờ trước</div>
-                    </div>
-                  </div>
-                  <p className="text-gray-300">
-                    Cốt truyện rất cuốn, mong chờ phần tiếp theo!
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-lg font-medium text-white mb-2">Genre</h3>
+                <p className="text-gray-300">{movie.genreNames}</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-white mb-2">Nation</h3>
+                <p className="text-gray-300">{movie.nation}</p>
               </div>
             </div>
           </div>
+
+          {movie.person && movie.person.length > 0 && (
+            <section>
+              <h2 className="text-xl font-semibold text-white mb-4">Cast</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {movie.person.map((actor) => (
+                  <CastMember key={actor.id} actor={actor} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
