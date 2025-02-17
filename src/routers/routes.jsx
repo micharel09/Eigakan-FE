@@ -25,6 +25,7 @@ import NewsManagement from "../pages/Manager/News/NewsManagement.jsx";
 import NewsPage from "../pages/News/NewsPage.jsx";
 import NewsDetail from "../pages/News/NewsDetail";
 import GenreManagement from "../pages/Admin/Genre/GenreManagement.jsx";
+import PersonManagement from "../pages/Admin/Person/PersonManagement";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -34,18 +35,6 @@ const isLoggedIn = () => {
 const role = localStorage.getItem("role") || "GUEST";
 
 const routes = [
-  // Đặt routes verify và reset password lên đầu
-  {
-    path: "/api/Auth/Verify",
-    element: <VerifyAccount />,
-    layout: "UserLayout",
-  },
-  {
-    path: "/api/Auth/ForgotPassword",
-    element: <ResetPassword />,
-    layout: "UserLayout",
-  },
-
   //chỉnh url mặc định theo role
 
   //ADMIN
@@ -201,6 +190,16 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="ADMIN">
         <GenreManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/persons",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <PersonManagement />
       </PrivateRoute>
     ),
     layout: "AdminLayout",
