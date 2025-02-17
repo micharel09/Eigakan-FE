@@ -17,12 +17,16 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // Tạo chunk riêng cho các thư viện lớn
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-        }
+        manualChunks: {
+          vendor: [
+            'react',
+            'react-dom',
+            'react-router-dom'
+          ]
+        },
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     }
   },
