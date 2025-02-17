@@ -110,7 +110,37 @@ const personService = {
         message: "Failed to delete person"
       };
     }
-  }
+  },
+
+  async uploadImage(file, abortSignal) {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      
+      const actualFile = file.originFileObj || file;
+      formData.append('formFiles', actualFile);
+
+      const res = await axios.post(
+        'https://eigakan1111-001-site1.qtempurl.com/api/Upload/Upload_Pictures', 
+        formData, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+            'accept': '*/*'
+          },
+          signal: abortSignal
+        }
+      );
+      return res;
+    } catch (err) {
+      if (axios.isCancel(err)) {
+        console.log('Upload cancelled');
+        return;
+      }
+      return err.response;
+    }
+  },
 };
 
 export default personService; 
