@@ -9,5 +9,16 @@ export default defineConfig({
     postcss: {
       plugins: [tailwindcss()],
     },
+  },
+  base: '/',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
   }
 })
