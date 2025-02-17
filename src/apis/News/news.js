@@ -42,7 +42,7 @@ const NewsApi = {
             const actualFile = file.originFileObj || file;
             formData.append('formFiles', actualFile);
 
-            const res = await axios.post('https://eigakan1111-001-site1.qtempurl.com/api/Media/Upload_Pictures', formData, {
+            const res = await axios.post('https://eigakan1111-001-site1.qtempurl.com/api/Upload/Upload_Pictures', formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data',
