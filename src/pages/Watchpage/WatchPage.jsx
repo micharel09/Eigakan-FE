@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Suspense, memo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import movieService from "../../apis/Movie/movie";
 import { Helmet } from "react-helmet";
 import Loading from "../../components/Loading/Loading";
@@ -63,27 +63,56 @@ const CastMember = memo(({ actor }) => (
 
 const WatchPage = () => {
   const { movieId } = useParams();
+  const navigate = useNavigate();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const response = await movieService.getMovieById(movieId);
+
         if (response.success) {
           setMovie(response.data);
+        } else {
+          setError("Failed to load movie");
+          setTimeout(() => navigate("/"), 3000);
         }
       } catch (error) {
         console.error("Error:", error);
+        setError(error.message || "An error occurred");
+        setTimeout(() => navigate("/"), 3000);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMovieDetails();
-  }, [movieId]);
+    if (movieId) {
+      fetchMovieDetails();
+    }
+
+    return () => {
+      setMovie(null);
+      setError(null);
+    };
+  }, [movieId, navigate]);
 
   if (loading) return <Loading />;
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg">
+          <Info className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <p className="text-xl text-white mb-2">{error}</p>
+          <p className="text-gray-400">Redirecting to homepage...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!movie) {
     return (
