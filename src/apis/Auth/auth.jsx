@@ -44,11 +44,17 @@ const authService = {
 
   async verify(token) {
     try {
-      const res = await axios.get(`${API_URL}/Verify`, {
-        params: { token },
-      });
+      const res = await axios.get(`${API_URL}/Verify?token=${token}`);
+
+      console.log("API URL:", `${API_URL}/Verify?token=${token}`);
+      console.log("Response:", res);
+
+      if (!res.data.success) {
+        throw new Error(res.data.message);
+      }
       return res.data;
     } catch (err) {
+      console.error("API Error:", err);
       throw err.response?.data || { message: "Verification failed" };
     }
   },
