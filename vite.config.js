@@ -17,8 +17,18 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks(id) {
+          // Tạo chunk riêng cho các thư viện lớn
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        }
       }
     }
+  },
+  server: {
+    port: 3000,
+    strictPort: true,
+    host: true
   }
 })
