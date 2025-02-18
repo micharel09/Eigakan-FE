@@ -26,6 +26,7 @@ import NewsPage from "../pages/News/NewsPage.jsx";
 import NewsDetail from "../pages/News/NewsDetail";
 import GenreManagement from "../pages/Admin/Genre/GenreManagement.jsx";
 import PersonManagement from "../pages/Admin/Person/PersonManagement";
+import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -122,6 +123,10 @@ const routes = [
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
   { path: "/login", element: <LoginPage /> },
+  { path: "/verify", element: <VerifyAccount /> },
+  { path: "/registerPage", element: <RegisterPage /> },
+  { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/resetpassword", element: <ResetPassword /> },
 
   { path: "/signup-success", element: <SignupSuccess /> },
 

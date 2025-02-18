@@ -23,7 +23,6 @@ const UserRegisterApi = {
         }
     },
 
-
     async getUserRegisterDetail(id) {
         try {
             const token = localStorage.getItem('token');
@@ -52,22 +51,7 @@ const UserRegisterApi = {
         }
     },
 
-    async acceptedUserRegister(id) {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.patch(`${API_URL}/Accepted_UserRegister`, id, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return response;
-          } catch (error) {
-            console.error("API error:", error.message);
-            return error.response;
-          }
-    },
-
-    async rejectedUserRegister(data) {
+    async acceptedUserRegister(data) {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.patch(`${API_URL}/Accepted_UserRegister`, data, {
@@ -82,6 +66,41 @@ const UserRegisterApi = {
           }
     },
 
+    async rejectedUserRegister(data) {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.patch(`${API_URL}/Rejected_UserRegister`, data, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return response;
+          } catch (error) {
+            console.error("API error:", error.message);
+            return error.response;
+          }
+    },
+
+    async CreateUserRegister(email, phoneNumber, reason, fileUrl, fullName) {
+    try {
+      const res = await axios.post(`${API_URL}/CreateUserRegister`, {
+        email,
+        phoneNumber,
+        reason,
+        fileUrl,
+        fullName,
+      });
+      return res.data;
+    } catch (err) {
+      if (err.response?.data?.errors) {
+        const firstError = Object.values(err.response.data.errors)[0];
+        throw {
+          message: Array.isArray(firstError) ? firstError[0] : firstError,
+        };
+      }
+      throw err.response?.data || { message: "Network error" };
+    }
+  },
 
 }
 export default UserRegisterApi 
