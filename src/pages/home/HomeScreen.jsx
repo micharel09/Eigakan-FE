@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
 import {
   SliderSkeleton,
@@ -7,19 +7,30 @@ import {
 import FadeInSection from "../../components/Homepage/FadeInSection";
 import Navbar from "../../components/Header/Navbar";
 import Slider from "../../components/Homepage/Slider";
+import Loading from "../../components/Loading/Loading";
+import { PlayCircle } from "lucide-react";
 
 // Lazy load components
 const ProductionHouse = React.lazy(() =>
   import("../../components/Homepage/ProductionHouse")
-);
-const HrMovieCard = React.lazy(() =>
-  import("../../components/Homepage/HrMovieCard")
 );
 const GenreMovieList = React.lazy(() =>
   import("../../components/Homepage/GenresMovieList")
 );
 
 const HomeScreen = () => {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Giả lập loading khi data đang được fetch
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) return <Loading />;
+
   return (
     <div className="relative bg-gray-900">
       <Helmet>
@@ -35,12 +46,6 @@ const HomeScreen = () => {
           <FadeInSection>
             <Suspense fallback={<MovieListSkeleton />}>
               <ProductionHouse />
-            </Suspense>
-          </FadeInSection>
-
-          <FadeInSection>
-            <Suspense fallback={<MovieListSkeleton />}>
-              <HrMovieCard />
             </Suspense>
           </FadeInSection>
 

@@ -1,7 +1,8 @@
 import React from "react";
+import { motion } from "framer-motion";
 
-function ProductionHouse() {
-  const productionHouseList = [
+const ProductionHouse = () => {
+  const productionHouses = [
     {
       id: 1,
       image: "/ProductionHouse/Images/disney.png",
@@ -30,30 +31,33 @@ function ProductionHouse() {
   ];
 
   return (
-    <div className="flex gap-2 md:gap-5 p-2 px-5 md:px-16 ">
-      {productionHouseList.map((item) => (
-        <div
-          key={item.id}
-          className="border-[2px] border-gray-600
-            rounded-lg hover:scale-110 transition-all duration-300
-            ease-in-out cursor-pointer relative shadow-xl 
-            shadow-gray-800
-            "
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 px-4">
+      {productionHouses.map((production) => (
+        <motion.div
+          key={production.id}
+          whileHover={{ scale: 1.05 }}
+          className="relative rounded-lg overflow-hidden border border-gray-800 
+            group cursor-pointer bg-gradient-to-b from-gray-900 to-black"
         >
           <video
-            src={item.video}
+            src={production.video}
             autoPlay
             loop
             playsInline
             muted
-            className="absolute z-0 top-0 rounded-md 
-            opacity-0 hover:opacity-50"
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 
+              transition-opacity duration-500 object-cover w-full h-full"
           />
-          <img src={item.image} className="w-full z-[1] opacity-100" />
-        </div>
+          <img
+            src={production.image}
+            alt=""
+            className="w-full object-cover transition-transform duration-500 
+              group-hover:scale-110 relative z-10 group-hover:opacity-0"
+          />
+        </motion.div>
       ))}
     </div>
   );
-}
+};
 
 export default ProductionHouse;

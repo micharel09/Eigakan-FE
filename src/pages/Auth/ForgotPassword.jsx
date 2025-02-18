@@ -4,6 +4,7 @@ import authService from "../../apis/Auth/auth";
 import { AiOutlineMail } from "react-icons/ai";
 import { Helmet } from "react-helmet";
 import Navbar from "../../components/Header/Navbar";
+import { Spin } from "antd";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -76,19 +77,26 @@ const ForgotPassword = () => {
             </div>
 
             <button
-              className="w-full py-2 bg-red-600 text-white font-semibold rounded-md
-              hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed
-            "
+              type="submit"
+              className="w-full py-3 bg-[#FF009F] hover:bg-[#D1007F] text-white rounded-lg
+              transition-colors duration-300 flex items-center justify-center gap-2"
               disabled={loading}
             >
-              {loading ? "Processing..." : "Reset Password"}
+              {loading ? (
+                <div className="w-16 h-16 border-4 border-[#FF009F] border-dashed rounded-full animate-spin mx-auto" />
+              ) : (
+                "Send Reset Link"
+              )}
             </button>
           </form>
 
           <div className="text-center text-gray-400">
             Remember your password?{" "}
-            <Link to="/login" className="text-red-500 hover:underline">
-              Sign in
+            <Link
+              to="/login"
+              className="text-[#FF009F] hover:text-[#D1007F] transition-colors"
+            >
+              Back to Login
             </Link>
           </div>
         </div>

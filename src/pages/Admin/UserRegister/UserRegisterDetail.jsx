@@ -164,7 +164,11 @@ const items = [
         <Button onClick={() => handleAccept(userRegister.id)} type="primary" style={{ marginRight: "10px" }}>
           Approve
         </Button>
-        <Button type="danger" onClick={handleReject}>
+        <Button
+          type="danger"
+          onClick={handleReject}
+          className=""
+        >
           Reject
         </Button>
       </div>

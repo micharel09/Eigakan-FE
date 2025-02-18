@@ -11,11 +11,14 @@ const authService = {
         `${API_URL}/Login`,
         { email, password },
         { maxRedirects: 0 }
-      ); // thêm maxRedirects: 0 để tránh redirect
+      );
       this.notifyListeners();
       return res.data;
     } catch (err) {
-      throw err.response?.data || err.message;
+      if (err.response?.data) {
+        throw err.response.data;
+      }
+      throw { success: false, message: "Network error" };
     }
   },
 
@@ -41,11 +44,17 @@ const authService = {
 
   async verify(token) {
     try {
-      const res = await axios.get(`${API_URL}/Verify`, {
-        params: { token },
-      });
+      const res = await axios.get(`${API_URL}/Verify?token=${token}`);
+
+      console.log("API URL:", `${API_URL}/Verify?token=${token}`);
+      console.log("Response:", res);
+
+      if (!res.data.success) {
+        throw new Error(res.data.message);
+      }
       return res.data;
     } catch (err) {
+      console.error("API Error:", err);
       throw err.response?.data || { message: "Verification failed" };
     }
   },
@@ -80,24 +89,20 @@ const authService = {
       const res = await axios.post(`${API_URL}/Forgot-password`, { email });
       return res.data;
     } catch (err) {
-      throw (
-        err.response?.data || {
-          message: "Failed to process forgot password request",
-        }
-      );
+      throw err.response?.data || { message: "Failed to process request" };
     }
   },
 
-  async resetPassword(token, password, confirmPassword) {
+  async resetPassword(token, newPassword, confirmPassword) {
     try {
       const res = await axios.post(`${API_URL}/Reset-password`, {
         token,
-        password,
+        newPassword,
         confirmPassword,
       });
       return res.data;
     } catch (err) {
-      throw err.response?.data || { message: "Failed to reset password" };
+      throw err.response?.data || { message: "Reset password failed" };
     }
   },
 };

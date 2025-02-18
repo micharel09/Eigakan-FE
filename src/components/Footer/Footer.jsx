@@ -1,23 +1,99 @@
+import { GithubOutlined, LinkedinOutlined } from "@ant-design/icons";
+
 const Footer = () => {
   return (
-    <footer className="w-full bg-black text-white border-t border-gray-800">
-      <div className="container mx-auto md:px-8 md:py-0">
-        <div className="flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
-          <p className="text-balance text-center text-sm leading-loose text-muted-foreground md:text-left">
-            Built by{" "}
-            <a
-              href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium underline underline-offset-4"
-            >
-              SP25-group5-475-Eigakan
-            </a>
-          </p>
+    <footer className="w-full bg-black text-gray-400 border-t border-gray-800">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Main Footer Content */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          {/* About Section */}
+          <div>
+            <h3 className="text-white text-lg font-semibold mb-4">Eigakan</h3>
+            <p className="text-sm">
+              Your ultimate destination for movie information, reviews, and
+              cinema news.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h3 className="text-white text-lg font-semibold mb-4">
+              Quick Links
+            </h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <a
+                  href="/movies"
+                  className="hover:text-blue-500 transition-colors"
+                >
+                  Movies
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/news"
+                  className="hover:text-blue-500 transition-colors"
+                >
+                  News
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/about"
+                  className="hover:text-blue-500 transition-colors"
+                >
+                  About Us
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Connect Section */}
+          <div>
+            <h3 className="text-white text-lg font-semibold mb-4">Connect</h3>
+            <div className="flex space-x-4">
+              <a
+                href="https://github.com/MNTuas/Eigakan"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-blue-500 transition-colors"
+              >
+                <GithubOutlined className="text-xl" />
+              </a>
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-blue-500 transition-colors"
+              >
+                <LinkedinOutlined className="text-xl" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-gray-800">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-sm">
+              © {new Date().getFullYear()} Eigakan. All rights reserved.
+            </p>
+            <p className="text-sm mt-2 md:mt-0">
+              Built with ❤️ by{" "}
+              <a
+                href="https://github.com/MNTuas/Eigakan"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-400 transition-colors"
+              >
+                SP25-group5-475
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
   );
 };
 
-export { Footer as default };
+export default Footer;

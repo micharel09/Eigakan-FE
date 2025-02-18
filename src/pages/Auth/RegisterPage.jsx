@@ -5,6 +5,7 @@ import Navbar from "../../components/Header/Navbar";
 import { Helmet } from "react-helmet";
 import UserRegisterApi from "../../apis/UserRegister/UserRegister";
 import uploadFileUserRegisterApi from "../../apis/Upload/upload";
+import { Spin } from "antd";
 
 const RegisterPage = () => {
   const searchParams = new URLSearchParams(window.location.search);
@@ -160,17 +161,29 @@ const RegisterPage = () => {
             </div>
 
             <button
-              className="w-full py-2 bg-red-600 text-white font-semibold rounded-md
-              hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              type="submit"
+              className={`w-full py-3 text-white rounded-lg transition-colors duration-300 
+              flex items-center justify-center gap-2
+              ${loading ? "bg-[#D1007F]" : "bg-[#FF009F] hover:bg-[#D1007F]"}`}
               disabled={loading}
             >
-              {loading ? "Signing up..." : "Sign up"}
+              {loading ? (
+                <Spin
+                  size="default"
+                  style={{
+                    color: "white",
+                    fontSize: "20px",
+                  }}
+                />
+              ) : (
+                "Sign Up"
+              )}
             </button>
           </form>
 
           <div className="text-center text-gray-400">
             Already a member?{" "}
-            <Link to={"/login"} className="text-red-500 hover:underline">
+            <Link to={"/login"} className="text-[#FF009F] hover:text-[#D1007F]">
               Sign in
             </Link>
           </div>

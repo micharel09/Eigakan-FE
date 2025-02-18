@@ -13,11 +13,11 @@
   }
 
   .loading-spinner::before {
-    @apply border-4 border-red-600/30;
+    @apply border-4 border-[#FF009F]/30;
   }
 
   .loading-spinner::after {
-    @apply border-4 border-red-600 border-t-transparent animate-spin;
+    @apply border-4 border-[#FF009F] border-t-transparent animate-spin;
   }
 
   .loading-container {
@@ -81,4 +81,19 @@
   opacity: 0;
   cursor: auto;
   pointer-events: none;
+}
+
+/* Custom Ant Design Spin color */
+.ant-spin .ant-spin-dot-item {
+  background-color: #FF009F !important;
+}
+
+/* Custom loading icon color */
+.anticon.anticon-loading.anticon-spin {
+  color: #FF009F !important;
+}
+
+/* Custom spin dot color */
+.ant-spin-dot-spin > i {
+  background-color: #FF009F !important;
 }
