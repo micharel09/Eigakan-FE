@@ -39,8 +39,8 @@ const SubscriptionManagement = () => {
       setLoading(true);
       const response = await subscriptionService.getAllPackages();
       if (response.success) {
-        const contractsData = response.data?.contracts || [];
-        setPackages(contractsData);
+        const packagesData = response.data?.subscriptionpackage || [];
+        setPackages(packagesData);
       }
     } catch (error) {
       notification.error({
@@ -144,6 +144,14 @@ const SubscriptionManagement = () => {
     }
   };
 
+  // Sửa lại hàm format tiền VND
+  const formatVND = (price) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
+
   // Table columns
   const columns = [
     {
@@ -157,7 +165,7 @@ const SubscriptionManagement = () => {
       title: "Price",
       dataIndex: "price",
       key: "price",
-      render: (price) => `$${price}`,
+      render: (price) => formatVND(price),
       width: "15%",
     },
     {
@@ -280,13 +288,16 @@ const SubscriptionManagement = () => {
 
           <Form.Item
             name="price"
-            label="Price"
+            label="Price (VND)"
             rules={[{ required: true, message: "Please enter price" }]}
           >
             <InputNumber
               min={0}
-              step={0.01}
-              prefix="$"
+              step={1000}
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
               style={{ width: "100%" }}
             />
           </Form.Item>

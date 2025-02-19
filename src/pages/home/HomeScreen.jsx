@@ -9,6 +9,9 @@ import Navbar from "../../components/Header/Navbar";
 import Slider from "../../components/Homepage/Slider";
 import Loading from "../../components/Loading/Loading";
 import { PlayCircle } from "lucide-react";
+import { Button } from "antd";
+import { CrownOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 // Lazy load components
 const ProductionHouse = React.lazy(() =>
@@ -20,9 +23,23 @@ const GenreMovieList = React.lazy(() =>
 
 const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const navigate = useNavigate();
+  const role = localStorage.getItem("role");
+  const isVipMember = role === "VIP MEMBER";
 
   useEffect(() => {
-    // Giả lập loading khi data đang được fetch
+    // Kiểm tra subscription status từ localStorage hoặc API
+    const checkSubscriptionStatus = () => {
+      const user = localStorage.getItem("user");
+      if (user) {
+        const userData = JSON.parse(user);
+        // Giả sử API trả về subscriptionStatus trong user data
+        setHasActiveSubscription(userData.subscriptionStatus === "Active");
+      }
+    };
+
+    checkSubscriptionStatus();
     const timer = setTimeout(() => {
       setLoading(false);
     }, 500);
@@ -64,6 +81,25 @@ const HomeScreen = () => {
           </FadeInSection>
         </div>
       </div>
+
+      {!isVipMember && localStorage.getItem("user") && (
+        <div className="text-center py-8 bg-gray-50 rounded-lg mb-8">
+          <h2 className="text-2xl font-bold mb-4">Upgrade Your Experience</h2>
+          <p className="text-gray-600 mb-4">
+            Get access to all premium features with our subscription plans
+          </p>
+          <Button
+            type="primary"
+            icon={<CrownOutlined />}
+            size="large"
+            className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
+            style={{ backgroundColor: "#FF009F" }}
+            onClick={() => navigate("/subscription-plans")}
+          >
+            View Plans
+          </Button>
+        </div>
+      )}
 
       <Navbar />
     </div>

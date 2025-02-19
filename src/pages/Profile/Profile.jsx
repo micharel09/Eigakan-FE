@@ -5,6 +5,7 @@ import {
   HistoryOutlined,
   UserOutlined,
   SettingOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import React, { useState, useEffect } from "react";
@@ -14,6 +15,8 @@ import DetailsProfile from "./DetailProfile";
 const Profile = () => {
   let coverPicture = localStorage.getItem("avatar");
   const [user, setUser] = useState(authService.getCurrentUser());
+  const role = localStorage.getItem("role");
+  const isVipMember = role === "VIP MEMBER";
 
   useEffect(() => {
     const updateUser = () => {
@@ -69,6 +72,14 @@ const Profile = () => {
             </Link>{" "}
             {/* Thêm Link */}
           </Breadcrumb.Item>
+          {!isVipMember && (
+            <Breadcrumb.Item>
+              <Link to="/subscription-plans">
+                <CrownOutlined />
+                Upgrade Plan
+              </Link>
+            </Breadcrumb.Item>
+          )}
         </Breadcrumb>
         <div
           style={{

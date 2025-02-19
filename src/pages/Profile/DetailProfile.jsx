@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Button, Form, Input, DatePicker, Select, Upload, Spin } from "antd";
-import { StarOutlined, UploadOutlined } from "@ant-design/icons";
+import { StarOutlined, UploadOutlined, CrownOutlined } from "@ant-design/icons";
 import UserApi from "../../apis/User/user";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
 
@@ -41,6 +42,7 @@ const onFinish = (values) => {
 const DetailsProfile = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   // Hàm lấy dữ liệu từ API
   const fetchProfile = async () => {
@@ -152,6 +154,15 @@ const DetailsProfile = () => {
           <Upload action="https://eigakan1111-001-site1.qtempurl.com/api/Media/Upload_Pictures">
             <Button icon={<UploadOutlined />}>Upload</Button>
           </Upload>
+          <Button
+            type="primary"
+            icon={<CrownOutlined />}
+            className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
+            style={{ backgroundColor: "#FF009F" }}
+            onClick={() => navigate("/subscription-plans")}
+          >
+            Upgrade Your Plan
+          </Button>
         </div>
       </Form>
     </Spin>

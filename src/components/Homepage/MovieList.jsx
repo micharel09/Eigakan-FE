@@ -3,7 +3,7 @@ import { IoChevronBackOutline, IoChevronForwardOutline } from "react-icons/io5";
 import MovieCard from "./MovieCard";
 import movieService from "../../apis/Movie/movie";
 
-function MovieList({ genreId, index_ }) {
+function MovieList({ genre }) {
   const [movieList, setMovieList] = useState([]);
   const elementRef = useRef(null);
 
@@ -15,7 +15,11 @@ function MovieList({ genreId, index_ }) {
     try {
       const response = await movieService.getMovies();
       if (response.success) {
-        setMovieList(response.data);
+        // Lọc phim theo thể loại
+        const filteredMovies = response.data.filter(
+          (movie) => movie.genreNames && movie.genreNames.includes(genre)
+        );
+        setMovieList(filteredMovies);
       }
     } catch (error) {
       console.error("Error fetching movies:", error);
@@ -46,11 +50,6 @@ function MovieList({ genreId, index_ }) {
 
   return (
     <div className="relative px-4">
-      {/* Genre Title */}
-      <h2 className="text-2xl font-bold text-white mb-4">
-        {genreId === 28 ? "Top Trending" : "Movies"}
-      </h2>
-
       {/* Movies Container */}
       <div className="relative group">
         {/* Left Navigation Button */}

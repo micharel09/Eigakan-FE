@@ -28,6 +28,7 @@ import GenreManagement from "../pages/Admin/Genre/GenreManagement.jsx";
 import PersonManagement from "../pages/Admin/Person/PersonManagement";
 import SubscriptionManagement from "../pages/Admin/Subscription/SubscriptionManagement";
 import SubscriptionPlans from "../pages/Subscription/SubscriptionPlans";
+import PaymentSuccess from "../pages/Payment/PaymentSuccess";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -220,6 +221,12 @@ const routes = [
   {
     path: "/subscription-plans",
     element: <SubscriptionPlans />,
+    layout: "UserLayout",
+  },
+
+  {
+    path: "/payment-success",
+    element: <PaymentSuccess />,
     layout: "UserLayout",
   },
 

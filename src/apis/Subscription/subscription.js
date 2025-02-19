@@ -85,18 +85,21 @@ const subscriptionService = {
   createPayment: async (subscriptionId) => {
     try {
       const token = localStorage.getItem("token");
+      // Thêm returnUrl vào query params
+      const returnUrl = `${window.location.origin}/payment-success`;
       const response = await axios.post(
-        `${API_URL.replace('/SubscriptionPackage', '')}/SubscriptionPurchasePayment/create?subscriptionId=${subscriptionId}`,
+        `${API_URL.replace('/SubscriptionPackage', '')}/SubscriptionPurchasePayment/create?subscriptionId=${subscriptionId}&returnUrl=${encodeURIComponent(returnUrl)}`,
+        null,
         {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
-          },
+          }
         }
       );
       return response.data;
     } catch (error) {
-      throw error.response?.data;
+      throw error.response?.data || error;
     }
   },
 };

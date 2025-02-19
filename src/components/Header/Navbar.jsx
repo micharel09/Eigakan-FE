@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
+import { CrownOutlined } from "@ant-design/icons";
+import { Menu } from "antd";
 
 const navLinks = [
   { path: "/homescreen", label: "Movies" },
@@ -26,6 +28,7 @@ const Navbar = () => {
   const isInAdminPage =
     location.pathname.includes("/dashboard") ||
     location.pathname.includes("/userRegister");
+  const isVipMember = role === "VIP MEMBER";
 
   useEffect(() => {
     const updateUser = () => setUser(authService.getCurrentUser());
@@ -78,18 +81,31 @@ const Navbar = () => {
           <div className="flex items-center gap-4 min-w-[200px] justify-end">
             <SearchBar navigate={navigate} />
             {user ? (
-              <ProfileMenu
-                user={user}
-                showProfileMenu={showProfileMenu}
-                handleLogout={() => {
-                  authService.logout();
-                  navigate("/login");
-                }}
-                handleProfileClick={(e) => {
-                  e.stopPropagation();
-                  setShowProfileMenu(!showProfileMenu);
-                }}
-              />
+              <>
+                <ProfileMenu
+                  user={user}
+                  showProfileMenu={showProfileMenu}
+                  handleLogout={() => {
+                    authService.logout();
+                    navigate("/login");
+                  }}
+                  handleProfileClick={(e) => {
+                    e.stopPropagation();
+                    setShowProfileMenu(!showProfileMenu);
+                  }}
+                />
+                {!isVipMember && (
+                  <Link
+                    to="/subscription-plans"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg 
+                      text-sm font-medium text-[#FF009F] hover:bg-[#FF009F]/10
+                      border border-[#FF009F]/20"
+                  >
+                    <CrownOutlined />
+                    <span>Upgrade Plan</span>
+                  </Link>
+                )}
+              </>
             ) : (
               <Link
                 to="/login"
