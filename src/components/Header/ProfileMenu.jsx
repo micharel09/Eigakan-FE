@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CrownOutlined, UserOutlined } from "@ant-design/icons";
 
 const dropdownVariants = {
   hidden: {
@@ -34,6 +35,9 @@ const ProfileMenu = ({
   handleLogout,
   handleProfileClick,
 }) => {
+  const role = localStorage.getItem("role");
+  const isVipMember = role === "VIP MEMBER";
+
   const menuItems = [
     { to: "/profile", icon: "fas fa-user", label: "Profile Settings" },
     {
@@ -47,27 +51,63 @@ const ProfileMenu = ({
 
   return (
     <div className="relative">
-      <div
-        className="flex items-center gap-3 cursor-pointer select-none"
+      <button
         onClick={handleProfileClick}
+        className="relative flex items-center gap-2 focus:outline-none"
       >
-        <div className="relative transform transition-transform duration-200 hover:scale-105">
-          <img
-            src={user.picture || "/avatar2.jpg"}
-            alt="Avatar"
-            className="h-10 w-10 rounded-full object-cover border-2 border-transparent
-              hover:border-red-500 transition-all duration-300 shadow-lg"
-          />
+        {/* VIP Member Avatar Container */}
+        <div className={`relative ${isVipMember ? "animate-pulse" : ""}`}>
+          {/* VIP Crown Icon */}
+          {isVipMember && (
+            <div className="absolute -top-3 -right-2 z-10">
+              <CrownOutlined className="text-yellow-400 text-lg" />
+            </div>
+          )}
+
+          {/* Avatar with Glow Effect for VIP */}
           <div
-            className="absolute -bottom-1 -right-1 h-3.5 w-3.5 bg-green-500 
-            rounded-full border-2 border-black shadow-md"
-          />
+            className={`relative rounded-full ${
+              isVipMember
+                ? "ring-2 ring-[#FF009F] ring-offset-2 ring-offset-gray-800"
+                : ""
+            }`}
+          >
+            <img
+              src={user.picture || "/avatar2.jpg"}
+              alt="Profile"
+              className={`w-10 h-10 rounded-full object-cover ${
+                isVipMember
+                  ? "border-2 border-[#FF009F]"
+                  : "border border-gray-600"
+              }`}
+            />
+
+            {/* VIP Glow Effect */}
+            {isVipMember && (
+              <div
+                className="absolute inset-0 rounded-full bg-[#FF009F]/20 
+                animate-pulse pointer-events-none"
+              />
+            )}
+          </div>
         </div>
-        <div className="hidden md:block">
-          <p className="text-sm font-semibold leading-tight">{user.fullName}</p>
-          <p className="text-xs text-gray-400">Online</p>
-        </div>
-      </div>
+
+        <span className="text-white text-sm hidden sm:block flex items-center">
+          {user.fullName}
+          {isVipMember && (
+            <span
+              className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              bg-gradient-to-r from-[#FF009F] to-[#FF4D4D] 
+              shadow-lg shadow-[#FF009F]/30
+              border border-[#FF009F]/20
+              animate-gradient-x"
+            >
+              <CrownOutlined className="mr-1 text-yellow-300" />
+              VIP MEMBER
+            </span>
+          )}
+        </span>
+      </button>
 
       <AnimatePresence>
         {showProfileMenu && (
