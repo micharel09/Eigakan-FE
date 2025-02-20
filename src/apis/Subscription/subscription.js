@@ -109,6 +109,23 @@ const subscriptionService = {
       };
     }
   },
+
+  getAllPurchaseHistory: async (page = 1, pageSize = 10) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPurchasePayment/GetAllSubscriptionPurchaseUser?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
 };
 
 export default subscriptionService; 

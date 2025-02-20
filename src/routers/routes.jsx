@@ -30,6 +30,8 @@ import SubscriptionManagement from "../pages/Admin/Subscription/SubscriptionMana
 import SubscriptionPlans from "../pages/Subscription/SubscriptionPlans";
 import PaymentSuccess from "../pages/Payment/PaymentSuccess";
 import RegisterPage from "../pages/Auth/RegisterPage.jsx";
+import SubscriptionHistory from "../pages/Subscription/SubscriptionHistory";
+import SubscriptionOrderManagement from "../pages/Admin/Subscription/SubscriptionOrderManagement";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -233,6 +235,22 @@ const routes = [
     path: "/payment-success",
     element: <PaymentSuccess />,
     layout: "UserLayout",
+  },
+
+  {
+    path: "/subscription-history",
+    element: <SubscriptionHistory />,
+    layout: "UserLayout",
+  },
+
+  {
+    path: "/admin/subscription-orders",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <SubscriptionOrderManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },

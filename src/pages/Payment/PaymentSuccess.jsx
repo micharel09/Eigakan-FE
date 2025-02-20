@@ -15,7 +15,7 @@ function PaymentSuccess() {
     const verifyPayment = async () => {
       // Nếu đã có kết quả thành công hoặc đã gọi API rồi thì không gọi nữa
       if (apiCalled.current) return;
-      
+
       try {
         apiCalled.current = true; // Đánh dấu là đã gọi API
         const token = localStorage.getItem("token");
@@ -33,7 +33,7 @@ function PaymentSuccess() {
         );
 
         setPaymentInfo(response.data);
-        
+
         // Nếu thanh toán thành công, cập nhật user info
         if (response.data.success) {
           const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -41,15 +41,15 @@ function PaymentSuccess() {
           user.roleName = "VIP MEMBER";
           localStorage.setItem("user", JSON.stringify(user));
           localStorage.setItem("role", "VIP MEMBER");
-          
-          // Dispatch một custom event
-          window.dispatchEvent(new Event('userRoleChanged'));
-        }
 
+          // Dispatch một custom event
+          window.dispatchEvent(new Event("userRoleChanged"));
+        }
       } catch (error) {
         setPaymentInfo({
           success: false,
-          message: error.response?.data?.message || "Payment verification failed"
+          message:
+            error.response?.data?.message || "Payment verification failed",
         });
       } finally {
         setLoading(false);
@@ -91,28 +91,28 @@ function PaymentSuccess() {
             </span>
           }
           subTitle={
-            <span className="text-gray-400">
-              {paymentInfo?.message}
-            </span>
+            <span className="text-gray-400">{paymentInfo?.message}</span>
           }
           extra={[
             <div key="details" className="text-left mb-6">
               {paymentInfo?.success && paymentInfo?.data && (
                 <div className="space-y-2 text-gray-300">
                   <p>
-                    <span className="font-semibold">Mã giao dịch:</span>{" "}
+                    <span className="font-semibold">Transaction ID:</span>{" "}
                     {paymentInfo.data.id}
                   </p>
                   <p>
-                    <span className="font-semibold">Số tiền:</span>{" "}
+                    <span className="font-semibold">Amount:</span>{" "}
                     {formatVND(paymentInfo.data.totalPrice)}
                   </p>
                   <p>
-                    <span className="font-semibold">Thời hạn:</span>{" "}
-                    {new Date(paymentInfo.data.expiredDate).toLocaleDateString("vi-VN")}
+                    <span className="font-semibold">Expiry Date:</span>{" "}
+                    {new Date(paymentInfo.data.expiredDate).toLocaleDateString(
+                      "en-US"
+                    )}
                   </p>
                   <p>
-                    <span className="font-semibold">Trạng thái:</span>{" "}
+                    <span className="font-semibold">Status:</span>{" "}
                     {paymentInfo.data.status}
                   </p>
                 </div>
