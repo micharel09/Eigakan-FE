@@ -52,6 +52,24 @@ const UserApi = {
       return err.response;
     }
   },
+
+  async CreateUser(data) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.post(`${API_URL}/CreateUser`, data, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        console.log(response);
+        return response;
+        
+      } catch (error) {
+        console.error("API error:", error.message);
+        return error.response;
+      }
+},
+
 };
 
 export default UserApi;
