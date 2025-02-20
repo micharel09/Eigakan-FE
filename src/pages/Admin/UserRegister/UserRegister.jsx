@@ -110,7 +110,6 @@ const UserRegister = () => {
           <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
           <Button onClick={() => setSortedInfo({})}>Clear sorters</Button>
         </Space>
-
         <Button>Create</Button>
       </div>
 
@@ -118,12 +117,11 @@ const UserRegister = () => {
       <div style={{ marginBottom: "20px" }}>
         <input type="file" accept="video/*" onChange={(e) => setSelectedFile(e.target.files[0])} />
         <Button onClick={handleUpload} disabled={uploading}>
-  {uploading ? `Đang tải... ${progress}%` : "Tạo & Upload Video"}
-</Button>
+          {uploading ? `Đang tải... ${progress}%` : "Tạo & Upload Video"}
+        </Button>
 
-{uploading && <Progress percent={progress} status="active" />}
-{videoUrl && <p>Video URL: <a href={videoUrl} target="_blank">{videoUrl}</a></p>}
-
+        {uploading && <Progress percent={progress} status="active" />}
+        {videoUrl && <p>Video URL: <a href={videoUrl} target="_blank">{videoUrl}</a></p>}
 
       </div>
 

@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Upload";
 
-const uploadFileUserRegisterApi = {
+const uploadFileApi = {
    
     async UploadFile_UserRegister(file) {
         try {
@@ -24,10 +24,7 @@ const uploadFileUserRegisterApi = {
           console.error("Lỗi upload:", err); // Log lỗi chi tiết
           throw err.response?.data || { message: "Upload failed" };
         }
-      },
-
-  
-  
+    },
 
     async UploadPicture(file) {
       try {
@@ -44,7 +41,25 @@ const uploadFileUserRegisterApi = {
       } catch (err) {
         throw err.response?.data || { message: "Upload failed" };
       }
-    }
-  };
+    },
 
-export default uploadFileUserRegisterApi;
+    async getPreFileUrl(userId, fileName) {
+      try {
+        const token = localStorage.getItem('token');
+    
+        const res = await axios.get(`${API_URL}/GetPreFileUrl`, {
+          params: { userId, fileName },  
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+    
+        return res.data; 
+      } catch (error) {
+        console.error("Error fetching PreFileUrl:", error);
+        return error.response?.data || "An error occurred"; 
+      }
+    }
+    
+};
+export default uploadFileApi;
