@@ -26,6 +26,9 @@ import NewsPage from "../pages/News/NewsPage.jsx";
 import NewsDetail from "../pages/News/NewsDetail";
 import GenreManagement from "../pages/Admin/Genre/GenreManagement.jsx";
 import PersonManagement from "../pages/Admin/Person/PersonManagement";
+import SubscriptionManagement from "../pages/Admin/Subscription/SubscriptionManagement";
+import SubscriptionPlans from "../pages/Subscription/SubscriptionPlans";
+import PaymentSuccess from "../pages/Payment/PaymentSuccess";
 import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 
 const isLoggedIn = () => {
@@ -208,6 +211,28 @@ const routes = [
       </PrivateRoute>
     ),
     layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/subscriptions",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <SubscriptionManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/subscription-plans",
+    element: <SubscriptionPlans />,
+    layout: "UserLayout",
+  },
+
+  {
+    path: "/payment-success",
+    element: <PaymentSuccess />,
+    layout: "UserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },

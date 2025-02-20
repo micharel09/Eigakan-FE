@@ -1,0 +1,107 @@
+import axios from "axios";
+
+const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPackage";
+
+const subscriptionService = {
+  getAllPackages: async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API_URL}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  getPackageById: (id) => {
+    return axios.get(`${API_URL}/${id}`);
+  },
+
+  createPackage: async (data) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(`${API_URL}/`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // Nếu status là 201 thì cũng coi như thành công
+      return {
+        success: response.status === 201 || response.status === 200,
+        data: response.data,
+        message: "Package created successfully"
+      };
+    } catch (error) {
+      throw error.response?.data;
+    }
+  },
+
+  updatePackage: async (id, data) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.put(`${API_URL}/${id}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  deletePackage: async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.delete(`${API_URL}/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  patchStatus: async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.patch(`${API_URL}/${id}`, null, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data;
+    }
+  },
+
+  createPayment: async (subscriptionId) => {
+    try {
+      const token = localStorage.getItem("token");
+      // Thêm returnUrl vào query params
+      const returnUrl = `${window.location.origin}/payment-success`;
+      const response = await axios.post(
+        `${API_URL.replace('/SubscriptionPackage', '')}/SubscriptionPurchasePayment/create?subscriptionId=${subscriptionId}&returnUrl=${encodeURIComponent(returnUrl)}`,
+        null,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+};
+
+export default subscriptionService; 
