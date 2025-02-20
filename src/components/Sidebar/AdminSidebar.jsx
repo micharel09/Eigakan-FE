@@ -188,7 +188,7 @@ const AdminSidebar = () => {
                 </svg>
               </span>
               <span className="ml-3 text-sm font-medium">
-                Person Management
+                Actor Management
               </span>
             </Link>
           </li>

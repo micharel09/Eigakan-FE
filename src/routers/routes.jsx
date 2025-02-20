@@ -29,6 +29,7 @@ import PersonManagement from "../pages/Admin/Person/PersonManagement";
 import SubscriptionManagement from "../pages/Admin/Subscription/SubscriptionManagement";
 import SubscriptionPlans from "../pages/Subscription/SubscriptionPlans";
 import PaymentSuccess from "../pages/Payment/PaymentSuccess";
+import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -125,6 +126,10 @@ const routes = [
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
   { path: "/login", element: <LoginPage /> },
+  { path: "/verify", element: <VerifyAccount /> },
+  { path: "/registerPage", element: <RegisterPage /> },
+  { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/resetpassword", element: <ResetPassword /> },
 
   { path: "/signup-success", element: <SignupSuccess /> },
 
