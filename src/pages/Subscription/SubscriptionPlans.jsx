@@ -48,24 +48,29 @@ const SubscriptionPlans = () => {
   };
 
   const handleSubscribe = async (packageId) => {
+    if (loading) return;
+    
     try {
       setLoading(true);
       const response = await subscriptionService.createPayment(packageId);
 
       if (response.success && response.paymentUrl) {
-        // Redirect to VNPay payment page
+        // Lưu subscriptionId vào sessionStorage để dùng cho việc verify sau này
+        sessionStorage.setItem('pendingSubscriptionId', packageId);
+        // Redirect tới trang thanh toán VNPay
         window.location.href = response.paymentUrl;
-      } else {
-        notification.error({
-          message: "Error",
-          description: "Could not create payment session",
-        });
-      }
-    } catch (error) {
+        return;
+      } 
+      
       notification.error({
         message: "Error",
-        description:
-          error.message || "An error occurred while processing payment",
+        description: response.message || "Could not create payment session",
+      });
+      
+    } catch (error) {
+      notification.error({
+        message: "Error", 
+        description: error.message || "An error occurred while processing payment",
       });
     } finally {
       setLoading(false);
