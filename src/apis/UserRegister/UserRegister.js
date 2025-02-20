@@ -66,10 +66,10 @@ const UserRegisterApi = {
           }
     },
 
-    async rejectedUserRegister(data) {
+    async rejectedUserRegister(newUser) {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.patch(`${API_URL}/Rejected_UserRegister`, data, {
+            const response = await axios.patch(`${API_URL}/Rejected_UserRegister`, newUser, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -82,25 +82,25 @@ const UserRegisterApi = {
     },
 
     async CreateUserRegister(email, phoneNumber, reason, fileUrl, fullName) {
-    try {
-      const res = await axios.post(`${API_URL}/CreateUserRegister`, {
-        email,
-        phoneNumber,
-        reason,
-        fileUrl,
-        fullName,
-      });
-      return res.data;
-    } catch (err) {
-      if (err.response?.data?.errors) {
-        const firstError = Object.values(err.response.data.errors)[0];
-        throw {
-          message: Array.isArray(firstError) ? firstError[0] : firstError,
-        };
-      }
-      throw err.response?.data || { message: "Network error" };
-    }
-  },
+        try {
+        const res = await axios.post(`${API_URL}/CreateUserRegister`, {
+            email,
+            phoneNumber,
+            reason,
+            fileUrl,
+            fullName,
+        });
+        return res.data;
+        } catch (err) {
+        if (err.response?.data?.errors) {
+            const firstError = Object.values(err.response.data.errors)[0];
+            throw {
+            message: Array.isArray(firstError) ? firstError[0] : firstError,
+            };
+        }
+        throw err.response?.data || { message: "Network error" };
+        }
+    },
 
 }
 export default UserRegisterApi 
