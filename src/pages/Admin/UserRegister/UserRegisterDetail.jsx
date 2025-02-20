@@ -13,7 +13,7 @@ import {
 import UserRegisterApi from "../../../apis/UserRegister/UserRegister.js";
 import { formatDate } from "../../../utils/dateHelper";
 import UserApi from "../../../apis/User/user.jsx";
-import Upload from "../../../apis/Upload/upload.js";
+import uploadFileApi from "../../../apis/Upload/upload.jsx";
 import { extractUrl } from "../../../utils/extractUrl";
 
 const UserRegisterDetail = () => {
@@ -79,7 +79,7 @@ const UserRegisterDetail = () => {
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
         throw new Error("Failed to extract userId or fileName from URL");
       }
-      const response = await Upload.getPreFileUrl(
+      const response = await uploadFileApi.getPreFileUrl(
         extractLink.userId,
         extractLink.fileName
       );

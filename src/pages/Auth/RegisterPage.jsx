@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import Navbar from "../../components/Header/Navbar";
 import { Helmet } from "react-helmet";
 import UserRegisterApi from "../../apis/UserRegister/UserRegister";
-import Upload from "../../apis/Upload/upload.js";
+import uploadFileApi from "../../apis/Upload/upload.jsx";
 import { Spin } from "antd";
 
 const RegisterPage = () => {
@@ -38,7 +38,7 @@ const RegisterPage = () => {
       setLoading(true);
       setError("");
 
-      const files = await Upload.UploadFile_UserRegister(file);
+      const files = await uploadFileApi.UploadFile_UserRegister(file);
 
       if (!files || !files.data || files.data.length === 0) {
         throw new Error("Upload failed, file URL is missing");
