@@ -401,18 +401,17 @@ const NewsManagement = () => {
               render: (status) => {
                 const displayStatus = STATUS_MAP[status] || status;
                 return (
-                  <Tag
-                    color={
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs ${
                       displayStatus === "Active"
-                        ? "success"
+                        ? "bg-green-100 text-green-500 border border-green-500"
                         : displayStatus === "Draft"
-                        ? "warning"
-                        : "error"
-                    }
-                    className="px-2 py-0.5 text-xs rounded-full"
+                        ? "bg-yellow-100 text-yellow-500 border border-yellow-500"
+                        : "bg-red-100 text-red-500 border border-red-500"
+                    }`}
                   >
                     {displayStatus}
-                  </Tag>
+                  </span>
                 );
               },
             },

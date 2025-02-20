@@ -1,7 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
-import { CrownOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  CrownOutlined,
+  UserOutlined,
+  HistoryOutlined,
+} from "@ant-design/icons";
 
 const dropdownVariants = {
   hidden: {
@@ -29,12 +33,12 @@ const dropdownVariants = {
   },
 };
 
-const ProfileMenu = ({
+function ProfileMenu({
   user,
   showProfileMenu,
   handleLogout,
   handleProfileClick,
-}) => {
+}) {
   const role = localStorage.getItem("role");
   const isVipMember = role === "VIP MEMBER";
 
@@ -47,6 +51,11 @@ const ProfileMenu = ({
       badge: "New",
     },
     { to: "/settings", icon: "fas fa-cog", label: "Settings" },
+    {
+      to: "/subscription-history",
+      icon: <HistoryOutlined />,
+      label: "Subscription History",
+    },
   ];
 
   return (
@@ -145,10 +154,19 @@ const ProfileMenu = ({
                       className="flex items-center px-4 py-2.5 text-sm text-white/80 
                         hover:bg-white/10 hover:text-white transition-all duration-200 group"
                     >
-                      <i
-                        className={`${item.icon} text-white/60 group-hover:text-white 
-                        transition-colors w-5 h-5 mr-3`}
-                      />
+                      {typeof item.icon === "string" ? (
+                        <i
+                          className={`${item.icon} text-white/60 group-hover:text-white 
+                          transition-colors w-5 h-5 mr-3`}
+                        />
+                      ) : (
+                        <span
+                          className="text-white/60 group-hover:text-white 
+                          transition-colors w-5 h-5 mr-3"
+                        >
+                          {item.icon}
+                        </span>
+                      )}
                       {item.label}
                       {item.badge && (
                         <span
@@ -182,6 +200,6 @@ const ProfileMenu = ({
       </AnimatePresence>
     </div>
   );
-};
+}
 
 export default ProfileMenu;

@@ -1,32 +1,13 @@
-import { DatabaseOutlined } from "@ant-design/icons";
+import React from "react";
+import AdminSidebar from "../../components/Sidebar/AdminSidebar";
 
-function getItem(label, key, icon, children) {
-  return {
-    key,
-    icon,
-    children,
-    label,
-  };
-}
-
-const items = [
-  getItem("Genres", "/admin/genres", <DatabaseOutlined />),
-];
-
-function AdminLayout() {
-  const navigate = useNavigate();
-  
-  const onClick = (e) => {
-    navigate(e.key);
-  };
-
+const AdminLayout = ({ children }) => {
   return (
-    <Menu
-      onClick={onClick}
-      mode="inline"
-      items={items}
-    />
+    <div className="flex">
+      <AdminSidebar />
+      <main className="flex-1">{children}</main>
+    </div>
   );
-}
+};
 
-export default AdminLayout; 
+export default AdminLayout;
