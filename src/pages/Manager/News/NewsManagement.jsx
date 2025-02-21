@@ -79,6 +79,16 @@ const NewsManagement = () => {
     setLoading(true);
     try {
       const userId = localStorage.getItem("userId");
+
+      // Kiểm tra userId
+      if (!userId) {
+        notification.error({
+          message: "Error",
+          description: "User ID not found in local storage.",
+        });
+        return;
+      }
+
       const response = await NewsApi.getNewsByUserId(userId);
 
       if (response?.data?.success) {
@@ -142,9 +152,10 @@ const NewsManagement = () => {
   // Xử lý submit form khi create/update news
   const handleSubmit = async (values) => {
     try {
+      const userId = localStorage.getItem("userId");
       const formData = {
         ...values,
-        // Nếu không upload ảnh mới, giữ lại ảnh cũ
+        userId,
         picture: values.picture || form.getFieldValue("picture"),
       };
 

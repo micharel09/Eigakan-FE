@@ -15,7 +15,9 @@ const navLinks = [
 ];
 
 const Navbar = () => {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") || "{}"));
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user") || "{}")
+  );
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ const Navbar = () => {
     location.pathname.includes("/dashboard") ||
     location.pathname.includes("/userRegister");
   const isVipMember = role === "VIP MEMBER";
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const updateUser = () => setUser(authService.getCurrentUser());
@@ -47,12 +50,28 @@ const Navbar = () => {
       setUser(JSON.parse(localStorage.getItem("user") || "{}"));
     };
 
-    window.addEventListener('userRoleChanged', handleRoleChange);
+    window.addEventListener("userRoleChanged", handleRoleChange);
 
     return () => {
-      window.removeEventListener('userRoleChanged', handleRoleChange);
+      window.removeEventListener("userRoleChanged", handleRoleChange);
     };
   }, []);
+
+  const handleLogout = () => {
+    // Xóa toàn bộ thông tin user trong localStorage
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("fullName");
+    localStorage.removeItem("avatar");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
+
+    // Redirect về trang login
+    navigate("/login");
+
+    // Refresh lại trang để đảm bảo state được reset
+    window.location.reload();
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
@@ -95,15 +114,12 @@ const Navbar = () => {
 
           <div className="flex items-center gap-4 min-w-[200px] justify-end">
             <SearchBar navigate={navigate} />
-            {user ? (
+            {token && user ? (
               <>
                 <ProfileMenu
                   user={user}
                   showProfileMenu={showProfileMenu}
-                  handleLogout={() => {
-                    authService.logout();
-                    navigate("/login");
-                  }}
+                  handleLogout={handleLogout}
                   handleProfileClick={(e) => {
                     e.stopPropagation();
                     setShowProfileMenu(!showProfileMenu);
