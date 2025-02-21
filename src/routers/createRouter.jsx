@@ -6,6 +6,7 @@ import PrivateRoute from "./PrivateRoute";
 import AdvertiserLayout from "../Layout/AdvertiserLayout";
 import ScrollToTop from "../components/Header/ScrollToTop";
 import ManagerLayout from "../Layout/ManagerLayout";
+import PublisherLayout from "../Layout/PublisherLayout";
 
 const renderWithLayout = (route) => {
   let Layout;
@@ -18,6 +19,8 @@ const renderWithLayout = (route) => {
     Layout = AdvertiserLayout;
   } else if (route.layout === "ManagerLayout") {
     Layout = ManagerLayout;
+  }else if (route.layout === "PublisherLayout") {
+    Layout = PublisherLayout;
   }
 
   const content = route.private ? (

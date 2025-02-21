@@ -5,7 +5,7 @@ import { CreditCardOutlined, HistoryOutlined, UserOutlined, SettingOutlined, Cro
 import { useState, useEffect } from "react"
 import UserApi from "../../apis/User/user"
 import dayjs from "dayjs"
-import uploadFileApi from "../../apis/Upload/Upload"
+import uploadFileApi from "../../apis/Upload/upload"
 import HistoryTab from "./HistoryTab"
 import BillingTab from "./BillingTab"
 

@@ -32,6 +32,7 @@ import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 import SubscriptionHistory from "../pages/Subscription/SubscriptionHistory";
 import SubscriptionOrderManagement from "../pages/Admin/Subscription/SubscriptionOrderManagement";
 import UserDetail from "../pages/Admin/User/UserDetail.jsx";
+import MoviePublisher from "../pages/Publisher/Movie/MoviePublisher.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -107,9 +108,51 @@ const routes = [
     layout: "AdminLayout",
   },
 
+  {
+    path: "/admin/genres",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <GenreManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/persons",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <PersonManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/subscriptions",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <SubscriptionManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/subscription-orders",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <SubscriptionOrderManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
   { path: "/user", element: <User />, layout: "AdminLayout" },
+  
   { path: "/user/:id", element: <UserDetail />, layout: "AdminLayout" },
 
+  //=================================================================================================
   //USER
   { path: "/movie/:movieId", element: <MoviePage />, layout: "UserLayout" },
 
@@ -124,7 +167,20 @@ const routes = [
   { path: "/profile", element: <Profile />, layout: "UserLayout" },
 
   { path: "/profile/:id", element: <Profile />, layout: "UserLayout" },
+ 
+  { path: "/news", element: <NewsPage />, layout: "UserLayout",},
 
+  { path: "/news/:id", element: <NewsDetail />, layout: "UserLayout",},
+
+  { path: "/subscription-plans", element: <SubscriptionPlans />, layout: "UserLayout", },
+
+  { path: "/payment-success", element: <PaymentSuccess />, layout: "UserLayout", },
+
+  { path: "/subscription-history", element: <SubscriptionHistory />, layout: "UserLayout",},
+
+
+//=================================================================================================
+ 
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
@@ -133,9 +189,14 @@ const routes = [
   { path: "/registerPage", element: <RegisterPage /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/resetpassword", element: <ResetPassword /> },
-
   { path: "/signup-success", element: <SignupSuccess /> },
+  { path: "/forgot-password", element: <ForgotPassword />, },
+  { path: "/api/Auth/ForgotPassword", element: <ResetPassword />,},
+  { path: "/api/Auth/Verify", element: <VerifyAccount />, },
 
+  
+  //=================================================================================================
+  //MANAGER
   {
     path: "/manager/dashboard",
     element: (
@@ -169,90 +230,20 @@ const routes = [
     private: true,
   },
 
-  {
-    path: "/news",
-    element: <NewsPage />,
-    layout: "UserLayout",
-  },
 
+  //=================================================================================================
+  //PUBLISHER
   {
-    path: "/news/:id",
-    element: <NewsDetail />,
-    layout: "UserLayout",
-  },
-
-  {
-    path: "/forgot-password",
-    element: <ForgotPassword />,
-  },
-
-  {
-    path: "/api/Auth/ForgotPassword",
-    element: <ResetPassword />,
-  },
-
-  {
-    path: "/api/Auth/Verify",
-    element: <VerifyAccount />,
-  },
-
-  {
-    path: "/admin/genres",
+    path: "/publisher/movie",
     element: (
-      <PrivateRoute requiredRole="ADMIN">
-        <GenreManagement />
+      <PrivateRoute requiredRole="PUBLISHER">
+        <MoviePublisher />
       </PrivateRoute>
     ),
-    layout: "AdminLayout",
+    layout: "PublisherLayout",
+    private: true,
   },
 
-  {
-    path: "/admin/persons",
-    element: (
-      <PrivateRoute requiredRole="ADMIN">
-        <PersonManagement />
-      </PrivateRoute>
-    ),
-    layout: "AdminLayout",
-  },
-
-  {
-    path: "/admin/subscriptions",
-    element: (
-      <PrivateRoute requiredRole="ADMIN">
-        <SubscriptionManagement />
-      </PrivateRoute>
-    ),
-    layout: "AdminLayout",
-  },
-
-  {
-    path: "/subscription-plans",
-    element: <SubscriptionPlans />,
-    layout: "UserLayout",
-  },
-
-  {
-    path: "/payment-success",
-    element: <PaymentSuccess />,
-    layout: "UserLayout",
-  },
-
-  {
-    path: "/subscription-history",
-    element: <SubscriptionHistory />,
-    layout: "UserLayout",
-  },
-
-  {
-    path: "/admin/subscription-orders",
-    element: (
-      <PrivateRoute requiredRole="ADMIN">
-        <SubscriptionOrderManagement />
-      </PrivateRoute>
-    ),
-    layout: "AdminLayout",
-  },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
