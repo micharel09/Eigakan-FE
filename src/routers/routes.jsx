@@ -18,7 +18,6 @@ import SignupSuccess from "../pages/Auth/SignupSuccess";
 import VerifyAccount from "../pages/Auth/VerifyAccount";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
-import { Navigate } from "react-router-dom";
 import ManagerDashboard from "../pages/Manager/Dashboard/Dashboard.jsx";
 import Subscription from "../pages/Manager/Subscription/Subscription.jsx";
 import NewsManagement from "../pages/Manager/News/NewsManagement.jsx";
@@ -30,6 +29,7 @@ import SubscriptionManagement from "../pages/Admin/Subscription/SubscriptionMana
 import SubscriptionPlans from "../pages/Subscription/SubscriptionPlans";
 import PaymentSuccess from "../pages/Payment/PaymentSuccess";
 import RegisterPage from "../pages/Auth/RegisterPage.jsx";
+import UserDetail from "../pages/Admin/User/UserDetail.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -106,6 +106,7 @@ const routes = [
   },
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
+  { path: "/user/:id", element: <UserDetail />, layout: "AdminLayout" },
 
   //USER
   { path: "/movie/:movieId", element: <MoviePage />, layout: "UserLayout" },

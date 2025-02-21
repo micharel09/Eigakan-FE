@@ -5,6 +5,8 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import createRouter from "./routers/createRouter";
+import './index.css';
+
 
 const container = document.getElementById("root");
 let root;

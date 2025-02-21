@@ -29,19 +29,19 @@ const uploadFileApi = {
     async UploadPicture(file) {
       try {
         const formData = new FormData();
-        formData.append("file", file); 
+        formData.append("formFiles", file); // Đảm bảo key "file" trùng với yêu cầu của backend
   
-        const res = await axios.post(`${API_URL}/Upload_Pictures`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        const res = await axios.post(`${API_URL}/Upload_Pictures`, formData);
   
-        return res.data; // Trả về URL file sau khi upload thành công
+        console.log("Response từ server:", res.data); // Log kết quả từ server
+  
+        return res.data; // Trả về kết quả sau khi upload thành công
       } catch (err) {
+        console.error("Lỗi upload:", err); // Log lỗi chi tiết
         throw err.response?.data || { message: "Upload failed" };
       }
-    },
+  },
+
 
     async getPreFileUrl(userId, fileName) {
       try {

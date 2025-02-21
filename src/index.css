@@ -97,3 +97,41 @@
 .ant-spin-dot-spin > i {
   background-color: #FF009F !important;
 }
+
+.eigakan-glow {
+  font-size: 2rem; /* Kích thước chữ */
+  font-weight: bold;
+  color: white; /* Màu chữ */
+  text-transform: uppercase; /* Viết hoa toàn bộ */
+  transition: text-shadow 0.3s ease-in-out;
+}
+
+.eigakan-glow:hover {
+  text-shadow: 0 0 10px #facc15, 0 0 20px #facc15, 0 0 40px #facc15;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+@keyframes gradientText {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.eigakan-gradient {
+  font-size: 2rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #cc00ff, #FF009F, #7700ff);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientText 5s infinite linear;
+}
+
+
+
+

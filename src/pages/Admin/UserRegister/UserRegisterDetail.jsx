@@ -113,7 +113,7 @@ const handleAccept = async () => {
   useEffect(() => {
     if (userRegister) {
       setFullName(userRegister.fullName);
-      setEmail(userRegister.email) // Cập nhật giá trị fullName từ userRegister
+      setEmail(userRegister.email) 
     }
   }, [userRegister]);
 
