@@ -15,7 +15,7 @@ const navLinks = [
 ];
 
 const Navbar = () => {
-  const [user, setUser] = useState(authService.getCurrentUser());
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") || "{}"));
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
@@ -39,6 +39,19 @@ const Navbar = () => {
     const handleScroll = () => setIsScrolled(window.scrollY > 0);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Lắng nghe sự kiện role thay đổi
+    const handleRoleChange = () => {
+      setUser(JSON.parse(localStorage.getItem("user") || "{}"));
+    };
+
+    window.addEventListener('userRoleChanged', handleRoleChange);
+
+    return () => {
+      window.removeEventListener('userRoleChanged', handleRoleChange);
+    };
   }, []);
 
   return (

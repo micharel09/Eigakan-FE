@@ -1,20 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Result, Spin, Button } from "antd";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
 
-const PaymentSuccess = () => {
+function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const navigate = useNavigate();
+  const apiCalled = useRef(false);
 
   useEffect(() => {
     const verifyPayment = async () => {
+      // Nếu đã có kết quả thành công hoặc đã gọi API rồi thì không gọi nữa
+      if (apiCalled.current) return;
+
       try {
+        apiCalled.current = true; // Đánh dấu là đã gọi API
         const token = localStorage.getItem("token");
-        // Lấy tất cả query params từ URL
         const queryString = Array.from(searchParams.entries())
           .map(([key, value]) => `${key}=${value}`)
           .join("&");
@@ -29,18 +33,32 @@ const PaymentSuccess = () => {
         );
 
         setPaymentInfo(response.data);
+
+        // Nếu thanh toán thành công, cập nhật user info
+        if (response.data.success) {
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
+          user.subscriptionStatus = "Active";
+          user.roleName = "VIP MEMBER";
+          localStorage.setItem("user", JSON.stringify(user));
+          localStorage.setItem("role", "VIP MEMBER");
+
+          // Dispatch một custom event
+          window.dispatchEvent(new Event("userRoleChanged"));
+        }
       } catch (error) {
-        console.error("Payment verification failed:", error);
-        setPaymentInfo({ success: false });
+        setPaymentInfo({
+          success: false,
+          message:
+            error.response?.data?.message || "Payment verification failed",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     verifyPayment();
-  }, [searchParams]);
+  }, []); // Chỉ chạy một lần khi component mount
 
-  // Thêm hàm format tiền VND
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -73,35 +91,29 @@ const PaymentSuccess = () => {
             </span>
           }
           subTitle={
-            <span className="text-gray-400">
-              {paymentInfo?.message || "Transaction has been processed"}
-            </span>
+            <span className="text-gray-400">{paymentInfo?.message}</span>
           }
           extra={[
             <div key="details" className="text-left mb-6">
               {paymentInfo?.success && paymentInfo?.data && (
                 <div className="space-y-2 text-gray-300">
                   <p>
-                    <span className="font-semibold">Mã giao dịch:</span>{" "}
-                    {paymentInfo.data.transactionId}
+                    <span className="font-semibold">Transaction ID:</span>{" "}
+                    {paymentInfo.data.id}
                   </p>
                   <p>
-                    <span className="font-semibold">Số tiền:</span>{" "}
-                    {formatVND(paymentInfo.data.amount)}
+                    <span className="font-semibold">Amount:</span>{" "}
+                    {formatVND(paymentInfo.data.totalPrice)}
                   </p>
                   <p>
-                    <span className="font-semibold">Gói dịch vụ:</span>{" "}
-                    {paymentInfo.data.packageName}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Thời hạn:</span>{" "}
-                    {paymentInfo.data.duration} ngày
-                  </p>
-                  <p>
-                    <span className="font-semibold">Ngày thanh toán:</span>{" "}
-                    {new Date(paymentInfo.data.paymentDate).toLocaleString(
-                      "vi-VN"
+                    <span className="font-semibold">Expiry Date:</span>{" "}
+                    {new Date(paymentInfo.data.expiredDate).toLocaleDateString(
+                      "en-US"
                     )}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Status:</span>{" "}
+                    {paymentInfo.data.status}
                   </p>
                 </div>
               )}
@@ -119,6 +131,6 @@ const PaymentSuccess = () => {
       </div>
     </div>
   );
-};
+}
 
 export default PaymentSuccess;

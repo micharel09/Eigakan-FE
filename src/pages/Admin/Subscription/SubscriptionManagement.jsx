@@ -11,6 +11,7 @@ import {
   notification,
   InputNumber,
   Select,
+  Tag,
 } from "antd";
 import {
   EditOutlined,

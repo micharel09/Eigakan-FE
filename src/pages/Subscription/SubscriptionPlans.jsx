@@ -48,19 +48,24 @@ const SubscriptionPlans = () => {
   };
 
   const handleSubscribe = async (packageId) => {
+    if (loading) return;
+
     try {
       setLoading(true);
       const response = await subscriptionService.createPayment(packageId);
 
       if (response.success && response.paymentUrl) {
-        // Redirect to VNPay payment page
+        // Lưu subscriptionId vào sessionStorage để dùng cho việc verify sau này
+        sessionStorage.setItem("pendingSubscriptionId", packageId);
+        // Redirect tới trang thanh toán VNPay
         window.location.href = response.paymentUrl;
-      } else {
-        notification.error({
-          message: "Error",
-          description: "Could not create payment session",
-        });
+        return;
       }
+
+      notification.error({
+        message: "Error",
+        description: response.message || "Could not create payment session",
+      });
     } catch (error) {
       notification.error({
         message: "Error",
@@ -112,12 +117,12 @@ const SubscriptionPlans = () => {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Bạn đã là thành viên VIP!
+            You are already a VIP member!
           </h2>
           <p className="text-gray-400 mb-8">
-            Bạn đang có gói subscription đang hoạt động.
+            You have an active subscription.
             <br />
-            Đang chuyển hướng về trang chủ...
+            Redirecting to home page...
           </p>
           <Button
             type="primary"
@@ -125,7 +130,7 @@ const SubscriptionPlans = () => {
             className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
             style={{ backgroundColor: "#FF009F" }}
           >
-            Về trang chủ ngay
+            Go to Home
           </Button>
         </div>
       </div>
@@ -210,9 +215,9 @@ const SubscriptionPlans = () => {
 
         <div className="mt-12 text-center text-gray-400">
           <p className="text-sm">
-            * Tất cả các gói đều bao gồm quyền truy cập vào thư viện phim
+            * All plans include access to our movie library
           </p>
-          <p className="text-sm">* Giá đã bao gồm thuế VAT</p>
+          <p className="text-sm">* Prices include VAT</p>
         </div>
       </div>
     </div>

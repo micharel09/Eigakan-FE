@@ -11,7 +11,7 @@ const UserLayout = ({ children }) => {
   const isWatchPage = location.pathname.includes("/watch/");
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-900">
+    <div className="flex flex-col min-h-screen ">
       {!isHomeScreen && !isAuthPage && <Navbar />}
       <main
         className={`

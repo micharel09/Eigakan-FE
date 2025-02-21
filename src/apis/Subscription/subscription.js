@@ -85,7 +85,6 @@ const subscriptionService = {
   createPayment: async (subscriptionId) => {
     try {
       const token = localStorage.getItem("token");
-      // Thêm returnUrl vào query params
       const returnUrl = `${window.location.origin}/payment-success`;
       const response = await axios.post(
         `${API_URL.replace('/SubscriptionPackage', '')}/SubscriptionPurchasePayment/create?subscriptionId=${subscriptionId}&returnUrl=${encodeURIComponent(returnUrl)}`,
@@ -97,9 +96,34 @@ const subscriptionService = {
           }
         }
       );
+      return {
+        success: response.data.success,
+        paymentUrl: response.data.paymentUrl,
+        message: response.data.message
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Payment creation failed",
+        error: error.response?.data
+      };
+    }
+  },
+
+  getAllPurchaseHistory: async (page = 1, pageSize = 10) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPurchasePayment/GetAllSubscriptionPurchaseUser?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      throw error.response?.data || error.message;
     }
   },
 };

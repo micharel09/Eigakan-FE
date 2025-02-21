@@ -1,19 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom"; 
-import { Badge, Descriptions, Button, Modal, Input, Spin, notification,Select } from "antd";
+import { useParams } from "react-router-dom";
+import {
+  Badge,
+  Descriptions,
+  Button,
+  Modal,
+  Input,
+  Spin,
+  notification,
+  Select,
+} from "antd";
 import UserRegisterApi from "../../../apis/UserRegister/UserRegister.js";
 import { formatDate } from "../../../utils/dateHelper";
 import UserApi from "../../../apis/User/user.jsx";
-import uploadFileApi from "../../../apis/Upload/Upload.jsx";
+import uploadFileApi from "../../../apis/Upload/upload.jsx";
 import { extractUrl } from "../../../utils/extractUrl";
 
 const UserRegisterDetail = () => {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false); // Modal Accept User
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false); // Modal Reject User
   const [reason, setReason] = useState("");
   const [userRegister, setUserRegister] = useState(null);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("");
   const [roleId, setRoleId] = useState("");
   const [email, setEmail] = useState("");
@@ -22,49 +31,61 @@ const UserRegisterDetail = () => {
     setIsRejectModalVisible(true);
   };
 
-const handleAccept = async () => {
-    const data = { Id: userRegister.id };    
-    const newUser = { fullName, email, roleId, userRegisterId: userRegister.id };
-    
+  const handleAccept = async () => {
+    const data = { Id: userRegister.id };
+    const newUser = {
+      fullName,
+      email,
+      roleId,
+      userRegisterId: userRegister.id,
+    };
+
     try {
       const accept = await UserRegisterApi.acceptedUserRegister(data);
-      
-      if(accept.status === 200){
-        const response = await UserApi.CreateUser(newUser); 
+
+      if (accept.status === 200) {
+        const response = await UserApi.CreateUser(newUser);
 
         if (response.status === 200) {
           setUserRegister((prevUserRegister) => ({
             ...prevUserRegister,
-            status: "Accepted",  
+            status: "Accepted",
           }));
-          notification.success({ message: response.data.message || 'Accepted successfully!' });
+          notification.success({
+            message: response.data.message || "Accepted successfully!",
+          });
         } else {
-          notification.error({ message: response.data.message || 'Failed to accept user.' });
+          notification.error({
+            message: response.data.message || "Failed to accept user.",
+          });
         }
-
-      }else{
-        notification.error({ message: response.data.message || 'Failed to accept user.' });
+      } else {
+        notification.error({
+          message: response.data.message || "Failed to accept user.",
+        });
       }
-
     } catch (error) {
       console.error("Error accepting user:", error);
-      notification.error({ message: error.message || 'An error occurred!' });
+      notification.error({ message: error.message || "An error occurred!" });
     }
     setIsAcceptModalVisible(false);
   };
 
   const handleGetPreUrl = async () => {
     try {
-      const extractLink = extractUrl(userRegister.fileUrl);  
+      const extractLink = extractUrl(userRegister.fileUrl);
       console.log("Extracted link:", extractLink);
 
-        if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-            throw new Error("Failed to extract userId or fileName from URL");
-        }
-      const response = await uploadFileApi.getPreFileUrl(extractLink.userId, extractLink.fileName);  
+      if (!extractLink || !extractLink.userId || !extractLink.fileName) {
+        throw new Error("Failed to extract userId or fileName from URL");
+      }
+      const response = await uploadFileApi.getPreFileUrl(
+        extractLink.userId,
+        extractLink.fileName
+      );
       console.log("PreUrl:", response.data);
-      //setPreUrl(response.data.url); 
-      window.open(response.data.url, "_blank"); 
+      //setPreUrl(response.data.url);
+      window.open(response.data.url, "_blank");
     } catch (error) {
       console.error("Error fetching preUrl:", error);
     }
@@ -77,21 +98,24 @@ const handleAccept = async () => {
       if (response.status === 200) {
         setUserRegister((prevUserRegister) => ({
           ...prevUserRegister,
-          status: "Rejected",  
-          reasonForRejection: reason, 
+          status: "Rejected",
+          reasonForRejection: reason,
         }));
-        notification.success({ message: response.data.message || 'Rejected successfully!' });
+        notification.success({
+          message: response.data.message || "Rejected successfully!",
+        });
       } else {
-        notification.error({ message: response.data.message || 'Failed to reject user.' });
+        notification.error({
+          message: response.data.message || "Failed to reject user.",
+        });
       }
     } catch (error) {
       console.error("Error rejecting user:", error);
-      notification.error({ message: error.message || 'An error occurred!' });
+      notification.error({ message: error.message || "An error occurred!" });
     }
     setIsRejectModalVisible(false);
     setReason("");
   };
-
 
   const fetchUserRegister = async () => {
     if (!id) return;
@@ -148,7 +172,16 @@ const handleAccept = async () => {
       key: "4",
       label: "File Name",
       children: (
-        <button onClick={handleGetPreUrl} style={{ padding: "5px 10px", background: "blue", color: "white", border: "none", cursor: "pointer" }}>
+        <button
+          onClick={handleGetPreUrl}
+          style={{
+            padding: "5px 10px",
+            background: "blue",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
           View File
         </button>
       ),
@@ -159,19 +192,35 @@ const handleAccept = async () => {
       children: formatDate(userRegister.createDate),
       span: 2,
     },
-    { key: "6", label: "Reason", children: userRegister.reason || "N/A", span: 3 },
+    {
+      key: "6",
+      label: "Reason",
+      children: userRegister.reason || "N/A",
+      span: 3,
+    },
     {
       key: "7",
       label: "Status",
       children: (
         <Badge
-          status={userRegister.status === "Accepted" ? "success" : userRegister.status === "Rejected" ? "error" : "processing"}
+          status={
+            userRegister.status === "Accepted"
+              ? "success"
+              : userRegister.status === "Rejected"
+              ? "error"
+              : "processing"
+          }
           text={userRegister.status}
         />
       ),
       span: 1,
     },
-    { key: "8", label: "Reason for rejected", children: userRegister.reasonForRejection || "N/A", span: 1 },
+    {
+      key: "8",
+      label: "Reason for rejected",
+      children: userRegister.reasonForRejection || "N/A",
+      span: 1,
+    },
   ];
 
   return (
@@ -179,7 +228,11 @@ const handleAccept = async () => {
       <Descriptions title="User Register Info" bordered items={items} />
 
       <div style={{ marginTop: "20px", textAlign: "right" }}>
-        <Button onClick={() => setIsAcceptModalVisible(true)} type="primary" style={{ marginRight: "10px" }}>
+        <Button
+          onClick={() => setIsAcceptModalVisible(true)}
+          type="primary"
+          style={{ marginRight: "10px" }}
+        >
           Approve
         </Button>
         <Button type="danger" onClick={handleReject}>
@@ -216,30 +269,36 @@ const handleAccept = async () => {
         <div>
           <div className="mb-4">
             <label>Full Name</label>
-            <Input value={fullName || ''} onChange={(e) => setFullName(e.target.value)} placeholder="Enter full name" />
+            <Input
+              value={fullName || ""}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter full name"
+            />
           </div>
 
           <div className="mb-4">
             <label>Email</label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email" />
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter email"
+            />
           </div>
 
           <div className="mb-4">
-          <label>Role  </label>
-          <Select
-            value={roleId}
-            onChange={(value) => setRoleId(value)} // Cập nhật giá trị khi chọn
-            placeholder="Select a role"
-            className="w-52"
-          >
-            <Select.Option value="13AAA70C">Publisher</Select.Option>
-            <Select.Option value="23AAA70C">Advertiser</Select.Option>
-          </Select>
-        </div>
-
+            <label>Role </label>
+            <Select
+              value={roleId}
+              onChange={(value) => setRoleId(value)} // Cập nhật giá trị khi chọn
+              placeholder="Select a role"
+              className="w-52"
+            >
+              <Select.Option value="13AAA70C">Publisher</Select.Option>
+              <Select.Option value="23AAA70C">Advertiser</Select.Option>
+            </Select>
+          </div>
         </div>
       </Modal>
-
     </div>
   );
 };

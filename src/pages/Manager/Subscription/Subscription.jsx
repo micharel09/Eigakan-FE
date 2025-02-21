@@ -66,12 +66,13 @@ const Subscription = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
+      width: "15%",
       render: (status) => (
         <span
-          className={`px-2 py-1 rounded-full text-xs ${
+          className={`px-3 py-1 rounded-full text-xs ${
             status === "Active"
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
+              ? "bg-green-100 text-green-500 border border-green-500"
+              : "bg-red-100 text-red-500 border border-red-500"
           }`}
         >
           {status}
