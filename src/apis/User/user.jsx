@@ -68,7 +68,41 @@ const UserApi = {
         console.error("API error:", error.message);
         return error.response;
       }
-},
+  },
+
+  async getUserDetail(id) {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${API_URL}/GetUserById/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return res.data;
+    } catch (err) {
+        return err.response;
+    }
+  },
+
+  async updateUser(id, userData) {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await axios.put(`${API_URL}/UpdateUser/${id}`, userData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating User:", error);
+      throw error.response?.data || {
+        success: false,
+        message: "Failed to update User"
+      };
+    }
+  },
 
 };
 

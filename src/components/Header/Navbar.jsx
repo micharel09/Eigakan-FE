@@ -4,8 +4,7 @@ import authService from "../../apis/Auth/auth";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
 import { CrownOutlined } from "@ant-design/icons";
-import { Menu } from "antd";
-
+import { motion } from "framer-motion";
 const navLinks = [
   { path: "/homescreen", label: "Movies" },
   { path: "/", label: "TV Shows" },
@@ -79,13 +78,16 @@ const Navbar = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-transparent pointer-events-none"></div>
       <div className="relative max-w-[1300px] mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          <Link
-            to="/homepage"
-            className="relative z-10 transform hover:scale-105 transition-transform duration-200"
-          >
-            <img src="/Eigakan-logo.png" alt="logo" className="w-32 sm:w-40" />
-          </Link>
-
+        <Link to="/homepage" className="relative z-10">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="eigakan-gradient  text-[#FF009F] font-bold text-2xl "
+      >
+        EIGAKAN
+      </motion.div>
+    </Link>
           <div className="flex-1 max-w-3xl mx-8">
             <nav className="flex items-center justify-center gap-8">
               {navLinks.map((link) => (
@@ -125,14 +127,16 @@ const Navbar = () => {
                 />
                 {!isVipMember && (
                   <Link
-                    to="/subscription-plans"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg 
-                      text-sm font-medium text-[#FF009F] hover:bg-[#FF009F]/10
-                      border border-[#FF009F]/20"
-                  >
-                    <CrownOutlined />
-                    <span>Upgrade Plan</span>
-                  </Link>
+                  to="/subscription-plans"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
+                    text-[#FF009F] hover:text-white border border-[#FF009F] transition-all
+                    duration-300 ease-in-out shadow-md 
+                    hover:bg-[#FF009F] hover:shadow-[0_0_15px_#FF009F]"
+                >
+                  <CrownOutlined />
+                  <span>Upgrade Plan</span>
+                </Link>
+                
                 )}
               </>
             ) : (
