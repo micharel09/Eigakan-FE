@@ -25,13 +25,13 @@ const UserLayout = ({ children }) => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen ">
+    <div className="flex flex-col min-h-screen">
       {!isHomeScreen && !isAuthPage && <Navbar />}
       <main
         className={`
           flex-grow
-          ${!isHomeScreen && !isAuthPage ? "pt-20" : ""}
-          ${isWatchPage ? "px-[20%]" : ""}
+          ${!isHomeScreen && !isAuthPage && !isWatchPage ? "pt-20" : ""}
+          ${isWatchPage ? "!p-0 !m-0 h-screen w-screen" : ""}
         `}
       >
         <Suspense
@@ -44,7 +44,7 @@ const UserLayout = ({ children }) => {
           {children}
         </Suspense>
       </main>
-      {!isAuthPage && <Footer className="mt-auto" />}
+      {!isAuthPage && !isWatchPage && <Footer className="mt-auto" />}
     </div>
   );
 };

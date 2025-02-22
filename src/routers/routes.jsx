@@ -3,7 +3,7 @@ import Dashboard from "../pages/Admin/Dashboard/Dashboard.jsx";
 import LoginPage from "../pages/Auth/LoginPage";
 import SignupPage from "../pages/Auth/SignUpPage";
 import HomePage from "../pages/home/HomePage";
-import WatchPage from "../pages/Watchpage/WatchPage.jsx";
+import WatchPage from "../pages/Watchpage/WatchPage";
 import SearchPage from "../pages/home/Search.jsx";
 import MoviePage from "../pages/MoviePage/MoviePage.jsx";
 import PrivateRoute from "./PrivateRoute";
@@ -149,7 +149,7 @@ const routes = [
   },
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
-  
+
   { path: "/user/:id", element: <UserDetail />, layout: "AdminLayout" },
 
   //=================================================================================================
@@ -167,20 +167,31 @@ const routes = [
   { path: "/profile", element: <Profile />, layout: "UserLayout" },
 
   { path: "/profile/:id", element: <Profile />, layout: "UserLayout" },
- 
-  { path: "/news", element: <NewsPage />, layout: "UserLayout",},
 
-  { path: "/news/:id", element: <NewsDetail />, layout: "UserLayout",},
+  { path: "/news", element: <NewsPage />, layout: "UserLayout" },
 
-  { path: "/subscription-plans", element: <SubscriptionPlans />, layout: "UserLayout", },
+  { path: "/news/:id", element: <NewsDetail />, layout: "UserLayout" },
 
-  { path: "/payment-success", element: <PaymentSuccess />, layout: "UserLayout", },
+  {
+    path: "/subscription-plans",
+    element: <SubscriptionPlans />,
+    layout: "UserLayout",
+  },
 
-  { path: "/subscription-history", element: <SubscriptionHistory />, layout: "UserLayout",},
+  {
+    path: "/payment-success",
+    element: <PaymentSuccess />,
+    layout: "UserLayout",
+  },
 
+  {
+    path: "/subscription-history",
+    element: <SubscriptionHistory />,
+    layout: "UserLayout",
+  },
 
-//=================================================================================================
- 
+  //=================================================================================================
+
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
   { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
@@ -190,11 +201,10 @@ const routes = [
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/resetpassword", element: <ResetPassword /> },
   { path: "/signup-success", element: <SignupSuccess /> },
-  { path: "/forgot-password", element: <ForgotPassword />, },
-  { path: "/api/Auth/ForgotPassword", element: <ResetPassword />,},
-  { path: "/api/Auth/Verify", element: <VerifyAccount />, },
+  { path: "/forgot-password", element: <ForgotPassword /> },
+  { path: "/api/Auth/ForgotPassword", element: <ResetPassword /> },
+  { path: "/api/Auth/Verify", element: <VerifyAccount /> },
 
-  
   //=================================================================================================
   //MANAGER
   {
@@ -230,7 +240,6 @@ const routes = [
     private: true,
   },
 
-
   //=================================================================================================
   //PUBLISHER
   {
@@ -243,7 +252,6 @@ const routes = [
     layout: "PublisherLayout",
     private: true,
   },
-
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
