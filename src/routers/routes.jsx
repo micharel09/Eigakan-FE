@@ -240,6 +240,39 @@ const routes = [
     private: true,
   },
 
+  {
+    path: "/manager/subscriptions",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <SubscriptionManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/genres",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <GenreManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/persons",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <PersonManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
   //=================================================================================================
   //PUBLISHER
   {
