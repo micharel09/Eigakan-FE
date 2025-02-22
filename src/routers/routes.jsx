@@ -19,7 +19,6 @@ import VerifyAccount from "../pages/Auth/VerifyAccount";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import ManagerDashboard from "../pages/Manager/Dashboard/Dashboard.jsx";
-import Subscription from "../pages/Manager/Subscription/Subscription.jsx";
 import NewsManagement from "../pages/Manager/News/NewsManagement.jsx";
 import NewsPage from "../pages/News/NewsPage.jsx";
 import NewsDetail from "../pages/News/NewsDetail";
@@ -33,6 +32,7 @@ import SubscriptionHistory from "../pages/Subscription/SubscriptionHistory";
 import SubscriptionOrderManagement from "../pages/Admin/Subscription/SubscriptionOrderManagement";
 import UserDetail from "../pages/Admin/User/UserDetail.jsx";
 import MoviePublisher from "../pages/Publisher/Movie/MoviePublisher.jsx";
+import Subscription from "../pages/Manager/Subscription/SubscriptionManagement.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
