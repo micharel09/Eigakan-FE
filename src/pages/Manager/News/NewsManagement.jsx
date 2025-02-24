@@ -298,16 +298,16 @@ const NewsManagement = () => {
   // Sửa lại phần xử lý khi click edit để set initial values
   const handleEdit = (record) => {
     setEditingId(record.id);
-    // Set initial values với cả picture và image
+    // Set initial form values including the existing image
     form.setFieldsValue({
       ...record,
-      image: record.picture
+      image: record.image
         ? [
             {
               uid: "-1",
               name: "image.png",
               status: "done",
-              url: record.picture,
+              url: record.image,
             },
           ]
         : [],
@@ -538,9 +538,17 @@ const NewsManagement = () => {
             label="Image"
             valuePropName="fileList"
             getValueFromEvent={(e) => {
+              if (Array.isArray(e)) {
+                return e;
+              }
               return e?.fileList;
             }}
-            rules={[{ required: true, message: "Please upload an image!" }]}
+            rules={[
+              {
+                required: editingId ? false : true, // Chỉ required khi tạo mới
+                message: "Please upload an image!",
+              },
+            ]}
           >
             <Upload
               customRequest={handleUpload}
