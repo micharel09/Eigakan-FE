@@ -20,7 +20,7 @@ function GenreMovieList() {
               <h2 className="text-[20px] text-white font-bold mb-4">
                 {genre.name}
               </h2>
-              <MovieList genre={genre.name} />
+              <MovieList genreName={genre.name} />
             </div>
           )
       )}
