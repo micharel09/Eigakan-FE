@@ -5,7 +5,8 @@ const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Movie";
 const movieService = {
   async getMovies(pageNumber = 1, pageSize = 10) {
     try {
-      const response = await axios.get(API_URL, {
+      const response = await axios.get(
+        `https://eigakan1111-001-site1.qtempurl.com/api/Movie/GetListMovieActive`, {
         params: {
           pageNumber,
           pageSize
@@ -19,7 +20,7 @@ const movieService = {
 
   async getMovieById(id) {
     try {
-      const response = await axios.get(`${API_URL}/${id}`);
+      const response = await axios.get(`${API_URL}/GetMovieById/${id}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -123,7 +124,9 @@ const movieService = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
-  }
+  },
+
+ 
 };
 
 export default movieService; 

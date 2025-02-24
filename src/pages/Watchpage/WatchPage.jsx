@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { ChevronLeft, Info } from "lucide-react";
+import { ChevronLeft, Info, Calendar, Clock } from "lucide-react";
 import ReactPlayer from "react-player";
 import movieService from "../../apis/Movie/movie";
 import Loading from "../../components/Loading/Loading";
@@ -133,13 +133,13 @@ const WatchPage = () => {
         setCommentInput("");
         notification.success({
           message: "Success",
-          description: "Comment posted successfully!",
+          description: "Rating submitted successfully!",
         });
       }
     } catch (error) {
       notification.error({
         message: "Error",
-        description: error.message || "Failed to post comment",
+        description: "Failed to post comment",
       });
     }
   };
@@ -162,7 +162,7 @@ const WatchPage = () => {
     } catch (error) {
       notification.error({
         message: "Error",
-        description: error.message || "Failed to submit rating",
+        description: "Failed to submit rating",
       });
     } finally {
       setSubmittingRating(false);
@@ -186,14 +186,20 @@ const WatchPage = () => {
     );
   }
 
-  const getVideoUrl = (videoId) => {
-    return `https://iframe.mediadelivery.net/play/${LIBRARY_ID}/${videoId}`;
+  const movieUrl = movie.medias?.find((m) => m.type === "FILMVIP")?.url;
+  const trailer = movie.medias?.find((m) => m.type === "TRAILER")?.url;
+
+  const getVideoUrl = (url) => {
+    if (!url) return "";
+    // Nếu là URL từ Bunny CDN thì giữ nguyên
+    if (url.includes("mediadelivery.net")) {
+      return url;
+    }
+    // Nếu là URL khác (ví dụ YouTube) thì xử lý riêng
+    return url;
   };
 
-  const movieUrl = movie.medias?.find((m) => m.type === "Movie")?.url;
   const directMovieUrl = movieUrl ? getVideoUrl(movieUrl) : "";
-
-  const trailer = movie.medias?.find((m) => m.type === "Trailer")?.url;
   const directTrailerUrl = trailer ? getVideoUrl(trailer) : "";
 
   return (
@@ -224,6 +230,7 @@ const WatchPage = () => {
               }}
               allowFullScreen
               allow="autoplay; fullscreen"
+              frameBorder="0"
             />
           </div>
         </div>
@@ -305,21 +312,95 @@ const WatchPage = () => {
                     </div>
                   </div>
 
-                  {/* Info Pills */}
-                  <div className="flex flex-wrap gap-4 text-sm">
+                  {/* Rating Pills - Đặt chung một hàng */}
+                  <div className="flex items-center gap-4">
+                    {/* IMDB Rating */}
+                    <div className="flex items-center gap-3 bg-[#F6C700]/10 px-4 py-2 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="32"
+                          height="16"
+                          viewBox="0 0 64 32"
+                          fill="none"
+                        >
+                          <rect width="64" height="32" fill="#F6C700" />
+                          <path d="M8 8H12V24H8V8Z" fill="black" />
+                          <path
+                            d="M16 8H21.6C25.4 8 27.2 10.4 27.2 13.6V18.4C27.2 21.6 25.4 24 21.6 24H16V8ZM21.6 20.8C23.2 20.8 23.6 19.6 23.6 18.4V13.6C23.6 12.4 23.2 11.2 21.6 11.2H19.6V20.8H21.6Z"
+                            fill="black"
+                          />
+                          <path
+                            d="M29.6 8H36.8L39.2 18.4L41.6 8H48.8V24H45.2V11.2L42.4 24H36L33.2 11.2V24H29.6V8Z"
+                            fill="black"
+                          />
+                          <path d="M52 8H56V24H52V8Z" fill="black" />
+                        </svg>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold text-[#F6C700]">
+                          {movie.rating}
+                        </span>
+                        <span className="text-[#F6C700]/70 text-sm">/10</span>
+                      </div>
+                    </div>
+
+                    {/* User Rating */}
+                    <div className="flex items-center gap-3 bg-[#FF009F]/10 px-4 py-2 rounded-xl">
+                      <div className="flex -space-x-1">
+                        {[...Array(5)].map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.round(movie.userRating)
+                                ? "text-[#FF009F]"
+                                : "text-[#FF009F]/20"
+                            }`}
+                          >
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold text-[#FF009F]">
+                          {movie.userRating}
+                        </span>
+                        <span className="text-[#FF009F]/70 text-sm">/5</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info Pills - Các thông tin khác */}
+                  <div className="flex flex-wrap gap-3 text-sm">
                     {[
-                      movie.releaseYear,
-                      `${movie.duration}m`,
-                      `Rating: ${movie.rating}/10`,
-                      movie.genreNames,
-                      `Director: ${movie.director}`,
+                      {
+                        icon: <Calendar className="w-4 h-4" />,
+                        text: movie.releaseYear,
+                      },
+                      {
+                        icon: <Clock className="w-4 h-4" />,
+                        text: `${movie.duration}m`,
+                      },
+                      {
+                        text: movie.genreNames,
+                        className: "bg-[#FF009F]/10 text-[#FF009F]",
+                      },
+                      {
+                        text: `Director: ${movie.director}`,
+                        className: "bg-white/10",
+                      },
                     ].map((item, index) => (
-                      <span
+                      <div
                         key={index}
-                        className="px-3 py-1 rounded-full bg-white/10 text-white/80"
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+                          item.className || "bg-white/10"
+                        }`}
                       >
-                        {item}
-                      </span>
+                        {item.icon}
+                        <span>{item.text}</span>
+                      </div>
                     ))}
                   </div>
 
@@ -335,7 +416,8 @@ const WatchPage = () => {
                     </h3>
                     <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
                       {movie.person?.map((actor) => (
-                        <div
+                        <Link
+                          to={`/person/${actor.id}`}
                           key={actor.id}
                           className="flex-none group transition-transform hover:scale-105"
                         >
@@ -349,10 +431,10 @@ const WatchPage = () => {
                               {actor.name}
                             </div>
                             <div className="text-sm text-white/50">
-                              {actor.job}
+                              {actor.job === "Diễn viên" ? "Actor" : actor.job}
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </div>
@@ -364,12 +446,6 @@ const WatchPage = () => {
                     <h3 className="text-lg font-semibold text-[#FF009F]">
                       Rate This Movie
                     </h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white/70">Average:</span>
-                      <span className="text-white font-semibold">
-                        {movie.rating || 0}/5
-                      </span>
-                    </div>
                   </div>
 
                   <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-8 backdrop-blur-sm">
@@ -377,7 +453,7 @@ const WatchPage = () => {
                       {/* Current Rating Display */}
                       <div className="flex items-center gap-3">
                         <span className="text-4xl font-bold text-white">
-                          {movie.userRating || "?"}
+                          {ratingValue || "?"}
                         </span>
                         <div className="flex flex-col">
                           <span className="text-sm text-white/70">
@@ -456,30 +532,6 @@ const WatchPage = () => {
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Rating Stats */}
-                <div className="flex justify-center gap-8 text-sm text-white/50">
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.89-8.9c-1.78-.59-2.64-.96-2.64-1.9 0-1.02 1.11-1.39 1.81-1.39 1.31 0 1.79.99 1.9 1.34l1.58-.67c-.15-.44-.82-1.91-2.66-2.23V5h-1.75v1.26c-2.6.56-2.62 2.85-2.62 2.96 0 2.27 2.25 2.91 3.35 3.31 1.58.56 2.28 1.07 2.28 2.03 0 1.13-1.05 1.61-1.98 1.61-1.82 0-2.34-1.87-2.4-2.09l-1.66.67c.63 2.19 2.28 2.78 3.02 2.96V19h1.75v-1.24c.52-.09 3.02-.59 3.02-3.22.01-1.39-.4-2.61-2-3.44z" />
-                    </svg>
-                    <span>{movie.ratingCount || 0} ratings</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M13.5 8.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5S11.17 7 12 7s1.5.67 1.5 1.5zM13 17v-5h-2v5h2zm-1-6.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zm8-3c0-4.87-3.13-9-8-9s-8 4.13-8 9c0 3.63 2.58 6.84 6 7.72V22h4v-3.28c3.42-.88 6-4.09 6-7.72z" />
-                    </svg>
-                    <span>Rate to see recommendations</span>
                   </div>
                 </div>
 

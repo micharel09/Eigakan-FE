@@ -15,7 +15,6 @@ function MovieList({ genre }) {
     try {
       const response = await movieService.getMovies();
       if (response.success) {
-        // Hiển thị tất cả phim từ response
         setMovieList(response.data);
       }
     } catch (error) {
