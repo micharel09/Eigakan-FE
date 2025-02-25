@@ -174,7 +174,11 @@ const routes = [
 
   {
     path: "/subscription-plans",
-    element: <SubscriptionPlans />,
+    element: (
+      <PrivateRoute>
+        <SubscriptionPlans />
+      </PrivateRoute>
+    ),
     layout: "UserLayout",
   },
 
