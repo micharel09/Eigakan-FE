@@ -37,7 +37,10 @@ const LoginPage = () => {
           navigate("/dashboard");
         } else if (res.data.roleName === "MANAGER") {
           navigate("/manager/dashboard");
-        } else {
+        }else if (res.data.roleName === "PUBLISHER") {
+          navigate("/publisher/dashboard");
+        }
+         else {
           navigate("/homescreen");
         }
       } else {
