@@ -2,6 +2,7 @@ import { LogOut } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 const ManagerSidebar = () => {
   const [user, setUser] = useState(authService.getCurrentUser());
@@ -27,9 +28,20 @@ const ManagerSidebar = () => {
   return (
     <div className="min-h-screen flex flex-row bg-gray-100">
       <div className="flex flex-col w-56 bg-white rounded-r-3xl overflow-hidden">
-        <div className="flex items-center justify-center h-20 shadow-md">
-          <h1 className="text-3xl uppercase text-red-700">Eigakan</h1>
-        </div>
+      <div className="relative flex items-center justify-center h-20 shadow-md">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="eigakan-gradient text-[#FF009F] font-bold text-2xl"
+        >
+          EIGAKAN
+        </motion.div>
+
+        <h2 className="absolute bottom-1 right-2 text-gray-500 text-xs">
+          Manager
+        </h2>
+      </div>
         {/* avatar + name  */}
         <ul className="flex flex-col py-4">
           <li className="flex justify-center items-center">

@@ -2,7 +2,9 @@ import { useNavigate, Link } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 import React, { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
-import { HistoryOutlined } from "@ant-design/icons";
+import { HistoryOutlined,YoutubeOutlined } from "@ant-design/icons";
+import { motion } from "framer-motion";
+
 
 function AdminSidebar() {
   const [user, setUser] = useState(authService.getCurrentUser());
@@ -28,9 +30,20 @@ function AdminSidebar() {
   return (
     <div className="min-h-screen flex flex-row bg-gray-100">
       <div className="flex flex-col w-56 bg-white rounded-r-3xl overflow-hidden">
-        <div className="flex items-center justify-center h-20 shadow-md">
-          <h1 className="text-3xl uppercase text-indigo-700">Admin</h1>
-        </div>
+      <div className="relative flex items-center justify-center h-20 shadow-md">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="eigakan-gradient text-[#FF009F] font-bold text-2xl"
+        >
+          EIGAKAN
+        </motion.div>
+
+        <h2 className="absolute bottom-1 right-2 text-gray-500 text-xs">
+          ADMIN
+        </h2>
+      </div>
         {/* avatar + name  */}
         <ul className=" flex flex-col py-4 h-full">
           <li className="flex justify-center items-center">
@@ -117,6 +130,80 @@ function AdminSidebar() {
               <span className="ml-3 text-sm font-medium">User Register</span>
             </Link>
           </li>
+      
+          <li>
+            <Link
+              to="/admin/movieAdmin"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            >
+              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <YoutubeOutlined />
+              </span>
+              <span className="ml-3 text-sm font-medium">Movie </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/admin/genres"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            >
+              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="size-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+                  />
+                </svg>
+              </span>
+              <span className="ml-3 text-sm font-medium">Gernes </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/admin/persons"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            >
+              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="size-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+                  />
+                </svg>
+              </span>
+              <span className="ml-3 text-sm font-medium">Actor </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/admin/subscription-orders"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            >
+              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+                <HistoryOutlined />
+              </span>
+              <span className="ml-3 text-sm font-medium">
+                Subscription Orders
+              </span>
+            </Link>
+          </li>
+
           <li>
             <Link
               to="#"
@@ -141,19 +228,6 @@ function AdminSidebar() {
               <span className="ml-3 text-sm font-medium">Notifications</span>
               <span className="ml-auto mr-6 text-sm bg-red-100 rounded-full px-2 py-px text-red-500">
                 5
-              </span>
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/admin/subscription-orders"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
-            >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-                <HistoryOutlined />
-              </span>
-              <span className="ml-3 text-sm font-medium">
-                Subscription Orders
               </span>
             </Link>
           </li>
@@ -194,6 +268,7 @@ function AdminSidebar() {
               </span>
             </Link>
           </li>
+          
         </ul>
       </div>
     </div>

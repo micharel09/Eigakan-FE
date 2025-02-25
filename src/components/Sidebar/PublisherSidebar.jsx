@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { VideoCameraOutlined, SignatureOutlined } from "@ant-design/icons";
 
 const PublisherSidebar = () => {
   const [user, setUser] = useState(authService.getCurrentUser());
@@ -28,16 +29,21 @@ const PublisherSidebar = () => {
   return (
     <div className="min-h-screen flex flex-row bg-gray-100">
       <div className="flex flex-col w-56 bg-white rounded-r-3xl overflow-hidden">
-        <div className="flex items-center justify-center h-20 shadow-md">
+      <div className="relative flex items-center justify-center h-20 shadow-md">
         <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="eigakan-gradient  text-[#FF009F] font-bold text-2xl "
-      >
-        EIGAKAN
-      </motion.div>
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="eigakan-gradient text-[#FF009F] font-bold text-2xl"
+        >
+            EIGAKAN
+        </motion.div>
+
+        <h2 className="absolute bottom-1 right-2 text-gray-500 text-xs">
+            Publisher
+        </h2>
         </div>
+
         {/* avatar + name  */}
         <ul className="flex flex-col py-4">
           <li className="flex justify-center items-center">
@@ -54,7 +60,7 @@ const PublisherSidebar = () => {
           </li>
           <li>
             <Link
-              to="/manager/dashboard"
+              to="/publisher/dashboard"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
@@ -78,50 +84,24 @@ const PublisherSidebar = () => {
           </li>
           <li>
             <Link
-              to="/manager/subscription"
+              to="/publisher/movie"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.5"
-                  stroke="currentColor"
-                  className="size-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"
-                  />
-                </svg>
+              <VideoCameraOutlined />
               </span>
-              <span className="ml-3 text-sm font-medium">Subscription</span>
+              <span className="ml-3 text-sm font-medium">Your movie</span>
             </Link>
           </li>
           <li>
             <Link
-              to="/manager/news"
+              to="/publisher/contract"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.5"
-                  stroke="currentColor"
-                  className="size-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z"
-                  />
-                </svg>
+              <SignatureOutlined />
               </span>
-              <span className="ml-3 text-sm font-medium">News Management</span>
+              <span className="ml-3 text-sm font-medium">Your Contract</span>
             </Link>
           </li>
           <li>

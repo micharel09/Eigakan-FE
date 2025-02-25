@@ -111,7 +111,7 @@ const GenreManagement = () => {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      render: (text) => <Text>{text}</Text>,
+      render: (text) => <Text className="">{text}</Text>,
     },
     {
       title: "Description",

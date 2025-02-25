@@ -9,7 +9,7 @@ import genreService from "../../../apis/Genre/genre"
 
 const { Option } = Select
 
-const MoviePublisher = () => {
+const MovieAdmin = () => {
   const [movies, setMovies] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -147,5 +147,5 @@ const MoviePublisher = () => {
   )
 }
 
-export default MoviePublisher
+export default MovieAdmin
 
