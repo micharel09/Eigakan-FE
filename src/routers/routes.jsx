@@ -32,6 +32,10 @@ import SubscriptionHistory from "../pages/Subscription/SubscriptionHistory";
 import SubscriptionOrderManagement from "../pages/Admin/Subscription/SubscriptionOrderManagement";
 import UserDetail from "../pages/Admin/User/UserDetail.jsx";
 import MoviePublisher from "../pages/Publisher/Movie/MoviePublisher.jsx";
+import DashboardPublisher from "../pages/Publisher/Dashboard/DashboardPublisher.jsx";
+import MovieAdmin from "../pages/Admin/Movie/MovieAdmin.jsx";
+import CreateMovie from "../pages/Admin/Movie/CreateMovie.jsx";
+import MovieDetailAdmin from "../pages/Admin/Movie/MovieDetailAdmin.jsx";
 import Subscription from "../pages/Manager/Subscription/SubscriptionManagement.jsx";
 
 const isLoggedIn = () => {
@@ -147,6 +151,38 @@ const routes = [
     ),
     layout: "AdminLayout",
   },
+
+  {
+    path: "/admin/movieAdmin",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <MovieAdmin />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/createMovie",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <CreateMovie />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/movie/:id",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <MovieDetailAdmin />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
 
@@ -289,6 +325,18 @@ const routes = [
     layout: "PublisherLayout",
     private: true,
   },
+
+  {
+    path: "/publisher/dashboard",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <DashboardPublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+    private: true,
+  },
+
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];
