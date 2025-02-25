@@ -185,6 +185,10 @@ const MovieDetail = () => {
                         <Tag color="blue">{movie?.releaseYear}</Tag>
                         <Tag color="green">{movie?.genreNames}</Tag>
                         <Tag color={movie?.status === "ACTIVE" ? "success" : "warning"}>{movie?.status}</Tag>
+                        <Tag color={movie?.isContract === true ? "success" : "red"}>
+                          {movie?.isContract ? "Contracted" : "Not Contracted"}
+                        </Tag>
+
                       </div>
                     </div>
                     <div className="flex gap-2">

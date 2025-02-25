@@ -22,7 +22,7 @@ const POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500"; // Sử dụng ảnh 
 const MovieHero = memo(({ movie, onTrailerClick }) => {
   const banner = movie.medias?.find((m) => m.type === "BANNER");
   const poster = movie.medias?.find((m) => m.type === "POSTER");
-  const trailer = movie.medias?.find((m) => m.type === "Trailer");
+  const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
   return (
     <div className="relative w-full h-[70vh] overflow-hidden">
@@ -112,54 +112,52 @@ const MovieHero = memo(({ movie, onTrailerClick }) => {
 });
 
 // Tách MovieFacts thành component riêng
-const MovieFacts = memo(({ movie }) => (
-  <div className="lg:w-1/3">
-    <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
-      <Info className="w-6 h-6" />
-      Movie Facts
-    </h2>
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 space-y-6">
-      {/* Production & Director */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <h3 className="text-gray-400 text-sm mb-1">Director</h3>
-          <p className="text-white font-medium">{movie.director || "N/A"}</p>
-        </div>
-        <div>
-          <h3 className="text-gray-400 text-sm mb-1">Nation</h3>
-          <p className="text-white font-medium">{movie.nation || "N/A"}</p>
-        </div>
-      </div>
-
-      {/* Rating & Duration */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <h3 className="text-gray-400 text-sm mb-1">Rating</h3>
-          <p className="text-white font-medium flex items-center gap-1">
-            <Star className="w-4 h-4 text-yellow-500" />
-            {movie.rating || "N/A"}
-          </p>
-        </div>
-        <div>
-          <h3 className="text-gray-400 text-sm mb-1">Duration</h3>
-          <p className="text-white font-medium">{movie.duration}m</p>
+const MovieFacts = memo(({ movie }) => {
+  return (
+    <div className="lg:w-1/3 space-y-6">
+      <div className="bg-gray-800/50 rounded-xl p-6">
+        <h2 className="text-xl font-bold mb-4 text-white">Movie Facts</h2>
+        <div className="space-y-4">
+          {[
+            { label: "Director", value: movie.director },
+            { label: "Release Year", value: movie.releaseYear },
+            { label: "Duration", value: `${movie.duration} minutes` },
+            { label: "Nation", value: movie.nation },
+            { label: "Genre", value: movie.genreNames },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex justify-between">
+              <span className="text-gray-400">{label}</span>
+              <span className="text-white font-medium">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Release Year & Origin Name */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <h3 className="text-gray-400 text-sm mb-1">Release Year</h3>
-          <p className="text-white font-medium">{movie.releaseYear}</p>
-        </div>
-        <div>
-          <h3 className="text-gray-400 text-sm mb-1">Original Name</h3>
-          <p className="text-white font-medium">{movie.originName}</p>
+      {/* Rating Section */}
+      <div className="bg-gray-800/50 rounded-xl p-6">
+        <h2 className="text-xl font-bold mb-4 text-white">Ratings</h2>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">IMDB Rating</span>
+            <div className="flex items-center gap-2">
+              <span className="text-yellow-500 font-bold">{movie.rating}</span>
+              <span className="text-gray-400">/10</span>
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">User Rating</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[#FF009F] font-bold">
+                {movie.userRating}
+              </span>
+              <span className="text-gray-400">/5</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-));
+  );
+});
 
 // Hàm helper để chuyển đổi YouTube URL thành embed URL
 const getYoutubeEmbedUrl = (url) => {
@@ -221,7 +219,7 @@ const MoviePage = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-8 mb-12">
           <div className="lg:w-2/3">
-            {movie.medias?.find((m) => m.type === "Trailer") && (
+            {movie.medias?.find((m) => m.type === "TRAILER") && (
               <div id="trailer">
                 <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
                   <PlayCircle className="w-6 h-6" />
@@ -230,7 +228,7 @@ const MoviePage = () => {
                 <div className="aspect-video rounded-lg overflow-hidden shadow-lg">
                   <iframe
                     src={getYoutubeEmbedUrl(
-                      movie.medias.find((m) => m.type === "Trailer").url
+                      movie.medias.find((m) => m.type === "TRAILER").url
                     )}
                     title="Movie Trailer"
                     className="w-full h-full"

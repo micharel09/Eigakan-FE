@@ -1,119 +1,139 @@
 "use client"
 
-import { useState } from "react"
-import { SearchOutlined, PlusOutlined, EditOutlined } from "@ant-design/icons"
-import { Input, Select, Switch, Button, Card, Space, Pagination,Tag } from "antd"
+import { useState, useEffect } from "react"
+import { Input, Select, Button, Card, Pagination, Tag, Spin } from "antd"
+import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons"
+import { Link } from "react-router-dom"
+import movieService from "../../../apis/Movie/movie"
+import genreService from "../../../apis/Genre/genre"
 
-const movies = [
-  {
-    id: 1,
-    title: "Fast X",
-    poster: "https://res.cloudinary.com/dn8bn2sty/image/upload/v1740119573/i7s6ke9yf7ww0jxgyux3.jpg",
-    language: "English",
-  },
-  {
-    id: 1,
-    title: "Fast X",
-    poster: "https://res.cloudinary.com/dn8bn2sty/image/upload/v1740119573/i7s6ke9yf7ww0jxgyux3.jpg",
-    language: "English",
-  },
-  {
-    id: 1,
-    title: "Fast X",
-    poster: "https://res.cloudinary.com/dn8bn2sty/image/upload/v1740119573/i7s6ke9yf7ww0jxgyux3.jpg",
-    language: "English",
-  },
-  {
-    id: 1,
-    title: "Fast X",
-    poster: "https://res.cloudinary.com/dn8bn2sty/image/upload/v1740119573/i7s6ke9yf7ww0jxgyux3.jpg",
-    language: "English",
-  },
-  
-
-  // Add more movies here to test pagination
-]
-
-const languages = ["English", "Malayalam", "Hindi", "Tamil"]
-const genres = ["Action", "Drama", "Comedy", "Thriller"]
+const { Option } = Select
 
 const MoviePublisher = () => {
+  const [movies, setMovies] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredInfo, setFilteredInfo] = useState({})
-  const [sortedInfo, setSortedInfo] = useState({})
   const [currentPage, setCurrentPage] = useState(1)
+  const [genres, setGenres] = useState([])
+  const [selectedGenres, setSelectedGenres] = useState([])
+  const [loading, setLoading] = useState(false)
   const pageSize = 8
 
-  const filteredMovies = movies.filter((movie) => movie.title.toLowerCase().includes(searchTerm.toLowerCase()))
+  useEffect(() => {
+    fetchMovies()
+    fetchGenres()
+  }, [])
+
+  const fetchMovies = async () => {
+    setLoading(true)
+    try {
+      const response = await movieService.getAllListMovies()
+      console.log("Movies:", response.data)
+      setMovies(response.data)
+    } catch (error) {
+      console.error("Error fetching movies:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchGenres = async () => {
+    try {
+      const response = await genreService.getGenres()
+      setGenres(response.data)
+    } catch (error) {
+      console.error("Error fetching genres:", error)
+    }
+  }
+
+  const filteredMovies = movies.filter(
+    (movie) =>
+      movie.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (selectedGenres.length === 0 || selectedGenres.some((genre) => movie.genres.includes(genre))),
+  )
 
   const paginatedMovies = filteredMovies.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   return (
-    <div className="">
-      {/* Header Controls */}
+    <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <Space>
-          <Button onClick={() => setFilteredInfo({})} className="bg-white hover:bg-gray-100">
-            Clear Filters
+        <h1 className="text-3xl font-bold text-gray-800">Movie List</h1>
+        <Link to="/admin/createMovie">
+          <Button type="primary" icon={<PlusOutlined />} size="large" className="bg-blue-500 hover:bg-blue-600">
+            Create Movie
           </Button>
-          <Button onClick={() => setSortedInfo({})} className="bg-white hover:bg-gray-100">
-            Clear Sorters
-          </Button>
-        </Space>
-        <Button>Create</Button>
+        </Link>
       </div>
 
-      {/* Search & Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
         <Input
-          placeholder="Search By Title..."
-          prefix={<SearchOutlined />}
+          placeholder="Search by title..."
+          prefix={<SearchOutlined className="text-gray-400" />}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 min-w-[250px] shadow-sm"
+          className="flex-1 min-w-[250px] text-lg"
+          size="large"
         />
         <Select
-          placeholder="Filter by Language"
-          className="w-56 shadow-sm"
-          options={languages.map((lang) => ({ label: lang, value: lang }))}
           mode="multiple"
-        />
-        <Select
-          placeholder="Filter by Genres"
-          className="w-56 shadow-sm"
-          options={genres.map((genre) => ({ label: genre, value: genre }))}
-          mode="multiple"
+          style={{ minWidth: 200 }}
+          placeholder="Filter by genres"
+          onChange={setSelectedGenres}
+          options={genres.map((genre) => ({ label: genre.name, value: genre.id }))}
+          size="large"
+          className="text-lg"
         />
       </div>
 
-      {/* Movie Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Spin size="large" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {paginatedMovies.map((movie) => (
-            <Card
-              key={movie.id}
-              hoverable
-              className="rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:scale-105 bg-white"
-              cover={
-                <div className="relative pt-[100%]">
-                  <img
-                    src={movie.poster || "/placeholder.svg"}
-                    alt={movie.title}
-                    className="absolute top-0 left-0 w-full h-full object-cover rounded-t-lg"
-                  />
-                  <Tag color="green" className="absolute top-2 right-2 z-10">
-                    Active
-                  </Tag>
-                </div>
-              }
-            >
-              <Card.Meta
-                title={<span className="font-semibold">{movie.title}</span>}
-                description={<span className="text-gray-500">{movie.language}</span>}
-              />
-            </Card>
+            <Link key={movie.id} to={`/admin/movie/${movie.id}`}>
+              <Card
+                hoverable
+                cover={
+                  <div className="relative pt-[150%]">
+                    <img
+                      alt={movie.title}
+                      src={movie.medias.length > 0 ? movie.medias[0].url : "/placeholder.svg"}
+                      className="absolute top-0 left-0 w-full h-full object-cover rounded-t-lg"
+                    />
+                    <div className="absolute top-2 right-2">
+                      {movie.status === "ACTIVE" ? (
+                        <Tag icon={<CheckCircleOutlined />} color="green">Active</Tag>
+                      ) : movie.status === "WAITING_FOR_REVIEWING" ? (
+                        <Tag icon={<ClockCircleOutlined />} color="orange">Waiting for Review</Tag>
+                      ) : movie.status === "ACCEPTED_NEGOTIATING" ? (
+                        <Tag icon={<SyncOutlined spin />} color="blue">Negotiating</Tag>
+                      ) : movie.status === "REJECTED" ? (
+                        <Tag icon={<CloseCircleOutlined />} color="red">Rejected</Tag>
+                      ) : movie.status === "ARCHIVED" ? (
+                        <Tag icon={<FolderOutlined />} color="gray">Archived</Tag>
+                      ) : (
+                        <Tag color="default">Unknown</Tag>
+                      )}
+                    </div>
+                  </div>
+                }
+                className="rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl"
+              >
+                <Card.Meta
+                  title={<span className="font-semibold">{movie.title}</span>}
+                  description={
+                    <div>
+                      <p className="text-gray-500">{movie.releaseYear}</p>
+                      <div className="mt-2">{movie.genreNames}</div>
+                    </div>
+                  }
+                />
+              </Card>
+            </Link>
           ))}
         </div>
+      )}
 
-      {/* Pagination */}
       <div className="flex justify-center">
         <Pagination
           current={currentPage}

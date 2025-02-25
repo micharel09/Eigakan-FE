@@ -15,11 +15,7 @@ function MovieList({ genre }) {
     try {
       const response = await movieService.getMovies();
       if (response.success) {
-        // Lọc phim theo thể loại
-        const filteredMovies = response.data.filter(
-          (movie) => movie.genreNames && movie.genreNames.includes(genre)
-        );
-        setMovieList(filteredMovies);
+        setMovieList(response.data);
       }
     } catch (error) {
       console.error("Error fetching movies:", error);
