@@ -110,7 +110,7 @@ const MovieHero = memo(({ movie, onTrailerClick }) => {
 const MovieFacts = memo(({ movie }) => {
   return (
     <div className="lg:w-1/3 space-y-6">
-      <div className="bg-gray-800/50 rounded-xl p-6">
+      <div className="bg-gray-800/50 rounded-xl p-6 mt-14">
         <h2 className="text-xl font-bold mb-4 text-white">Movie Facts</h2>
         <div className="space-y-4">
           {[

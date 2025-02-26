@@ -19,13 +19,40 @@ const ratingService = {
     }
   },
 
-  createMovieRating: async (stars, movieId) => {
+  // createMovieRating: async (stars, movieId) => {
+  //   try {
+  //     const userId = JSON.parse(localStorage.getItem('user'))?.id;
+  //     const response = await axios.post(`${BASE_URL}/MovieRating`, {
+  //       stars,
+  //       userId,
+  //       movieId
+  //     }, {
+  //       headers: getAuthHeader()
+  //     });
+  //     return response.data;
+  //   } catch (error) {
+  //     throw error.response?.data || error.message;
+  //   }
+  // },
+
+  getMovieRatingById: async (ratingId) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/MovieRating/${ratingId}`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  async createMovieRating(rating, movieId) {
     try {
       const userId = JSON.parse(localStorage.getItem('user'))?.id;
       const response = await axios.post(`${BASE_URL}/MovieRating`, {
-        stars,
-        userId,
-        movieId
+        stars: rating,
+        userId: userId,
+        movieId: movieId
       }, {
         headers: getAuthHeader()
       });
@@ -35,9 +62,12 @@ const ratingService = {
     }
   },
 
-  getMovieRatingById: async (ratingId) => {
+  async createComment(content, movieId) {
     try {
-      const response = await axios.get(`${BASE_URL}/MovieRating/${ratingId}`, {
+      const response = await axios.post(`${BASE_URL}/Comment`, {
+        content: content,
+        movieId: movieId
+      }, {
         headers: getAuthHeader()
       });
       return response.data;
