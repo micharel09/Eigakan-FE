@@ -59,23 +59,6 @@ const movieService = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
-  },
-
-  // Comments
-  createComment: async (content, movieId) => {
-    try {
-      const userId = JSON.parse(localStorage.getItem('user'))?.id;
-      const response = await axios.post(`${API_URL}/Comment`, {
-        content,
-        createBy: userId,
-        movieId
-      }, {
-        headers: getAuthHeader()
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
   }
 };
 
