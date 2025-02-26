@@ -1,64 +1,81 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Input, Select, Button, Card, Pagination, Tag, Spin } from "antd"
-import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons"
-import { Link } from "react-router-dom"
-import movieService from "../../../apis/Movie/movie"
-import genreService from "../../../apis/Genre/genre"
+import { useState, useEffect } from "react";
+import { Input, Select, Button, Card, Pagination, Tag, Spin } from "antd";
+import {
+  SearchOutlined,
+  PlusOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  SyncOutlined,
+  CloseCircleOutlined,
+  FolderOutlined,
+} from "@ant-design/icons";
+import { Link } from "react-router-dom";
+import movieService from "../../../apis/Movie/movie";
+import genreService from "../../../apis/Genre/genre";
 
-const { Option } = Select
+const { Option } = Select;
 
 const MovieAdmin = () => {
-  const [movies, setMovies] = useState([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [genres, setGenres] = useState([])
-  const [selectedGenres, setSelectedGenres] = useState([])
-  const [loading, setLoading] = useState(false)
-  const pageSize = 8
+  const [movies, setMovies] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [genres, setGenres] = useState([]);
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const pageSize = 8;
 
   useEffect(() => {
-    fetchMovies()
-    fetchGenres()
-  }, [])
+    fetchMovies();
+    fetchGenres();
+  }, []);
 
   const fetchMovies = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await movieService.getAllListMovies()
-      console.log("Movies:", response.data)
-      setMovies(response.data)
+      const response = await movieService.getAllListMovies();
+      console.log("Movies:", response.data);
+      setMovies(response.data);
     } catch (error) {
-      console.error("Error fetching movies:", error)
+      console.error("Error fetching movies:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchGenres = async () => {
     try {
-      const response = await genreService.getGenres()
-      setGenres(response.data)
+      const response = await genreService.getGenres();
+      setGenres(response.data);
     } catch (error) {
-      console.error("Error fetching genres:", error)
+      console.error("Error fetching genres:", error);
     }
-  }
+  };
 
   const filteredMovies = movies.filter(
     (movie) =>
       movie.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (selectedGenres.length === 0 || selectedGenres.some((genre) => movie.genres.includes(genre))),
-  )
+      (selectedGenres.length === 0 ||
+        selectedGenres.some((genre) => movie.genres.includes(genre)))
+  );
 
-  const paginatedMovies = filteredMovies.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const paginatedMovies = filteredMovies.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Movie List</h1>
         <Link to="/admin/createMovie">
-          <Button type="primary" icon={<PlusOutlined />} size="large" className="bg-blue-500 hover:bg-blue-600">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="large"
+            className="bg-blue-500 hover:bg-blue-600"
+          >
             Create Movie
           </Button>
         </Link>
@@ -77,7 +94,10 @@ const MovieAdmin = () => {
           style={{ minWidth: 200 }}
           placeholder="Filter by genres"
           onChange={setSelectedGenres}
-          options={genres.map((genre) => ({ label: genre.name, value: genre.id }))}
+          options={genres.map((genre) => ({
+            label: genre.name,
+            value: genre.id,
+          }))}
           size="large"
           className="text-lg"
         />
@@ -97,20 +117,34 @@ const MovieAdmin = () => {
                   <div className="relative pt-[150%]">
                     <img
                       alt={movie.title}
-                      src={movie.medias.length > 0 ? movie.medias[0].url : "/placeholder.svg"}
+                      src={
+                        movie.medias.length > 0
+                          ? movie.medias[0].url
+                          : "/placeholder.svg"
+                      }
                       className="absolute top-0 left-0 w-full h-full object-cover rounded-t-lg"
                     />
                     <div className="absolute top-2 right-2">
                       {movie.status === "ACTIVE" ? (
-                        <Tag icon={<CheckCircleOutlined />} color="green">Active</Tag>
+                        <Tag icon={<CheckCircleOutlined />} color="green">
+                          Active
+                        </Tag>
                       ) : movie.status === "WAITING_FOR_REVIEWING" ? (
-                        <Tag icon={<ClockCircleOutlined />} color="orange">Waiting for Review</Tag>
+                        <Tag icon={<ClockCircleOutlined />} color="orange">
+                          Waiting for Review
+                        </Tag>
                       ) : movie.status === "ACCEPTED_NEGOTIATING" ? (
-                        <Tag icon={<SyncOutlined spin />} color="blue">Negotiating</Tag>
+                        <Tag icon={<SyncOutlined spin />} color="blue">
+                          Negotiating
+                        </Tag>
                       ) : movie.status === "REJECTED" ? (
-                        <Tag icon={<CloseCircleOutlined />} color="red">Rejected</Tag>
+                        <Tag icon={<CloseCircleOutlined />} color="red">
+                          Rejected
+                        </Tag>
                       ) : movie.status === "ARCHIVED" ? (
-                        <Tag icon={<FolderOutlined />} color="gray">Archived</Tag>
+                        <Tag icon={<FolderOutlined />} color="gray">
+                          Archived
+                        </Tag>
                       ) : (
                         <Tag color="default">Unknown</Tag>
                       )}
@@ -144,8 +178,7 @@ const MovieAdmin = () => {
         />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default MovieAdmin
-
+export default MovieAdmin;
