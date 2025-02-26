@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://eigakan1111-001-site1.qtempurl.com/api";
+const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Movie";
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');
@@ -11,7 +11,7 @@ const movieService = {
   // Movies
   getMovies: async (pageNumber = 1, pageSize = 10) => {
     try {
-      const response = await axios.get(`${BASE_URL}/Movie/GetListMovieActive`, {
+      const response = await axios.get(`${API_URL}/GetListMovieActive`, {
         params: { pageNumber, pageSize }
       });
       return response.data;
@@ -40,7 +40,7 @@ const movieService = {
 
   async getMovieById(id) {
     try {
-      const response = await axios.get(`${BASE_URL}/Movie/GetMovieById/${id}`);
+      const response = await axios.get(`${API_URL}/GetMovieById/${id}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -50,7 +50,6 @@ const movieService = {
   async createMovie(movieData) {
     try {
       const token = localStorage.getItem("token");
-      
       const response = await axios.post(API_URL, movieData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -62,10 +61,9 @@ const movieService = {
     }
   },
 
-
   async getUserById(userId) {
     try {
-      const response = await axios.get(`${BASE_URL}/User/GetUserById/${userId}`, {
+      const response = await axios.get(`${API_URL}/GetUserById/${userId}`, {
         headers: getAuthHeader()
       });
       return response.data;
@@ -78,7 +76,7 @@ const movieService = {
   createComment: async (content, movieId) => {
     try {
       const userId = JSON.parse(localStorage.getItem('user'))?.id;
-      const response = await axios.post(`${BASE_URL}/Comment`, {
+      const response = await axios.post(`${API_URL}/Comment`, {
         content,
         createBy: userId,
         movieId
