@@ -61,17 +61,6 @@ const movieService = {
     }
   },
 
-  async getUserById(userId) {
-    try {
-      const response = await axios.get(`${API_URL}/GetUserById/${userId}`, {
-        headers: getAuthHeader()
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
   // Comments
   createComment: async (content, movieId) => {
     try {

@@ -8,6 +8,7 @@ import Loading from "../../components/Loading/Loading";
 import { Comment } from "@ant-design/compatible";
 import { Modal, Rate, notification } from "antd";
 import moment from "moment";
+import UserApi from "../../apis/User/user";
 
 const WatchPage = () => {
   const { movieId } = useParams();
@@ -68,7 +69,7 @@ const WatchPage = () => {
         const uniqueUserIds = [...new Set(userIds)];
 
         const userPromises = uniqueUserIds.map((id) =>
-          movieService.getUserById(id)
+          UserApi.getUserDetail(id)
         );
         const users = await Promise.all(userPromises);
 
@@ -97,7 +98,7 @@ const WatchPage = () => {
         const uniqueUserIds = [...new Set(userIds)];
 
         const userPromises = uniqueUserIds.map((id) =>
-          movieService.getUserById(id)
+          UserApi.getUserDetail(id)
         );
         const users = await Promise.all(userPromises);
 
