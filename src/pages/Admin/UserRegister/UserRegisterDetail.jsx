@@ -91,6 +91,27 @@ const UserRegisterDetail = () => {
     }
   };
 
+  const handleGetPreUrlTemp = async () => {
+    try {
+      const extractLink = extractUrl(userRegister.fileUrl);
+      console.log("Extracted link:", extractLink);
+
+      if (!extractLink || !extractLink.userId || !extractLink.fileName) {
+        throw new Error("Failed to extract userId or fileName from URL");
+      }
+      const response = await uploadFileApi.getPreFileUrlTemp(
+        extractLink.userId,
+        extractLink.fileName
+      );
+      console.log("PreUrl:", response.data);
+      //setPreUrl(response.data.url);
+      window.open(response.data.url, "_blank");
+    } catch (error) {
+      console.error("Error fetching preUrl:", error);
+    }
+  };
+
+
   const handleRejectUser = async () => {
     try {
       const data = { id: userRegister.id, reasonForRejection: reason };
@@ -173,7 +194,7 @@ const UserRegisterDetail = () => {
       label: "File Name",
       children: (
         <button
-          onClick={handleGetPreUrl}
+          onClick={userRegister.status === "REVIEWING" ? handleGetPreUrlTemp : handleGetPreUrl}
           style={{
             padding: "5px 10px",
             background: "blue",
@@ -299,6 +320,7 @@ const UserRegisterDetail = () => {
           </div>
         </div>
       </Modal>
+    
     </div>
   );
 };

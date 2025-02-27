@@ -37,6 +37,12 @@ import MovieAdmin from "../pages/Admin/Movie/MovieAdmin.jsx";
 import CreateMovie from "../pages/Admin/Movie/CreateMovie.jsx";
 import MovieDetailAdmin from "../pages/Admin/Movie/MovieDetailAdmin.jsx";
 import Subscription from "../pages/Manager/Subscription/SubscriptionManagement.jsx";
+import CreateMoviePublisher from "../pages/Publisher/Movie/CreateMoviePublisher.jsx";
+import MovieDetailPublisher from "../pages/Publisher/Movie/MovieDetailPublisher.jsx";
+import ContractAdmin from "../pages/Admin/Contract/ContractAdmin.jsx";
+import ContractDetailAdmin from "../pages/Admin/Contract/ContractDetailAdmin.jsx";
+import ContractPublisher from "../pages/Publisher/Contract/ContractPublisher.jsx";
+import ContractDetailPublisher from "../pages/Publisher/Contract/ContractDetailPublisher.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -182,6 +188,25 @@ const routes = [
     layout: "AdminLayout",
   },
 
+  {
+    path: "/admin/contract",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <ContractAdmin />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/contract/:id",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <ContractDetailAdmin />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
 
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
@@ -332,6 +357,47 @@ const routes = [
     layout: "PublisherLayout",
     private: true,
   },
+
+  {
+    path: "/publisher/createMovie",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <CreateMoviePublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+  },
+
+  {
+    path: "/publisher/movie/:id",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <MovieDetailPublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+  },
+
+  {
+    path: "/publisher/contract",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <ContractPublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+  },
+
+  {
+    path: "/publisher/contract/:id",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <ContractDetailPublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+  },
+
 
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },

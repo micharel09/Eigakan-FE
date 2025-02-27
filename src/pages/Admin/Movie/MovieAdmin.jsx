@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Input, Select, Button, Card, Pagination, Tag, Spin } from "antd"
-import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons"
+import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined,SyncOutlined } from "@ant-design/icons"
 import { Link } from "react-router-dom"
 import movieService from "../../../apis/Movie/movie"
 import genreService from "../../../apis/Genre/genre"

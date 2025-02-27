@@ -45,6 +45,54 @@ const movieService = {
     }
   },
 
+  async getListMovieByLogin(pageNumber = 1, pageSize = 10) {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/GetListMovieByLogin`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        params: {
+          pageNumber,
+          pageSize
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  async acceptedMovie(data) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.patch(`${API_URL}/AcceptedMovie`, data, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response;
+      } catch (error) {
+        console.error("API error:", error.message);
+        return error.response;
+      }
+},
+
+async rejectedMovie(newMovie) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.patch(`${API_URL}/RejectedMovie`, newMovie, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response;
+      } catch (error) {
+        console.error("API error:", error.message);
+        return error.response;
+      }
+},
+
   async createMovie(movieData) {
     try {
       const token = localStorage.getItem("token");
@@ -60,6 +108,25 @@ const movieService = {
     }
   },
 
+  async updateMovie(id, movieData) {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await axios.put(`${API_URL}/UpdateMovie/${id}`, movieData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating person:", error);
+      throw error.response?.data || {
+        success: false,
+        message: "Failed to update person"
+      };
+    }
+  },
 
   async getUserById(userId) {
     try {

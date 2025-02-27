@@ -16,46 +16,41 @@ import {
   Statistic,
   Rate,
   Input,
-  Form,
-  DatePicker,
-  InputNumber,
+  Select,
+    Form,
+    Avatar,
 } from "antd"
 import {
   PlayCircleOutlined,
   PictureOutlined,
   VideoCameraOutlined,
   StarOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
+  EditOutlined,
   EyeOutlined,
 } from "@ant-design/icons"
 import { useParams } from "react-router-dom"
 import movieService from "../../../apis/Movie/movie"
-import contractApi from "../../../apis/Contract/contract"
-import { extractUrl } from "../../../utils/extractUrl"
-import uploadFileApi from "../../../apis/Upload/upload.jsx";
+import genreService from "../../../apis/Genre/genre"
+import personService from "../../../apis/Person/person"
 
 const { Content } = Layout
 const { TabPane } = Tabs
 const { Title, Text, Paragraph } = Typography
 
-const MovieDetail = () => {
+const MovieDetailPublisher = () => {
   const [movie, setMovie] = useState(null)
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState({ visible: false, type: "" })
-  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false)
-  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false)
-  const [reason, setReason] = useState("");
-
+  const [editMovie, setEditMovie] = useState(null);
+  const [genres, setGenres] = useState([]);
+  const [persons, setPersons] = useState([]);
   const { id } = useParams()
-  const [form] = Form.useForm();
-  
 
   useEffect(() => {
-    fetchMovieDetails()
+    fetchMovieDetails(),
+    fetchGenres(),
+    fetchPersons()
   }, [])
-
-  
 
   const fetchMovieDetails = async () => {
     setLoading(true)
@@ -68,64 +63,45 @@ const MovieDetail = () => {
       setLoading(false)
     }
   }
-  
-  const handleAccept = async () => {
-      const data = { Id: movie?.id };
-      const values = await form.validateFields(); // Lấy giá trị từ form
-      const contractData = {
-        startDate: values.startDate.format("DD/MM/YYYY"), // Chuyển thành chuỗi ngày
-        duration: Number(values.duration), 
-        price: Number(values.price), 
-        publisherName: values.publisherName,
-        distributorName: values.distributorName,
-        movieId: movie?.id, // Lấy movieId từ movie object
-      };
-      try {
-        const response = await movieService.acceptedMovie(data);
-       
-        if (response.status === 200) {
-          notification.success({ message: "Movie accepted successfully!" });
-          
-          await contractApi.createContract(contractData);
-          
-          notification.success({ message: "Contract generated successfully!" });
-          setIsAcceptModalVisible(false);
-          form.resetFields(); // Reset form sau khi submit
 
-        } else {
-          notification.error({ message: response.data.message || "Failed to accept movie" });
-        }
-    } catch (error) {
-      notification.error({ message: "Failed to generate contract" });
-    }
-  };
-
-  const handleReject = async () => {
+  const fetchGenres = async () => {
     try {
-      const data = { id: movie?.id, reasonForRejection: reason };
-      const response = await movieService.rejectedMovie(data);
-      if (response.status === 200) {
-        setUserRegister((prevUserRegister) => ({
-          ...prevUserRegister,
-          status: "Rejected",
-          reasonForRejection: reason,
-        }));
-        notification.success({
-          message: response.data.message || "Rejected successfully!",
-        });
-      } else {
-        notification.error({
-          message: response.data.message || "Failed to reject user.",
-        });
-      }
+      const response = await genreService.getGenres()
+      setGenres(response.data)
     } catch (error) {
-      console.error("Error rejecting user:", error);
-      notification.error({ message: error.message || "An error occurred!" });
+      console.error("Error fetching genres:", error)
+      notification.error({ message: "Failed to fetch genres" })
     }
-    setIsRejectModalVisible(false);
-    setReason("");
+  }
+
+  const fetchPersons = async () => {
+    try {
+      const response = await personService.getAllPerson()
+      console.log("Persons:", response.data)
+      setPersons(response.data)
+    } catch (error) {
+      console.error("Error fetching persons:", error)
+      notification.error({ message: "Failed to fetch persons" })
+    }
+  }
+
+  const handleUpdate = async () => {
+    try {
+      await movieService.updateMovie(id, editMovie);
+      notification.success({ message: "Movie updated successfully" });
+      setModal({ visible: false, type: "" });
+      fetchMovieDetails();
+    } catch (error) {
+      notification.error({ message: "Failed to update movie" });
+    }
   };
-  
+
+  const openUpdateModal = () => {
+    setEditMovie({ ...movie });
+    setModal({ visible: true, type: "update" });
+  };
+
+
   const getMediaUrl = (type) => movie?.medias?.find((m) => m.type === type)?.url || ""
 
   const renderMedia = (type) => {
@@ -218,51 +194,6 @@ const MovieDetail = () => {
     }
   }
     
-  const handleGetPreUrl = async () => {
-    try {
-      const extractLink = extractUrl(movie?.fileUrl);
-      if (extractLink === null) {
-        notification.error({ message: error.message || "An error occurred!" });
-      }
-
-      if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
-      }
-      const response = await uploadFileApi.getPreFileUrlMovie(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      console.log("PreUrl:", response.data);
-      //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
-    } catch (error) {
-      notification.error({ message: error.message || "Not found" });
-      console.error("Error fetching preUrl:", error);
-    }
-  };
-
-  const handleGetPreUrlTemp = async () => {
-    try {
-      const extractLink = extractUrl(movie?.fileUrl);
-      if (extractLink === null) {
-        notification.error({ message: error.message || "An error occurred!" });
-      }
-
-      if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
-      }
-      const response = await uploadFileApi.getPreFileUrlTemp(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      console.log("PreUrl:", response.data);
-      //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
-    } catch (error) {
-      notification.error({ message: error.message || "Not found" });
-      console.error("Error fetching preUrl:", error);
-    }
-  };
 
   return (
     <Layout className="min-h-screen bg-gray-50">
@@ -297,33 +228,17 @@ const MovieDetail = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      
-                      <button
-                        onClick={movie?.status === "WAITING_FOR_REVIEWING" ? handleGetPreUrlTemp : handleGetPreUrl}
-                        style={{
-                          padding: "5px 10px",
-                          background: "blue",
-                          color: "white",
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        View File
-                      </button>
-                      <Button
+                    <Button
                         type="primary"
-                        icon={<CheckCircleOutlined />}
-                        onClick={()  => setIsAcceptModalVisible(true)}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        danger
-                        icon={<CloseCircleOutlined />}
-                        onClick={() => setIsRejectModalVisible(true)}
-                      >
-                        Reject
-                      </Button>
+                        icon={<EditOutlined />} // Icon chỉnh sửa phù hợp hơn
+                        size="large"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold"
+                        onClick={openUpdateModal}
+                        >
+                        Update
+                    </Button>
+
+                 
                     </div>
                   </div>
                   <Paragraph>{movie?.description}</Paragraph>
@@ -335,11 +250,9 @@ const MovieDetail = () => {
                       </div>
                     ))}
                   </div>
-                  
                 </div>
               </div>
             </Card>
-            
             <Card className="shadow-sm">
               <Tabs defaultActiveKey="dashboard">
                 {["DASHBOARD", "POSTER", "BANNER", "TRAILER", "FILM", "FILMVIP","Actor/Acstress"].map((key) => (
@@ -370,89 +283,128 @@ const MovieDetail = () => {
           </>
         )}
 
-          {/* Contract Generation Modal */}
-          <Modal
-            title="Generate Contract"
-            open={isAcceptModalVisible}
-            onOk={handleAccept}
-            onCancel={() => setIsAcceptModalVisible(false)}
-            okText="Accept and Generate contract"
-            cancelText="Cancel"
-          >
-            <Form form={form} layout="vertical">
-              
-              <Form.Item
-                name="startDate"
-                label="Start Date"
-                rules={[{ required: true, message: 'Please select a start date' }]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
+        <Modal
+        title="Update Movie"
+        visible={modal.type === "update" && modal.visible}
+        onOk={handleUpdate}
+        onCancel={() => setModal({ visible: false, type: "" })}
+        width={800} // Tăng chiều rộng modal
+        >
+            <Form layout="vertical">
+                <div className="grid grid-cols-2 gap-4">
+                
+                <Form.Item label="Title">
+                    <Input
+                    value={editMovie?.title}
+                    onChange={(e) =>
+                        setEditMovie((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    />
+                </Form.Item>
 
-              <Form.Item
-                name="duration"
-                label="Duration (days)"
-                rules={[{ required: true, message: 'Please enter duration' }]}
-              >
-                <InputNumber style={{ width: "100%" }} min={1} />
-              </Form.Item>
+                <Form.Item label="Origin Name">
+                    <Input
+                    value={editMovie?.originName}
+                    onChange={(e) =>
+                        setEditMovie((prev) => ({ ...prev, originName: e.target.value }))
+                    }
+                    />
+                </Form.Item>
 
-              <Form.Item
-                name="price"
-                label="Price (VND)"
-                rules={[{ required: true, message: "Please enter a price" }]}
-              >
-                <InputNumber
-                  style={{ width: "100%" }}
-                  min={0}
-                  formatter={(value) =>
-                    value ? new Intl.NumberFormat("en-US").format(value) : ""
-                  }
-                  parser={(value) => value.replace(/,/g, "")} // Xóa dấu `,` khi nhập lại
+                <Form.Item label="Release Year">
+                    <Input
+                    value={editMovie?.releaseYear}
+                    onChange={(e) =>
+                        setEditMovie((prev) => ({ ...prev, releaseYear: e.target.value }))
+                    }
+                    />
+                </Form.Item>
+
+                <Form.Item label="Duration">
+                    <Input
+                    value={editMovie?.duration}
+                    onChange={(e) =>
+                        setEditMovie((prev) => ({ ...prev, duration: e.target.value }))
+                    }
+                    />
+                </Form.Item>
+
+                <Form.Item label="Director">
+                    <Input
+                    value={editMovie?.director}
+                    onChange={(e) =>
+                        setEditMovie((prev) => ({ ...prev, director: e.target.value }))
+                    }
+                    />
+                </Form.Item>
+
+                <Form.Item label="Nation">
+                    <Input
+                    value={editMovie?.nation}
+                    onChange={(e) =>
+                        setEditMovie((prev) => ({ ...prev, nation: e.target.value }))
+                    }
+                    />
+                </Form.Item>
+
+                </div>
+
+                <Form.Item label="Description">
+                <Input.TextArea
+                    value={editMovie?.description}
+                    onChange={(e) =>
+                    setEditMovie((prev) => ({ ...prev, description: e.target.value }))
+                    }
+                    rows={4}
                 />
-              </Form.Item>
+                </Form.Item>
 
+                <Form.Item label="Genres">
+                    <Select
+                    mode="multiple"
+                    placeholder="Select Genres"
+                    value={editMovie?.genres}
+                    onChange={(values) =>
+                        setEditMovie((prev) => ({ ...prev, genres: values }))
+                    }
+                    className="w-full"
+                    >
+                    {genres.map((genre) => (
+                        <Option key={genre.id} value={genre.id}>
+                        {genre.name}
+                        </Option>
+                    ))}
+                    </Select>
+                </Form.Item>
+                
+                <Form.Item label="Persons">
+                <Select
+                    mode="multiple"
+                    placeholder="Select Persons"
+                    value={editMovie?.persons}
+                    onChange={(values) =>
+                    setEditMovie((prev) => ({ ...prev, persons: values }))
+                    }
+                    className="w-full"
+                >
+                    {persons.map((person) => (
+                    <Option key={person.id} value={person.id}>
+                        <div className="flex items-center gap-2">
+                            <Avatar src={person.picture} alt={person.name} />
+                            <span>{person.name}</span>
+                        </div>
+                    </Option>
+                    ))}
+                </Select>
+                </Form.Item>
 
-              <Form.Item
-                name="publisherName"
-                label="Publisher Name"
-                rules={[{ required: true, message: 'Please enter publisher name' }]}
-              >
-                <Input />
-              </Form.Item>
-
-              <Form.Item
-                name="distributorName"
-                label="Distributor Name"
-                rules={[{ required: true, message: 'Please enter distributor name' }]}
-              >
-                <Input />
-              </Form.Item>
-            
             </Form>
-          </Modal>
-
-           {/* Reject Modal */}
-          <Modal
-            title="Reject Movie"
-            open={isRejectModalVisible}
-            onOk={handleReject}
-            onCancel={() => setIsRejectModalVisible(false)}
-            okText="Confirm Reject"
-            cancelText="Cancel"
-          >
-            <Input.TextArea
-              rows={4}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Enter rejection reason..."
-            />
-          </Modal>
-
+        </Modal>;
+    
       </Content>
     </Layout>
   )
 }
 
-export default MovieDetail
+export default MovieDetailPublisher
 

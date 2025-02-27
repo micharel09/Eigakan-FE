@@ -4,10 +4,10 @@ const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Upload";
 
 const uploadFileApi = {
    
-    async UploadFile_UserRegister(file) {
+    async UploadFileTemp(file) {
         try {
           const formData = new FormData();
-          formData.append("formFiles", file); // Đảm bảo key "file" trùng với yêu cầu của backend
+          formData.append("formFiles", file); 
     
           // Log FormData để kiểm tra
           for (let pair of formData.entries()) {
@@ -15,7 +15,7 @@ const uploadFileApi = {
           }
     
           // Gửi request mà không cần set Content-Type
-          const res = await axios.post(`${API_URL}/UploadFile_UserRegister`, formData);
+          const res = await axios.post(`${API_URL}/UploadFileTemp`, formData);
     
           console.log("Response từ server:", res.data); // Log kết quả từ server
     
@@ -40,8 +40,25 @@ const uploadFileApi = {
         console.error("Lỗi upload:", err); // Log lỗi chi tiết
         throw err.response?.data || { message: "Upload failed" };
       }
-  },
+    },
 
+    async getPreFileUrlTemp(Id, fileName) {
+      try {
+        const token = localStorage.getItem('token');
+    
+        const res = await axios.get(`${API_URL}/GetPreFileTemp`, {
+          params: { Id, fileName },  
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+    
+        return res.data; 
+      } catch (error) {
+        console.error("Error fetching PreFileUrl:", error);
+        return error.response?.data || "An error occurred"; 
+      }
+    },
 
     async getPreFileUrl(userId, fileName) {
       try {
@@ -59,7 +76,43 @@ const uploadFileApi = {
         console.error("Error fetching PreFileUrl:", error);
         return error.response?.data || "An error occurred"; 
       }
-    }
+    },
+
+    async getPreFileUrlMovie(movieId, fileName) {
+      try {
+        const token = localStorage.getItem('token');
+    
+        const res = await axios.get(`${API_URL}/GetPreFileUrlMovie`, {
+          params: { movieId, fileName },  
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+    
+        return res.data; 
+      } catch (error) {
+        console.error("Error fetching PreFileUrl:", error);
+        return error.response?.data || "An error occurred"; 
+      }
+    },
+
+    async getPreFileContract(userId, fileName) {
+      try {
+        const token = localStorage.getItem('token');
+    
+        const res = await axios.get(`${API_URL}/GetPreFileContract`, {
+          params: { userId, fileName },  
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+    
+        return res.data; 
+      } catch (error) {
+        console.error("Error fetching PreFileUrl:", error);
+        return error.response?.data || "An error occurred"; 
+      }
+    },
     
 };
 export default uploadFileApi;
