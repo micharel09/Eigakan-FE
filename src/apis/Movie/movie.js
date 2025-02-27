@@ -2,15 +2,17 @@ import axios from "axios";
 
 const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Movie";
 
+const getAuthHeader = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const movieService = {
-  async getMovies(pageNumber = 1, pageSize = 10) {
+  // Movies
+  getMovies: async (pageNumber = 1, pageSize = 10) => {
     try {
-      const response = await axios.get(
-        `https://eigakan1111-001-site1.qtempurl.com/api/Movie/GetListMovieActive`, {
-        params: {
-          pageNumber,
-          pageSize
-        }
+      const response = await axios.get(`${API_URL}/GetListMovieActive`, {
+        params: { pageNumber, pageSize }
       });
       return response.data;
     } catch (error) {
@@ -96,7 +98,6 @@ async rejectedMovie(newMovie) {
   async createMovie(movieData) {
     try {
       const token = localStorage.getItem("token");
-      
       const response = await axios.post(API_URL, movieData, {
         headers: {
           Authorization: `Bearer ${token}`,

@@ -1,22 +1,17 @@
 import React, { useEffect, useState, Suspense, memo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import GlobalApi from "../../components/Homepage/GlobalApi";
-import { PlayCircle, Clock, Calendar, Star, Info } from "lucide-react";
+import { PlayCircle, Clock, Calendar, Star } from "lucide-react";
 import Loading from "../../components/Loading/Loading";
 import movieService from "../../apis/Movie/movie";
 
 // Lazy load các components không cần thiết ngay lập tức
-const ReactPlayer = React.lazy(() => import("react-player/lazy"));
 const SimilarMovies = React.lazy(() =>
   import("../../components/Movies/SimilarMovies")
 );
 const CastAndCrew = React.lazy(() =>
   import("../../components/Movies/CastAndCrew")
 );
-
-const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
-const POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500"; // Sử dụng ảnh nhỏ hơn cho poster
 
 // Tách MovieHero thành component riêng để tránh re-render không cần thiết
 const MovieHero = memo(({ movie, onTrailerClick }) => {
@@ -115,7 +110,7 @@ const MovieHero = memo(({ movie, onTrailerClick }) => {
 const MovieFacts = memo(({ movie }) => {
   return (
     <div className="lg:w-1/3 space-y-6">
-      <div className="bg-gray-800/50 rounded-xl p-6">
+      <div className="bg-gray-800/50 rounded-xl p-6 mt-14">
         <h2 className="text-xl font-bold mb-4 text-white">Movie Facts</h2>
         <div className="space-y-4">
           {[

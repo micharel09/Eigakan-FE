@@ -1,7 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import GlobalApi from "../Homepage/GlobalApi";
 
 const CastAndCrew = ({ persons }) => {
   if (!persons?.length) return null;
@@ -26,7 +24,9 @@ const CastAndCrew = ({ persons }) => {
                 {person.name}
               </h4>
               <p className="text-sm text-white/50">
-                {person.job === "Diễn viên" ? "Actor" : person.job}
+                {person.job === "Diễn viên" || person.job === "Actor"
+                  ? "Actor"
+                  : person.job}
               </p>
             </div>
           </Link>

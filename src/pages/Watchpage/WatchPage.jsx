@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { ChevronLeft, Info, Calendar, Clock } from "lucide-react";
-import ReactPlayer from "react-player";
-import movieService from "../../apis/Movie/movie";
-import Loading from "../../components/Loading/Loading";
-import { Comment } from "@ant-design/compatible";
-import { Modal, Rate, notification } from "antd";
+import { Rate, notification } from "antd";
 import moment from "moment";
+import UserApi from "../../apis/User/user";
+import ratingService from "../../apis/Movie/rating";
+import Loading from "../../components/Loading/Loading";
+import movieService from "../../apis/Movie/movie";
 
 const WatchPage = () => {
   const { movieId } = useParams();
@@ -16,14 +16,13 @@ const WatchPage = () => {
   const [showControls, setShowControls] = useState(true);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const [userNames, setUserNames] = useState({});
   const [userDetails, setUserDetails] = useState({});
   const [commentInput, setCommentInput] = useState("");
-  const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const [ratingValue, setRatingValue] = useState(movie?.userRating || 0);
   const [submittingRating, setSubmittingRating] = useState(false);
-
-  const LIBRARY_ID = "384568"; // Thêm Library ID của Bunny CDN
+  const [userRole, setUserRole] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(true);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -59,44 +58,16 @@ const WatchPage = () => {
   }, [movieId]);
 
   useEffect(() => {
-    const fetchUserNames = async () => {
-      if (!movie?.comments) return;
-
-      try {
-        const userIds = movie.comments.map((comment) => comment.createBy);
-        const uniqueUserIds = [...new Set(userIds)];
-
-        const userPromises = uniqueUserIds.map((id) =>
-          movieService.getUserById(id)
-        );
-        const users = await Promise.all(userPromises);
-
-        const userNameMap = {};
-        users.forEach((response) => {
-          if (response.success) {
-            userNameMap[response.data.id] = response.data.fullName;
-          }
-        });
-
-        setUserNames(userNameMap);
-      } catch (error) {
-        console.error("Error fetching user names:", error);
-      }
-    };
-
-    fetchUserNames();
-  }, [movie]);
-
-  useEffect(() => {
     const fetchUserDetails = async () => {
-      if (!movie?.comments) return;
+      if (!isAuthenticated || !movie?.comments) return;
+      setLoadingComments(true); // Bắt đầu loading
 
       try {
         const userIds = movie.comments.map((comment) => comment.createBy);
         const uniqueUserIds = [...new Set(userIds)];
 
         const userPromises = uniqueUserIds.map((id) =>
-          movieService.getUserById(id)
+          UserApi.getUserDetail(id)
         );
         const users = await Promise.all(userPromises);
 
@@ -113,18 +84,32 @@ const WatchPage = () => {
         setUserDetails(userDetailsMap);
       } catch (error) {
         console.error("Error fetching user details:", error);
+      } finally {
+        setLoadingComments(false); // Kết thúc loading
       }
     };
 
     fetchUserDetails();
-  }, [movie]);
+  }, [movie, isAuthenticated]); // Thêm isAuthenticated vào dependencies
+
+  useEffect(() => {
+    const checkSession = () => {
+      const token = localStorage.getItem("token");
+      const user = localStorage.getItem("user");
+      const role = localStorage.getItem("role");
+      setIsAuthenticated(!!token && !!user);
+      setUserRole(role); // Cập nhật userRole từ localStorage
+    };
+
+    checkSession();
+  }, []);
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentInput.trim()) return;
 
     try {
-      const response = await movieService.createComment(commentInput, movieId);
+      const response = await ratingService.createComment(commentInput, movieId);
       if (response.success) {
         const movieResponse = await movieService.getMovieById(movieId);
         if (movieResponse.success) {
@@ -133,7 +118,7 @@ const WatchPage = () => {
         setCommentInput("");
         notification.success({
           message: "Success",
-          description: "Rating submitted successfully!",
+          description: "Comment posted successfully!",
         });
       }
     } catch (error) {
@@ -148,7 +133,7 @@ const WatchPage = () => {
     setRatingValue(value);
     setSubmittingRating(true);
     try {
-      const response = await movieService.createMovieRating(value, movieId);
+      const response = await ratingService.createMovieRating(value, movieId);
       if (response.success) {
         const movieResponse = await movieService.getMovieById(movieId);
         if (movieResponse.success) {
@@ -168,6 +153,26 @@ const WatchPage = () => {
       setSubmittingRating(false);
     }
   };
+
+  const canRateAndComment = () => {
+    const role = localStorage.getItem("role");
+    return role === "VIP MEMBER" || role === "ADMIN" || role === "MANAGER";
+  };
+
+  // Sửa lại component UpgradeMessage để nhận thêm prop isAuthenticated
+  const UpgradeMessage = ({ message, isAuthenticated }) => (
+    <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-4 text-center">
+      <p className="text-white/70">
+        {isAuthenticated ? message : "Please login to access this feature"}
+      </p>
+      <Link
+        to={isAuthenticated ? "/subscription-plans" : "/login"}
+        className="text-[#FF009F] hover:text-[#D1007F] mt-2 inline-block"
+      >
+        {isAuthenticated ? "Upgrade Now" : "Login Now"}
+      </Link>
+    </div>
+  );
 
   if (loading) return <Loading />;
   if (!movie) {
@@ -241,35 +246,6 @@ const WatchPage = () => {
             showControls ? "opacity-100" : "opacity-0"
           } pointer-events-none`}
         >
-          {/* Top Bar - Transparent Design */}
-          <div className="absolute top-0 left-0 right-0 py-3 px-6 flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/40 to-transparent">
-            <Link
-              to={`/movie/${movieId}`}
-              className="flex items-center gap-2 text-white/90 hover:text-[#FF009F] transition-all duration-300"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Back</span>
-            </Link>
-
-            <div className="flex items-center gap-4">
-              {trailer && (
-                <button
-                  onClick={() => setShowTrailer(!showTrailer)}
-                  className="px-3 py-1 rounded-full bg-[#FF009F]/90 text-white hover:bg-[#FF009F] transition-all duration-300 text-xs font-medium"
-                >
-                  {showTrailer ? "Watch Movie" : "Watch Trailer"}
-                </button>
-              )}
-              <Link
-                to={`/movie/${movieId}`}
-                className="flex items-center gap-1.5 text-white/90 hover:text-[#FF009F] transition-all duration-300"
-              >
-                <Info className="w-4 h-4" />
-                <span className="text-xs font-medium">Info</span>
-              </Link>
-            </div>
-          </div>
-
           {/* Bottom Info Panel */}
           <div
             className={`fixed left-0 right-0 bottom-0 transform ${
@@ -441,185 +417,222 @@ const WatchPage = () => {
                 </div>
 
                 {/* Rating Section */}
-                <div className="space-y-4 border-t border-white/10 pt-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-[#FF009F]">
-                      Rate This Movie
-                    </h3>
-                  </div>
+                {canRateAndComment() ? (
+                  <div className="space-y-4 border-t border-white/10 pt-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-[#FF009F]">
+                        Rate This Movie
+                      </h3>
+                    </div>
 
-                  <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-8 backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-6">
-                      {/* Current Rating Display */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-4xl font-bold text-white">
-                          {ratingValue || "?"}
-                        </span>
-                        <div className="flex flex-col">
-                          <span className="text-sm text-white/70">
-                            Your rating
+                    <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-8 backdrop-blur-sm">
+                      <div className="flex flex-col items-center gap-6">
+                        {/* Current Rating Display */}
+                        <div className="flex items-center gap-3">
+                          <span className="text-4xl font-bold text-white">
+                            {ratingValue || "?"}
                           </span>
-                          <span className="text-xs text-white/50">
-                            out of 5
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="text-sm text-white/70">
+                              Your rating
+                            </span>
+                            <span className="text-xs text-white/50">
+                              out of 5
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Rating Stars - Cải tiến */}
-                      <div className="relative">
-                        <Rate
-                          value={ratingValue}
-                          onChange={handleRatingChange}
-                          disabled={submittingRating}
-                          className="flex gap-2"
-                          character={({ index, value }) => (
-                            <div className="relative cursor-pointer transition-transform hover:scale-110">
-                              {/* Star Border - Luôn hiển thị */}
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                className="w-10 h-10 text-white/20"
-                                strokeWidth="1"
-                              >
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                              </svg>
-                              {/* Star Fill - Chỉ hiển thị khi được chọn */}
-                              <div
-                                className="absolute inset-0 transition-opacity"
-                                style={{
-                                  opacity: value > index ? 1 : 0,
-                                }}
-                              >
+                        {/* Rating Stars - Cải tiến */}
+                        <div className="relative">
+                          <Rate
+                            value={ratingValue}
+                            onChange={handleRatingChange}
+                            disabled={submittingRating}
+                            className="flex gap-2"
+                            character={({ index, value }) => (
+                              <div className="relative cursor-pointer transition-transform hover:scale-110">
+                                {/* Star Border - Luôn hiển thị */}
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
                                   viewBox="0 0 24 24"
-                                  fill="currentColor"
-                                  className="w-10 h-10 text-[#FF009F]"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  className="w-10 h-10 text-white/20"
+                                  strokeWidth="1"
                                 >
                                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                                 </svg>
+                                {/* Star Fill - Chỉ hiển thị khi được chọn */}
+                                <div
+                                  className="absolute inset-0 transition-opacity"
+                                  style={{
+                                    opacity: value > index ? 1 : 0,
+                                  }}
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                    className="w-10 h-10 text-[#FF009F]"
+                                  >
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                  </svg>
+                                </div>
                               </div>
+                            )}
+                          />
+                        </div>
+
+                        {/* Status Message */}
+                        <div className="text-center">
+                          {submittingRating ? (
+                            <div className="flex items-center gap-2 text-[#FF009F]">
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                              <span>Submitting...</span>
+                            </div>
+                          ) : (
+                            <div className="text-white/70 font-medium">
+                              {ratingValue ? (
+                                <>
+                                  <span className="text-[#FF009F]">
+                                    {ratingValue} stars
+                                  </span>
+                                  <span className="mx-2">•</span>
+                                  <span>Thanks for rating!</span>
+                                </>
+                              ) : (
+                                <span className="animate-pulse">
+                                  Click the stars to rate
+                                </span>
+                              )}
                             </div>
                           )}
-                        />
-                      </div>
-
-                      {/* Status Message */}
-                      <div className="text-center">
-                        {submittingRating ? (
-                          <div className="flex items-center gap-2 text-[#FF009F]">
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                            <span>Submitting...</span>
-                          </div>
-                        ) : (
-                          <div className="text-white/70 font-medium">
-                            {ratingValue ? (
-                              <>
-                                <span className="text-[#FF009F]">
-                                  {ratingValue} stars
-                                </span>
-                                <span className="mx-2">•</span>
-                                <span>Thanks for rating!</span>
-                              </>
-                            ) : (
-                              <span className="animate-pulse">
-                                Click the stars to rate
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Comments Section - Sửa lại phần này */}
-                <div className="space-y-6 border-t border-white/10 pt-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-[#FF009F]">
-                      Comments
-                    </h3>
-                    <span className="text-white/50 text-sm">
-                      {movie.comments?.length || 0} comments
-                    </span>
-                  </div>
-
-                  {/* Comment Input */}
-                  <div className="flex gap-4">
-                    <img
-                      src={
-                        userDetails[movie.comments[0]?.createBy]?.picture ||
-                        "https://ui-avatars.com/api/?name=User&background=FF009F&color=fff"
-                      }
-                      alt="User"
-                      className="w-10 h-10 rounded-full"
+                ) : (
+                  <div className="space-y-4 border-t border-white/10 pt-6">
+                    <UpgradeMessage
+                      message="Upgrade your account to rate movies"
+                      isAuthenticated={isAuthenticated}
                     />
-                    <form onSubmit={handleCommentSubmit} className="flex-1">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={commentInput}
-                          onChange={(e) => setCommentInput(e.target.value)}
-                          placeholder="Add a comment..."
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-[#FF009F]"
-                        />
-                        <button
-                          type="submit"
-                          disabled={!commentInput.trim()}
-                          className="px-4 py-2 bg-[#FF009F] text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#D1007F] transition-colors"
-                        >
-                          Post
-                        </button>
-                      </div>
-                    </form>
                   </div>
+                )}
 
-                  {/* Comments List từ API */}
-                  <div className="space-y-6">
-                    {movie.comments?.map((comment) => (
-                      <div key={comment.id} className="flex gap-4">
+                {/* Comments Section */}
+                {isAuthenticated ? (
+                  <div className="space-y-6 border-t border-white/10 pt-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-[#FF009F]">
+                        Comments
+                      </h3>
+                      <span className="text-white/50 text-sm">
+                        {movie.comments?.length || 0} comments
+                      </span>
+                    </div>
+
+                    {/* Comment Input - Chỉ hiện khi là VIP */}
+                    {canRateAndComment() ? (
+                      <div className="flex gap-4">
                         <img
                           src={
-                            userDetails[comment.createBy]?.picture ||
-                            `https://ui-avatars.com/api/?name=${
-                              userDetails[comment.createBy]?.fullName?.charAt(
-                                0
-                              ) || "U"
-                            }&background=FF009F&color=fff`
+                            userDetails[movie.comments[0]?.createBy]?.picture ||
+                            "https://ui-avatars.com/api/?name=User&background=FF009F&color=fff"
                           }
-                          alt={
-                            userDetails[comment.createBy]?.fullName || "User"
-                          }
-                          className="w-10 h-10 rounded-full object-cover"
+                          alt="User"
+                          className="w-10 h-10 rounded-full"
                         />
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-white">
-                              {userDetails[comment.createBy]?.fullName ||
-                                "Unknown User"}
-                            </h4>
-                            <span className="text-white/30 text-sm">
-                              {moment(comment.createDate).fromNow()}
-                            </span>
-                          </div>
-                          <p className="text-white/70">{comment.content}</p>
-                          <div className="flex items-center gap-4">
-                            <button className="text-white/50 hover:text-[#FF009F] text-sm">
-                              Reply
+                        <form onSubmit={handleCommentSubmit} className="flex-1">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={commentInput}
+                              onChange={(e) => setCommentInput(e.target.value)}
+                              placeholder="Add a comment..."
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-[#FF009F]"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!commentInput.trim()}
+                              className="px-4 py-2 bg-[#FF009F] text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#D1007F] transition-colors"
+                            >
+                              Post
                             </button>
                           </div>
-                        </div>
+                        </form>
                       </div>
-                    ))}
-                    {(!movie.comments || movie.comments.length === 0) && (
-                      <p className="text-center text-white/50">
-                        No comments yet
-                      </p>
+                    ) : (
+                      <UpgradeMessage
+                        message="Upgrade your account to join the discussion"
+                        isAuthenticated={isAuthenticated}
+                      />
                     )}
+
+                    {/* Comments List */}
+                    <div className="space-y-6">
+                      {loadingComments ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="flex items-center gap-2 text-[#FF009F]">
+                            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                            <span>Loading comments...</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {movie.comments?.map((comment) => (
+                            <div key={comment.id} className="flex gap-4">
+                              <img
+                                src={
+                                  userDetails[comment.createBy]?.picture ||
+                                  `https://ui-avatars.com/api/?name=${userDetails[
+                                    comment.createBy
+                                  ]?.fullName?.charAt(
+                                    0
+                                  )}&background=FF009F&color=fff`
+                                }
+                                alt={userDetails[comment.createBy]?.fullName}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="font-medium text-white">
+                                    {userDetails[comment.createBy]?.fullName}
+                                  </h4>
+                                  <span className="text-white/30 text-sm">
+                                    {moment(comment.createDate).fromNow()}
+                                  </span>
+                                </div>
+                                <p className="text-white/70">
+                                  {comment.content}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          {(!movie.comments || movie.comments.length === 0) && (
+                            <p className="text-center text-white/50">
+                              No comments yet
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-4 border-t border-white/10 pt-6">
+                    <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-4 text-center">
+                      <p className="text-white/70">
+                        Please login to view comments
+                      </p>
+                      <Link
+                        to="/login"
+                        className="text-[#FF009F] hover:text-[#D1007F] mt-2 inline-block"
+                      >
+                        Login Now
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

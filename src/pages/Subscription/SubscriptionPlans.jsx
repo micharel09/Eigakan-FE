@@ -1,34 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Spin, notification } from "antd";
+import { Card, Button, Spin, notification, Result } from "antd";
 import subscriptionService from "../../apis/Subscription/subscription";
 import { Helmet } from "react-helmet";
-import { CheckCircleOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, CrownOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 const SubscriptionPlans = () => {
   const [packages, setPackages] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isVipMember, setIsVipMember] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkVipStatus();
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const role = localStorage.getItem("role");
+
+    if (user.subscriptionStatus === "Active" || role === "VIP MEMBER") {
+      setIsVipMember(true);
+      setLoading(false);
+      navigate("/homescreen", { replace: true });
+      return;
+    }
+
     fetchPackages();
   }, []);
 
-  const checkVipStatus = () => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user.subscriptionStatus === "Active") {
-      setIsVipMember(true);
-      setTimeout(() => {
-        navigate("/homescreen");
-      }, 3000);
-    }
-  };
-
   const fetchPackages = async () => {
     try {
-      setLoading(true);
       const response = await subscriptionService.getAllPackages();
       if (response.success) {
         const activePackages =
@@ -39,9 +37,10 @@ const SubscriptionPlans = () => {
       }
     } catch (error) {
       notification.error({
-        message: "Error",
-        description: "Could not fetch subscription packages",
+        message: "Lỗi",
+        description: "Không thể tải thông tin gói đăng ký",
       });
+      navigate("/homescreen", { replace: true });
     } finally {
       setLoading(false);
     }
@@ -55,9 +54,7 @@ const SubscriptionPlans = () => {
       const response = await subscriptionService.createPayment(packageId);
 
       if (response.success && response.paymentUrl) {
-        // Lưu subscriptionId vào sessionStorage để dùng cho việc verify sau này
         sessionStorage.setItem("pendingSubscriptionId", packageId);
-        // Redirect tới trang thanh toán VNPay
         window.location.href = response.paymentUrl;
         return;
       }
@@ -104,7 +101,6 @@ const SubscriptionPlans = () => {
     ],
   };
 
-  // Sửa lại hàm format tiền VND
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -113,28 +109,7 @@ const SubscriptionPlans = () => {
   };
 
   if (isVipMember) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            You are already a VIP member!
-          </h2>
-          <p className="text-gray-400 mb-8">
-            You have an active subscription.
-            <br />
-            Redirecting to home page...
-          </p>
-          <Button
-            type="primary"
-            onClick={() => navigate("/homescreen")}
-            className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
-            style={{ backgroundColor: "#FF009F" }}
-          >
-            Go to Home
-          </Button>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (loading) {
