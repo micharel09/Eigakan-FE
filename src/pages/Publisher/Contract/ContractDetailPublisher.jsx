@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Descriptions, Button, notification, Space, Spin, Card, Avatar } from "antd";
+import { Descriptions, Button, notification, Space, Spin, Card, Avatar,Modal,Input } from "antd";
 import { formatDate } from "../../../utils/dateHelper";
 import uploadFileApi from "../../../apis/Upload/upload.jsx";
 import { extractUrl } from "../../../utils/extractUrl";
@@ -14,6 +14,10 @@ const ContractDetailPublisher = () => {
   const { Meta } = Card;
   const [movie, setMovie] = useState(null);
   const [loadingMovie, setLoadingMovie] = useState(false);  
+  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false); 
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const [reason, setReason] = useState("");
+  const [signedToken, setSignedToken] = useState("");
 
   useEffect(() => {
     fetchContractDetail();
@@ -99,6 +103,55 @@ const ContractDetailPublisher = () => {
     return statusMap[status] || { text: status, color: "bg-gray-500" };
   };
 
+  const handleReject = async () => {
+    const data = { Id: contract.id, reasonForDenying: reason };
+  
+    try {
+      const denied = await contractApi.deniedContract(data);
+
+      if (denied.status === 200) {
+       
+          notification.success({
+            message: response.data.message || "Denied successfully!",
+          });    
+      
+        } else {
+        notification.error({
+          message: response.data.message || "Failed to denied user.",
+        });
+      }
+    } catch (error) {
+      console.error("Error accepting user:", error);
+      notification.error({ message: error.message || "An error occurred!" });
+    }
+    setIsRejectModalVisible(false);
+  };
+
+  const handleAccept = async () => {
+    const data = { Id: contract.id, signedToken };
+  
+    try {
+      const accept = await contractApi.acceptedContract(data);
+
+      if (accept.status === 200) {
+       
+          notification.success({
+            message: response.data.message || "Accepted successfully!",
+          });    
+      
+        } else {
+        notification.error({
+          message: response.data.message || "Failed to accept user.",
+        });
+      }
+    } catch (error) {
+      console.error("Error accepting user:", error);
+      notification.error({ message: error.message || "An error occurred!" });
+    }
+    setIsAcceptModalVisible(false);
+  };
+
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -154,6 +207,19 @@ const ContractDetailPublisher = () => {
         </Descriptions.Item>
       </Descriptions>
 
+       <div style={{ marginTop: "20px", textAlign: "right" }}>
+              <Button
+                onClick={() => setIsAcceptModalVisible(true)}
+                type="primary"
+                style={{ marginRight: "10px" }}
+              >
+                Approve
+              </Button>
+              <Button type="danger" onClick={() => setIsRejectModalVisible(true)} >
+                Reject
+              </Button>
+            </div>
+
        {/* Thêm Card bên dưới */}
        <div className="mt-6 flex justify-center">
         <Link key={movie?.id} to={`/admin/movie/${contract.movieId}`}>
@@ -174,6 +240,45 @@ const ContractDetailPublisher = () => {
         </Card>
         </Link>
       </div>
+
+        {/* Reject Modal */}
+        <Modal
+          title="Reject contract"
+          open={isRejectModalVisible}
+          onOk={handleReject}
+          onCancel={() => setIsRejectModalVisible(false)}
+          okText="Confirm Reject"
+          cancelText="Cancel"
+        >
+          <Input.TextArea
+            rows={4}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Enter rejection reason..."
+          />
+        </Modal>
+
+      {/* Accept Modal */}
+      <Modal
+        title="Accept contract"
+        open={isAcceptModalVisible}
+        onOk={handleAccept}
+        onCancel={() => setIsAcceptModalVisible(false)}
+        okText="Confirm Accept"
+        cancelText="Cancel"
+      >
+        <div>
+          <div className="mb-4">
+            <label>Your OTP</label>
+            <Input
+              value={signedToken || ""}
+              onChange={(e) => setSignedToken(e.target.value)}
+              placeholder="Enter your otp"
+            />
+          </div>
+        </div>
+      </Modal>
+
     </div>
     
   );

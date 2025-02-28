@@ -69,6 +69,35 @@ const contractApi = {
       }
     },
   
+    async acceptedContract(data) {
+      try {
+          const token = localStorage.getItem('token');
+          const response = await axios.patch(`${API_URL}/Accepted_Contract`, data, {
+              headers: {
+                  'Authorization': `Bearer ${token}`
+              }
+          });
+          return response;
+        } catch (error) {
+          console.error("API error:", error.message);
+          return error.response;
+        }
+    },
+
+    async deniedContract(data) {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.patch(`${API_URL}/Denied_Contract`, data, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return response;
+          } catch (error) {
+            console.error("API error:", error.message);
+            return error.response;
+          }
+    },
 
 
 }
