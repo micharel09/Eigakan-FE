@@ -1,22 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Form, Input, InputNumber, Select, Button, Upload, Tabs, Card, Avatar, notification, DatePicker, Checkbox} from "antd"
-const { Dragger } = Upload;
-
-import { UploadOutlined, PlusOutlined,InboxOutlined,LoadingOutlined } from "@ant-design/icons"
+import { Form, Input, InputNumber, Select, Button, Upload, Tabs, Card, Avatar, notification, DatePicker, Checkbox } from "antd"
+import { UploadOutlined, PlusOutlined } from "@ant-design/icons"
 import { useNavigate } from "react-router-dom"
 import genreService from "../../../apis/Genre/genre"
 import personService from "../../../apis/Person/person"
 import uploadFileApi from "../../../apis/Upload/upload"
 import movieApi from "../../../apis/Movie/movie"
-import { extractUrl } from "../../../utils/extractUrl";
 
 const { Option } = Select
 const { TextArea } = Input
 const { TabPane } = Tabs
 
-const CreateMovie = () => {
+const CreateMoviePublisher = () => {
   const [form] = Form.useForm()
   const navigate = useNavigate()
   const [genres, setGenres] = useState([])
@@ -24,10 +21,6 @@ const CreateMovie = () => {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("1")
   const [medias, setMedias] = useState([{ name: "", url: "", type: "" }])
-  const [file, setFile] = useState(null);
-  const [fileUrl, setFileUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
-
 
   useEffect(() => {
     fetchGenres()
@@ -55,25 +48,26 @@ const CreateMovie = () => {
   }
 
   const onFinish = async (values) => {
-    setLoading(true);
+    console.log("Form values:", values)
+    console.log("Medias:", medias)
+    setLoading(true)
     try {
       const movieData = {
         ...values,
         medias: medias.filter((media) => media.name && media.url && media.type),
-        fileUrl, // Thêm URL file vào payload
-      };
-      
-      await movieApi.createMovie(movieData);
-      notification.success({ message: "Movie created successfully" });
-      navigate("/");
+      }
+      console.log("Movie data to be sent:", movieData)
+      const response = await movieApi.createMovie(movieData)
+      console.log("Movie created:", response)
+      notification.success({ message: "Movie created successfully" })
+      navigate("/publisher/movie")
     } catch (error) {
-      console.error("Error creating movie:", error);
-      notification.error({ message: "Failed to create movie" });
+      console.error("Error creating movie:", error)
+      notification.error({ message: "Failed to create movie" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-  
+  }
 
   const onFinishFailed = (errorInfo) => {
     console.log("Form validation failed:", errorInfo)
@@ -101,46 +95,6 @@ const CreateMovie = () => {
     }
     return false
   }
-
-  const handleUploadFile = async (info) => {
-    const selectedFile = info.file;
-    setUploading(true); // Bắt đầu hiển thị loading
-  
-    try {
-      const response = await uploadFileApi.UploadFileTemp(selectedFile);
-      const uploadedUrl = response.data[0].url; // Lấy URL từ API
-  
-      setFile(selectedFile);
-      setFileUrl(uploadedUrl);
-      notification.success({ message: "File uploaded successfully" });
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      notification.error({ message: "Failed to upload file" });
-    } finally {
-      setUploading(false); // Tắt loading khi xong
-    }
-  };
-  
-  const handleGetPreUrlTemp = async () => {
-    try {
-      const extractLink = extractUrl(fileUrl);
-      console.log("Extracted link:", extractLink);
-
-      if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
-      }
-      const response = await uploadFileApi.getPreFileUrlTemp(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      console.log("PreUrl:", response.data);
-      //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
-    } catch (error) {
-      console.error("Error fetching preUrl:", error);
-    }
-  };
-  
 
   return (
     <div className="p-6 mx-auto bg-white rounded-lg shadow-lg">
@@ -273,49 +227,10 @@ const CreateMovie = () => {
             </Card>
           </TabPane>
 
-          <TabPane tab="File Movie" key="6">
-            <Card className="p-4 shadow-md">
-              
-              <h2 className="text-red-500">*Please upload a file that identifies this movie as your property.*</h2>
-              
-              <Dragger
-                name="file"
-                multiple={false}
-                beforeUpload={() => false}
-                onChange={handleUploadFile}
-                showUploadList={false}
-              >
-                <p className="ant-upload-drag-icon">
-                  {uploading ? <LoadingOutlined /> : <InboxOutlined />}
-                </p>
-                <p className="ant-upload-text">
-                  {uploading ? "Uploading..." : "Upload a file to verify your movie ownership."}
-                </p>
-              </Dragger>
-
-              {file && <p className="mt-2">Selected File: {file.name}</p>}
-
-              {fileUrl && (
-                <div className="mt-4">
-                  <p>Your file here:</p>
-                  <span 
-                    onClick={handleGetPreUrlTemp} 
-                    style={{ color: "blue", textDecoration: "underline", cursor: "pointer" }}
-                  >
-                    {file.name} 
-                   
-                  </span>
-                  <h2 className="text-red-500">* Please check your file carefully before submitting.*</h2>
-                </div>
-              )}                         
-            </Card>
-          </TabPane>
-
-
         </Tabs>
         <div className="flex justify-between mt-6">
           {activeTab !== "1" && <Button onClick={() => setActiveTab(String(Number(activeTab) - 1))}>Previous</Button>}
-          {activeTab !== "7" ? (
+          {activeTab !== "6" ? (
             <Button type="primary" onClick={() => setActiveTab(String(Number(activeTab) + 1))}>
               Next
             </Button>
@@ -330,5 +245,5 @@ const CreateMovie = () => {
   )
 }
 
-export default CreateMovie
+export default CreateMoviePublisher
 
