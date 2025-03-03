@@ -216,22 +216,19 @@ const WatchPage = () => {
       <div className="fixed inset-0 bg-black">
         {/* Video Container */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+          <div className="relative w-full h-full">
             <iframe
               src={showTrailer ? directTrailerUrl : directMovieUrl}
               className="absolute top-0 left-0"
               style={{
                 width: "100%",
                 height: "100%",
-                minWidth: "160vh",
-                minHeight: "90vh",
                 border: "none",
                 margin: "auto",
                 position: "absolute",
-                top: "50%",
+                top: "44%",
                 left: "50%",
-                transform: "translate(-50%, -50%) scale(1.5)",
-                transformOrigin: "center",
+                transform: "translate(-50%, -50%) scale(1.57)",
               }}
               allowFullScreen
               allow="autoplay; fullscreen"
