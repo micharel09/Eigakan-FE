@@ -222,13 +222,13 @@ const WatchPage = () => {
               className="absolute top-0 left-0"
               style={{
                 width: "100%",
-                height: "100%",
+                height: "80%",
                 border: "none",
                 margin: "auto",
                 position: "absolute",
-                top: "44%",
-                left: "50%",
-                transform: "translate(-50%, -50%) scale(1.57)",
+                top: "10%",
+                left: "0%",
+                transform: "none",
               }}
               allowFullScreen
               allow="autoplay; fullscreen"
