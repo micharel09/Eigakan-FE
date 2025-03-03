@@ -38,7 +38,7 @@ const RegisterPage = () => {
       setLoading(true);
       setError("");
 
-      const files = await uploadFileApi.UploadFile_UserRegister(file);
+      const files = await uploadFileApi.UploadFileTemp(file);
 
       if (!files || !files.data || files.data.length === 0) {
         throw new Error("Upload failed, file URL is missing");
@@ -97,6 +97,7 @@ const RegisterPage = () => {
           )}
 
           <form className="space-y-4">
+            
             <div>
               <label
                 htmlFor="email"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Input, Select, Button, Card, Pagination, Tag, Spin } from "antd"
-import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons"
+import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined, SyncOutlined } from "@ant-design/icons"
 import { Link } from "react-router-dom"
 import movieService from "../../../apis/Movie/movie"
 import genreService from "../../../apis/Genre/genre"
@@ -26,7 +26,7 @@ const MoviePublisher = () => {
   const fetchMovies = async () => {
     setLoading(true)
     try {
-      const response = await movieService.getAllListMovies()
+      const response = await movieService.getListMovieByLogin()
       console.log("Movies:", response.data)
       setMovies(response.data)
     } catch (error) {
@@ -57,7 +57,7 @@ const MoviePublisher = () => {
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Movie List</h1>
-        <Link to="/admin/createMovie">
+        <Link to="/publisher/createMovie">
           <Button type="primary" icon={<PlusOutlined />} size="large" className="bg-blue-500 hover:bg-blue-600">
             Create Movie
           </Button>
@@ -90,7 +90,7 @@ const MoviePublisher = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {paginatedMovies.map((movie) => (
-            <Link key={movie.id} to={`/admin/movie/${movie.id}`}>
+            <Link key={movie.id} to={`/publisher/movie/${movie.id}`}>
               <Card
                 hoverable
                 cover={
