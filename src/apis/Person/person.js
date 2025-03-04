@@ -3,13 +3,17 @@ import axios from "axios";
 const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Person";
 
 const personService = {
-  async getAllPerson() {
+  async getAllPerson(pageNumber = 1, pageSize = 10) {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(API_URL, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        params: {
+          pageNumber,
+          pageSize
+        }
       });
       return response.data;
     } catch (error) {

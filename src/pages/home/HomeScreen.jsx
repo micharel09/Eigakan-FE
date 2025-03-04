@@ -82,25 +82,6 @@ const HomeScreen = () => {
         </div>
       </div>
 
-      {!isVipMember && localStorage.getItem("user") && (
-        <div className="text-center py-8 bg-gray-50 rounded-lg mb-8">
-          <h2 className="text-2xl font-bold mb-4">Upgrade Your Experience</h2>
-          <p className="text-gray-600 mb-4">
-            Get access to all premium features with our subscription plans
-          </p>
-          <Button
-            type="primary"
-            icon={<CrownOutlined />}
-            size="large"
-            className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
-            style={{ backgroundColor: "#FF009F" }}
-            onClick={() => navigate("/subscription-plans")}
-          >
-            View Plans
-          </Button>
-        </div>
-      )}
-
       <Navbar />
     </div>
   );
