@@ -9,32 +9,33 @@ const getAuthHeader = () => {
 
 const movieService = {
   // Movies
-  getMovies: async (pageNumber = 1, pageSize = 10) => {
+  getMovies: async (pageNumber = 1, pageSize = 10, genreFilter = '', nameFilter = '', statusFilter = '') => {
     try {
       const response = await axios.get(`${API_URL}/GetListMovieActive`, {
         params: { 
-          pageNumber, 
-          pageSize 
+          pageNumber,
+          pageSize,
+          genreFilter,
+          nameFilter,
+          statusFilter
         }
       });
       
-      // Kiểm tra và xử lý response
-      if (response.data?.success) {
-        return {
-          success: true,
-          data: response.data.data,
-          total: response.data.total
-        };
-      }
-      
+      // API trả về trực tiếp {total, movies}
       return {
-        success: false,
-        message: response.data?.message || "Failed to fetch movies"
+        success: true,
+        data: response.data.movies || [], // Đảm bảo luôn có array
+        total: response.data.total || 0
       };
 
     } catch (error) {
       console.error("API Error:", error);
-      throw error.response?.data || error.message;
+      return {
+        success: false,
+        data: [],
+        total: 0,
+        message: error.response?.data || error.message
+      };
     }
   },
 
