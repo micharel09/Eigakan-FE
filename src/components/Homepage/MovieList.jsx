@@ -25,13 +25,18 @@ function MovieList({ genreName }) {
         pageSize,
         genreName // Dùng genreName làm genreFilter
       );
-      if (response.success) {
-        // Không cần filter nữa vì BE đã filter theo genre
-        setMovieList(response.data);
-        setTotal(response.total);
+      console.log("API response:", response); // Debug log
+      
+      if (response.success && response.movies) {
+        setMovieList(response.movies);
+        setTotal(response.total || 0);
+      } else {
+        console.error("No movies found in response:", response);
+        setMovieList([]);
       }
     } catch (error) {
       console.error("Error fetching movies:", error);
+      setMovieList([]);
     } finally {
       setLoading(false);
     }

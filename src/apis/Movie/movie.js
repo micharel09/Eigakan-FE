@@ -24,7 +24,7 @@ const movieService = {
       // API trả về trực tiếp {total, movies}
       return {
         success: true,
-        data: response.data.movies || [], // Đảm bảo luôn có array
+        movies: response.data.movies || [], // Trả về movies trực tiếp không qua data
         total: response.data.total || 0
       };
 
@@ -32,7 +32,7 @@ const movieService = {
       console.error("API Error:", error);
       return {
         success: false,
-        data: [],
+        movies: [], // Trả về movies trực tiếp không qua data
         total: 0,
         message: error.response?.data || error.message
       };
@@ -150,4 +150,4 @@ async rejectedMovie(newMovie) {
 
 };
 
-export default movieService; 
+export default movieService;
