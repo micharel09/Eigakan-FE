@@ -46,19 +46,30 @@ const PersonManagement = () => {
   const [searchText, setSearchText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [abortController, setAbortController] = useState(null);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    hasNextPage: true,
+  });
 
   // Fetch persons
-  const fetchPersons = async () => {
+  const fetchPersons = async (page = 1, pageSize = 5) => {
     try {
       setLoading(true);
-      const response = await personService.getAllPerson();
+      const response = await personService.getAllPerson(page, pageSize);
       if (response.success) {
         setPersons(response.data);
+        setPagination((prev) => ({
+          ...prev,
+          current: page,
+          pageSize: pageSize,
+          hasNextPage: response.data.length === pageSize,
+        }));
       }
     } catch (error) {
       notification.error({
-        message: "Error",
-        description: error.message || "Could not fetch persons",
+        message: "Lỗi",
+        description: error.message || "Không thể lấy danh sách người",
       });
     } finally {
       setLoading(false);
@@ -66,7 +77,7 @@ const PersonManagement = () => {
   };
 
   useEffect(() => {
-    fetchPersons();
+    fetchPersons(pagination.current, pagination.pageSize);
   }, []);
 
   // Hàm hủy upload hiện tại
@@ -166,7 +177,7 @@ const PersonManagement = () => {
           description: response.message,
         });
         handleCancel();
-        fetchPersons();
+        fetchPersons(pagination.current, pagination.pageSize);
       }
     } catch (error) {
       notification.error({
@@ -192,7 +203,7 @@ const PersonManagement = () => {
               message: "Deleted Successfully",
               description: response.message,
             });
-            fetchPersons();
+            fetchPersons(pagination.current, pagination.pageSize);
           }
         },
       });
@@ -328,6 +339,11 @@ const PersonManagement = () => {
     },
   ];
 
+  // Thêm hàm xử lý thay đổi trang
+  const handleTableChange = (newPagination, filters, sorter) => {
+    fetchPersons(newPagination.current, newPagination.pageSize);
+  };
+
   return (
     <div className="p-6">
       <Helmet>
@@ -366,10 +382,38 @@ const PersonManagement = () => {
           loading={loading}
           scroll={{ x: 1300 }}
           pagination={{
-            defaultPageSize: 10,
+            ...pagination,
             showSizeChanger: true,
-            showTotal: (total) => `Total ${total} items`,
+            pageSizeOptions: ["5", "10", "20", "50"],
+            defaultPageSize: 5,
+            showTotal: (total, range) => `Trang ${pagination.current}`,
+            itemRender: (page, type, originalElement) => {
+              const current = pagination.current;
+              if (type === "page") {
+                if (
+                  page === current ||
+                  page === current - 1 ||
+                  page === current + 1
+                ) {
+                  return (
+                    <Button type={current === page ? "primary" : "default"}>
+                      {page}
+                    </Button>
+                  );
+                }
+                return null;
+              }
+              return originalElement;
+            },
+            showLessItems: true,
+            showQuickJumper: false,
+            total: pagination.hasNextPage
+              ? (pagination.current + 1) * pagination.pageSize
+              : pagination.current * pagination.pageSize,
           }}
+          onChange={(newPagination, filters, sorter) =>
+            fetchPersons(newPagination.current, newPagination.pageSize)
+          }
         />
 
         <Modal

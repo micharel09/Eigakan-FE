@@ -12,10 +12,28 @@ const movieService = {
   getMovies: async (pageNumber = 1, pageSize = 10) => {
     try {
       const response = await axios.get(`${API_URL}/GetListMovieActive`, {
-        params: { pageNumber, pageSize }
+        params: { 
+          pageNumber, 
+          pageSize 
+        }
       });
-      return response.data;
+      
+      // Kiểm tra và xử lý response
+      if (response.data?.success) {
+        return {
+          success: true,
+          data: response.data.data,
+          total: response.data.total
+        };
+      }
+      
+      return {
+        success: false,
+        message: response.data?.message || "Failed to fetch movies"
+      };
+
     } catch (error) {
+      console.error("API Error:", error);
       throw error.response?.data || error.message;
     }
   },

@@ -15,13 +15,17 @@ function MovieList({ genreName }) {
     try {
       const response = await movieService.getMovies();
       if (response.success) {
-        // Lọc phim theo thể loại
-        const filteredMovies = response.data.filter((movie) =>
-          movie.genreNames
-            .split(",")
-            .map((g) => g.trim())
-            .includes(genre)
-        );
+        // Sửa lại logic lọc phim theo thể loại
+        const filteredMovies = response.data.filter((movie) => {
+          // Kiểm tra nếu genreNames là null/undefined
+          if (!movie.genreNames) return false;
+
+          // Split và trim các thể loại
+          const movieGenres = movie.genreNames.split(",").map((g) => g.trim());
+
+          // So sánh với genre được truyền vào
+          return movieGenres.includes(genre);
+        });
         setMovieList(filteredMovies);
       }
     } catch (error) {

@@ -207,6 +207,33 @@ const WatchPage = () => {
   const directMovieUrl = movieUrl ? getVideoUrl(movieUrl) : "";
   const directTrailerUrl = trailer ? getVideoUrl(trailer) : "";
 
+  // Thêm hàm để xác định style cho video container
+  const getVideoContainerStyle = () => {
+    const role = localStorage.getItem("role");
+    if (role === "MEMBER") {
+      return {
+        width: "70%",
+        height: "80%",
+        border: "none",
+        margin: "auto",
+        position: "absolute",
+        top: "5%",
+        left: "15%",
+        transform: "none",
+      };
+    }
+    return {
+      width: "100%",
+      height: "80%",
+      border: "none",
+      margin: "auto",
+      position: "absolute",
+      top: "10%",
+      left: "0%",
+      transform: "none",
+    };
+  };
+
   return (
     <>
       <Helmet>
@@ -214,22 +241,12 @@ const WatchPage = () => {
       </Helmet>
 
       <div className="fixed inset-0 bg-black">
-        {/* Video Container */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative w-full h-full">
             <iframe
               src={showTrailer ? directTrailerUrl : directMovieUrl}
               className="absolute top-0 left-0"
-              style={{
-                width: "100%",
-                height: "80%",
-                border: "none",
-                margin: "auto",
-                position: "absolute",
-                top: "10%",
-                left: "0%",
-                transform: "none",
-              }}
+              style={getVideoContainerStyle()}
               allowFullScreen
               allow="autoplay; fullscreen"
               frameBorder="0"
