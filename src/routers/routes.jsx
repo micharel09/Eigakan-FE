@@ -43,6 +43,7 @@ import ContractAdmin from "../pages/Admin/Contract/ContractAdmin.jsx";
 import ContractDetailAdmin from "../pages/Admin/Contract/ContractDetailAdmin.jsx";
 import ContractPublisher from "../pages/Publisher/Contract/ContractPublisher.jsx";
 import ContractDetailPublisher from "../pages/Publisher/Contract/ContractDetailPublisher.jsx";
+import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -207,7 +208,6 @@ const routes = [
     ),
     layout: "AdminLayout",
   },
-
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
 
@@ -402,7 +402,16 @@ const routes = [
     layout: "PublisherLayout",
   },
 
-
+  // Thêm routes cho Advertiser
+  {
+    path: "/advertiser/dashboard",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <AdvertiserDashboard />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
+  },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 ];

@@ -37,10 +37,11 @@ const LoginPage = () => {
           navigate("/dashboard");
         } else if (res.data.roleName === "MANAGER") {
           navigate("/manager/dashboard");
-        }else if (res.data.roleName === "PUBLISHER") {
+        } else if (res.data.roleName === "PUBLISHER") {
           navigate("/publisher/dashboard");
-        }
-         else {
+        } else if (res.data.roleName === "ADVERTISER") {
+          navigate("/advertiser/dashboard");
+        } else {
           navigate("/homescreen");
         }
       } else {
@@ -48,6 +49,57 @@ const LoginPage = () => {
       }
     } catch (error) {
       // Hiển thị lỗi từ API
+      setError(error.message || "An error occurred during login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // quick login
+  const handleQuickLogin = async (role) => {
+    const credentials = {
+      ADMIN: { email: "admin@gmail.com", password: "2" },
+      VIPMEMBER: { email: "user5@gmail.com", password: "123" },
+      MEMBER: { email: "user6@gmail.com", password: "123" },
+      MANAGER: { email: "minhquan.sguy@gmail.com", password: "123" },
+      PUBLISHER: { email: "Minhtuankf@gmail.com", password: "1" },
+      ADVERTISER: { email: "minhquan.riotgs@gmail.com", password: "123" },
+    };
+
+    setEmail(credentials[role].email);
+    setPassword(credentials[role].password);
+
+    try {
+      setError("");
+      setLoading(true);
+      const res = await authService.login(
+        credentials[role].email,
+        credentials[role].password
+      );
+
+      if (res && res.success === true && res.data) {
+        localStorage.setItem("user", JSON.stringify(res.data));
+        localStorage.setItem("token", res.message);
+        localStorage.setItem("fullName", res.data.fullName);
+        localStorage.setItem("avatar", res.data.picture);
+        localStorage.setItem("role", res.data.roleName);
+        localStorage.setItem("userId", res.data.userId);
+
+        toast.success("Login successful!");
+
+        if (res.data.roleName === "ADMIN") {
+          navigate("/dashboard");
+        } else if (res.data.roleName === "MANAGER") {
+          navigate("/manager/dashboard");
+        } else if (res.data.roleName === "PUBLISHER") {
+          navigate("/publisher/dashboard");
+        } else if (res.data.roleName === "ADVERTISER") {
+          navigate("/advertiser/dashboard");
+        } else {
+          navigate("/homescreen");
+        }
+      }
+    } catch (error) {
       setError(error.message || "An error occurred during login");
     } finally {
       setLoading(false);
@@ -144,6 +196,58 @@ const LoginPage = () => {
               )}
             </button>
           </form>
+
+          {/* Thêm phần quick login sau form */}
+          <div className="mt-6">
+            <div className="text-center mb-4 text-gray-300">
+              Quick Login Demo
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => handleQuickLogin("ADMIN")}
+                className="py-2 px-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                disabled={loading}
+              >
+                Admin
+              </button>
+              <button
+                onClick={() => handleQuickLogin("VIPMEMBER")}
+                className="py-2 px-4 bg-pink-500 text-white rounded-lg hover:bg-pink-600"
+                disabled={loading}
+              >
+                VIPMEMBER
+              </button>
+              <button
+                onClick={() => handleQuickLogin("MEMBER")}
+                className="py-2 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                disabled={loading}
+              >
+                MEMBER
+              </button>
+              <button
+                onClick={() => handleQuickLogin("MANAGER")}
+                className="py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                disabled={loading}
+              >
+                Manager
+              </button>
+              <button
+                onClick={() => handleQuickLogin("PUBLISHER")}
+                className="py-2 px-4 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+                disabled={loading}
+              >
+                Publisher
+              </button>
+              <button
+                onClick={() => handleQuickLogin("ADVERTISER")}
+                className="py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                disabled={loading}
+              >
+                Advertiser
+              </button>
+            </div>
+          </div>
+
           <div className="text-center text-gray-400">
             Don't have an account?{" "}
             <Link
@@ -155,7 +259,10 @@ const LoginPage = () => {
           </div>
           <div className="text-center text-gray-400">
             Want your moive here ?{" "}
-            <Link to={"/registerPage"} className="text-[#FF009F] hover:text-[#D1007F]">
+            <Link
+              to={"/registerPage"}
+              className="text-[#FF009F] hover:text-[#D1007F]"
+            >
               Join now
             </Link>
           </div>
