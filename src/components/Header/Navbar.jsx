@@ -34,6 +34,8 @@ const Navbar = () => {
   const isInPublisherPage = location.pathname.includes("/publisher");
   const isVipMember = role === "VIP MEMBER";
   const token = localStorage.getItem("token");
+  const isAdvertiser = role === "ADVERTISER";
+  const isInAdvertiserPage = location.pathname.includes("/advertiser");
 
   useEffect(() => {
     const updateUser = () => setUser(authService.getCurrentUser());
@@ -173,7 +175,7 @@ const Navbar = () => {
                 Login
               </Link>
             )}
-            {(isManager || isAdmin || isPublisher) && (
+            {(isManager || isAdmin || isPublisher || isAdvertiser) && (
               <div className="flex items-center ml-3">
                 <Link
                   to={
@@ -185,9 +187,15 @@ const Navbar = () => {
                       ? isInAdminPage
                         ? "/homescreen"
                         : "/dashboard"
-                      : isInPublisherPage
-                      ? "/homescreen"
-                      : "/publisher/dashboard"
+                      : isPublisher
+                      ? isInPublisherPage
+                        ? "/homescreen"
+                        : "/publisher/dashboard"
+                      : isAdvertiser
+                      ? isInAdvertiserPage
+                        ? "/homescreen"
+                        : "/advertiser/dashboard"
+                      : "/homescreen"
                   }
                   className="flex items-center gap-2 px-4 py-2 rounded-lg 
                     text-sm font-medium transition-colors duration-200
@@ -266,7 +274,43 @@ const Navbar = () => {
                         </svg>
                       </>
                     )
-                  ) : isInPublisherPage ? (
+                  ) : isPublisher ? (
+                    isInPublisherPage ? (
+                      <>
+                        <span>View User Site</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 19l-7-7 7-7"
+                          />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <span>Publisher Dashboard</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </>
+                    )
+                  ) : isInAdvertiserPage ? (
                     <>
                       <span>View User Site</span>
                       <svg
@@ -285,7 +329,7 @@ const Navbar = () => {
                     </>
                   ) : (
                     <>
-                      <span>Publisher Dashboard</span>
+                      <span>Advertiser Dashboard</span>
                       <svg
                         className="w-4 h-4"
                         fill="none"
