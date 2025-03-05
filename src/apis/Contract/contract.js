@@ -26,7 +26,7 @@ const contractApi = {
     try {
       const token = localStorage.getItem("token");
       
-      const response = await axios.post(`${API_URL}/generate`, contractData, {
+      const response = await axios.post(`${API_URL}/Generate_Contract`, contractData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -71,18 +71,27 @@ const contractApi = {
   
     async acceptedContract(data) {
       try {
-          const token = localStorage.getItem('token');
-          const response = await axios.patch(`${API_URL}/Accepted_Contract`, data, {
-              headers: {
-                  'Authorization': `Bearer ${token}`
-              }
-          });
-          return response;
-        } catch (error) {
-          console.error("API error:", error.message);
-          return error.response;
+        const token = localStorage.getItem("token");
+        const response = await axios.patch(`${API_URL}/Accepted_Contract`, data, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+    
+        // Kiểm tra success từ API trả về
+        if (response.data.success) {
+          return response.data; // Thành công
+        } else {
+          throw new Error(response.data.message || "Something went wrong");
         }
+      } catch (error) {
+        console.error("API error:", error.response?.data?.message || error.message);
+        
+        // Trả về lỗi từ API (nếu có) để xử lý phía frontend
+        return error.response?.data || { success: false, message: "Request failed" };
+      }
     },
+    
 
     async deniedContract(data) {
         try {

@@ -1,144 +1,78 @@
-"\"use client"
+import { Steps, Tooltip } from "antd";
+import { 
+  FileDoneOutlined, 
+  FileSearchOutlined, 
+  UploadOutlined, 
+  CheckCircleOutlined, 
+  LoadingOutlined, 
+  CloseCircleOutlined 
+} from "@ant-design/icons";
 
-import { useState } from "react"
-import { Steps, Button, message, Layout, Card, Result } from "antd"
-import {
-  VideoCameraAddOutlined,
-  FileAddOutlined,
-  FileDoneOutlined,
-  CloudUploadOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons"
-import CreateMoviePublisher from "./create-movie-publisher"
-import ContractForm from "./contract-form"
-import SignContract from "./sign-contract"
-import UploadVideo from "./upload-video"
-import ActivateMovie from "./activate-movie"
+const { Step } = Steps;
 
-const { Content } = Layout
-const { Step } = Steps
+const ProcessStatus = ({ movieStatus, contractStatus, isFilmVipOrTrailer }) => {
+  let currentStep = 0;
+  let deniedStep = null;
 
-const MovieWorkflow = () => {
-  const [current, setCurrent] = useState(0)
-  const [movieData, setMovieData] = useState(null)
-  const [contractData, setContractData] = useState(null)
-  const [signedContract, setSignedContract] = useState(null)
-  const [videoData, setVideoData] = useState(null)
-  const [loading, setLoading] = useState(false)
+  if (movieStatus === "WAITING_FOR_REVIEWING") currentStep = 1;
+  if (movieStatus === "ACCEPTED_NEGOTIATING" || contractStatus === "WAITING_FOR_REVIEWING") currentStep = 2;
+  if (contractStatus === "SIGNED" || movieStatus === "WAITING_FOR_UPLOADING") currentStep = 3;
+  if (isFilmVipOrTrailer) currentStep = 4;
+  if (movieStatus === "ACTIVE") currentStep = 5; // Step 5 chỉ active nếu movieStatus là ACTIVE
+
+  // Nếu có trạng thái từ chối
+  if (movieStatus === "REJECTED" || contractStatus === "DENIED") {
+    deniedStep = currentStep;
+  }
+
+  const isArchived = movieStatus === "ARCHIVED";
+  const isActive = movieStatus === "ACTIVE";
 
   const steps = [
-    {
-      title: "Create Movie",
-      icon: <VideoCameraAddOutlined />,
-      content: <CreateMoviePublisher onComplete={handleMovieCreated} />,
-    },
-    {
-      title: "Create Contract",
-      icon: <FileAddOutlined />,
-      content: <ContractForm movieData={movieData} onComplete={handleContractCreated} />,
-    },
-    {
-      title: "Sign Contract",
-      icon: <FileDoneOutlined />,
-      content: <SignContract contractData={contractData} onComplete={handleContractSigned} />,
-    },
-    {
-      title: "Upload Video",
-      icon: <CloudUploadOutlined />,
-      content: <UploadVideo movieData={movieData} onComplete={handleVideoUploaded} />,
-    },
-    {
-      title: "Activate Movie",
-      icon: <CheckCircleOutlined />,
-      content: <ActivateMovie movieData={movieData} videoData={videoData} onComplete={handleMovieActivated} />,
-    },
-  ]
-
-  function handleMovieCreated(data) {
-    setMovieData(data)
-    message.success("Movie created successfully!")
-    next()
-  }
-
-  function handleContractCreated(data) {
-    setContractData(data)
-    message.success("Contract created successfully!")
-    next()
-  }
-
-  function handleContractSigned(data) {
-    setSignedContract(data)
-    message.success("Contract signed successfully!")
-    next()
-  }
-
-  function handleVideoUploaded(data) {
-    setVideoData(data)
-    message.success("Video uploaded successfully!")
-    next()
-  }
-
-  function handleMovieActivated() {
-    message.success("Movie activated successfully!")
-    next()
-  }
-
-  const next = () => {
-    setCurrent(current + 1)
-  }
-
-  const prev = () => {
-    setCurrent(current - 1)
-  }
+    { title: "Create Movie", description: "Movie is created and waiting for review.", icon: <FileSearchOutlined /> },
+    { title: "Review movie & Create contract", description: "Admin reviews movie and creates contract.", icon: <FileDoneOutlined /> },
+    { title: "Sign", description: "Publisher signs contract and uploads video.", icon: <UploadOutlined /> },
+    { title: "Upload", description: "Publisher uploads the video.", icon: <UploadOutlined /> },
+    { title: "Active", description: "Movie is approved and published.", icon: <CheckCircleOutlined /> },
+  ];
 
   return (
-    <Layout className="min-h-screen bg-gray-50">
-      <Content className="p-6 md:p-8 max-w-7xl mx-auto w-full">
-        <Card className="mb-6 shadow-sm">
-          <Steps current={current} className="mb-8">
-            {steps.map((item) => (
-              <Step key={item.title} title={item.title} icon={item.icon} />
-            ))}
-          </Steps>
+    <Steps current={deniedStep !== null ? deniedStep : currentStep} className="px-4 py-6">
+      {steps.map((step, index) => (
+        <Step
+          key={index}
+          title={
+            <Tooltip title={step.description}>
+              <span className="text-sm font-medium">{step.title}</span>
+            </Tooltip>
+          }
+          icon={
+            isArchived
+              ? // Nếu ARCHIVED thì Step 1-4 xanh lá, Step 5 đỏ
+                index < 4
+                ? <CheckCircleOutlined style={{ color: "green" }} />
+                : <CloseCircleOutlined style={{ color: "red" }} />
 
-          <div className="steps-content p-4 border border-gray-200 rounded-md min-h-[400px]">
-            {current < steps.length ? (
-              steps[current].content
-            ) : (
-              <Result
-                status="success"
-                title="Movie Published Successfully!"
-                subTitle="Your movie has been created, contracted, and is now live on the platform."
-                extra={[
-                  <Button
-                    type="primary"
-                    key="dashboard"
-                    onClick={() => (window.location.href = "/publisher/dashboard")}
-                  >
-                    Go to Dashboard
-                  </Button>,
-                  <Button key="movies" onClick={() => (window.location.href = "/publisher/movies")}>
-                    View My Movies
-                  </Button>,
-                ]}
-              />
-            )}
-          </div>
+              : isActive && index <= 4
+              ? // Nếu ACTIVE thì Step 1-4 xanh lá, Step 5 xanh khi đến
+                <CheckCircleOutlined style={{ color: "green" }} />
 
-          <div className="steps-action mt-6 flex justify-between">
-            {current > 0 && current < steps.length && <Button onClick={prev}>Previous</Button>}
-            {current === 0 && <div />}
-            {current === steps.length && (
-              <Button type="primary" onClick={() => (window.location.href = "/publisher/dashboard")}>
-                Done
-              </Button>
-            )}
-          </div>
-        </Card>
-      </Content>
-    </Layout>
-  )
-}
+              : index === deniedStep
+              ? <CloseCircleOutlined style={{ color: "red" }} />
 
-export default MovieWorkflow
+              : index < currentStep
+              ? <CheckCircleOutlined style={{ color: "green" }} />
 
+              : index === currentStep
+              ? <LoadingOutlined style={{ color: "blue" }} />
+
+              : step.icon
+          }
+        />
+      ))}
+    </Steps>
+  );
+};
+
+
+export default ProcessStatus;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Input, Select, Button, Card, Pagination, Tag, Spin } from "antd"
-import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined,SyncOutlined } from "@ant-design/icons"
+import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined, SyncOutlined, CloseCircleOutlined, FolderOutlined } from "@ant-design/icons"
 import { Link } from "react-router-dom"
 import movieService from "../../../apis/Movie/movie"
 import genreService from "../../../apis/Genre/genre"
@@ -13,22 +13,23 @@ const MovieAdmin = () => {
   const [movies, setMovies] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalMovies, setTotalMovies] = useState(0) // Tổng số phim
   const [genres, setGenres] = useState([])
   const [selectedGenres, setSelectedGenres] = useState([])
   const [loading, setLoading] = useState(false)
   const pageSize = 8
 
   useEffect(() => {
-    fetchMovies()
+    fetchMovies(currentPage, pageSize)
     fetchGenres()
-  }, [])
+  }, [currentPage, searchTerm, selectedGenres])
 
-  const fetchMovies = async () => {
+  const fetchMovies = async (page, size) => {
     setLoading(true)
     try {
-      const response = await movieService.getAllListMovies()
-      console.log("Movies:", response.data)
-      setMovies(response.data)
+      const response = await movieService.getAllListMovies(page, size, searchTerm, selectedGenres)
+      setMovies(response.movies)
+      setTotalMovies(response.total) // Lấy tổng số phim từ API
     } catch (error) {
       console.error("Error fetching movies:", error)
     } finally {
@@ -44,14 +45,6 @@ const MovieAdmin = () => {
       console.error("Error fetching genres:", error)
     }
   }
-
-  const filteredMovies = movies.filter(
-    (movie) =>
-      movie.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (selectedGenres.length === 0 || selectedGenres.some((genre) => movie.genres.includes(genre))),
-  )
-
-  const paginatedMovies = filteredMovies.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -89,7 +82,7 @@ const MovieAdmin = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {paginatedMovies.map((movie) => (
+          {movies.map((movie) => (
             <Link key={movie.id} to={`/admin/movie/${movie.id}`}>
               <Card
                 hoverable
@@ -105,6 +98,8 @@ const MovieAdmin = () => {
                         <Tag icon={<CheckCircleOutlined />} color="green">Active</Tag>
                       ) : movie.status === "WAITING_FOR_REVIEWING" ? (
                         <Tag icon={<ClockCircleOutlined />} color="orange">Waiting for Review</Tag>
+                      ) : movie.status === "WAITING_FOR_UPLOADING" ? (
+                        <Tag icon={<SyncOutlined spin />} color="orange">Waiting for Uploading</Tag>
                       ) : movie.status === "ACCEPTED_NEGOTIATING" ? (
                         <Tag icon={<SyncOutlined spin />} color="blue">Negotiating</Tag>
                       ) : movie.status === "REJECTED" ? (
@@ -137,7 +132,7 @@ const MovieAdmin = () => {
       <div className="flex justify-center">
         <Pagination
           current={currentPage}
-          total={filteredMovies.length}
+          total={totalMovies} // Tổng số phim từ API
           pageSize={pageSize}
           onChange={(page) => setCurrentPage(page)}
           showSizeChanger={false}
@@ -148,4 +143,3 @@ const MovieAdmin = () => {
 }
 
 export default MovieAdmin
-

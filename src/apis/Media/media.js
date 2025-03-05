@@ -30,11 +30,6 @@ const mediaApi = {
   async createMedia(mediaData) {
     try {
       const token = localStorage.getItem("token");
-      const role = localStorage.getItem("role");
-      
-      if (role !== "ADMIN") {
-        throw new Error("Unauthorized - Only admin can create/update/delete genres");
-      }
 
       const response = await axios.post(API_URL, mediaData, {
         headers: {

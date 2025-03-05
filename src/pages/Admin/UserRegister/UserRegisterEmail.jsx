@@ -5,7 +5,6 @@ import { useParams } from "react-router-dom";
 import { Badge, Descriptions, Spin, Pagination, Card, Button } from "antd";
 import UserRegisterApi from "../../../apis/UserRegister/UserRegister.js";
 import { formatDate } from "../../../utils/dateHelper";
-import UserApi from "../../../apis/User/user.jsx";
 import uploadFileApi from "../../../apis/Upload/upload.jsx";
 import { extractUrl } from "../../../utils/extractUrl";
 
