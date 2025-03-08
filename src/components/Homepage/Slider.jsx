@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faImdb } from "@fortawesome/free-brands-svg-icons";
-import GlobalApi from "./GlobalApi";
+import movieService from "../../apis/Movie/movie";
+import { Spin } from "antd";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
 
@@ -17,7 +18,7 @@ const Slider = () => {
     (nextIndex) => {
       if (movies[nextIndex]) {
         const img = new Image();
-        img.src = `${IMAGE_BASE_URL}${movies[nextIndex].backdrop_path}`;
+        img.src = movies[nextIndex].medias?.[0]?.url || "/placeholder.svg";
       }
     },
     [movies]
@@ -27,10 +28,10 @@ const Slider = () => {
     const getMovies = async () => {
       try {
         setIsLoading(true);
-        setError(null); // Reset error state
-        const resp = await GlobalApi.getTrendingMovies();
-        if (resp.data && resp.data.results) {
-          setMovies(resp.data.results.slice(0, 5));
+        setError(null);
+        const response = await movieService.getMovies(1, 5);
+        if (response.success && response.movies) {
+          setMovies(response.movies);
         } else {
           throw new Error("Invalid response format");
         }
@@ -50,7 +51,7 @@ const Slider = () => {
       const nextIndex = (currentIndex + 1) % movies.length;
       preloadNextImage(nextIndex);
       setCurrentIndex(nextIndex);
-    }, 6000); // Increased slightly for better viewing experience
+    }, 6000);
     return () => clearInterval(timer);
   }, [currentIndex, movies.length, preloadNextImage]);
 
@@ -65,52 +66,16 @@ const Slider = () => {
   if (isLoading) {
     return (
       <div className="relative h-[80vh] bg-gray-900 animate-pulse">
-        <div className="absolute inset-0">
-          {/* Gradient background skeleton */}
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900" />
-
-          {/* Content skeleton */}
-          <div className="relative z-10 flex flex-col justify-center h-full ml-[5%] max-w-[45%]">
-            {/* Title skeleton */}
-            <div className="h-12 w-3/4 bg-gray-700 rounded-lg mb-6"></div>
-
-            {/* Info badges skeleton */}
-            <div className="flex items-center gap-6 mb-6">
-              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
-              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
-              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
-            </div>
-
-            {/* Genres skeleton */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-8 w-24 bg-gray-700 rounded-md"></div>
-              ))}
-            </div>
-
-            {/* Overview skeleton */}
-            <div className="space-y-2 mb-8">
-              <div className="h-4 w-full bg-gray-700 rounded"></div>
-              <div className="h-4 w-5/6 bg-gray-700 rounded"></div>
-              <div className="h-4 w-4/6 bg-gray-700 rounded"></div>
-            </div>
-
-            {/* Button skeleton */}
-            <div className="h-12 w-36 bg-gray-700 rounded-md"></div>
-          </div>
-        </div>
-
-        {/* Thumbnail skeletons */}
-        <div className="absolute bottom-6 right-16 flex gap-3 z-20">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="w-24 h-14 bg-gray-700 rounded-md"></div>
-          ))}
+        <div className="flex justify-center items-center h-[600px]">
+          <Spin size="large" />
         </div>
       </div>
     );
   }
 
   if (!movies.length) return null;
+
+  const currentMovie = movies[currentIndex];
 
   return (
     <div className="relative h-[80vh] bg-black overflow-hidden">
@@ -123,11 +88,10 @@ const Slider = () => {
               : "opacity-0 invisible"
           }`}
         >
-          {/* Background image with gradient overlay */}
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10" />
             <img
-              src={`${IMAGE_BASE_URL}${movie.backdrop_path}`}
+              src={movie.medias?.[0]?.url || "/placeholder.svg"}
               alt={movie.title}
               className="w-full h-full object-cover transition-all duration-[8000ms] ease-out"
               style={{
@@ -141,7 +105,6 @@ const Slider = () => {
             />
           </div>
 
-          {/* Content overlay with fade-in effect */}
           <div
             className="relative z-10 flex flex-col justify-center h-full ml-[5%] max-w-[45%] text-white"
             style={{
@@ -151,58 +114,39 @@ const Slider = () => {
               transitionDelay: "200ms",
             }}
           >
-            {movie.logos && movie.logos[0] ? (
-              <div className="mb-6 max-w-[400px]">
-                <img
-                  src={`${IMAGE_BASE_URL}${movie.logos[0].file_path}`}
-                  alt={movie.title}
-                  className="w-full h-auto"
-                  loading="lazy"
-                />
-              </div>
-            ) : (
-              <h1 className="text-5xl font-bold mb-6">{movie.title}</h1>
-            )}
+            <h1 className="text-5xl font-bold mb-6">{movie.title}</h1>
 
             <div className="flex items-center gap-6 mb-6">
               <span className="px-3 py-1.5 bg-white/20 rounded-md text-sm">
-                {movie.release_date?.split("-")[0]}
+                {movie.releaseYear}
               </span>
               <span className="flex items-center gap-2">
                 <FontAwesomeIcon
                   icon={faImdb}
                   className="text-[#FFD43B] text-3xl"
                 />
-                <span className="text-lg font-semibold">
-                  {movie.vote_average?.toFixed(1)}
-                </span>
+                <span className="text-lg font-semibold">{movie.imdbScore}</span>
               </span>
-              {movie.runtime && (
-                <span className="px-3 py-1.5 bg-white/20 rounded-md text-sm">
-                  {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
-                </span>
-              )}
             </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
-              {movie.genres?.map((genre) => (
+              {movie.genreNames?.split(",").map((genre, idx) => (
                 <span
-                  key={genre.id}
+                  key={idx}
                   className="px-3 py-1.5 bg-white/20 rounded-md text-sm"
                 >
-                  {genre.name}
+                  {genre.trim()}
                 </span>
               ))}
             </div>
 
             <p className="text-gray-200 text-lg leading-relaxed mb-8 line-clamp-3">
-              {movie.overview}
+              {movie.description}
             </p>
 
             <Link
               to={`/movie/${movie.id}`}
-              className="bg-[#FF009F] text-white px-8 py-3 rounded-md 
-              hover:bg-[#D1007F] transition-colors w-fit font-semibold text-lg"
+              className="bg-[#FF009F] text-white px-8 py-3 rounded-md hover:bg-[#D1007F] transition-colors w-fit font-semibold text-lg"
             >
               Watch Now
             </Link>
@@ -210,12 +154,11 @@ const Slider = () => {
         </div>
       ))}
 
-      {/* Thumbnails with hover effect */}
       <div className="absolute bottom-6 right-16 flex gap-3 z-20">
         {movies.map((movie, index) => (
           <img
             key={movie.id}
-            src={`${IMAGE_BASE_URL}${movie.backdrop_path}`}
+            src={movie.medias?.[0]?.url || "/placeholder.svg"}
             alt={movie.title}
             className={`w-24 h-14 object-cover rounded-md cursor-pointer transition-all duration-300
               ${
