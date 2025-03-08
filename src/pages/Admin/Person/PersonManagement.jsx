@@ -51,6 +51,7 @@ const PersonManagement = () => {
     pageSize: 5,
     hasNextPage: true,
   });
+  const [allPersons, setAllPersons] = useState([]);
 
   // Fetch persons
   const fetchPersons = async (page = 1, pageSize = 5) => {
@@ -76,9 +77,42 @@ const PersonManagement = () => {
     }
   };
 
+  // Thêm hàm mới để fetch tất cả persons cho search
+  const fetchAllPersons = async () => {
+    try {
+      const response = await axios.get(
+        "https://eigakan1111-001-site1.qtempurl.com/api/Person?pageNumber=0&pageSize=1000"
+      );
+      if (response.data.success) {
+        setAllPersons(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching all persons:", error);
+    }
+  };
+
+  // Thêm useEffect để fetch dữ liệu khi component mount
   useEffect(() => {
-    fetchPersons(pagination.current, pagination.pageSize);
+    fetchAllPersons();
   }, []);
+
+  // Sửa lại phần xử lý search
+  useEffect(() => {
+    if (searchText) {
+      const filteredResults = allPersons.filter(
+        (person) =>
+          person.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+          person.description
+            ?.toLowerCase()
+            .includes(searchText.toLowerCase()) ||
+          person.job?.toLowerCase().includes(searchText.toLowerCase())
+      );
+      setPersons(filteredResults);
+    } else {
+      // Nếu không có search text, quay lại hiển thị dữ liệu phân trang bình thường
+      fetchPersons(pagination.current, pagination.pageSize);
+    }
+  }, [searchText]);
 
   // Hàm hủy upload hiện tại
   const cancelCurrentUpload = () => {
@@ -282,16 +316,6 @@ const PersonManagement = () => {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      filteredValue: [searchText],
-      onFilter: (value, record) => {
-        return (
-          String(record.name).toLowerCase().includes(value.toLowerCase()) ||
-          String(record.description)
-            .toLowerCase()
-            .includes(value.toLowerCase()) ||
-          String(record.job).toLowerCase().includes(value.toLowerCase())
-        );
-      },
     },
     {
       title: "Description",
