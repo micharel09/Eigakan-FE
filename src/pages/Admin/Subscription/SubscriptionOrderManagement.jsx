@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Card } from "antd";
+import { Table, Tag, Card, Input } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { Helmet } from "react-helmet";
+import UserApi from "../../../apis/User/user";
 
 const SubscriptionOrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
 
-  const fetchOrders = async (page = 1, pageSize = 10) => {
+  const fetchAllOrders = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPurchasePayment?page=${page}&pageSize=${pageSize}`,
+        "https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPurchasePayment?page=1&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -26,22 +30,39 @@ const SubscriptionOrderManagement = () => {
       );
 
       if (response.data.success) {
-        // Lấy data từ đúng cấu trúc API
         const orderData = response.data.data.subscriptionPurchase || [];
 
-        // Thêm key cho mỗi item
-        const dataWithKeys = orderData.map((item) => ({
-          ...item,
-          key: item.id,
-        }));
+        const ordersWithUserDetails = await Promise.all(
+          orderData.map(async (order) => {
+            try {
+              const userResponse = await UserApi.getUserDetail(order.userId);
+              return {
+                ...order,
+                key: order.id,
+                userName: userResponse.data.fullName || "Unknown User",
+                userEmail: userResponse.data.email || "N/A",
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching user details for ID ${order.userId}:`,
+                error
+              );
+              return {
+                ...order,
+                key: order.id,
+                userName: "Unknown User",
+                userEmail: "N/A",
+              };
+            }
+          })
+        );
 
-        setData(dataWithKeys);
-        setPagination({
-          ...pagination,
-          total: response.data.data.total || 0,
-          current: page,
-          pageSize: pageSize,
-        });
+        setAllOrders(ordersWithUserDetails);
+        setData(ordersWithUserDetails);
+        setPagination((prev) => ({
+          ...prev,
+          total: ordersWithUserDetails.length,
+        }));
       }
     } catch (error) {
       console.error("Error fetching subscription orders:", error);
@@ -52,12 +73,25 @@ const SubscriptionOrderManagement = () => {
   };
 
   useEffect(() => {
-    fetchOrders(pagination.current, pagination.pageSize);
-  }, []);
+    if (searchTerm) {
+      const filteredResults = allOrders.filter(
+        (order) =>
+          order.id.toString().includes(searchTerm) ||
+          order.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.subscriptionId.toString().includes(searchTerm)
+      );
+      setData(filteredResults);
+      setPagination((prev) => ({ ...prev, total: filteredResults.length }));
+    } else {
+      setData(allOrders);
+      setPagination((prev) => ({ ...prev, total: allOrders.length }));
+    }
+  }, [searchTerm, allOrders]);
 
-  const handleTableChange = (newPagination) => {
-    fetchOrders(newPagination.current, newPagination.pageSize);
-  };
+  useEffect(() => {
+    fetchAllOrders();
+  }, []);
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -71,13 +105,18 @@ const SubscriptionOrderManagement = () => {
       title: "Transaction ID",
       dataIndex: "id",
       key: "id",
-      width: "15%",
+      width: "10%",
     },
     {
-      title: "User ID",
-      dataIndex: "userId",
-      key: "userId",
-      width: "15%",
+      title: "User",
+      key: "user",
+      width: "20%",
+      render: (record) => (
+        <div>
+          <div className="font-medium">{record.userName}</div>
+          <div className="text-gray-500 text-sm">{record.userEmail}</div>
+        </div>
+      ),
     },
     {
       title: "Subscription ID",
@@ -132,6 +171,16 @@ const SubscriptionOrderManagement = () => {
       </Helmet>
 
       <Card title="Subscription Orders" className="shadow-md">
+        <div className="flex justify-center mb-6">
+          <Input
+            placeholder="Tìm kiếm theo ID giao dịch, tên người dùng, email hoặc ID gói..."
+            prefix={<SearchOutlined className="text-gray-400" />}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="min-w-[400px]"
+            size="large"
+          />
+        </div>
+
         <Table
           columns={columns}
           dataSource={data}
@@ -141,7 +190,9 @@ const SubscriptionOrderManagement = () => {
             showQuickJumper: true,
             showTotal: (total) => `Total ${total} items`,
           }}
-          onChange={handleTableChange}
+          onChange={(newPagination) => {
+            setPagination(newPagination);
+          }}
           loading={loading}
           rowKey="id"
         />

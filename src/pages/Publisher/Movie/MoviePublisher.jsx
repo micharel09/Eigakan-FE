@@ -26,20 +26,23 @@ const MoviePublisher = () => {
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [loading, setLoading] = useState(false);
   const pageSize = 8;
+  const [allMovies, setAllMovies] = useState([]);
+  const [filteredMovies, setFilteredMovies] = useState([]);
 
   useEffect(() => {
-    fetchMovies(currentPage, pageSize);
+    fetchAllMovies();
     fetchGenres();
-  }, [currentPage]); // Gọi lại fetchMovies khi currentPage thay đổi
+  }, []);
 
-  const fetchMovies = async (page, size) => {
+  const fetchAllMovies = async () => {
     setLoading(true);
     try {
-      const response = await movieService.getListMovieByLogin(page, size);
+      const response = await movieService.getListMovieByLogin(1, 1000);
+      setAllMovies(response.movies || []);
       setMovies(response.movies || []);
       setTotalMovies(response.total || 0);
     } catch (error) {
-      console.error("Error fetching contracts:", error);
+      console.error("Error fetching movies:", error);
     } finally {
       setLoading(false);
     }
@@ -52,6 +55,41 @@ const MoviePublisher = () => {
     } catch (error) {
       console.error("Error fetching genres:", error);
     }
+  };
+
+  useEffect(() => {
+    if (searchTerm || selectedGenres.length > 0) {
+      const filtered = allMovies.filter((movie) => {
+        const matchesSearch =
+          !searchTerm ||
+          movie.title?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const movieGenresList = movie.genreNames?.split(", ") || [];
+        const matchesGenres =
+          selectedGenres.length === 0 ||
+          selectedGenres.every((selectedGenre) => {
+            const genreName = genres.find((g) => g.id === selectedGenre)?.name;
+            return movieGenresList
+              .map((g) => g.trim().toLowerCase())
+              .includes(genreName?.toLowerCase());
+          });
+
+        return matchesSearch && matchesGenres;
+      });
+
+      setMovies(filtered);
+      setTotalMovies(filtered.length);
+    } else {
+      setMovies(allMovies);
+      setTotalMovies(allMovies.length);
+    }
+  }, [searchTerm, selectedGenres, allMovies, genres]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    setMovies(allMovies.slice(startIndex, endIndex));
   };
 
   return (
@@ -152,7 +190,6 @@ const MoviePublisher = () => {
                     <div>
                       <p className="text-gray-500">{movie.releaseYear}</p>
                       <div className="mt-2">{movie.genreNames}</div>
-
                     </div>
                   }
                 />
@@ -167,7 +204,7 @@ const MoviePublisher = () => {
           current={currentPage}
           total={totalMovies}
           pageSize={pageSize}
-          onChange={(page) => setCurrentPage(page)}
+          onChange={handlePageChange}
           showSizeChanger={false}
         />
       </div>

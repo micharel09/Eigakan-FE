@@ -1,107 +1,166 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Space, notification, Switch, Tag  } from "antd";
+import { Table, Button, Space, notification, Switch, Tag, Input } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import UserApi from "../../../apis/User/user";
+import axios from "axios";
 
 const User = () => {
+  const [allUsers, setAllUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filteredInfo, setFilteredInfo] = useState({});
-  const [sortedInfo, setSortedInfo] = useState({});
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 8,
     total: 0,
   });
+  const [filteredInfo, setFilteredInfo] = useState({});
+  const [sortedInfo, setSortedInfo] = useState({});
 
-  // Fetch users with pagination
-  const fetchUsers = async (current, pageSize) => {
-    setLoading(true);
+  // Fetch tất cả users khi component mount
+  const fetchAllUsers = async () => {
     try {
-      const response = await UserApi.getUsers(current, pageSize);
-      setUsers(response.data.users);
-      setPagination({
-        current,
-        pageSize,
-        total: response.data.total,
-      });
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "https://eigakan1111-001-site1.qtempurl.com/api/User/GetAllUser?page=0&pageSize=1000",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.data) {
+        setAllUsers(response.data.users || []);
+        setUsers(response.data.users || []);
+        setPagination((prev) => ({ ...prev, total: response.data.total || 0 }));
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
+      notification.error({
+        message: "Error",
+        description: "Could not fetch users",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTableChange = (pagination, filters, sorter) => {
-    setFilteredInfo(filters);
-    setSortedInfo(sorter);
-    fetchUsers(pagination.current, pagination.pageSize);
-  };
+  // Gọi API lần đầu khi component mount
+  useEffect(() => {
+    fetchAllUsers();
+  }, []);
+
+  // Xử lý search
+  useEffect(() => {
+    if (searchTerm) {
+      const filteredResults = allUsers.filter(
+        (user) =>
+          user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setUsers(filteredResults);
+      setPagination((prev) => ({ ...prev, total: filteredResults.length }));
+    } else {
+      setUsers(allUsers);
+      setPagination((prev) => ({ ...prev, total: allUsers.length }));
+    }
+  }, [searchTerm, allUsers]);
 
   const handleStatusChange = async (id, checked) => {
     try {
-      const data = {
-        id,
-        status: checked ? 0 : 1,
-      };
-      const response = await UserApi.updateActive(data);
-      if (response && response.status === 200) {
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.id === id
-              ? { ...user, status: data.status === 0 ? "NORMAL" : "INACTIVE" }
-              : user
-          )
-        );
-        notification.success({ message: response.data.message });
-      } else {
-        notification.error({ message: "Failed to update user status." });
-      }
+      await UserApi.updateUserStatus(id, checked ? 0 : 1);
+      fetchAllUsers(); // Refresh data sau khi update
+      notification.success({
+        message: "Success",
+        description: "User status updated successfully",
+      });
     } catch (error) {
-      console.error("Error updating status:", error);
-      notification.error({ message: "Error updating user status." });
+      notification.error({
+        message: "Error",
+        description: "Failed to update user status",
+      });
     }
   };
 
-  useEffect(() => {
-    fetchUsers(pagination.current, pagination.pageSize);
-  }, []);
+  // Thêm các options cho filters
+  const roleOptions = [
+    { text: "ADMIN", value: "ADMIN" },
+    { text: "MEMBER", value: "MEMBER" },
+    { text: "PUBLISHER", value: "PUBLISHER" },
+    { text: "MANAGER", value: "MANAGER" },
+    { text: "VIP MEMBER", value: "VIP MEMBER" },
+  ];
+
+  const statusOptions = [
+    { text: "NORMAL", value: "NORMAL" },
+    { text: "INACTIVE", value: "INACTIVE" },
+  ];
+
+  // Thêm hàm xử lý thay đổi của Table
+  const handleTableChange = (pagination, filters, sorter) => {
+    setFilteredInfo(filters);
+    setSortedInfo(sorter);
+  };
 
   const columns = [
     {
       title: "Avatar",
       dataIndex: "picture",
-      key: "picture",
-      render: (text) => <img src={text} alt="Avatar" className="w-8 h-8 rounded-full" />,
+      key: "avatar",
+      render: (text) => (
+        <img
+          src={text || "default-avatar.png"}
+          alt="Avatar"
+          style={{ width: 40, height: 40, borderRadius: "50%" }}
+        />
+      ),
     },
     {
       title: "Name",
       dataIndex: "fullName",
-      key: "fullName",
+      key: "name",
       sorter: (a, b) => a.fullName.localeCompare(b.fullName),
+      sortOrder: sortedInfo.columnKey === "name" && sortedInfo.order,
       filteredValue: filteredInfo.fullName || null,
-      onFilter: (value, record) => record.fullName.includes(value),
-      render: (fullName, record) => (
-        <a href={`/user/${record.id}`} className="text-blue-400">
-          {fullName}
-        </a>
-      ),
+      onFilter: (value, record) =>
+        record.fullName.toLowerCase().includes(value.toLowerCase()),
+      filterSearch: true,
+      filters: users.map((user) => ({
+        text: user.fullName,
+        value: user.fullName,
+      })),
     },
-    
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
+      filteredValue: filteredInfo.email || null,
+      onFilter: (value, record) =>
+        record.email.toLowerCase().includes(value.toLowerCase()),
+      filterSearch: true,
+      filters: users.map((user) => ({
+        text: user.email,
+        value: user.email,
+      })),
     },
     {
       title: "Role",
       dataIndex: "roleName",
-      key: "roleName",
+      key: "role",
       filters: [
-        { text: "Admin", value: "ADMIN" },
-        { text: "User", value: "USER" },
+        { text: "ADMIN", value: "ADMIN" },
+        { text: "MEMBER", value: "MEMBER" },
+        { text: "PUBLISHER", value: "PUBLISHER" },
+        { text: "MANAGER", value: "MANAGER" },
+        { text: "VIP MEMBER", value: "VIP MEMBER" },
       ],
-      filteredValue: filteredInfo.roleName || null,
-      onFilter: (value, record) => record.roleName === value,
+      filteredValue: filteredInfo.role || null,
+      onFilter: (value, record) => {
+        return (
+          record.roleName?.trim().toUpperCase() === value.trim().toUpperCase()
+        );
+      },
       render: (roleName) => {
         const color =
           roleName === "ADMIN"
@@ -110,25 +169,19 @@ const User = () => {
             ? "green"
             : roleName === "PUBLISHER"
             ? "blue"
-            : roleName === "MANAGER"
-            ? "yellow"
             : roleName === "VIP MEMBER"
             ? "purple"
-            : "default"; 
-        return (
-          <Tag color={color} key={roleName}>
-            {roleName.toUpperCase()}
-          </Tag>
-        );
+            : "default";
+        return <Tag color={color}>{roleName}</Tag>;
       },
-      
-      
     },
-    
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
+      filters: statusOptions,
+      filteredValue: filteredInfo.status || null,
+      onFilter: (value, record) => record.status === value,
       render: (status, record) => (
         <Switch
           checkedChildren="NORMAL"
@@ -143,26 +196,51 @@ const User = () => {
       dataIndex: "createDate",
       key: "joinDate",
       sorter: (a, b) => new Date(a.createDate) - new Date(b.createDate),
-      render: (text) => {
-        const date = new Date(text); // Tạo đối tượng Date từ chuỗi ISO
-        return date.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }); // Chuyển sang giờ Việt Nam
+      sortOrder: sortedInfo.columnKey === "joinDate" && sortedInfo.order,
+      render: (text) =>
+        new Date(text).toLocaleString("vi-VN", {
+          timeZone: "Asia/Ho_Chi_Minh",
+        }),
+      filters: [
+        { text: "Last 7 days", value: "7days" },
+        { text: "Last 30 days", value: "30days" },
+        { text: "Last 90 days", value: "90days" },
+      ],
+      filteredValue: filteredInfo.createDate || null,
+      onFilter: (value, record) => {
+        const recordDate = new Date(record.createDate);
+        const now = new Date();
+        const days = {
+          "7days": 7,
+          "30days": 30,
+          "90days": 90,
+        };
+        const diffTime = Math.abs(now - recordDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays <= days[value];
       },
     },
-    
   ];
 
   return (
-    <>
-      <div className="flex justify-between">
-          <Space style={{ marginBottom: 16 }}>
-            <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
-            <Button onClick={() => setSortedInfo({})}>Clear sorters</Button>
-          </Space>
+    <div className="p-4">
+      <div className="flex justify-between mb-4">
+        <Space>
+          <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
+          <Button onClick={() => setSortedInfo({})}>Clear sorters</Button>
+        </Space>
+      </div>
 
-          <Button>Create
-            
-          </Button>
-        </div>
+      <div className="flex justify-center mb-6">
+        <Input
+          placeholder="Tìm kiếm theo tên hoặc email..."
+          prefix={<SearchOutlined className="text-gray-400" />}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="min-w-[400px]"
+          size="large"
+        />
+      </div>
+
       <Table
         columns={columns}
         dataSource={users}
@@ -171,7 +249,7 @@ const User = () => {
         loading={loading}
         onChange={handleTableChange}
       />
-    </>
+    </div>
   );
 };
 
