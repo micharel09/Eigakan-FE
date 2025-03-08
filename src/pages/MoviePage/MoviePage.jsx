@@ -167,6 +167,33 @@ const getYoutubeEmbedUrl = (url) => {
     const videoId = new URLSearchParams(url.split("?")[1]).get("v");
     return `https://www.youtube.com/embed/${videoId}`;
   }
+  // Trả về URL gốc nếu không phải YouTube URL
+  return url;
+};
+
+// Tách URL trực tiếp thành iframe embed URL nếu cần
+const getBunnyStreamEmbedUrl = (url) => {
+  if (!url) return null;
+
+  // Nếu URL đã có dạng iframe, sử dụng nó trực tiếp
+  if (url.includes("iframe.mediadelivery.net")) {
+    return url;
+  }
+
+  // Nếu URL là dạng video play URL, chuyển đổi sang URL embed nếu cần
+  if (
+    url.includes("dash.bunny.net/stream") ||
+    url.includes("bunny.net/stream")
+  ) {
+    // Trích xuất video ID từ URL
+    const regex = /\/stream\/(\d+)\//;
+    const match = url.match(regex);
+    if (match && match[1]) {
+      return `https://iframe.mediadelivery.net/play/${match[1]}`;
+    }
+  }
+
+  // Trả về URL gốc nếu không khớp với các pattern trên
   return url;
 };
 
@@ -220,16 +247,41 @@ const MoviePage = () => {
                   <PlayCircle className="w-6 h-6" />
                   Official Trailer
                 </h2>
-                <div className="aspect-video rounded-lg overflow-hidden shadow-lg">
-                  <iframe
-                    src={getYoutubeEmbedUrl(
-                      movie.medias.find((m) => m.type === "TRAILER").url
-                    )}
-                    title="Movie Trailer"
-                    className="w-full h-full"
-                    allowFullScreen
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  />
+                <div
+                  className="aspect-video rounded-lg overflow-hidden shadow-lg"
+                  style={{
+                    backgroundColor: "#0f172a",
+                    position: "relative",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      height: "100%",
+                      paddingTop: "56.25%",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <iframe
+                      src={getBunnyStreamEmbedUrl(
+                        movie.medias.find((m) => m.type === "TRAILER")?.url
+                      )}
+                      title="Movie Trailer"
+                      style={{
+                        position: "absolute",
+                        top: "0%",
+                        left: "0%",
+                        width: "100%",
+                        height: "100%",
+                        border: "none",
+                        padding: 0,
+                        margin: 0,
+                      }}
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                  </div>
                 </div>
               </div>
             )}

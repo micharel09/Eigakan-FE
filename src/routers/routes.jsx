@@ -47,6 +47,7 @@ import ProcessStatus from "../components/WorkFlow/MovieWorkflow.jsx";
 import UploadFormPublisher from "../pages/Publisher/Movie/UploadFormPublisher.jsx";
 import UpdateMoviePublisher from "../pages/Publisher/Movie/UpdateMoviePublisher.jsx";
 import UpdateMovieAdmin from "../pages/Admin/Movie/UpdateMovieAdmin.jsx";
+import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");

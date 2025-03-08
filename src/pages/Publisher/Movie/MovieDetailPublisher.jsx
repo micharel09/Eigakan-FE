@@ -43,7 +43,7 @@ import { Link } from "react-router-dom"
 const { Content } = Layout
 const { TabPane } = Tabs
 const { Title, Text, Paragraph } = Typography
-const hiddenStatuses = ["ACTIVE", "ACCEPTED_NEGOTIATING", "WAITING_FOR_UPLOADING"];
+const hiddenStatuses = ["ACTIVE", "ACCEPTED_NEGOTIATING", "WAITING_FOR_UPLOADING","ARCHIVED"];
 
 const MovieDetailPublisher = () => {
   const [movie, setMovie] = useState(null)

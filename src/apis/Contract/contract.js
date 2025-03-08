@@ -4,7 +4,7 @@ const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/contracts";
 
 const contractApi = {
  
-    async getAllContract(pageNumber = 1, pageSize = 10) {
+    async getAllContract(page , pageSize ) {
         try {
           const token = localStorage.getItem('token');
           const response = await axios.get(`${API_URL}`, {
@@ -12,7 +12,7 @@ const contractApi = {
               'Authorization': `Bearer ${token}`
             },
             params: {
-              pageNumber,
+              page,
               pageSize
             }
           });
@@ -37,7 +37,7 @@ const contractApi = {
     }
     },
 
-    async getAllContractByLogin(pageNumber = 1, pageSize = 10) {
+    async getAllContractByLogin(page, pageSize ) {
         try {
           const token = localStorage.getItem('token');
           const response = await axios.get(`${API_URL}/GetAllContractUserByLogin`, {
@@ -45,7 +45,7 @@ const contractApi = {
               'Authorization': `Bearer ${token}`
             },
             params: {
-              pageNumber,
+              page,
               pageSize
             }
           });

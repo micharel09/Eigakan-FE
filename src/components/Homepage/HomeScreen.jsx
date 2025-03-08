@@ -1,5 +1,5 @@
 import React from "react";
-import Slider from "../components/Homepage/Slider"; // Kiểm tra đường dẫn import
+import Slider from "../Homepage/Slider";
 
 const HomeScreen = () => {
   return (

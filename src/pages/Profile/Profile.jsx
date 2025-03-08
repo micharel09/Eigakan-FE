@@ -1,42 +1,80 @@
-
-import { Breadcrumb, Layout, Image, Card, Tabs, Tag, Button, Spin, Modal, Form, Input, DatePicker, Radio, Upload, notification } from "antd"
-const { Content } = Layout
-import { CreditCardOutlined, HistoryOutlined, UserOutlined, SettingOutlined, CrownOutlined, EditOutlined, UploadOutlined } from "@ant-design/icons"
-import { useState, useEffect } from "react"
-import UserApi from "../../apis/User/user"
-import dayjs from "dayjs"
-import uploadFileApi from "../../apis/Upload/upload"
-import HistoryTab from "./HistoryTab"
-import BillingTab from "./BillingTab"
+import {
+  Breadcrumb,
+  Layout,
+  Image,
+  Card,
+  Tabs,
+  Tag,
+  Button,
+  Spin,
+  Modal,
+  Form,
+  Input,
+  DatePicker,
+  Radio,
+  Upload,
+  notification,
+} from "antd";
+const { Content } = Layout;
+import {
+  CreditCardOutlined,
+  HistoryOutlined,
+  UserOutlined,
+  SettingOutlined,
+  CrownOutlined,
+  EditOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
+import { useState, useEffect } from "react";
+import UserApi from "../../apis/User/user";
+import dayjs from "dayjs";
+import uploadFileApi from "../../apis/Upload/upload";
+import HistoryTab from "./HistoryTab";
+import BillingTab from "./BillingTab";
+import subscriptionService from "../../apis/Subscription/subscription";
 
 const Profile = () => {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [form] = Form.useForm()
-  const [updateLoading, setUpdateLoading] = useState(false)
-  const [uploadLoading, setUploadLoading] = useState(false)
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState([]);
 
-  const role = localStorage.getItem("role") || "User"
-  const coverPicture = localStorage.getItem("avatar") || "https://placeholder.com/200x200"
-  const isVipMember = role === "VIP MEMBER"
+  const role = localStorage.getItem("role") || "User";
+  const coverPicture =
+    localStorage.getItem("avatar") || "https://placeholder.com/200x200";
+  const isVipMember = role === "VIP MEMBER";
 
   const fetchProfile = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const profileResponse = await UserApi.GetUserProfile()
-      console.log("profileResponse:", profileResponse)
-      setUser(profileResponse.data)
+      const profileResponse = await UserApi.GetUserProfile();
+      console.log("profileResponse:", profileResponse);
+      setUser(profileResponse.data);
     } catch (error) {
-      console.error("Error fetching profile:", error)
+      console.error("Error fetching profile:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const fetchSubscriptionHistory = async () => {
+    try {
+      const response = await subscriptionService.getAllPurchaseHistory();
+      if (response.success) {
+        setSubscriptionData(response.data.subscriptionPurchase || []);
+      }
+    } catch (error) {
+      console.error("Error fetching subscription history:", error);
+    }
+  };
 
   useEffect(() => {
-    fetchProfile()
-  }, [])
+    fetchProfile();
+    fetchSubscriptionHistory();
+  }, []);
 
   const showUpdateModal = () => {
     form.setFieldsValue({
@@ -44,66 +82,67 @@ const Profile = () => {
       gender: user?.gender,
       birthday: user?.birthday ? dayjs(user.birthday, "YYYY-MM-DD") : null,
       picture: user?.picture,
-    })
-    setIsModalOpen(true)
-  }
+    });
+    setIsModalOpen(true);
+  };
 
   const handleUpdate = async () => {
-    setUpdateLoading(true)
+    setUpdateLoading(true);
     try {
-      const values = await form.validateFields()
-  
+      const values = await form.validateFields();
+
       const updatedProfile = {
         fullName: values.fullName,
         gender: values.gender,
         birthday: values.birthday ? values.birthday.format("YYYY-MM-DD") : null,
-        picture: user.picture, // Use the existing picture URL
-      }
-  
-      await UserApi.updateUser(user.id, updatedProfile)
-      setUser((prevUser) => ({ ...prevUser, ...updatedProfile }))
+        picture: user.picture,
+      };
 
-      // Update LocalStorage
-      localStorage.setItem("user", JSON.stringify({ ...user, ...updatedProfile }))
+      await UserApi.updateUser(user.id, updatedProfile);
+      setUser((prevUser) => ({ ...prevUser, ...updatedProfile }));
 
-      notification.success({ message: "Profile updated successfully!" })
-      setIsModalOpen(false)
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ ...user, ...updatedProfile })
+      );
+
+      notification.success({ message: "Profile updated successfully!" });
+      setIsModalOpen(false);
     } catch (error) {
-      console.error("Update failed:", error)
-      notification.error({ message: "Update failed!" })
+      console.error("Update failed:", error);
+      notification.error({ message: "Update failed!" });
     } finally {
-      setUpdateLoading(false)
+      setUpdateLoading(false);
     }
-  }
+  };
 
   const handleUpload = async (file) => {
-    setUploadLoading(true)
+    setUploadLoading(true);
     try {
-      const response = await uploadFileApi.UploadPicture(file)
-      
-      const imageUrl = response.data[0].url // Assuming the API returns the URL in this format
+      const response = await uploadFileApi.UploadPicture(file);
+      const imageUrl = response.data[0].url;
 
-      // Update the user's picture URL
       const updatedProfile = {
         ...user,
-        picture: imageUrl
-      }
+        picture: imageUrl,
+      };
 
-      await UserApi.updateUser(user.id, updatedProfile)
-      setUser(updatedProfile)
+      await UserApi.updateUser(user.id, updatedProfile);
+      setUser(updatedProfile);
 
-      // Update LocalStorage
-      localStorage.setItem("user", JSON.stringify(updatedProfile))
-      localStorage.setItem("avatar", imageUrl)
+      localStorage.setItem("user", JSON.stringify(updatedProfile));
+      localStorage.setItem("avatar", imageUrl);
 
-      notification.success({ message: "Profile picture updated successfully!" })
+      notification.success({
+        message: "Profile picture updated successfully!",
+      });
     } catch (error) {
-      console.error("Upload failed:", error)
-      notification.error({ message: "Upload failed!" })
+      console.error("Upload failed:", error);
+      notification.error({ message: "Upload failed!" });
     } finally {
-      setUploadLoading(false)
+      setUploadLoading(false);
     }
-  }
+  };
 
   return (
     <Layout className="min-h-screen bg-gray-50">
@@ -122,13 +161,18 @@ const Profile = () => {
             <Card className="mb-6 shadow-sm">
               <div className="flex flex-col md:flex-row gap-8 items-start">
                 <div className="relative group">
-                  <Image width={200} src={user?.picture || coverPicture} className="rounded-lg" alt="Profile Picture" />
+                  <Image
+                    width={200}
+                    src={user?.picture || coverPicture}
+                    className="rounded-lg"
+                    alt="Profile Picture"
+                  />
                   <div className="relative group">
-                    <Upload 
-                      showUploadList={false} 
-                      beforeUpload={(file) => { 
-                        handleUpload(file)
-                        return false 
+                    <Upload
+                      showUploadList={false}
+                      beforeUpload={(file) => {
+                        handleUpload(file);
+                        return false;
                       }}
                     >
                       <Button
@@ -137,18 +181,27 @@ const Profile = () => {
                         type="primary"
                         disabled={uploadLoading}
                       >
-                        {uploadLoading ? 'Uploading...' : 'Upload'}
+                        {uploadLoading ? "Uploading..." : "Upload"}
                       </Button>
                     </Upload>
                   </div>
                 </div>
                 <div className="flex flex-col gap-4 w-full">
                   <div className="flex justify-between">
-                    <h1 className="text-2xl font-bold mb-2">{user?.fullName || "N/A"}</h1>
-                    <Button type="primary" onClick={showUpdateModal}>Update</Button>
+                    <h1 className="text-2xl font-bold mb-2">
+                      {user?.fullName || "N/A"}
+                    </h1>
+                    <Button type="primary" onClick={showUpdateModal}>
+                      Update
+                    </Button>
                   </div>
                   <div className="flex gap-2 items-center">
-                    <Tag color={isVipMember ? "gold" : "blue"} icon={isVipMember ? <CrownOutlined /> : <UserOutlined />}>{role}</Tag>
+                    <Tag
+                      color={isVipMember ? "gold" : "blue"}
+                      icon={isVipMember ? <CrownOutlined /> : <UserOutlined />}
+                    >
+                      {role}
+                    </Tag>
                     {user?.status && <Tag color="green">{user.status}</Tag>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
@@ -158,7 +211,11 @@ const Profile = () => {
                     </div>
                     <div>
                       <p className="text-gray-500">Member Since</p>
-                      <p className="font-medium">{user?.createDate ? new Date(user.createDate).toLocaleDateString() : "N/A"}</p>
+                      <p className="font-medium">
+                        {user?.createDate
+                          ? new Date(user.createDate).toLocaleDateString()
+                          : "N/A"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-gray-500">DOB</p>
@@ -166,37 +223,132 @@ const Profile = () => {
                     </div>
                     <div>
                       <p className="text-gray-500">Gender</p>
-                      <p className="font-medium">{user?.gender === true ? "Male" : user?.gender === false ? "Female" : "N/A"}</p>
+                      <p className="font-medium">
+                        {user?.gender === true
+                          ? "Male"
+                          : user?.gender === false
+                          ? "Female"
+                          : "N/A"}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
             </Card>
             <Card className="shadow-sm">
-              <Tabs defaultActiveKey="1" items={[
-                { key: "1", label: <span className="flex items-center gap-2"><HistoryOutlined />History</span>, children: <HistoryTab /> }, 
-                { key: "2", label: <span className="flex items-center gap-2"><CreditCardOutlined />Billing</span>, children: <BillingTab /> }, 
-                { key: "3", label: <span className="flex items-center gap-2"><SettingOutlined />Settings</span>, children: <div>Update in furture</div> }]} 
+              <Tabs
+                defaultActiveKey="1"
+                items={[
+                  {
+                    key: "1",
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <HistoryOutlined />
+                        History
+                      </span>
+                    ),
+                    children: <HistoryTab />,
+                  },
+                  {
+                    key: "2",
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <CreditCardOutlined />
+                        Billing
+                      </span>
+                    ),
+                    children: (
+                      <>
+                        <BillingTab />
+                        <h2 className="text-lg font-bold mt-4">
+                          Subscription History
+                        </h2>
+                        {subscriptionData.map((subscription) => (
+                          <Card key={subscription.id} className="mb-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="text-lg font-bold">
+                                  Order ID: {subscription.id}
+                                </h3>
+                                <p>
+                                  Purchase date:{" "}
+                                  {new Date(
+                                    subscription.purchaseDate
+                                  ).toLocaleDateString()}
+                                </p>
+                                <p>
+                                  Expired date:{" "}
+                                  {new Date(
+                                    subscription.expiredDate
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold mb-2">
+                                  Total:{" "}
+                                  {subscription.totalPrice.toLocaleString()} đ
+                                </p>
+                                <Tag
+                                  className={`${
+                                    subscription.status === "Active"
+                                      ? "bg-green-100 text-green-500 border border-green-500"
+                                      : "bg-red-100 text-red-500 border border-red-500"
+                                  }`}
+                                >
+                                  {subscription.status}
+                                </Tag>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </>
+                    ),
+                  },
+                  {
+                    key: "3",
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <SettingOutlined />
+                        Settings
+                      </span>
+                    ),
+                    children: <div>Update in future</div>,
+                  },
+                ]}
               />
             </Card>
           </>
         )}
-        <Modal 
-          title="Update Profile" 
-          open={isModalOpen} 
-          onCancel={() => setIsModalOpen(false)} 
-          onOk={handleUpdate} 
+        <Modal
+          title="Update Profile"
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+          onOk={handleUpdate}
           okText="Save"
           confirmLoading={updateLoading}
         >
           <Form form={form} layout="vertical">
-            <Form.Item label="Full Name" name="fullName" rules={[{ required: true, message: "Please enter full name" }]}><Input /></Form.Item>
-            <Form.Item label="Gender" name="gender"><Radio.Group><Radio value={true}>Male</Radio><Radio value={false}>Female</Radio></Radio.Group></Form.Item>
-            <Form.Item label="Birthday" name="birthday"><DatePicker format="YYYY-MM-DD" /></Form.Item>
+            <Form.Item
+              label="Full Name"
+              name="fullName"
+              rules={[{ required: true, message: "Please enter full name" }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item label="Gender" name="gender">
+              <Radio.Group>
+                <Radio value={true}>Male</Radio>
+                <Radio value={false}>Female</Radio>
+              </Radio.Group>
+            </Form.Item>
+            <Form.Item label="Birthday" name="birthday">
+              <DatePicker format="YYYY-MM-DD" />
+            </Form.Item>
           </Form>
         </Modal>
       </Content>
     </Layout>
-  )
-}
-export default Profile
+  );
+};
+
+export default Profile;

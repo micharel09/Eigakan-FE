@@ -15,22 +15,27 @@ const navLinks = [
 ];
 
 const Navbar = () => {
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user") || "{}")
-  );
+  const [user, setUser] = useState(() => {
+    const userData = localStorage.getItem("user");
+    return userData ? JSON.parse(userData) : null;
+  });
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const role = localStorage.getItem("role");
+  const role = user?.roleName || localStorage.getItem("role");
   const isManager = role === "MANAGER";
   const isAdmin = role === "ADMIN";
+  const isPublisher = role === "PUBLISHER";
   const isInManagerPage = location.pathname.includes("/manager");
   const isInAdminPage =
     location.pathname.includes("/dashboard") ||
     location.pathname.includes("/userRegister");
+  const isInPublisherPage = location.pathname.includes("/publisher");
   const isVipMember = role === "VIP MEMBER";
   const token = localStorage.getItem("token");
+  const isAdvertiser = role === "ADVERTISER";
+  const isInAdvertiserPage = location.pathname.includes("/advertiser");
 
   useEffect(() => {
     const updateUser = () => setUser(authService.getCurrentUser());
@@ -76,20 +81,22 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-transparent pointer-events-none"></div>
-      <div className="relative max-w-[1300px] mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
-        <Link to="/homepage" className="relative z-10">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="eigakan-gradient  text-[#FF009F] font-bold text-2xl "
-      >
-        EIGAKAN
-      </motion.div>
-    </Link>
-          <div className="flex-1 max-w-3xl mx-8">
-            <nav className="flex items-center justify-center gap-8">
+      <div className="relative max-w-[1300px] mx-auto px-6">
+        <div className="flex items-center h-20">
+          <div className="flex-shrink-0 mr-8">
+            <Link to="/homepage" className="relative z-10 block">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="eigakan-gradient text-[#FF009F] font-bold text-3xl tracking-wider"
+              >
+                EIGAKAN
+              </motion.div>
+            </Link>
+          </div>
+          <div className="flex-1">
+            <nav className="flex items-center gap-8">
               {navLinks.map((link) => (
                 <Link
                   key={link.path}
@@ -109,10 +116,31 @@ const Navbar = () => {
                   />
                 </Link>
               ))}
+              {isAdmin && (
+                <Link
+                  to="/admin/persons"
+                  className={`relative py-2 text-sm font-medium transition-colors group whitespace-nowrap
+                    ${
+                      location.pathname === "/admin/persons"
+                        ? "text-[#FF009F]"
+                        : "text-gray-300 hover:text-[#FF009F]"
+                    }`}
+                >
+                  Person Management
+                  <span
+                    className={`absolute bottom-0 left-0 w-full h-0.5 bg-[#FF009F] transform scale-x-0 
+                    transition-transform duration-300 group-hover:scale-x-100
+                    ${
+                      location.pathname === "/admin/persons"
+                        ? "scale-x-100"
+                        : ""
+                    }`}
+                  />
+                </Link>
+              )}
             </nav>
           </div>
-
-          <div className="flex items-center gap-4 min-w-[200px] justify-end">
+          <div className="flex items-center gap-3 ml-auto">
             <SearchBar navigate={navigate} />
             {token && user ? (
               <>
@@ -125,18 +153,17 @@ const Navbar = () => {
                     setShowProfileMenu(!showProfileMenu);
                   }}
                 />
-                {!isVipMember && (
+                {(role === "MEMBER" || user.roleName === "MEMBER") && (
                   <Link
-                  to="/subscription-plans"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium 
+                    to="/subscription-plans"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                     text-[#FF009F] hover:text-white border border-[#FF009F] transition-all
-                    duration-300 ease-in-out shadow-md 
+                    duration-300 ease-in-out shadow-md
                     hover:bg-[#FF009F] hover:shadow-[0_0_15px_#FF009F]"
-                >
-                  <CrownOutlined />
-                  <span>Upgrade Plan</span>
-                </Link>
-                
+                  >
+                    <CrownOutlined />
+                    <span>Upgrade Plan</span>
+                  </Link>
                 )}
               </>
             ) : (
@@ -148,27 +175,142 @@ const Navbar = () => {
                 Login
               </Link>
             )}
-          </div>
-
-          {(isManager || isAdmin) && (
-            <div className="flex items-center ml-4">
-              <Link
-                to={
-                  isManager
-                    ? isInManagerPage
-                      ? "/homescreen"
-                      : "/manager/dashboard"
-                    : isInAdminPage
-                    ? "/homescreen"
-                    : "/dashboard"
-                }
-                className="flex items-center gap-2 px-4 py-2 rounded-lg 
-                  text-sm font-medium transition-colors duration-200
-                  border border-[#FF009F]/20
-                  hover:bg-[#FF009F]/10 text-[#FF009F]"
-              >
-                {isManager ? (
-                  isInManagerPage ? (
+            {(isManager || isAdmin || isPublisher || isAdvertiser) && (
+              <div className="flex items-center ml-3">
+                <Link
+                  to={
+                    isManager
+                      ? isInManagerPage
+                        ? "/homescreen"
+                        : "/manager/dashboard"
+                      : isAdmin
+                      ? isInAdminPage
+                        ? "/homescreen"
+                        : "/dashboard"
+                      : isPublisher
+                      ? isInPublisherPage
+                        ? "/homescreen"
+                        : "/publisher/dashboard"
+                      : isAdvertiser
+                      ? isInAdvertiserPage
+                        ? "/homescreen"
+                        : "/advertiser/dashboard"
+                      : "/homescreen"
+                  }
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg 
+                    text-sm font-medium transition-colors duration-200
+                    border border-[#FF009F]/20
+                    hover:bg-[#FF009F]/10 text-[#FF009F]"
+                >
+                  {isManager ? (
+                    isInManagerPage ? (
+                      <>
+                        <span>View User Site</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 19l-7-7 7-7"
+                          />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <span>Manager Dashboard</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </>
+                    )
+                  ) : isAdmin ? (
+                    isInAdminPage ? (
+                      <>
+                        <span>View User Site</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 19l-7-7 7-7"
+                          />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <span>Admin Dashboard</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </>
+                    )
+                  ) : isPublisher ? (
+                    isInPublisherPage ? (
+                      <>
+                        <span>View User Site</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 19l-7-7 7-7"
+                          />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <span>Publisher Dashboard</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </>
+                    )
+                  ) : isInAdvertiserPage ? (
                     <>
                       <span>View User Site</span>
                       <svg
@@ -187,7 +329,7 @@ const Navbar = () => {
                     </>
                   ) : (
                     <>
-                      <span>Manager Dashboard</span>
+                      <span>Advertiser Dashboard</span>
                       <svg
                         className="w-4 h-4"
                         fill="none"
@@ -202,45 +344,11 @@ const Navbar = () => {
                         />
                       </svg>
                     </>
-                  )
-                ) : isInAdminPage ? (
-                  <>
-                    <span>View User Site</span>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                  </>
-                ) : (
-                  <>
-                    <span>Admin Dashboard</span>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </>
-                )}
-              </Link>
-            </div>
-          )}
+                  )}
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>

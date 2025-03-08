@@ -16,10 +16,10 @@ const ContractPublisher = () => {
   const [totalContracts, setTotalContracts] = useState(0);
 
   // Hàm fetch hợp đồng từ API
-  const fetchContract = async (page, size) => {
+  const fetchContract = async (page , size ) => {
     setLoading(true);
     try {
-      const response = await contractApi.getAllContractByLogin(page, size);
+      const response = await contractApi.getAllContractByLogin(page =1 , size = 100 );
       setContracts(response.contracts);
       setTotalContracts(response.total);
     } catch (error) {

@@ -43,9 +43,9 @@ const CreateMoviePublisher = () => {
     }
   }
 
-  const fetchPersons = async () => {
+  const fetchPersons = async (pageNumber, pageSize) => {
     try {
-      const response = await personService.getAllPerson()
+      const response = await personService.getAllPerson(pageNumber = 1, pageSize = 100)
       setPersons(response.data)
     } catch (error) {
       console.error("Error fetching persons:", error)
