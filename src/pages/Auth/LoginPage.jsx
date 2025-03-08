@@ -62,7 +62,7 @@ const LoginPage = () => {
       VIPMEMBER: { email: "user5@gmail.com", password: "123" },
       MEMBER: { email: "user6@gmail.com", password: "123" },
       MANAGER: { email: "minhquan.sguy@gmail.com", password: "123" },
-      PUBLISHER: { email: "Minhtuankf@gmail.com", password: "1" },
+      PUBLISHER: { email: "minhtuankf@gmail.com", password: "1" },
       ADVERTISER: { email: "minhquan.riotgs@gmail.com", password: "123" },
     };
 

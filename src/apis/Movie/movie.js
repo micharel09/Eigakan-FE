@@ -99,20 +99,39 @@ const movieService = {
       }
 },
 
-async rejectedMovie(newMovie) {
+  async rejectedMovie(newMovie) {
+      try {
+          const token = localStorage.getItem('token');
+          const response = await axios.patch(`${API_URL}/RejectedMovie`, newMovie, {
+              headers: {
+                  'Authorization': `Bearer ${token}`
+              }
+          });
+          return response;
+        } catch (error) {
+          console.error("API error:", error.message);
+          return error.response;
+        }
+  },
+
+  async archivedMovie(id) {
     try {
-        const token = localStorage.getItem('token');
-        const response = await axios.patch(`${API_URL}/RejectedMovie`, newMovie, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        return response;
-      } catch (error) {
-        console.error("API error:", error.message);
-        return error.response;
-      }
-},
+      const token = localStorage.getItem('token');
+      const response = await axios.patch(
+        `${API_URL}/ArchivedMovie/${id}`, // Đường dẫn chính xác từ cURL
+        {}, // PATCH không có body nên để object rỗng
+        {
+          headers: {
+            "Accept": "*/*", // Theo như cURL có accept */*
+            "Authorization": `Bearer ${token}`, // Bearer token viết đúng định dạng
+          },
+        }
+      );
+      return response;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
 
   async createMovie(movieData) {
     try {
