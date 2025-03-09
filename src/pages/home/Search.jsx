@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, SearchIcon } from "lucide-react";
-import GlobalApi from "../../components/Homepage/GlobalApi";
 import { debounce } from "lodash";
 import { Helmet } from "react-helmet";
+import movieService from "../../apis/Movie/movie";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
@@ -24,8 +24,8 @@ const SearchPage = () => {
 
       setIsLoading(true);
       try {
-        const response = await GlobalApi.searchMovies(query);
-        setSearchResults(response.data.results);
+        const response = await movieService.getMovies(1, 10, "", query);
+        setSearchResults(response.movies || []);
       } catch (error) {
         console.error("Search error:", error);
       } finally {
@@ -101,11 +101,7 @@ const SearchPage = () => {
                 >
                   <div className="relative aspect-[2/3] overflow-hidden rounded-lg">
                     <img
-                      src={
-                        movie.poster_path
-                          ? `${IMAGE_BASE_URL}${movie.poster_path}`
-                          : "/placeholder.svg"
-                      }
+                      src={movie.medias?.[0]?.url || "/placeholder.svg"}
                       alt={movie.title}
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-200"
                     />

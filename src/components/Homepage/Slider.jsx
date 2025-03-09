@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faImdb } from "@fortawesome/free-brands-svg-icons";
-import GlobalApi from "./GlobalApi";
+import { PlayCircle, Clock, Star, Calendar } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import movieService from "../../apis/Movie/movie";
+import { Spin } from "antd";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
 
@@ -11,13 +14,14 @@ const Slider = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Preload next image for smoother transitions
   const preloadNextImage = useCallback(
     (nextIndex) => {
       if (movies[nextIndex]) {
         const img = new Image();
-        img.src = `${IMAGE_BASE_URL}${movies[nextIndex].backdrop_path}`;
+        img.src = movies[nextIndex].medias?.[0]?.url || "/placeholder.svg";
       }
     },
     [movies]
@@ -27,10 +31,10 @@ const Slider = () => {
     const getMovies = async () => {
       try {
         setIsLoading(true);
-        setError(null); // Reset error state
-        const resp = await GlobalApi.getTrendingMovies();
-        if (resp.data && resp.data.results) {
-          setMovies(resp.data.results.slice(0, 5));
+        setError(null);
+        const response = await movieService.getMovies(1, 5);
+        if (response.success && response.movies) {
+          setMovies(response.movies);
         } else {
           throw new Error("Invalid response format");
         }
@@ -50,7 +54,7 @@ const Slider = () => {
       const nextIndex = (currentIndex + 1) % movies.length;
       preloadNextImage(nextIndex);
       setCurrentIndex(nextIndex);
-    }, 6000); // Increased slightly for better viewing experience
+    }, 8000); // Increased time for better user experience
     return () => clearInterval(timer);
   }, [currentIndex, movies.length, preloadNextImage]);
 
@@ -65,46 +69,11 @@ const Slider = () => {
   if (isLoading) {
     return (
       <div className="relative h-[80vh] bg-gray-900 animate-pulse">
-        <div className="absolute inset-0">
-          {/* Gradient background skeleton */}
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900" />
-
-          {/* Content skeleton */}
-          <div className="relative z-10 flex flex-col justify-center h-full ml-[5%] max-w-[45%]">
-            {/* Title skeleton */}
-            <div className="h-12 w-3/4 bg-gray-700 rounded-lg mb-6"></div>
-
-            {/* Info badges skeleton */}
-            <div className="flex items-center gap-6 mb-6">
-              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
-              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
-              <div className="h-8 w-20 bg-gray-700 rounded-md"></div>
-            </div>
-
-            {/* Genres skeleton */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-8 w-24 bg-gray-700 rounded-md"></div>
-              ))}
-            </div>
-
-            {/* Overview skeleton */}
-            <div className="space-y-2 mb-8">
-              <div className="h-4 w-full bg-gray-700 rounded"></div>
-              <div className="h-4 w-5/6 bg-gray-700 rounded"></div>
-              <div className="h-4 w-4/6 bg-gray-700 rounded"></div>
-            </div>
-
-            {/* Button skeleton */}
-            <div className="h-12 w-36 bg-gray-700 rounded-md"></div>
+        <div className="flex justify-center items-center h-full">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 border-4 border-[#FF009F]/30 border-t-[#FF009F] rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-400">Loading amazing movies...</p>
           </div>
-        </div>
-
-        {/* Thumbnail skeletons */}
-        <div className="absolute bottom-6 right-16 flex gap-3 z-20">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="w-24 h-14 bg-gray-700 rounded-md"></div>
-          ))}
         </div>
       </div>
     );
@@ -113,120 +82,184 @@ const Slider = () => {
   if (!movies.length) return null;
 
   return (
-    <div className="relative h-[80vh] bg-black overflow-hidden">
+    <div className="relative h-[85vh] bg-black overflow-hidden">
       {movies.map((movie, index) => (
-        <div
-          key={movie.id}
-          className={`absolute inset-0 transition-opacity duration-1000 ${
-            index === currentIndex
-              ? "opacity-100 visible"
-              : "opacity-0 invisible"
-          }`}
-        >
-          {/* Background image with gradient overlay */}
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10" />
-            <img
-              src={`${IMAGE_BASE_URL}${movie.backdrop_path}`}
-              alt={movie.title}
-              className="w-full h-full object-cover transition-all duration-[8000ms] ease-out"
-              style={{
-                transform: `scale(${index === currentIndex ? 1.15 : 1.05})`,
-                transitionProperty: "transform, opacity",
-                transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-              loading={index === 0 ? "eager" : "lazy"}
-              fetchPriority={index === currentIndex ? "high" : "low"}
-              decoding="async"
-            />
-          </div>
+        <AnimatePresence key={movie.id}>
+          {index === currentIndex && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1 }}
+              className="absolute inset-0"
+            >
+              <div className="absolute inset-0">
+                {/* Gradient overlays for better text readability */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-10" />
 
-          {/* Content overlay with fade-in effect */}
-          <div
-            className="relative z-10 flex flex-col justify-center h-full ml-[5%] max-w-[45%] text-white"
-            style={{
-              opacity: index === currentIndex ? 1 : 0,
-              transform: `translateY(${index === currentIndex ? 0 : "20px"})`,
-              transition: "opacity 800ms ease-out, transform 800ms ease-out",
-              transitionDelay: "200ms",
-            }}
-          >
-            {movie.logos && movie.logos[0] ? (
-              <div className="mb-6 max-w-[400px]">
-                <img
-                  src={`${IMAGE_BASE_URL}${movie.logos[0].file_path}`}
+                {/* Background image with zoom effect */}
+                <motion.img
+                  initial={{ scale: 1.05 }}
+                  animate={{ scale: 1.15 }}
+                  transition={{ duration: 8, ease: "easeOut" }}
+                  src={movie.medias?.[0]?.url || "/placeholder.svg"}
                   alt={movie.title}
-                  className="w-full h-auto"
-                  loading="lazy"
+                  className="w-full h-full object-cover"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  fetchPriority={index === currentIndex ? "high" : "low"}
+                  decoding="async"
                 />
               </div>
-            ) : (
-              <h1 className="text-5xl font-bold mb-6">{movie.title}</h1>
-            )}
 
-            <div className="flex items-center gap-6 mb-6">
-              <span className="px-3 py-1.5 bg-white/20 rounded-md text-sm">
-                {movie.release_date?.split("-")[0]}
-              </span>
-              <span className="flex items-center gap-2">
-                <FontAwesomeIcon
-                  icon={faImdb}
-                  className="text-[#FFD43B] text-3xl"
-                />
-                <span className="text-lg font-semibold">
-                  {movie.vote_average?.toFixed(1)}
-                </span>
-              </span>
-              {movie.runtime && (
-                <span className="px-3 py-1.5 bg-white/20 rounded-md text-sm">
-                  {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
-                </span>
-              )}
-            </div>
+              {/* Content container */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="relative z-20 flex flex-col justify-center h-full ml-[5%] max-w-[50%] text-white"
+              >
+                {/* Movie title with animated underline */}
+                <h1 className="text-5xl md:text-6xl font-bold mb-4 leading-tight relative">
+                  {movie.title}
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "40%" }}
+                    transition={{ duration: 1, delay: 1 }}
+                    className="h-1 bg-gradient-to-r from-[#FF009F] to-transparent mt-2"
+                  />
+                </h1>
 
-            <div className="flex flex-wrap gap-2 mb-6">
-              {movie.genres?.map((genre) => (
-                <span
-                  key={genre.id}
-                  className="px-3 py-1.5 bg-white/20 rounded-md text-sm"
-                >
-                  {genre.name}
-                </span>
-              ))}
-            </div>
+                {/* Movie metadata */}
+                <div className="flex flex-wrap items-center gap-4 mb-6 text-sm md:text-base">
+                  <span className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <Calendar className="w-4 h-4 text-[#FF009F]" />
+                    {movie.releaseYear}
+                  </span>
 
-            <p className="text-gray-200 text-lg leading-relaxed mb-8 line-clamp-3">
-              {movie.overview}
-            </p>
+                  {movie.duration && (
+                    <span className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                      <Clock className="w-4 h-4 text-[#FF009F]" />
+                      {Math.floor(movie.duration / 60)}h {movie.duration % 60}m
+                    </span>
+                  )}
 
-            <Link
-              to={`/movie/${movie.id}`}
-              className="bg-[#FF009F] text-white px-8 py-3 rounded-md 
-              hover:bg-[#D1007F] transition-colors w-fit font-semibold text-lg"
-            >
-              Watch Now
-            </Link>
-          </div>
-        </div>
+                  {movie.imdbScore && (
+                    <span className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                      <FontAwesomeIcon
+                        icon={faImdb}
+                        className="text-[#FFD43B] text-lg"
+                      />
+                      <span className="font-semibold">{movie.imdbScore}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Clickable genres */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {movie.genreNames?.split(",").map((genre, idx) => (
+                    <Link
+                      key={idx}
+                      to={`/genre/${genre.trim()}`}
+                      className="px-3 py-1.5 bg-[#FF009F]/20 border border-[#FF009F]/30 rounded-md text-sm
+                               hover:bg-[#FF009F]/40 transition-all duration-300 transform hover:scale-105"
+                    >
+                      {genre.trim()}
+                    </Link>
+                  ))}
+                </div>
+
+                {/* Movie description with subtle gradient fade */}
+                <div className="relative mb-8 overflow-hidden">
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.5 }}
+                    className="text-gray-200 text-lg leading-relaxed line-clamp-3 pr-8"
+                  >
+                    {movie.description}
+                  </motion.p>
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: `
+                        linear-gradient(
+                          to bottom,
+                          transparent 0%,
+                          transparent 60%
+                        )
+                      `,
+                    }}
+                  />
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-4">
+                  <Link
+                    to={`/movie/${movie.id}`}
+                    className="flex items-center gap-2 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white 
+                             px-6 py-3 rounded-full hover:shadow-[0_0_15px_rgba(255,0,159,0.5)] transition-all 
+                             duration-300 font-semibold text-lg transform hover:translate-y-[-2px]"
+                  >
+                    <PlayCircle className="w-5 h-5" />
+                    Watch Now
+                  </Link>
+
+                  <Link
+                    to={`/movie/${movie.id}`}
+                    className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20
+                             text-white px-6 py-3 rounded-full hover:bg-white/20 transition-all 
+                             duration-300 font-medium"
+                  >
+                    More Info
+                  </Link>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       ))}
 
-      {/* Thumbnails with hover effect */}
-      <div className="absolute bottom-6 right-16 flex gap-3 z-20">
+      {/* Slider navigation */}
+      <div className="absolute bottom-8 right-8 z-20 flex gap-3">
         {movies.map((movie, index) => (
-          <img
+          <motion.div
             key={movie.id}
-            src={`${IMAGE_BASE_URL}${movie.backdrop_path}`}
-            alt={movie.title}
-            className={`w-24 h-14 object-cover rounded-md cursor-pointer transition-all duration-300
-              ${
-                currentIndex === index
-                  ? "border-2 border-white scale-110"
-                  : "opacity-40 hover:opacity-75 hover:scale-105"
-              }`}
-            onMouseEnter={() => setCurrentIndex(index)}
-            loading="lazy"
-          />
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative"
+          >
+            <img
+              src={movie.medias?.[0]?.url || "/placeholder.svg"}
+              alt={movie.title}
+              className={`w-24 h-14 object-cover rounded-md cursor-pointer transition-all duration-300
+                ${
+                  currentIndex === index
+                    ? "border-2 border-[#FF009F] shadow-[0_0_10px_rgba(255,0,159,0.5)]"
+                    : "opacity-50 hover:opacity-80 filter grayscale hover:grayscale-0"
+                }`}
+              onClick={() => setCurrentIndex(index)}
+              loading="lazy"
+            />
+            {currentIndex === index && (
+              <motion.div
+                layoutId="activeSlide"
+                className="absolute -bottom-2 left-0 right-0 h-1 bg-[#FF009F] rounded-full"
+              />
+            )}
+          </motion.div>
         ))}
+      </div>
+
+      {/* Progress bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+        <motion.div
+          key={currentIndex}
+          initial={{ width: "0%" }}
+          animate={{ width: "100%" }}
+          transition={{ duration: 8, ease: "linear" }}
+          className="h-full bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]"
+        />
       </div>
     </div>
   );

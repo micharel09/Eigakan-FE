@@ -48,6 +48,8 @@ import UploadFormPublisher from "../pages/Publisher/Movie/UploadFormPublisher.js
 import UpdateMoviePublisher from "../pages/Publisher/Movie/UpdateMoviePublisher.jsx";
 import UpdateMovieAdmin from "../pages/Admin/Movie/UpdateMovieAdmin.jsx";
 import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard.jsx";
+import GenrePage from "../pages/Genre/GenrePage";
+import GenresPage from "../pages/Genre/GenresPage";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -223,7 +225,6 @@ const routes = [
     layout: "AdminLayout",
   },
 
-
   { path: "/user", element: <User />, layout: "AdminLayout" },
 
   { path: "/user/:id", element: <UserDetail />, layout: "AdminLayout" },
@@ -239,6 +240,9 @@ const routes = [
   { path: "/people", element: <PopularPeople />, layout: "UserLayout" },
 
   { path: "/person/:id", element: <PersonDetail />, layout: "UserLayout" },
+
+  { path: "/genres", element: <GenresPage />, layout: "UserLayout" },
+  { path: "/genre/:genreName", element: <GenrePage />, layout: "UserLayout" },
 
   { path: "/profile", element: <Profile />, layout: "UserLayout" },
 
@@ -446,7 +450,6 @@ const routes = [
     layout: "PublisherLayout",
   },
 
-
   { path: "*", element: <h1>404 - Page Not Found</h1> },
 
   {
@@ -458,7 +461,6 @@ const routes = [
     ),
     layout: "DefaultLayout",
   },
-  
 ];
 
 export default routes;
