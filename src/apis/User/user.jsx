@@ -1,5 +1,5 @@
 import axios from "axios";
-const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/User";
+const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/User";
 
 const UserApi = {
   async getUsers(page = 1, pageSize = 0) {
@@ -55,32 +55,31 @@ const UserApi = {
 
   async CreateUser(data) {
     try {
-        const token = localStorage.getItem('token');
-        const response = await axios.post(`${API_URL}/CreateUser`, data, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        console.log(response);
-        return response;
-        
-      } catch (error) {
-        console.error("API error:", error.message);
-        return error.response;
-      }
+      const token = localStorage.getItem("token");
+      const response = await axios.post(`${API_URL}/CreateUser`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log(response);
+      return response;
+    } catch (error) {
+      console.error("API error:", error.message);
+      return error.response;
+    }
   },
 
   async getUserDetail(id) {
     try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`${API_URL}/GetUserById/${id}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        return res.data;
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/GetUserById/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return res.data;
     } catch (err) {
-        return err.response;
+      return err.response;
     }
   },
 
@@ -88,22 +87,27 @@ const UserApi = {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await axios.put(`${API_URL}/UpdateUser/${id}`, userData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-      });
+      const response = await axios.put(
+        `${API_URL}/UpdateUser/${id}`,
+        userData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       return response.data;
     } catch (error) {
       console.error("Error updating User:", error);
-      throw error.response?.data || {
-        success: false,
-        message: "Failed to update User"
-      };
+      throw (
+        error.response?.data || {
+          success: false,
+          message: "Failed to update User",
+        }
+      );
     }
   },
-
 };
 
 export default UserApi;

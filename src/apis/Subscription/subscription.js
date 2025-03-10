@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPackage";
+const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPackage";
 
 const subscriptionService = {
   getAllPackages: async () => {
@@ -114,7 +114,7 @@ const subscriptionService = {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPurchasePayment/GetAllSubscriptionPurchaseUser?page=${page}&pageSize=${pageSize}`,
+        `https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment/GetAllSubscriptionPurchaseUser?page=${page}&pageSize=${pageSize}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

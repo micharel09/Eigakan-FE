@@ -20,7 +20,7 @@ const MovieHero = memo(({ movie, onTrailerClick }) => {
   const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
   return (
-    <div className="relative w-full h-[70vh] overflow-hidden">
+    <div className="relative w-full h-[70vh] overflow-hidden -mt-16 pt-16">
       {/* Background Banner */}
       <div className="absolute inset-0">
         <img

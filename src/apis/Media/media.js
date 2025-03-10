@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Media";
+const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Media";
 
 const mediaApi = {
 

@@ -47,7 +47,7 @@ const ContractAdmin = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://eigakan1111-001-site1.qtempurl.com/api/contracts?page=0&pageSize=1000",
+        "https://eigakan2222-001-site1.jtempurl.com/api/contracts?page=0&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -63,7 +63,7 @@ const ContractAdmin = () => {
         console.log("Contracts set:", response.data.contracts); // Log để kiểm tra
       }
     } catch (error) {
-      console.error("Error fetching all contracts:", error);
+      console.error("Error fetching contracts:", error);
     }
   };
 
