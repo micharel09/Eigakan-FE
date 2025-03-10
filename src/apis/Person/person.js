@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Person";
+const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Person";
 
 const personService = {
   async getAllPerson(pageNumber = 1, pageSize = 10) {
@@ -125,7 +125,7 @@ const personService = {
       formData.append('formFiles', actualFile);
 
       const res = await axios.post(
-        'https://eigakan1111-001-site1.qtempurl.com/api/Upload/Upload_Pictures', 
+        'https://eigakan2222-001-site1.jtempurl.com/api/Upload/Upload_Pictures', 
         formData, 
         {
           headers: {
