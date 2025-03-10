@@ -1,118 +1,116 @@
 import axios from "axios";
 
-const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Upload";
+const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Upload";
 
 const uploadFileApi = {
-   
-    async UploadFileTemp(file) {
-        try {
-          const formData = new FormData();
-          formData.append("formFiles", file); 
-    
-          // Log FormData để kiểm tra
-          for (let pair of formData.entries()) {
-            console.log(pair[0] + ": " + pair[1]);
-          }
-    
-          // Gửi request mà không cần set Content-Type
-          const res = await axios.post(`${API_URL}/UploadFileTemp`, formData);
-    
-          console.log("Response từ server:", res.data); // Log kết quả từ server
-    
-          return res.data; // Trả về kết quả sau khi upload thành công
-        } catch (err) {
-          console.error("Lỗi upload:", err); // Log lỗi chi tiết
-          throw err.response?.data || { message: "Upload failed" };
-        }
-    },
+  async UploadFileTemp(file) {
+    try {
+      const formData = new FormData();
+      formData.append("formFiles", file);
 
-    async UploadPicture(file) {
-      try {
-        const formData = new FormData();
-        formData.append("formFiles", file); // Đảm bảo key "file" trùng với yêu cầu của backend
-  
-        const res = await axios.post(`${API_URL}/Upload_Pictures`, formData);
-  
-        console.log("Response từ server:", res.data); // Log kết quả từ server
-  
-        return res.data; // Trả về kết quả sau khi upload thành công
-      } catch (err) {
-        console.error("Lỗi upload:", err); // Log lỗi chi tiết
-        throw err.response?.data || { message: "Upload failed" };
+      // Log FormData để kiểm tra
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ": " + pair[1]);
       }
-    },
 
-    async getPreFileUrlTemp(Id, fileName) {
-      try {
-        const token = localStorage.getItem('token');
-    
-        const res = await axios.get(`${API_URL}/GetPreFileTemp`, {
-          params: { Id, fileName },  
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-    
-        return res.data; 
-      } catch (error) {
-        console.error("Error fetching PreFileUrl:", error);
-        return error.response?.data || "An error occurred"; 
-      }
-    },
+      // Gửi request mà không cần set Content-Type
+      const res = await axios.post(`${API_URL}/UploadFileTemp`, formData);
 
-    async getPreFileUrl(userId, fileName) {
-      try {
-        const token = localStorage.getItem('token');
-    
-        const res = await axios.get(`${API_URL}/GetPreFileUrl`, {
-          params: { userId, fileName },  
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-    
-        return res.data; 
-      } catch (error) {
-        console.error("Error fetching PreFileUrl:", error);
-        return error.response?.data || "An error occurred"; 
-      }
-    },
+      console.log("Response từ server:", res.data); // Log kết quả từ server
 
-    async getPreFileUrlMovie(movieId, fileName) {
-      try {
-        const token = localStorage.getItem('token');
-    
-        const res = await axios.get(`${API_URL}/GetPreFileUrlMovie`, {
-          params: { movieId, fileName },  
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-    
-        return res.data; 
-      } catch (error) {
-        console.error("Error fetching PreFileUrl:", error);
-        return error.response?.data || "An error occurred"; 
-      }
-    },
+      return res.data; // Trả về kết quả sau khi upload thành công
+    } catch (err) {
+      console.error("Lỗi upload:", err); // Log lỗi chi tiết
+      throw err.response?.data || { message: "Upload failed" };
+    }
+  },
 
-    async getPreFileContract(userId, fileName) {
-      try {
-        const token = localStorage.getItem('token');
-    
-        const res = await axios.get(`${API_URL}/GetPreFileContract`, {
-          params: { userId, fileName },  
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-    
-        return res.data; 
-      } catch (error) {
-        console.error("Error fetching PreFileUrl:", error);
-        return error.response?.data || "An error occurred"; 
-      }
-    },
-    
+  async UploadPicture(file) {
+    try {
+      const formData = new FormData();
+      formData.append("formFiles", file); // Đảm bảo key "file" trùng với yêu cầu của backend
+
+      const res = await axios.post(`${API_URL}/Upload_Pictures`, formData);
+
+      console.log("Response từ server:", res.data); // Log kết quả từ server
+
+      return res.data; // Trả về kết quả sau khi upload thành công
+    } catch (err) {
+      console.error("Lỗi upload:", err); // Log lỗi chi tiết
+      throw err.response?.data || { message: "Upload failed" };
+    }
+  },
+
+  async getPreFileUrlTemp(Id, fileName) {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(`${API_URL}/GetPreFileTemp`, {
+        params: { Id, fileName },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching PreFileUrl:", error);
+      return error.response?.data || "An error occurred";
+    }
+  },
+
+  async getPreFileUrl(userId, fileName) {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(`${API_URL}/GetPreFileUrl`, {
+        params: { userId, fileName },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching PreFileUrl:", error);
+      return error.response?.data || "An error occurred";
+    }
+  },
+
+  async getPreFileUrlMovie(movieId, fileName) {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(`${API_URL}/GetPreFileUrlMovie`, {
+        params: { movieId, fileName },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching PreFileUrl:", error);
+      return error.response?.data || "An error occurred";
+    }
+  },
+
+  async getPreFileContract(userId, fileName) {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(`${API_URL}/GetPreFileContract`, {
+        params: { userId, fileName },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching PreFileUrl:", error);
+      return error.response?.data || "An error occurred";
+    }
+  },
 };
 export default uploadFileApi;

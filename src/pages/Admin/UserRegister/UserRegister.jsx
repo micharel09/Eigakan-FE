@@ -21,7 +21,7 @@ const UserRegister = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://eigakan1111-001-site1.qtempurl.com/api/UserRegister/userRegister?page=0&pageSize=1000",
+        "https://eigakan2222-001-site1.jtempurl.com/api/UserRegister/userRegister?page=0&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,

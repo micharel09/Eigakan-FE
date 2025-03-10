@@ -81,7 +81,7 @@ const PersonManagement = () => {
   const fetchAllPersons = async () => {
     try {
       const response = await axios.get(
-        "https://eigakan1111-001-site1.qtempurl.com/api/Person?pageNumber=0&pageSize=1000"
+        "https://eigakan2222-001-site1.jtempurl.com/api/Person?pageNumber=0&pageSize=1000"
       );
       if (response.data.success) {
         setAllPersons(response.data.data);

@@ -21,7 +21,7 @@ const SubscriptionOrderManagement = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPurchasePayment?page=1&pageSize=1000",
+        "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment?page=1&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -65,7 +65,7 @@ const SubscriptionOrderManagement = () => {
         }));
       }
     } catch (error) {
-      console.error("Error fetching subscription orders:", error);
+      console.error("Error fetching orders:", error);
       setData([]);
     } finally {
       setLoading(false);

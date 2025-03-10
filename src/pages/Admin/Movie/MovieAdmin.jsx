@@ -40,7 +40,7 @@ const MovieAdmin = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://eigakan1111-001-site1.qtempurl.com/api/Movie/GetListAllMovie?pageNumber=0&pageSize=1000",
+        "https://eigakan2222-001-site1.jtempurl.com/api/Movie/GetListAllMovie?pageNumber=0&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -53,7 +53,7 @@ const MovieAdmin = () => {
         setTotalMovies(response.data.total || 0);
       }
     } catch (error) {
-      console.error("Error fetching all movies:", error); // Giữ lại log error để debug khi cần
+      console.error("Error fetching all movies:", error);
     }
   };
 
