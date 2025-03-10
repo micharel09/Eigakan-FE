@@ -44,6 +44,7 @@ import ContractDetailAdmin from "../pages/Admin/Contract/ContractDetailAdmin.jsx
 import ContractPublisher from "../pages/Publisher/Contract/ContractPublisher.jsx";
 import ContractDetailPublisher from "../pages/Publisher/Contract/ContractDetailPublisher.jsx";
 import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard.jsx";
+import WatchTogether from "../pages/WatchTogether/WatchTogether";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -218,6 +219,12 @@ const routes = [
   { path: "/movie/:movieId", element: <MoviePage />, layout: "UserLayout" },
 
   { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
+
+  {
+    path: "/watch-together/:movieId",
+    element: <WatchTogether />,
+    layout: "UserLayout",
+  },
 
   { path: "/search", element: <SearchPage />, layout: "UserLayout" },
 

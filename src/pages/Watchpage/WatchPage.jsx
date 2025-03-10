@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { ChevronLeft, Info, Calendar, Clock } from "lucide-react";
-import { Rate, notification } from "antd";
+import { ChevronLeft, Info, Calendar, Clock, Users } from "lucide-react";
+import { Rate, notification, Modal, List, Avatar } from "antd";
 import moment from "moment";
 import UserApi from "../../apis/User/user";
 import ratingService from "../../apis/Movie/rating";
 import Loading from "../../components/Loading/Loading";
 import movieService from "../../apis/Movie/movie";
+import roomService from "../../apis/Room/room";
+import { useSelector } from "react-redux";
 
 const WatchPage = () => {
   const { movieId } = useParams();
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get("roomId");
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showControls, setShowControls] = useState(true);
@@ -23,6 +27,9 @@ const WatchPage = () => {
   const [userRole, setUserRole] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
+  const [roomUsers, setRoomUsers] = useState([]);
+  const [showRoomUsers, setShowRoomUsers] = useState(false);
+  const user = useSelector((state) => state.auth.user);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -40,6 +47,11 @@ const WatchPage = () => {
 
     fetchMovie();
 
+    // If in room mode, join the room
+    if (roomId && user) {
+      handleJoinRoom();
+    }
+
     // Hide controls after 3 seconds of inactivity
     const timer = setTimeout(() => setShowControls(false), 3000);
 
@@ -52,10 +64,32 @@ const WatchPage = () => {
     window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
-      clearTimeout(timer);
       window.removeEventListener("mousemove", handleMouseMove);
+      clearTimeout(timer);
     };
-  }, [movieId]);
+  }, [movieId, roomId, user]);
+
+  const handleJoinRoom = async () => {
+    try {
+      const joinData = {
+        roomId: roomId,
+        userId: user.id,
+      };
+
+      const response = await roomService.joinRoom(joinData);
+      if (response.success) {
+        notification.success({
+          message: "Joined room successfully!",
+        });
+        setRoomUsers(response.data);
+      }
+    } catch (error) {
+      notification.error({
+        message: "Failed to join room",
+        description: error.message,
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -652,6 +686,30 @@ const WatchPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Room Users Modal */}
+      <Modal
+        title="Room Users"
+        open={showRoomUsers}
+        onCancel={() => setShowRoomUsers(false)}
+        footer={null}
+      >
+        <List
+          itemLayout="horizontal"
+          dataSource={roomUsers}
+          renderItem={(item) => (
+            <List.Item>
+              <List.Item.Meta
+                avatar={<Avatar src={item.avatar || "/default-avatar.png"} />}
+                title={item.isHost ? `${item.userName} (Host)` : item.userName}
+                description={`Joined at ${moment(item.joinedAt).format(
+                  "HH:mm:ss"
+                )}`}
+              />
+            </List.Item>
+          )}
+        />
+      </Modal>
     </>
   );
 };
