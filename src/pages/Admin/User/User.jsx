@@ -17,10 +17,9 @@ const User = () => {
   const [filteredInfo, setFilteredInfo] = useState({});
   const [sortedInfo, setSortedInfo] = useState({});
 
-  // Fetch tất cả users khi component mount
+  // Fetch tất cả users cho tìm kiếm
   const fetchAllUsers = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
       const response = await axios.get(
         "https://eigakan2222-001-site1.jtempurl.com/api/User/GetAllUser?page=0&pageSize=1000",
@@ -32,8 +31,29 @@ const User = () => {
       );
       if (response.data) {
         setAllUsers(response.data.users || []);
+      }
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      notification.error({
+        message: "Error",
+        description: "Could not fetch users for search",
+      });
+    }
+  };
+
+  // Fetch users có phân trang
+  const fetchUsers = async (page = 1, pageSize = 8) => {
+    try {
+      setLoading(true);
+      const response = await UserApi.getUsers(page, pageSize);
+      if (response.data) {
         setUsers(response.data.users || []);
-        setPagination((prev) => ({ ...prev, total: response.data.total || 0 }));
+        setPagination((prev) => ({
+          ...prev,
+          current: page,
+          pageSize: pageSize,
+          total: response.data.total || 0,
+        }));
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -48,6 +68,7 @@ const User = () => {
 
   // Gọi API lần đầu khi component mount
   useEffect(() => {
+    fetchUsers(pagination.current, pagination.pageSize);
     fetchAllUsers();
   }, []);
 
@@ -60,17 +81,37 @@ const User = () => {
           user.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setUsers(filteredResults);
-      setPagination((prev) => ({ ...prev, total: filteredResults.length }));
+      setPagination((prev) => ({
+        ...prev,
+        current: 1,
+        total: filteredResults.length,
+      }));
     } else {
-      setUsers(allUsers);
-      setPagination((prev) => ({ ...prev, total: allUsers.length }));
+      // Nếu không có search term, load lại dữ liệu phân trang
+      fetchUsers(pagination.current, pagination.pageSize);
     }
-  }, [searchTerm, allUsers]);
+  }, [searchTerm]);
 
   const handleStatusChange = async (id, checked) => {
     try {
       await UserApi.updateUserStatus(id, checked ? 0 : 1);
-      fetchAllUsers(); // Refresh data sau khi update
+
+      // Nếu đang tìm kiếm, cập nhật cả allUsers và users
+      if (searchTerm) {
+        fetchAllUsers();
+        // Cập nhật kết quả tìm kiếm
+        const updatedResults = allUsers.map((user) => {
+          if (user.id === id) {
+            return { ...user, status: checked ? "NORMAL" : "INACTIVE" };
+          }
+          return user;
+        });
+        setUsers(updatedResults);
+      } else {
+        // Nếu không đang tìm kiếm, chỉ cần load lại trang hiện tại
+        fetchUsers(pagination.current, pagination.pageSize);
+      }
+
       notification.success({
         message: "Success",
         description: "User status updated successfully",
@@ -98,9 +139,14 @@ const User = () => {
   ];
 
   // Thêm hàm xử lý thay đổi của Table
-  const handleTableChange = (pagination, filters, sorter) => {
+  const handleTableChange = (newPagination, filters, sorter) => {
     setFilteredInfo(filters);
     setSortedInfo(sorter);
+
+    // Chỉ gọi API phân trang khi không có tìm kiếm
+    if (!searchTerm) {
+      fetchUsers(newPagination.current, newPagination.pageSize);
+    }
   };
 
   const columns = [
@@ -233,7 +279,7 @@ const User = () => {
 
       <div className="flex justify-center mb-6">
         <Input
-          placeholder="Tìm kiếm theo tên hoặc email..."
+          placeholder="Search by name or email..."
           prefix={<SearchOutlined className="text-gray-400" />}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="min-w-[400px]"

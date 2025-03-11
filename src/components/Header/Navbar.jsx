@@ -17,6 +17,7 @@ import {
   Bookmark,
   Clock,
   TrendingUp,
+  LayoutDashboard,
 } from "lucide-react";
 
 const navLinks = [
@@ -126,6 +127,19 @@ const Navbar = () => {
     setShowSearch(!showSearch);
   };
 
+  // Xác định đường dẫn dashboard dựa trên vai trò
+  const getDashboardPath = () => {
+    if (isAdmin) return "/dashboard";
+    if (isManager) return "/manager/dashboard";
+    if (isPublisher) return "/publisher/dashboard";
+    if (isAdvertiser) return "/advertiser/dashboard";
+    return "";
+  };
+
+  // Kiểm tra xem có phải là vai trò cần hiển thị nút Dashboard không
+  const shouldShowDashboardButton =
+    isAdmin || isManager || isPublisher || isAdvertiser;
+
   return (
     <>
       <header
@@ -153,6 +167,21 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-1">
+              {/* Thêm nút Dashboard nếu là vai trò cần thiết */}
+              {shouldShowDashboardButton && (
+                <Link
+                  to={getDashboardPath()}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                    location.pathname === getDashboardPath()
+                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Link>
+              )}
+
               {navLinks.map((link) => (
                 <Link
                   key={link.path}

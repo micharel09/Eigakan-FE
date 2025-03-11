@@ -20,6 +20,7 @@ import {
   FilterOutlined,
 } from "@ant-design/icons";
 import genreService from "../../../apis/Genre/genre";
+import axios from "axios";
 
 const { Title, Text } = Typography;
 
@@ -30,14 +31,26 @@ const GenreManagement = () => {
   const [editingGenre, setEditingGenre] = useState(null);
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState("");
+  const [allGenres, setAllGenres] = useState([]);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 8,
+    total: 0,
+  });
 
   // Fetch genres
-  const fetchGenres = async () => {
+  const fetchGenres = async (page = 1, pageSize = 8) => {
     try {
       setLoading(true);
-      const response = await genreService.getGenres();
+      const response = await genreService.getGenres(page, pageSize);
       if (response.success) {
         setGenres(response.data);
+        setPagination((prev) => ({
+          ...prev,
+          current: page,
+          pageSize: pageSize,
+          total: response.total || 0,
+        }));
       }
     } catch (error) {
       notification.error({
@@ -49,9 +62,47 @@ const GenreManagement = () => {
     }
   };
 
+  // Fetch all genres for search
+  const fetchAllGenres = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "https://eigakan2222-001-site1.jtempurl.com/api/Genre?page=0&pageSize=1000",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.data && response.data.success) {
+        setAllGenres(response.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching all genres:", error);
+    }
+  };
+
   useEffect(() => {
-    fetchGenres();
+    fetchGenres(pagination.current, pagination.pageSize);
+    fetchAllGenres();
   }, []);
+
+  // Filter genres based on search
+  useEffect(() => {
+    if (searchText) {
+      const filteredResults = allGenres.filter((genre) =>
+        genre.name.toLowerCase().includes(searchText.toLowerCase())
+      );
+      setGenres(filteredResults);
+      setPagination((prev) => ({
+        ...prev,
+        current: 1,
+        total: filteredResults.length,
+      }));
+    } else {
+      fetchGenres(pagination.current, pagination.pageSize);
+    }
+  }, [searchText]);
 
   // Handle Modal
   const showModal = (genre = null) => {
@@ -101,10 +152,15 @@ const GenreManagement = () => {
     }
   };
 
-  // Filter genres based on search
-  const filteredGenres = genres.filter((genre) =>
-    genre.name.toLowerCase().includes(searchText.toLowerCase())
-  );
+  // Handle table change
+  const handleTableChange = (newPagination) => {
+    if (!searchText) {
+      fetchGenres(newPagination.current, newPagination.pageSize);
+      setPagination(newPagination);
+    } else {
+      setPagination(newPagination);
+    }
+  };
 
   const columns = [
     {
@@ -186,13 +242,11 @@ const GenreManagement = () => {
         {/* Genre Table */}
         <Table
           columns={columns}
-          dataSource={filteredGenres}
+          dataSource={genres}
           rowKey="id"
           loading={loading}
-          pagination={{
-            pageSize: 8,
-            showSizeChanger: false,
-          }}
+          pagination={pagination}
+          onChange={handleTableChange}
         />
       </Card>
 

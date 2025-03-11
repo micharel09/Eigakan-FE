@@ -15,25 +15,28 @@ import {
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import contractApi from "../../../apis/Contract/contract";
+import axios from "axios";
 
 const pageSize = 10; // Số lượng hợp đồng trên mỗi trang
 
 const ContractPublisher = () => {
   const [contracts, setContracts] = useState([]);
-  const [allContracts, setAllContracts] = useState([]); // Thêm state cho tất cả contracts
+  const [allContracts, setAllContracts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [totalContracts, setTotalContracts] = useState(0);
 
-  // Sửa lại hàm fetch để lấy tất cả contracts một lần
-  const fetchAllContracts = async () => {
+  // Sửa lại hàm fetchContracts để lấy dữ liệu phân trang
+  const fetchContracts = async (page = 1, size = 10) => {
     setLoading(true);
     try {
-      const response = await contractApi.getAllContractByLogin(1, 1000);
-      setAllContracts(response.contracts || []);
-      setContracts(response.contracts || []);
-      setTotalContracts(response.total || 0);
+      const response = await contractApi.getAllContractByLogin(page, size);
+      console.log("Fetch Contracts Response:", response); // Log để debug
+      if (response) {
+        setContracts(response.contracts);
+        setTotalContracts(response.total);
+      }
     } catch (error) {
       console.error("Error fetching contracts:", error);
     } finally {
@@ -41,7 +44,34 @@ const ContractPublisher = () => {
     }
   };
 
-  // Thêm useEffect xử lý search
+  // Sửa lại hàm fetchAllContracts cho search
+  const fetchAllContracts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "https://eigakan2222-001-site1.jtempurl.com/api/contracts/GetAllContractUserByLogin?page=0&pageSize=1000",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log("Fetch All Contracts Response:", response); // Log để debug
+      if (response.data && response.data.data) {
+        setAllContracts(response.data.data.contracts || []);
+      }
+    } catch (error) {
+      console.error("Error fetching all contracts:", error);
+    }
+  };
+
+  // Load dữ liệu ban đầu
+  useEffect(() => {
+    fetchContracts(currentPage, pageSize);
+    fetchAllContracts();
+  }, []);
+
+  // Xử lý search
   useEffect(() => {
     if (searchTerm) {
       const filtered = allContracts.filter(
@@ -56,24 +86,11 @@ const ContractPublisher = () => {
       );
       setContracts(filtered);
       setTotalContracts(filtered.length);
+      setCurrentPage(1);
     } else {
-      setContracts(allContracts);
-      setTotalContracts(allContracts.length);
+      fetchContracts(currentPage, pageSize);
     }
-  }, [searchTerm, allContracts]);
-
-  // Sửa lại useEffect ban đầu
-  useEffect(() => {
-    fetchAllContracts();
-  }, []);
-
-  // Thêm hàm xử lý phân trang
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    setContracts(allContracts.slice(startIndex, endIndex));
-  };
+  }, [searchTerm]);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -195,7 +212,12 @@ const ContractPublisher = () => {
           current={currentPage}
           total={totalContracts}
           pageSize={pageSize}
-          onChange={handlePageChange}
+          onChange={(page) => {
+            setCurrentPage(page);
+            if (!searchTerm) {
+              fetchContracts(page, pageSize);
+            }
+          }}
           showSizeChanger={false}
         />
       </div>

@@ -27,11 +27,11 @@ const ContractAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [allContracts, setAllContracts] = useState([]);
 
-  // Hàm fetch hợp đồng từ API
-  const fetchContract = async (page, pageSize) => {
+  // Thêm hàm mới để lấy dữ liệu có phân trang
+  const fetchContracts = async (page, size) => {
     setLoading(true);
     try {
-      const response = await contractApi.getAllContract(page, pageSize);
+      const response = await contractApi.getAllContract(page, size);
       setContracts(response.contracts || []);
       setTotalItems(response.total || 0);
     } catch (error) {
@@ -72,12 +72,16 @@ const ContractAdmin = () => {
     fetchAllContracts();
   }, []);
 
-  // Sửa lại phần xử lý search
+  // Thêm useEffect để load dữ liệu khi trang thay đổi
+  useEffect(() => {
+    if (!searchTerm) {
+      fetchContracts(currentPage, pageSize);
+    }
+  }, [currentPage, pageSize]);
+
+  // Sửa useEffect xử lý search
   useEffect(() => {
     if (searchTerm) {
-      console.log("Searching for:", searchTerm); // Log search term
-      console.log("All contracts:", allContracts); // Log all contracts
-
       const filteredResults = allContracts.filter(
         (contract) =>
           contract.movie?.title
@@ -88,12 +92,9 @@ const ContractAdmin = () => {
             .includes(searchTerm.toLowerCase()) ||
           contract.user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-
-      console.log("Filtered results:", filteredResults); // Log kết quả filter
       setContracts(filteredResults);
     } else {
-      // Nếu không có search text, quay lại hiển thị dữ liệu phân trang bình thường
-      fetchContract(currentPage, pageSize);
+      fetchContracts(currentPage, pageSize);
     }
   }, [searchTerm]);
 
@@ -218,9 +219,15 @@ const ContractAdmin = () => {
       <div className="flex justify-center">
         <Pagination
           current={currentPage}
-          total={totalItems} // Dùng tổng số hợp đồng từ API
+          total={totalItems}
           pageSize={pageSize}
-          onChange={(page) => setCurrentPage(page)}
+          onChange={(page) => {
+            if (!searchTerm) {
+              setCurrentPage(page);
+            } else {
+              setCurrentPage(page);
+            }
+          }}
           showSizeChanger={false}
         />
       </div>

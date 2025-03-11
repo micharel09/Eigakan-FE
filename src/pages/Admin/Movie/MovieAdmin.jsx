@@ -62,7 +62,30 @@ const MovieAdmin = () => {
     fetchAllMovies();
   }, []); // Chỉ gọi 1 lần khi component mount
 
-  // Sửa lại phần xử lý filter
+  // Sửa lại hàm fetchMovies để dùng đúng API từ movieService
+  const fetchMovies = async (page = 1, size = 8) => {
+    setLoading(true);
+    try {
+      const response = await movieService.getAllListMovies(page, size);
+      if (response) {
+        setMovies(response.movies || []);
+        setTotalMovies(response.total || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching movies:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sửa lại useEffect để lắng nghe thay đổi trang
+  useEffect(() => {
+    if (!searchTerm && !selectedGenres.length && !selectedStatus) {
+      fetchMovies(currentPage, pageSize);
+    }
+  }, [currentPage]); // Chỉ lắng nghe currentPage thay đổi
+
+  // Sửa lại phần xử lý filter/search
   useEffect(() => {
     if (searchTerm || selectedGenres.length > 0 || selectedStatus) {
       const filteredResults = allMovies.filter((movie) => {
@@ -70,7 +93,6 @@ const MovieAdmin = () => {
           !searchTerm ||
           movie.title?.toLowerCase().includes(searchTerm.toLowerCase());
 
-        // Sửa lại logic check genres
         const movieGenresList = movie.genreNames?.split(", ") || [];
         const matchesGenres =
           selectedGenres.length === 0 ||
@@ -88,11 +110,11 @@ const MovieAdmin = () => {
 
       setMovies(filteredResults);
       setTotalMovies(filteredResults.length);
+      setCurrentPage(1); // Reset về trang 1 khi filter
     } else {
-      setMovies(allMovies);
-      setTotalMovies(allMovies.length);
+      fetchMovies(currentPage, pageSize);
     }
-  }, [searchTerm, selectedGenres, selectedStatus, allMovies]);
+  }, [searchTerm, selectedGenres, selectedStatus]);
 
   // Status options cho filter
   const statusOptions = [
@@ -104,24 +126,6 @@ const MovieAdmin = () => {
     { label: "Rejected", value: "REJECTED" },
     { label: "Archived", value: "ARCHIVED" },
   ];
-
-  const fetchMovies = async (page, size) => {
-    setLoading(true);
-    try {
-      const response = await movieService.getAllListMovies(
-        page,
-        size,
-        searchTerm,
-        selectedGenres
-      );
-      setMovies(response.movies);
-      setTotalMovies(response.total); // Lấy tổng số phim từ API
-    } catch (error) {
-      console.error("Error fetching movies:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Sửa lại hàm fetchGenres
   const fetchGenres = async () => {
@@ -263,9 +267,14 @@ const MovieAdmin = () => {
       <div className="flex justify-center">
         <Pagination
           current={currentPage}
-          total={totalMovies} // Tổng số phim từ API
+          total={totalMovies}
           pageSize={pageSize}
-          onChange={(page) => setCurrentPage(page)}
+          onChange={(page) => {
+            setCurrentPage(page);
+            if (!searchTerm && !selectedGenres.length && !selectedStatus) {
+              fetchMovies(page, pageSize); // Gọi API khi không có filter
+            }
+          }}
           showSizeChanger={false}
         />
       </div>

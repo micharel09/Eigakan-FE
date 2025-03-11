@@ -72,26 +72,86 @@ const SubscriptionOrderManagement = () => {
     }
   };
 
+  const fetchOrders = async (page = 1, pageSize = 10) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        const orderData = response.data.data.subscriptionPurchase || [];
+
+        const ordersWithUserDetails = await Promise.all(
+          orderData.map(async (order) => {
+            try {
+              const userResponse = await UserApi.getUserDetail(order.userId);
+              return {
+                ...order,
+                key: order.id,
+                userName: userResponse.data.fullName || "Unknown User",
+                userEmail: userResponse.data.email || "N/A",
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching user details for ID ${order.userId}:`,
+                error
+              );
+              return {
+                ...order,
+                key: order.id,
+                userName: "Unknown User",
+                userEmail: "N/A",
+              };
+            }
+          })
+        );
+
+        setData(ordersWithUserDetails);
+        setPagination((prev) => ({
+          ...prev,
+          current: page,
+          pageSize: pageSize,
+          total: response.data.data.total || 0,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders(pagination.current, pagination.pageSize);
+    fetchAllOrders();
+  }, []);
+
   useEffect(() => {
     if (searchTerm) {
       const filteredResults = allOrders.filter(
         (order) =>
-          order.id.toString().includes(searchTerm) ||
-          order.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.subscriptionId.toString().includes(searchTerm)
+          order.id?.toString().includes(searchTerm) ||
+          order.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.packageId?.toString().includes(searchTerm)
       );
       setData(filteredResults);
-      setPagination((prev) => ({ ...prev, total: filteredResults.length }));
+      setPagination((prev) => ({
+        ...prev,
+        current: 1,
+        total: filteredResults.length,
+      }));
     } else {
-      setData(allOrders);
-      setPagination((prev) => ({ ...prev, total: allOrders.length }));
+      fetchOrders(pagination.current, pagination.pageSize);
     }
-  }, [searchTerm, allOrders]);
-
-  useEffect(() => {
-    fetchAllOrders();
-  }, []);
+  }, [searchTerm]);
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -191,7 +251,12 @@ const SubscriptionOrderManagement = () => {
             showTotal: (total) => `Total ${total} items`,
           }}
           onChange={(newPagination) => {
-            setPagination(newPagination);
+            if (!searchTerm) {
+              fetchOrders(newPagination.current, newPagination.pageSize);
+              setPagination(newPagination);
+            } else {
+              setPagination(newPagination);
+            }
           }}
           loading={loading}
           rowKey="id"
