@@ -1,6 +1,7 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { LogOut } from "lucide-react";
+import React from "react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { User, Settings, Clock, LogOut, LayoutDashboard } from "lucide-react";
 import {
   CrownOutlined,
   UserOutlined,
@@ -39,8 +40,25 @@ function ProfileMenu({
   handleLogout,
   handleProfileClick,
 }) {
-  const role = localStorage.getItem("role");
+  const role = user?.roleName || localStorage.getItem("role");
+  const isAdmin = role === "ADMIN";
+  const isManager = role === "MANAGER";
+  const isPublisher = role === "PUBLISHER";
+  const isAdvertiser = role === "ADVERTISER";
   const isVipMember = role === "VIP MEMBER";
+
+  // Xác định đường dẫn dashboard dựa trên vai trò
+  const getDashboardPath = () => {
+    if (isAdmin) return "/dashboard";
+    if (isManager) return "/manager/dashboard";
+    if (isPublisher) return "/publisher/dashboard";
+    if (isAdvertiser) return "/advertiser/dashboard";
+    return "";
+  };
+
+  // Kiểm tra xem có phải là vai trò cần hiển thị nút Dashboard không
+  const shouldShowDashboardButton =
+    isAdmin || isManager || isPublisher || isAdvertiser;
 
   const menuItems = [
     { to: "/profile", icon: "fas fa-user", label: "Profile Settings" },
@@ -147,37 +165,71 @@ function ProfileMenu({
                 </div>
 
                 <div className="py-2">
-                  {menuItems.map((item) => (
+                  {shouldShowDashboardButton && (
                     <Link
-                      key={item.to}
-                      to={item.to}
+                      to={getDashboardPath()}
                       className="flex items-center px-4 py-2.5 text-sm text-white/80 
                         hover:bg-white/10 hover:text-white transition-all duration-200 group"
                     >
-                      {typeof item.icon === "string" ? (
-                        <i
-                          className={`${item.icon} text-white/60 group-hover:text-white 
-                          transition-colors w-5 h-5 mr-3`}
-                        />
-                      ) : (
-                        <span
-                          className="text-white/60 group-hover:text-white 
-                          transition-colors w-5 h-5 mr-3"
-                        >
-                          {item.icon}
-                        </span>
-                      )}
-                      {item.label}
-                      {item.badge && (
-                        <span
-                          className="ml-auto bg-red-500/20 text-red-400 px-2 py-0.5 
-                          rounded-full text-xs font-medium"
-                        >
-                          {item.badge}
-                        </span>
-                      )}
+                      <LayoutDashboard
+                        className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
+                          transition-colors"
+                      />
+                      Dashboard
                     </Link>
-                  ))}
+                  )}
+                  <Link
+                    to="/profile"
+                    className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                      hover:bg-white/10 hover:text-white transition-all duration-200 group"
+                  >
+                    <User
+                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
+                      transition-colors"
+                    />
+                    Profile Settings
+                  </Link>
+                  <Link
+                    to="/watchlist"
+                    className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                      hover:bg-white/10 hover:text-white transition-all duration-200 group"
+                  >
+                    <Clock
+                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
+                      transition-colors"
+                    />
+                    My Watchlist
+                    {menuItems[1].badge && (
+                      <span
+                        className="ml-auto bg-red-500/20 text-red-400 px-2 py-0.5 
+                        rounded-full text-xs font-medium"
+                      >
+                        {menuItems[1].badge}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                      hover:bg-white/10 hover:text-white transition-all duration-200 group"
+                  >
+                    <Settings
+                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
+                      transition-colors"
+                    />
+                    Settings
+                  </Link>
+                  <Link
+                    to="/subscription-history"
+                    className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                      hover:bg-white/10 hover:text-white transition-all duration-200 group"
+                  >
+                    <Clock
+                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
+                      transition-colors"
+                    />
+                    Subscription History
+                  </Link>
 
                   <div className="border-t border-white/10 my-1" />
 
