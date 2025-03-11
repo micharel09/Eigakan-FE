@@ -38,7 +38,28 @@ const UserRegister = () => {
     }
   };
 
+  const fetchUserRegisters = async (page = 1, pageSize = 8) => {
+    try {
+      setLoading(true);
+      const response = await UserRegisterApi.getUserRegisters(page, pageSize);
+      if (response && response.data) {
+        setUsers(response.data.users || []);
+        setPagination((prev) => ({
+          ...prev,
+          current: page,
+          pageSize: pageSize,
+          total: response.data.total || 0,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching user registers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    fetchUserRegisters(pagination.current, pagination.pageSize);
     fetchAllUsers();
   }, []);
 
@@ -51,12 +72,21 @@ const UserRegister = () => {
           user.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setUsers(filteredResults);
-      setPagination((prev) => ({ ...prev, total: filteredResults.length }));
+      setPagination((prev) => ({
+        ...prev,
+        current: 1,
+        total: filteredResults.length,
+      }));
     } else {
-      setUsers(allUsers);
-      setPagination((prev) => ({ ...prev, total: allUsers.length }));
+      fetchUserRegisters(pagination.current, pagination.pageSize);
     }
-  }, [searchTerm, allUsers]);
+  }, [searchTerm]);
+
+  const handleTableChange = (newPagination, filters, sorter) => {
+    if (!searchTerm) {
+      fetchUserRegisters(newPagination.current, newPagination.pageSize);
+    }
+  };
 
   return (
     <div>
@@ -119,7 +149,7 @@ const UserRegister = () => {
         rowKey={(record) => record.id}
         pagination={pagination}
         loading={loading}
-        onChange={(pagination) => fetchAllUsers()}
+        onChange={handleTableChange}
       />
     </div>
   );

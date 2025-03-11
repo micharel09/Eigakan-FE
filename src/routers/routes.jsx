@@ -47,7 +47,7 @@ import ProcessStatus from "../components/WorkFlow/MovieWorkflow.jsx";
 import UploadFormPublisher from "../pages/Publisher/Movie/UploadFormPublisher.jsx";
 import UpdateMoviePublisher from "../pages/Publisher/Movie/UpdateMoviePublisher.jsx";
 import UpdateMovieAdmin from "../pages/Admin/Movie/UpdateMovieAdmin.jsx";
-import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard.jsx";
+import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard";
 import GenrePage from "../pages/Genre/GenrePage";
 import GenresPage from "../pages/Genre/GenresPage";
 
@@ -448,6 +448,16 @@ const routes = [
       </PrivateRoute>
     ),
     layout: "PublisherLayout",
+  },
+
+  {
+    path: "/advertiser/dashboard",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <AdvertiserDashboard />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
