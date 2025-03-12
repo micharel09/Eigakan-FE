@@ -1,34 +1,35 @@
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Clock, Film, User } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import movieService from "../../apis/Movie/movie.js";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
-const SearchBar = ({ navigate }) => {
-  const [showSearch, setShowSearch] = useState(false);
+const SearchBar = ({ onClose }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const searchRef = useRef(null);
   const inputRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowSearch(false);
+        onClose();
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [onClose]);
 
   useEffect(() => {
-    if (showSearch && inputRef.current) {
+    if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, [showSearch]);
+  }, []);
 
   const handleSearch = async (e) => {
     const query = e.target.value;
@@ -41,14 +42,12 @@ const SearchBar = ({ navigate }) => {
 
     setIsLoading(true);
     try {
-      // Using page 0 with page size 100 to get all possible results
-      const response = await movieService.getMovies(0, 100, '', query, '');
-      console.log("Search response:", response); // Debug log
-      
+      // Using page 1 with page size 100 to get all possible results
+      const response = await movieService.getMovies(1, 100, "", query, "");
+
       if (response.success && response.movies) {
         setSearchResults(response.movies);
       } else {
-        console.error("No movies found in search response:", response);
         setSearchResults([]);
       }
     } catch (error) {
@@ -62,10 +61,11 @@ const SearchBar = ({ navigate }) => {
   // Helper function to get poster URL from movie media
   const getPosterUrl = (movie) => {
     if (movie.medias && movie.medias.length > 0) {
-      const poster = movie.medias.find(media => media.type === "POSTER");
+      const poster = movie.medias.find((media) => media.type === "POSTER");
       if (poster) return poster.url;
+      return movie.medias[0].url;
     }
-    return 'https://via.placeholder.com/150x225?text=No+Image';
+    return "/placeholder.svg";
   };
 
   // Format duration from minutes to hours and minutes
@@ -80,179 +80,162 @@ const SearchBar = ({ navigate }) => {
   const displayResults = searchResults.slice(0, 5);
 
   return (
-    <div className="relative" ref={searchRef}>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowSearch(!showSearch);
-        }}
-        className="p-2.5 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center"
-        aria-label="Search"
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div
+        ref={searchRef}
+        className="w-full max-w-3xl bg-gray-900/90 rounded-xl border border-gray-700 shadow-2xl overflow-hidden"
       >
-        <Search className="w-5 h-5 text-white" />
-      </button>
-
-      <AnimatePresence>
-        {showSearch && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute right-0 top-[calc(100%+1rem)] w-[400px] bg-black/40 backdrop-blur-xl 
-                     rounded-2xl border border-white/20 shadow-2xl overflow-hidden z-50"
+        <div className="flex items-center p-4 border-b border-gray-700">
+          <Search className="w-5 h-5 text-[#FF009F] mr-3" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder="Tìm kiếm phim..."
+            className="flex-1 bg-transparent outline-none text-white 
+                     placeholder-gray-400 text-base py-2"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="p-1.5 hover:bg-white/10 rounded-full transition-colors mr-2"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
           >
-            <div
-              className="absolute -top-2 right-4 w-4 h-4 bg-black/40 backdrop-blur-xl border-t border-l border-white/20 
-                         transform rotate-45"
-            />
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
 
-            <div className="flex items-center p-3 border-b border-white/10">
-              <Search className="w-5 h-5 text-[#FF009F] mr-2" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchTerm}
-                onChange={handleSearch}
-                placeholder="Tìm kiếm phim..."
-                className="flex-1 bg-transparent outline-none text-white 
-                         placeholder-gray-400 text-sm py-1.5"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="p-1 hover:bg-white/10 rounded-full transition-colors"
-                >
-                  <X className="w-4 h-4 text-gray-400" />
-                </button>
-              )}
+        <div className="max-h-[70vh] overflow-y-auto">
+          {isLoading ? (
+            <div className="p-8 text-center text-gray-400">
+              <div className="flex justify-center">
+                <div className="w-10 h-10 border-2 border-[#FF009F]/30 border-t-[#FF009F] rounded-full animate-spin" />
+              </div>
+              <p className="mt-3 text-sm">Đang tìm kiếm...</p>
             </div>
+          ) : searchTerm && searchResults.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-800/50 mb-4">
+                <Search className="w-10 h-10 text-gray-500" />
+              </div>
+              <p className="text-gray-400 text-lg">Không tìm thấy kết quả</p>
+              <p className="text-gray-500 mt-2">
+                Thử tìm kiếm với từ khóa khác
+              </p>
+            </div>
+          ) : searchTerm ? (
+            <div>
+              <div className="p-3 text-xs text-gray-400 uppercase tracking-wider font-medium bg-gray-800/50">
+                Kết quả tìm kiếm
+              </div>
 
-            {searchTerm && (
-              <div className="max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-[#FF009F]/20 scrollbar-track-transparent">
-                {isLoading ? (
-                  <div className="p-6 text-center text-gray-400">
-                    <div className="flex justify-center">
-                      <div className="w-8 h-8 border-2 border-[#FF009F]/30 border-t-[#FF009F] rounded-full animate-spin" />
-                    </div>
-                    <p className="mt-2 text-sm">Đang tìm kiếm...</p>
+              {displayResults.map((movie) => (
+                <div
+                  key={movie.id}
+                  onClick={() => {
+                    navigate(`/movie/${movie.id}`);
+                    onClose();
+                  }}
+                  className="flex gap-4 p-4 hover:bg-gray-800/50 
+                           cursor-pointer transition-colors border-b border-gray-800/80"
+                >
+                  <div className="w-24 h-36 rounded-md overflow-hidden bg-gray-800 flex-shrink-0 shadow-lg">
+                    <img
+                      src={getPosterUrl(movie)}
+                      alt={movie.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.src = "/placeholder.svg";
+                      }}
+                    />
                   </div>
-                ) : searchResults.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-800/50 mb-4">
-                      <Search className="w-8 h-8 text-gray-500" />
-                    </div>
-                    <p className="text-gray-400">Không tìm thấy kết quả</p>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="p-2 text-xs text-gray-500 uppercase tracking-wider font-medium">
-                      Kết quả tìm kiếm
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-base font-medium text-white">
+                      {movie.title}
+                      {movie.originName && movie.originName !== movie.title && (
+                        <span className="text-gray-400 text-sm ml-2">
+                          ({movie.originName})
+                        </span>
+                      )}
+                    </h4>
+
+                    <div className="flex items-center mt-2 text-sm text-gray-400">
+                      <span className="mr-3">{movie.releaseYear || "N/A"}</span>
+                      {movie.nation && (
+                        <span className="mr-3">{movie.nation}</span>
+                      )}
+                      {movie.duration && (
+                        <span className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1" />
+                          {formatDuration(movie.duration)}
+                        </span>
+                      )}
                     </div>
 
-                    {displayResults.map((movie) => (
-                      <div
-                        key={movie.id}
-                        onClick={() => {
-                          navigate(`/movie/${movie.id}`);
-                          setShowSearch(false);
-                          setSearchTerm("");
-                        }}
-                        className="flex gap-3 p-3 hover:bg-white/5 
-                                 cursor-pointer transition-colors"
-                      >
-                        <div className="w-20 h-28 rounded-md overflow-hidden bg-gray-800 flex-shrink-0">
-                          <img
-                            src={getPosterUrl(movie) || `${IMAGE_BASE_URL}${movie.poster_path}`}
-                            alt={movie.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              e.target.src = 'https://via.placeholder.com/150x225?text=No+Image';
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-white truncate">
-                            {movie.title}
-                            {movie.originName && movie.originName !== movie.title && (
-                              <span className="text-gray-400 text-xs ml-1">
-                                ({movie.originName})
-                              </span>
-                            )}
-                          </h4>
-                          
-                          <div className="flex items-center mt-1 text-xs text-gray-400">
-                            <span className="mr-2">{movie.releaseYear || "N/A"}</span>
-                            {movie.nation && <span className="mr-2">{movie.nation}</span>}
-                            {movie.duration && (
-                              <span className="flex items-center">
-                                <Clock className="w-3 h-3 mr-1" />
-                                {formatDuration(movie.duration)}
-                              </span>
-                            )}
-                          </div>
-                          
-                          {movie.genreNames && (
-                            <div className="mt-1.5 flex flex-wrap gap-1">
-                              {movie.genreNames.split(", ").map((genre, index) => (
-                                <span 
-                                  key={index} 
-                                  className="px-1.5 py-0.5 bg-white/10 rounded-sm text-[10px] text-gray-300"
-                                >
-                                  {genre}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {movie.director && (
-                            <div className="mt-1.5 flex items-center text-xs text-gray-400">
-                              <User className="w-3 h-3 mr-1" />
-                              <span>Đạo diễn: {movie.director}</span>
-                            </div>
-                          )}
-                          
-                          {movie.rating > 0 && (
-                            <div className="mt-1.5">
-                              <span className="text-xs bg-[#FF009F]/20 text-[#FF009F] px-1.5 py-0.5 rounded-sm">
-                                {movie.rating.toFixed(1)}
-                              </span>
-                            </div>
-                          )}
-                          
-                          {movie.description && (
-                            <p className="mt-1.5 text-xs text-gray-400 line-clamp-2">
-                              {movie.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-
-                    {searchResults.length > 5 && (
-                      <div className="p-3 border-t border-white/10">
-                        <button
-                          onClick={() => {
-                            navigate(`/search?q=${searchTerm}`);
-                            setShowSearch(false);
-                            setSearchTerm("");
-                          }}
-                          className="w-full py-2.5 text-center text-sm bg-gradient-to-r from-[#FF009F]/80 to-[#FF009F]/60
-                                   text-white rounded-lg hover:from-[#FF009F] hover:to-[#FF009F]/80 transition-all
-                                   font-medium backdrop-blur-sm"
-                        >
-                          Xem tất cả {searchResults.length} kết quả
-                        </button>
+                    {movie.genreNames && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {movie.genreNames.split(", ").map((genre, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-0.5 bg-[#FF009F]/10 rounded-md text-xs text-[#FF009F]"
+                          >
+                            {genre}
+                          </span>
+                        ))}
                       </div>
                     )}
+
+                    {movie.director && (
+                      <div className="mt-2 flex items-center text-sm text-gray-400">
+                        <User className="w-4 h-4 mr-1" />
+                        <span>Đạo diễn: {movie.director}</span>
+                      </div>
+                    )}
+
+                    {movie.rating > 0 && (
+                      <div className="mt-2">
+                        <span className="text-sm bg-[#FF009F]/20 text-[#FF009F] px-2 py-0.5 rounded-md">
+                          {movie.rating.toFixed(1)}
+                        </span>
+                      </div>
+                    )}
+
+                    {movie.description && (
+                      <p className="mt-2 text-sm text-gray-400 line-clamp-2">
+                        {movie.description}
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                </div>
+              ))}
+
+              {searchResults.length > 5 && (
+                <div className="p-4 bg-gray-800/30">
+                  <button
+                    onClick={() => {
+                      navigate(`/search?q=${searchTerm}`);
+                      onClose();
+                    }}
+                    className="w-full py-3 text-center text-sm bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]
+                             text-white rounded-lg hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 transition-all
+                             font-medium shadow-lg hover:shadow-[#FF009F]/20 hover:shadow-xl"
+                  >
+                    Xem tất cả {searchResults.length} kết quả
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 };

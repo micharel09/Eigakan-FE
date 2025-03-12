@@ -445,17 +445,21 @@ const WatchPage = () => {
                           key={actor.id}
                           className="flex-none group transition-transform hover:scale-105"
                         >
-                          <img
-                            src={actor.picture}
-                            alt={actor.name}
-                            className="w-20 h-20 rounded-xl object-cover mb-2 group-hover:ring-2 ring-[#FF009F] transition-all"
-                          />
-                          <div className="text-center">
-                            <div className="text-white font-medium">
-                              {actor.name}
-                            </div>
-                            <div className="text-sm text-white/50">
-                              {actor.job === "Diễn viên" ? "Actor" : actor.job}
+                          <div className="w-[100px]">
+                            <img
+                              src={actor.picture}
+                              alt={actor.name}
+                              className="w-20 h-20 rounded-xl object-cover mb-2 group-hover:ring-2 ring-[#FF009F] transition-all"
+                            />
+                            <div className="text-center">
+                              <div className="text-white font-medium truncate">
+                                {actor.name}
+                              </div>
+                              <div className="text-sm text-white/50 truncate">
+                                {actor.job === "Diễn viên"
+                                  ? "Actor"
+                                  : actor.job}
+                              </div>
                             </div>
                           </div>
                         </Link>

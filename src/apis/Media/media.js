@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "https://eigakan1111-001-site1.qtempurl.com/api/Media";
+const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Media";
 
 const mediaApi = {
 
@@ -30,11 +30,6 @@ const mediaApi = {
   async createMedia(mediaData) {
     try {
       const token = localStorage.getItem("token");
-      const role = localStorage.getItem("role");
-      
-      if (role !== "ADMIN") {
-        throw new Error("Unauthorized - Only admin can create/update/delete genres");
-      }
 
       const response = await axios.post(API_URL, mediaData, {
         headers: {

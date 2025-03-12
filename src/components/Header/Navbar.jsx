@@ -4,14 +4,46 @@ import authService from "../../apis/Auth/auth";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
 import { CrownOutlined } from "@ant-design/icons";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Menu,
+  X,
+  Film,
+  User,
+  Home,
+  Search,
+  Users,
+  Newspaper,
+  Bookmark,
+  Clock,
+  TrendingUp,
+  LayoutDashboard,
+} from "lucide-react";
+
 const navLinks = [
-  { path: "/homescreen", label: "Movies" },
-  { path: "/", label: "TV Shows" },
-  { path: "/favorites", label: "Favorite" },
-  { path: "/people", label: "Popular People" },
-  { path: "/news", label: "News" },
-  { path: "/history", label: "Search History" },
+  { path: "/homescreen", label: "Movies", icon: <Film className="w-4 h-4" /> },
+  {
+    path: "/genres",
+    label: "Genres",
+    icon: <TrendingUp className="w-4 h-4" />,
+  },
+  { path: "/", label: "TV Shows", icon: <Home className="w-4 h-4" /> },
+  {
+    path: "/favorites",
+    label: "Favorite",
+    icon: <Bookmark className="w-4 h-4" />,
+  },
+  {
+    path: "/people",
+    label: "Popular People",
+    icon: <Users className="w-4 h-4" />,
+  },
+  { path: "/news", label: "News", icon: <Newspaper className="w-4 h-4" /> },
+  {
+    path: "/history",
+    label: "Search History",
+    icon: <Clock className="w-4 h-4" />,
+  },
 ];
 
 const Navbar = () => {
@@ -21,6 +53,8 @@ const Navbar = () => {
   });
   const [isScrolled, setIsScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const role = user?.roleName || localStorage.getItem("role");
@@ -44,7 +78,14 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 0);
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -78,280 +119,226 @@ const Navbar = () => {
     window.location.reload();
   };
 
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const toggleSearch = () => {
+    setShowSearch(!showSearch);
+  };
+
+  // Xác định đường dẫn dashboard dựa trên vai trò
+  const getDashboardPath = () => {
+    if (isAdmin) return "/dashboard";
+    if (isManager) return "/manager/dashboard";
+    if (isPublisher) return "/publisher/dashboard";
+    if (isAdvertiser) return "/advertiser/dashboard";
+    return "";
+  };
+
+  // Kiểm tra xem có phải là vai trò cần hiển thị nút Dashboard không
+  const shouldShowDashboardButton =
+    isAdmin || isManager || isPublisher || isAdvertiser;
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50">
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-transparent pointer-events-none"></div>
-      <div className="relative max-w-[1300px] mx-auto px-6">
-        <div className="flex items-center h-20">
-          <div className="flex-shrink-0 mr-8">
-            <Link to="/homepage" className="relative z-10 block">
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          isScrolled
+            ? "bg-black/85 backdrop-blur-md shadow-lg"
+            : "bg-gradient-to-b from-black/80 to-transparent"
+        }`}
+      >
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/homepage" className="flex items-center">
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
-                className="eigakan-gradient text-[#FF009F] font-bold text-3xl tracking-wider"
+                className="text-[#FF009F] font-bold text-3xl tracking-wider"
               >
-                EIGAKAN
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]">
+                  EIGAKAN
+                </span>
               </motion.div>
             </Link>
-          </div>
-          <div className="flex-1">
-            <nav className="flex items-center gap-8">
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex space-x-1">
+              {/* Thêm nút Dashboard nếu là vai trò cần thiết */}
+              {shouldShowDashboardButton && (
+                <Link
+                  to={getDashboardPath()}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                    location.pathname === getDashboardPath()
+                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Link>
+              )}
+
               {navLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`relative py-2 text-sm font-medium transition-colors group whitespace-nowrap
-                    ${
-                      location.pathname === link.path
-                        ? "text-[#FF009F]"
-                        : "text-gray-300 hover:text-[#FF009F]"
-                    }`}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                    location.pathname === link.path
+                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
                 >
+                  {link.icon}
                   {link.label}
-                  <span
-                    className={`absolute bottom-0 left-0 w-full h-0.5 bg-[#FF009F] transform scale-x-0 
-                    transition-transform duration-300 group-hover:scale-x-100
-                    ${location.pathname === link.path ? "scale-x-100" : ""}`}
-                  />
                 </Link>
               ))}
               {isAdmin && (
                 <Link
                   to="/admin/persons"
-                  className={`relative py-2 text-sm font-medium transition-colors group whitespace-nowrap
-                    ${
-                      location.pathname === "/admin/persons"
-                        ? "text-[#FF009F]"
-                        : "text-gray-300 hover:text-[#FF009F]"
-                    }`}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                    location.pathname === "/admin/persons"
+                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
                 >
+                  <User className="w-4 h-4" />
                   Person Management
-                  <span
-                    className={`absolute bottom-0 left-0 w-full h-0.5 bg-[#FF009F] transform scale-x-0 
-                    transition-transform duration-300 group-hover:scale-x-100
-                    ${
-                      location.pathname === "/admin/persons"
-                        ? "scale-x-100"
-                        : ""
-                    }`}
-                  />
                 </Link>
               )}
             </nav>
-          </div>
-          <div className="flex items-center gap-3 ml-auto">
-            <SearchBar navigate={navigate} />
-            {token && user ? (
-              <>
-                <ProfileMenu
-                  user={user}
-                  showProfileMenu={showProfileMenu}
-                  handleLogout={handleLogout}
-                  handleProfileClick={(e) => {
-                    e.stopPropagation();
-                    setShowProfileMenu(!showProfileMenu);
-                  }}
-                />
-                {(role === "MEMBER" || user.roleName === "MEMBER") && (
-                  <Link
-                    to="/subscription-plans"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                    text-[#FF009F] hover:text-white border border-[#FF009F] transition-all
-                    duration-300 ease-in-out shadow-md
-                    hover:bg-[#FF009F] hover:shadow-[0_0_15px_#FF009F]"
-                  >
-                    <CrownOutlined />
-                    <span>Upgrade Plan</span>
-                  </Link>
-                )}
-              </>
-            ) : (
-              <Link
-                to="/login"
-                className="px-5 py-2 rounded-full bg-[#FF009F] hover:bg-[#D1007F] 
-                transition-all duration-200 text-sm font-medium transform hover:scale-105"
+
+            {/* Right Side Actions */}
+            <div className="flex items-center space-x-4">
+              {/* Search Button */}
+              <button
+                onClick={toggleSearch}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all duration-300 border border-white/10 hover:border-white/20 shadow-lg hover:shadow-[#FF009F]/10"
               >
-                Login
-              </Link>
-            )}
-            {(isManager || isAdmin || isPublisher || isAdvertiser) && (
-              <div className="flex items-center ml-3">
-                <Link
-                  to={
-                    isManager
-                      ? isInManagerPage
-                        ? "/homescreen"
-                        : "/manager/dashboard"
-                      : isAdmin
-                      ? isInAdminPage
-                        ? "/homescreen"
-                        : "/dashboard"
-                      : isPublisher
-                      ? isInPublisherPage
-                        ? "/homescreen"
-                        : "/publisher/dashboard"
-                      : isAdvertiser
-                      ? isInAdvertiserPage
-                        ? "/homescreen"
-                        : "/advertiser/dashboard"
-                      : "/homescreen"
-                  }
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg 
-                    text-sm font-medium transition-colors duration-200
-                    border border-[#FF009F]/20
-                    hover:bg-[#FF009F]/10 text-[#FF009F]"
-                >
-                  {isManager ? (
-                    isInManagerPage ? (
-                      <>
-                        <span>View User Site</span>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 19l-7-7 7-7"
-                          />
-                        </svg>
-                      </>
-                    ) : (
-                      <>
-                        <span>Manager Dashboard</span>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </>
-                    )
-                  ) : isAdmin ? (
-                    isInAdminPage ? (
-                      <>
-                        <span>View User Site</span>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 19l-7-7 7-7"
-                          />
-                        </svg>
-                      </>
-                    ) : (
-                      <>
-                        <span>Admin Dashboard</span>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </>
-                    )
-                  ) : isPublisher ? (
-                    isInPublisherPage ? (
-                      <>
-                        <span>View User Site</span>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 19l-7-7 7-7"
-                          />
-                        </svg>
-                      </>
-                    ) : (
-                      <>
-                        <span>Publisher Dashboard</span>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </>
-                    )
-                  ) : isInAdvertiserPage ? (
-                    <>
-                      <span>View User Site</span>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 19l-7-7 7-7"
-                        />
-                      </svg>
-                    </>
-                  ) : (
-                    <>
-                      <span>Advertiser Dashboard</span>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </>
+                <Search className="w-4 h-4 text-[#FF009F]" />
+                <span className="text-sm hidden sm:inline">Search</span>
+              </button>
+
+              {/* User Menu or Login Button */}
+              {token && user ? (
+                <>
+                  <ProfileMenu
+                    user={user}
+                    showProfileMenu={showProfileMenu}
+                    handleLogout={handleLogout}
+                    handleProfileClick={(e) => {
+                      e.stopPropagation();
+                      setShowProfileMenu(!showProfileMenu);
+                    }}
+                  />
+                  {(role === "MEMBER" || user.roleName === "MEMBER") && (
+                    <Link
+                      to="/subscription-plans"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                      bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white transition-all
+                      duration-300 ease-in-out shadow-md hover:shadow-[0_0_15px_rgba(255,0,159,0.5)]
+                      transform hover:translate-y-[-2px]"
+                    >
+                      <CrownOutlined />
+                      <span>Upgrade Plan</span>
+                    </Link>
                   )}
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  className="bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 
+                  text-white px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300 
+                  shadow-md hover:shadow-[0_0_15px_rgba(255,0,159,0.3)] transform hover:translate-y-[-2px]"
+                >
+                  Login
                 </Link>
-              </div>
-            )}
+              )}
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={toggleMenu}
+                className="md:hidden p-2 text-white hover:text-[#FF009F] transition-colors bg-white/5 rounded-lg"
+              >
+                {isOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </header>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-40 bg-black/95 backdrop-blur-md pt-16 md:hidden"
+          >
+            <div className="container mx-auto px-4 py-8">
+              <nav className="flex flex-col space-y-4">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+                      location.pathname === link.path
+                        ? "bg-[#FF009F]/20 text-white border-l-4 border-[#FF009F]"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                    }`}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {link.icon}
+                    <span className="text-lg font-medium">{link.label}</span>
+                  </Link>
+                ))}
+                {isAdmin && (
+                  <Link
+                    to="/admin/persons"
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+                      location.pathname === "/admin/persons"
+                        ? "bg-[#FF009F]/20 text-white border-l-4 border-[#FF009F]"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                    }`}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="text-lg font-medium">
+                      Person Management
+                    </span>
+                  </Link>
+                )}
+              </nav>
+
+              <div className="mt-8 border-t border-white/10 pt-6">
+                <button
+                  onClick={() => {
+                    toggleSearch();
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all duration-300"
+                >
+                  <Search className="w-5 h-5 text-[#FF009F]" />
+                  <span className="text-lg font-medium">Search</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Search Overlay */}
+      {showSearch && <SearchBar onClose={toggleSearch} />}
+    </>
   );
 };
 

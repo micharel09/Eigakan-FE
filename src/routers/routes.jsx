@@ -43,6 +43,13 @@ import ContractAdmin from "../pages/Admin/Contract/ContractAdmin.jsx";
 import ContractDetailAdmin from "../pages/Admin/Contract/ContractDetailAdmin.jsx";
 import ContractPublisher from "../pages/Publisher/Contract/ContractPublisher.jsx";
 import ContractDetailPublisher from "../pages/Publisher/Contract/ContractDetailPublisher.jsx";
+import ProcessStatus from "../components/WorkFlow/MovieWorkflow.jsx";
+import UploadFormPublisher from "../pages/Publisher/Movie/UploadFormPublisher.jsx";
+import UpdateMoviePublisher from "../pages/Publisher/Movie/UpdateMoviePublisher.jsx";
+import UpdateMovieAdmin from "../pages/Admin/Movie/UpdateMovieAdmin.jsx";
+import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard";
+import GenrePage from "../pages/Genre/GenrePage";
+import GenresPage from "../pages/Genre/GenresPage";
 import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard.jsx";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
 
@@ -210,6 +217,16 @@ const routes = [
     layout: "AdminLayout",
   },
 
+  {
+    path: "/admin/updateMovie/:id",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <UpdateMovieAdmin />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
   { path: "/user", element: <User />, layout: "AdminLayout" },
 
   { path: "/user/:id", element: <UserDetail />, layout: "AdminLayout" },
@@ -231,6 +248,9 @@ const routes = [
   { path: "/people", element: <PopularPeople />, layout: "UserLayout" },
 
   { path: "/person/:id", element: <PersonDetail />, layout: "UserLayout" },
+
+  { path: "/genres", element: <GenresPage />, layout: "UserLayout" },
+  { path: "/genre/:genreName", element: <GenrePage />, layout: "UserLayout" },
 
   { path: "/profile", element: <Profile />, layout: "UserLayout" },
 
@@ -409,7 +429,35 @@ const routes = [
     layout: "PublisherLayout",
   },
 
-  // Thêm routes cho Advertiser
+  {
+    path: "/publisher/upload",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <UploadFormPublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+  },
+  {
+    path: "/publisher/upload/:id",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <UploadFormPublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+  },
+
+  {
+    path: "/publisher/updateMovie/:id",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <UpdateMoviePublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+  },
+
   {
     path: "/advertiser/dashboard",
     element: (
@@ -421,6 +469,16 @@ const routes = [
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
+
+  {
+    path: "/process-status",
+    element: (
+      <PrivateRoute>
+        <ProcessStatus />
+      </PrivateRoute>
+    ),
+    layout: "DefaultLayout",
+  },
 ];
 
 export default routes;

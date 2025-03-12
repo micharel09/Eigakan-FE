@@ -29,6 +29,17 @@ const MovieHero = memo(
     const poster = movie.medias?.find((m) => m.type === "POSTER");
     const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
+  return (
+    <div className="relative w-full h-[70vh] overflow-hidden -mt-16 pt-16">
+      {/* Background Banner */}
+      <div className="absolute inset-0">
+        <img
+          src={banner?.url || poster?.url || "/placeholder.jpg"}
+          alt={movie.title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80" />
+      </div>
     return (
       <div className="relative w-full h-[70vh] overflow-hidden">
         {/* Background Banner */}

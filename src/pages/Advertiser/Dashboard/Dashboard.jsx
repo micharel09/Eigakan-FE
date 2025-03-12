@@ -63,23 +63,18 @@ const AdvertiserDashboard = () => {
   ];
 
   return (
-    <div className="bg-gray-100">
+    <div className="advertiser-dashboard">
       <Helmet>
-        <title>Advertiser Dashboard - Eigakan</title>
+        <title>Advertiser Dashboard | EIGAKAN</title>
       </Helmet>
 
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Advertiser Dashboard
-        </h1>
-        <p className="text-gray-600">Welcome to your advertisement overview</p>
-      </div>
+      <h1 className="text-2xl font-bold mb-6">Advertiser Dashboard</h1>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="shadow-sm">
+          <Card>
             <Statistic
-              title="Total Campaigns"
+              title="Active Campaigns"
               value={5}
               prefix={<PlayCircleOutlined />}
               valueStyle={{ color: "#FF009F" }}

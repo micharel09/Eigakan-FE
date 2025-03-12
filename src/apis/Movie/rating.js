@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://eigakan1111-001-site1.qtempurl.com/api";
+const BASE_URL = "https://eigakan2222-001-site1.jtempurl.com/api";
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');

@@ -51,6 +51,7 @@ const PersonManagement = () => {
     pageSize: 5,
     hasNextPage: true,
   });
+  const [allPersons, setAllPersons] = useState([]);
 
   // Fetch persons
   const fetchPersons = async (page = 1, pageSize = 5) => {
@@ -63,22 +64,66 @@ const PersonManagement = () => {
           ...prev,
           current: page,
           pageSize: pageSize,
-          hasNextPage: response.data.length === pageSize,
+          total: response.total || 0,
+          hasNextPage: response.hasNextPage,
         }));
       }
     } catch (error) {
       notification.error({
-        message: "Lỗi",
-        description: error.message || "Không thể lấy danh sách người",
+        message: "Error",
+        description: error.message || "Could not fetch persons",
       });
     } finally {
       setLoading(false);
     }
   };
 
+  // Thêm hàm mới để fetch tất cả persons cho search
+  const fetchAllPersons = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "https://eigakan2222-001-site1.jtempurl.com/api/Person?pageNumber=0&pageSize=1000",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.data && response.data.success) {
+        setAllPersons(response.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching all persons:", error);
+      notification.error({
+        message: "Error",
+        description: "Could not fetch persons for search",
+      });
+    }
+  };
+
+  // Thêm useEffect để fetch dữ liệu khi component mount
   useEffect(() => {
     fetchPersons(pagination.current, pagination.pageSize);
+    fetchAllPersons();
   }, []);
+
+  // Thêm xử lý tìm kiếm với allPersons
+  useEffect(() => {
+    if (searchText) {
+      const filteredData = allPersons.filter((person) =>
+        person.name?.toLowerCase().includes(searchText.toLowerCase())
+      );
+      setPersons(filteredData);
+      setPagination((prev) => ({
+        ...prev,
+        current: 1,
+        total: filteredData.length,
+      }));
+    } else {
+      fetchPersons(pagination.current, pagination.pageSize);
+    }
+  }, [searchText, allPersons]);
 
   // Hàm hủy upload hiện tại
   const cancelCurrentUpload = () => {
@@ -282,16 +327,6 @@ const PersonManagement = () => {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      filteredValue: [searchText],
-      onFilter: (value, record) => {
-        return (
-          String(record.name).toLowerCase().includes(value.toLowerCase()) ||
-          String(record.description)
-            .toLowerCase()
-            .includes(value.toLowerCase()) ||
-          String(record.job).toLowerCase().includes(value.toLowerCase())
-        );
-      },
     },
     {
       title: "Description",
@@ -341,7 +376,9 @@ const PersonManagement = () => {
 
   // Thêm hàm xử lý thay đổi trang
   const handleTableChange = (newPagination, filters, sorter) => {
-    fetchPersons(newPagination.current, newPagination.pageSize);
+    if (!searchText) {
+      fetchPersons(newPagination.current, newPagination.pageSize);
+    }
   };
 
   return (
@@ -411,9 +448,7 @@ const PersonManagement = () => {
               ? (pagination.current + 1) * pagination.pageSize
               : pagination.current * pagination.pageSize,
           }}
-          onChange={(newPagination, filters, sorter) =>
-            fetchPersons(newPagination.current, newPagination.pageSize)
-          }
+          onChange={handleTableChange}
         />
 
         <Modal

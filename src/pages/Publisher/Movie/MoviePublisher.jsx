@@ -1,64 +1,91 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Input, Select, Button, Card, Pagination, Tag, Spin } from "antd"
-import { SearchOutlined, PlusOutlined, CheckCircleOutlined, ClockCircleOutlined, SyncOutlined } from "@ant-design/icons"
-import { Link } from "react-router-dom"
-import movieService from "../../../apis/Movie/movie"
-import genreService from "../../../apis/Genre/genre"
-
-const { Option } = Select
+import { useState, useEffect } from "react";
+import { Input, Button, Card, Pagination, Tag, Spin } from "antd";
+import {
+  SearchOutlined,
+  PlusOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  SyncOutlined,
+  CloseCircleOutlined,
+  FolderOutlined,
+} from "@ant-design/icons";
+import { Link } from "react-router-dom";
+import movieService from "../../../apis/Movie/movie";
+import axios from "axios";
 
 const MoviePublisher = () => {
-  const [movies, setMovies] = useState([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [genres, setGenres] = useState([])
-  const [selectedGenres, setSelectedGenres] = useState([])
-  const [loading, setLoading] = useState(false)
-  const pageSize = 8
+  const [movies, setMovies] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalMovies, setTotalMovies] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const pageSize = 8;
+  const [allMovies, setAllMovies] = useState([]);
+
+  const fetchMovies = async (page = 1, size = 8) => {
+    setLoading(true);
+    try {
+      const response = await movieService.getListMovieByLogin(page, size);
+      setMovies(response.movies || []);
+      setTotalMovies(response.total || 0);
+    } catch (error) {
+      console.error("Error fetching movies:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllMovies = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "https://eigakan2222-001-site1.jtempurl.com/api/Movie/GetListMovieByLogin?pageNumber=0&pageSize=1000",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setAllMovies(response.data.movies || []);
+    } catch (error) {
+      console.error("Error fetching all movies:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchMovies()
-    fetchGenres()
-  }, [])
+    fetchMovies(currentPage, pageSize);
+    fetchAllMovies();
+  }, []);
 
-  const fetchMovies = async () => {
-    setLoading(true)
-    try {
-      const response = await movieService.getListMovieByLogin()
-      console.log("Movies:", response.data)
-      setMovies(response.data)
-    } catch (error) {
-      console.error("Error fetching movies:", error)
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = allMovies.filter((movie) =>
+        movie.title?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setMovies(filtered);
+      setTotalMovies(filtered.length);
+      setCurrentPage(1);
+    } else {
+      fetchMovies(currentPage, pageSize);
     }
-  }
-
-  const fetchGenres = async () => {
-    try {
-      const response = await genreService.getGenres()
-      setGenres(response.data)
-    } catch (error) {
-      console.error("Error fetching genres:", error)
-    }
-  }
-
-  const filteredMovies = movies.filter(
-    (movie) =>
-      movie.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (selectedGenres.length === 0 || selectedGenres.some((genre) => movie.genres.includes(genre))),
-  )
-
-  const paginatedMovies = filteredMovies.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  }, [searchTerm]);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Movie List</h1>
         <Link to="/publisher/createMovie">
-          <Button type="primary" icon={<PlusOutlined />} size="large" className="bg-blue-500 hover:bg-blue-600">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="large"
+            className="bg-blue-500 hover:bg-blue-600"
+          >
             Create Movie
           </Button>
         </Link>
@@ -72,15 +99,6 @@ const MoviePublisher = () => {
           className="flex-1 min-w-[250px] text-lg"
           size="large"
         />
-        <Select
-          mode="multiple"
-          style={{ minWidth: 200 }}
-          placeholder="Filter by genres"
-          onChange={setSelectedGenres}
-          options={genres.map((genre) => ({ label: genre.name, value: genre.id }))}
-          size="large"
-          className="text-lg"
-        />
       </div>
 
       {loading ? (
@@ -89,28 +107,42 @@ const MoviePublisher = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {paginatedMovies.map((movie) => (
+          {movies.map((movie) => (
             <Link key={movie.id} to={`/publisher/movie/${movie.id}`}>
               <Card
                 hoverable
                 cover={
-                  <div className="relative pt-[150%]">
+                  <div className="relative pt-[56.25%]">
                     <img
                       alt={movie.title}
-                      src={movie.medias.length > 0 ? movie.medias[0].url : "/placeholder.svg"}
+                      src={movie.medias?.[0]?.url || "/placeholder.svg"}
                       className="absolute top-0 left-0 w-full h-full object-cover rounded-t-lg"
                     />
                     <div className="absolute top-2 right-2">
                       {movie.status === "ACTIVE" ? (
-                        <Tag icon={<CheckCircleOutlined />} color="green">Active</Tag>
+                        <Tag icon={<CheckCircleOutlined />} color="green">
+                          Active
+                        </Tag>
                       ) : movie.status === "WAITING_FOR_REVIEWING" ? (
-                        <Tag icon={<ClockCircleOutlined />} color="orange">Waiting for Review</Tag>
+                        <Tag icon={<ClockCircleOutlined />} color="orange">
+                          Waiting for Review
+                        </Tag>
                       ) : movie.status === "ACCEPTED_NEGOTIATING" ? (
-                        <Tag icon={<SyncOutlined spin />} color="blue">Negotiating</Tag>
+                        <Tag icon={<SyncOutlined spin />} color="blue">
+                          Negotiating
+                        </Tag>
                       ) : movie.status === "REJECTED" ? (
-                        <Tag icon={<CloseCircleOutlined />} color="red">Rejected</Tag>
+                        <Tag icon={<CloseCircleOutlined />} color="red">
+                          Rejected
+                        </Tag>
+                      ) : movie.status === "WAITING_FOR_UPLOADING" ? (
+                        <Tag icon={<SyncOutlined spin />} color="orange">
+                          Waiting for Uploading
+                        </Tag>
                       ) : movie.status === "ARCHIVED" ? (
-                        <Tag icon={<FolderOutlined />} color="gray">Archived</Tag>
+                        <Tag icon={<FolderOutlined />} color="gray">
+                          Archived
+                        </Tag>
                       ) : (
                         <Tag color="default">Unknown</Tag>
                       )}
@@ -137,15 +169,19 @@ const MoviePublisher = () => {
       <div className="flex justify-center">
         <Pagination
           current={currentPage}
-          total={filteredMovies.length}
+          total={totalMovies}
           pageSize={pageSize}
-          onChange={(page) => setCurrentPage(page)}
+          onChange={(page) => {
+            setCurrentPage(page);
+            if (!searchTerm) {
+              fetchMovies(page, pageSize);
+            }
+          }}
           showSizeChanger={false}
         />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default MoviePublisher
-
+export default MoviePublisher;

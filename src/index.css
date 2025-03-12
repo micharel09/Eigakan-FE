@@ -30,8 +30,6 @@
     url("/hero.jpg");
 }
 
-
-
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -85,17 +83,17 @@
 
 /* Custom Ant Design Spin color */
 .ant-spin .ant-spin-dot-item {
-  background-color: #FF009F !important;
+  background-color: #ff009f !important;
 }
 
 /* Custom loading icon color */
 .anticon.anticon-loading.anticon-spin {
-  color: #FF009F !important;
+  color: #ff009f !important;
 }
 
 /* Custom spin dot color */
 .ant-spin-dot-spin > i {
-  background-color: #FF009F !important;
+  background-color: #ff009f !important;
 }
 
 .eigakan-glow {
@@ -111,27 +109,82 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: -200px 0; }
-  100% { background-position: 200px 0; }
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
 }
 
 @keyframes gradientText {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .eigakan-gradient {
   font-size: 2rem;
   font-weight: bold;
   text-transform: uppercase;
-  background: linear-gradient(90deg, #cc00ff, #FF009F, #7700ff);
+  background: linear-gradient(90deg, #cc00ff, #ff009f, #7700ff);
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: gradientText 5s infinite linear;
 }
 
+/* Custom Swiper Navigation Buttons */
+.movie-list-swiper .swiper-button-next,
+.movie-list-swiper .swiper-button-prev {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.9); /* Tối hơn để nổi bật */
+  border: 2px solid rgba(255, 0, 159, 0.8); /* Border đậm hơn */
+  border-radius: 50%;
+  color: #ff009f;
+  transition: all 0.3s ease;
+  opacity: 0;
+}
 
+.movie-list-swiper:hover .swiper-button-next,
+.movie-list-swiper:hover .swiper-button-prev {
+  opacity: 1;
+}
 
+.movie-list-swiper .swiper-button-next:hover,
+.movie-list-swiper .swiper-button-prev:hover {
+  background: rgba(0, 0, 0, 0.95); /* Gần như đen hoàn toàn */
+  border-color: #ff009f;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px #ff009f; /* Giảm độ blur của glow */
+}
 
+.movie-list-swiper .swiper-button-next:after,
+.movie-list-swiper .swiper-button-prev:after {
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 0 5px #ff009f; /* Giảm độ blur của text shadow */
+}
+
+.movie-list-swiper .swiper-button-disabled {
+  opacity: 0 !important;
+  cursor: not-allowed;
+}
+
+/* Đơn giản hóa hiệu ứng hover */
+.movie-list-swiper .swiper-button-next:hover:before,
+.movie-list-swiper .swiper-button-prev:hover:before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 0, 159, 0.3); /* Thêm border mờ bên ngoài */
+  z-index: -1;
+}
