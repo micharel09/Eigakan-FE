@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { notification, Avatar, Tooltip, Button, Input, List, Grid } from "antd";
 import {
@@ -40,6 +40,46 @@ const WatchTogether = () => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState(new Map());
   const videoRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleLeaveRoom = async () => {
+    try {
+      // Cleanup local media streams
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+
+      // Leave room via API
+      await roomService.leaveRoom(roomId);
+
+      // Leave SignalR room and stop connection
+      if (connection) {
+        try {
+          await connection.invoke("LeaveRoom", roomId);
+          await connection.stop();
+        } catch (error) {
+          console.error("Error leaving SignalR room:", error);
+        }
+      }
+
+      // Cleanup WebRTC
+      webRTCService.cleanup();
+
+      notification.success({
+        message: "Success",
+        description: "You have left the room",
+      });
+
+      // Navigate back to movie page
+      navigate(`/movie/${movieId}`);
+    } catch (error) {
+      console.error("Error leaving room:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to leave room: " + error.message,
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -61,6 +101,45 @@ const WatchTogether = () => {
   useEffect(() => {
     if (!roomId || !user) return;
 
+    // Kiểm tra xem có phải refresh page không
+    const isRefresh =
+      (window.performance.navigation &&
+        window.performance.navigation.type === 1) ||
+      window.performance.getEntriesByType("navigation")[0]?.type === "reload";
+
+    if (isRefresh) {
+      const handleRefresh = async () => {
+        const confirmed = window.confirm(
+          "Are you sure you want to refresh? You will leave the room."
+        );
+
+        if (confirmed) {
+          try {
+            // Cleanup local media streams
+            if (localStream) {
+              localStream.getTracks().forEach((track) => track.stop());
+            }
+
+            // Leave room via API
+            await roomService.leaveRoom(roomId);
+
+            // Cleanup WebRTC
+            webRTCService.cleanup();
+
+            // Redirect về MoviePage
+            window.location.href = `/movie/${movieId}`;
+          } catch (error) {
+            console.error("Error during refresh cleanup:", error);
+            // Vẫn redirect về MoviePage ngay cả khi có lỗi
+            window.location.href = `/movie/${movieId}`;
+          }
+        }
+      };
+
+      handleRefresh();
+      return;
+    }
+
     const newConnection = new HubConnectionBuilder()
       .withUrl(`https://localhost:7192/roomHub?roomId=${roomId}`)
       .withAutomaticReconnect()
@@ -68,12 +147,19 @@ const WatchTogether = () => {
 
     setConnection(newConnection);
 
+    // Handle back button and page navigation
+    const handlePopState = (event) => {
+      event.preventDefault();
+      handleLeaveRoom();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
     newConnection
       .start()
       .then(() => {
         console.log("Connected to SignalR");
 
-        // Join room after connection
         newConnection
           .invoke(
             "JoinRoom",
@@ -87,16 +173,56 @@ const WatchTogether = () => {
           })
           .catch(console.error);
 
+        // Lắng nghe sự kiện UserLeft
+        newConnection.on("UserLeft", (data) => {
+          console.log("User left event received:", data);
+          console.log("Current room users before update:", roomUsers);
+
+          // Update room users list using user id
+          setRoomUsers((prev) => {
+            const updatedUsers = prev.filter((u) => u.id !== data.id);
+            console.log("Updated room users:", updatedUsers);
+            return updatedUsers;
+          });
+
+          // Add system message for user leaving
+          const leaveMessage = {
+            id: `leave-${Date.now()}`,
+            text: `${data.userName} left the room`,
+            sender: { userName: "System" },
+            timestamp: new Date(),
+            type: "system",
+          };
+
+          setMessages((prev) => [...prev, leaveMessage]);
+
+          // Request updated participants list from server
+          newConnection
+            .invoke("RequestParticipants", roomId)
+            .catch((error) =>
+              console.error("Error requesting participants:", error)
+            );
+        });
+
+        // Thêm sự kiện cập nhật danh sách người dùng từ server
+        newConnection.on("UpdateParticipants", (participants) => {
+          // Remove duplicates based on user id
+          const uniqueParticipants = participants.filter(
+            (participant, index, self) =>
+              index === self.findIndex((p) => p.id === participant.id)
+          );
+          setRoomUsers(uniqueParticipants);
+        });
+
         // Lắng nghe sự kiện UserJoined
         newConnection.on("UserJoined", (joinedUser) => {
           setRoomUsers((prev) => {
-            // Kiểm tra xem user đã tồn tại trong danh sách chưa
-            const userExists = prev.some((u) => u.id === joinedUser.id);
-            if (userExists) {
-              return prev;
-            }
-            return [...prev, joinedUser];
+            // Remove any existing entries for this user
+            const withoutUser = prev.filter((u) => u.id !== joinedUser.id);
+            // Add the new user entry
+            return [...withoutUser, joinedUser];
           });
+
           setMessages((prev) => [
             ...prev,
             {
@@ -107,47 +233,6 @@ const WatchTogether = () => {
               type: "system",
             },
           ]);
-        });
-
-        // Lắng nghe sự kiện UserLeft
-        newConnection.on("UserLeft", (userId) => {
-          setRoomUsers((prev) => {
-            const leftUser = prev.find((u) => u.id === userId);
-            const updatedUsers = prev.filter((u) => u.id !== userId);
-
-            if (leftUser) {
-              const systemMessage = {
-                id: `leave-${Date.now()}`,
-                text: `${leftUser.userName} left the room`,
-                sender: { userName: "System" },
-                timestamp: new Date(),
-                type: "system",
-              };
-
-              setMessages((prevMessages) => {
-                // Kiểm tra xem tin nhắn rời phòng của user này đã tồn tại trong 5 giây gần đây chưa
-                const recentMessages = prevMessages.filter(
-                  (m) =>
-                    m.type === "system" &&
-                    m.text === systemMessage.text &&
-                    new Date() - new Date(m.timestamp) < 5000
-                );
-
-                if (recentMessages.length > 0) {
-                  return prevMessages; // Không thêm tin nhắn nếu đã có thông báo gần đây
-                }
-
-                return [...prevMessages, systemMessage];
-              });
-            }
-
-            return updatedUsers;
-          });
-        });
-
-        // Thêm sự kiện cập nhật danh sách người dùng từ server
-        newConnection.on("UpdateParticipants", (participants) => {
-          setRoomUsers(participants);
         });
 
         // Lắng nghe sự kiện nhận tin nhắn
@@ -175,16 +260,7 @@ const WatchTogether = () => {
       .catch((error) => console.error("SignalR Connection Error:", error));
 
     return () => {
-      if (newConnection) {
-        // Leave room before disconnecting
-        newConnection
-          .invoke("LeaveRoom", roomId)
-          .then(() => {
-            console.log("Left SignalR room:", roomId);
-            newConnection.stop();
-          })
-          .catch(console.error);
-      }
+      window.removeEventListener("popstate", handlePopState);
     };
   }, [roomId, user]);
 
@@ -376,11 +452,12 @@ const WatchTogether = () => {
   const movieUrl = movie.medias?.find((m) => m.type === "FILMVIP")?.url;
 
   return (
-    <div className="fixed inset-0 bg-black flex">
+    <div className="fixed inset-0 bg-black flex pt-16">
       {/* Main Content - Movie and Participants */}
       <div className="flex-1 flex">
         {/* Movie Section */}
         <div className="flex-1 flex flex-col">
+          {/* Video Container */}
           <div className="relative flex-1">
             <iframe
               src={movieUrl}
@@ -390,36 +467,10 @@ const WatchTogether = () => {
             />
           </div>
 
-          {/* Movie Controls */}
-          <div className="h-16 bg-gray-800 flex items-center justify-between px-4">
+          {/* Controls Bar */}
+          <div className="h-16 bg-gray-800 flex items-center justify-between px-4 border-t border-gray-700">
+            {/* Left Controls */}
             <div className="flex items-center gap-4">
-              <Button
-                type="text"
-                icon={<ScreenShare className="text-white" />}
-                className="text-white hover:bg-gray-700"
-              >
-                Share Screen
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="text"
-                icon={<Settings className="text-white" />}
-                className="text-white hover:bg-gray-700"
-              >
-                Settings
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Participants Video Grid */}
-        <div className="w-80 bg-gray-900 border-l border-gray-700 flex flex-col">
-          <div className="h-14 border-b border-gray-700 flex items-center justify-between px-4">
-            <h3 className="text-white font-medium">
-              Participants ({roomUsers.length})
-            </h3>
-            <div className="flex items-center gap-2">
               <Tooltip title={isMuted ? "Unmute" : "Mute"}>
                 <button
                   onClick={handleToggleAudio}
@@ -447,6 +498,35 @@ const WatchTogether = () => {
                 </button>
               </Tooltip>
             </div>
+
+            {/* Right Controls */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="primary"
+                danger
+                icon={<X size={16} />}
+                onClick={handleLeaveRoom}
+                className="hover:bg-red-600"
+              >
+                Leave Room
+              </Button>
+              <Button
+                type="text"
+                icon={<Settings className="text-white" />}
+                className="text-white hover:bg-gray-700"
+              >
+                Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Participants Section */}
+        <div className="w-80 bg-gray-900 border-l border-gray-700 flex flex-col">
+          <div className="h-14 border-b border-gray-700 flex items-center justify-between px-4">
+            <h3 className="text-white font-medium">
+              Participants ({roomUsers.length})
+            </h3>
           </div>
 
           {/* Video Grid */}
@@ -493,36 +573,30 @@ const WatchTogether = () => {
             ))}
           </div>
 
-          {/* Bottom Controls */}
+          {/* Chat Toggle */}
           <div className="h-16 border-t border-gray-700 flex items-center justify-between px-4">
             <Button
               type="text"
               icon={<MessageSquare className="text-white" />}
               onClick={() => setShowChat(!showChat)}
-              className={`text-white hover:bg-gray-700 ${
-                showChat ? "bg-gray-700" : ""
-              }`}
+              className="text-white hover:bg-gray-700"
             >
               Chat
             </Button>
           </div>
         </div>
-      </div>
 
-      {/* Chat Sidebar */}
-      {showChat && (
-        <div className="w-80 bg-gray-800 border-l border-gray-700">
-          <ChatBox
-            messages={messages}
-            setMessages={setMessages}
-            messageInput={messageInput}
-            setMessageInput={setMessageInput}
-            user={user}
-            onClose={() => setShowChat(false)}
-            onSendMessage={sendMessage}
-          />
-        </div>
-      )}
+        {/* Chat Section */}
+        {showChat && (
+          <div className="w-80 bg-gray-900 border-l border-gray-700">
+            <ChatBox
+              messages={messages}
+              onSendMessage={sendMessage}
+              currentUser={user}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

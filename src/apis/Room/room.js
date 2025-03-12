@@ -99,6 +99,25 @@ const roomService = {
       throw error.response?.data || error;
     }
   },
+
+  leaveRoom: async (roomId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/Room/leave-room/${roomId}`,
+        null,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
 };
 
 export default roomService;

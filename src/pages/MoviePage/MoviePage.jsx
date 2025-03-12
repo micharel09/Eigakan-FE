@@ -269,12 +269,13 @@ const MoviePage = () => {
   }, [movieId]);
 
   const handleCreateRoom = async () => {
-    if (isCreatingRoom) return; // Prevent multiple calls
+    if (isCreatingRoom) return;
 
     try {
       setIsCreatingRoom(true);
+      const token = localStorage.getItem("token");
 
-      if (!isAuthenticated || !user) {
+      if (!token) {
         notification.error({
           message: "Please login to create a room",
           description: "You need to be logged in to create a watch room",
@@ -327,11 +328,12 @@ const MoviePage = () => {
   const [isJoining, setIsJoining] = useState(false);
 
   const handleJoinRoom = async () => {
-    if (isJoining) return; // Ngăn chặn gọi lại nếu đang trong quá trình Join
-    setIsJoining(true); // Đánh dấu là đang Join
+    if (isJoining) return;
+    setIsJoining(true);
 
     try {
-      if (!isAuthenticated || !user) {
+      const token = localStorage.getItem("token");
+      if (!token) {
         notification.error({
           message: "Please login to join a room",
           description: "You need to be logged in to join a watch room",
@@ -347,12 +349,37 @@ const MoviePage = () => {
         return;
       }
 
+      // Get user data from localStorage if not available in Redux
+      let userData = user;
+      if (!userData || !userData.userId) {
+        const userDataStr = localStorage.getItem("user");
+        if (userDataStr) {
+          try {
+            userData = JSON.parse(userDataStr);
+          } catch (e) {
+            console.error("Error parsing user data:", e);
+          }
+        }
+      }
+
+      if (!userData || !userData.userId) {
+        notification.error({
+          message: "User data missing",
+          description:
+            "Cannot join room without user data. Please try logging in again.",
+        });
+        return;
+      }
+
+      const userId = userData.userId.replace(/^userid:\s*/i, "");
+      console.log("Joining room with userId:", userId);
+
       const response = await roomService.joinRoom({
         roomId: roomId.trim(),
-        userId: user.id,
+        userId: userId,
       });
 
-      console.log("API Response:", response); // Debug API response
+      console.log("API Response:", response);
 
       if (response.success) {
         notification.success({ message: "Joined room successfully!" });
@@ -360,12 +387,13 @@ const MoviePage = () => {
         navigate(`/watch-together/${movieId}?roomId=${roomId}`);
       }
     } catch (error) {
+      console.error("Join room error:", error);
       notification.error({
         message: "Failed to join room",
         description: error.message || "Could not join room",
       });
     } finally {
-      setIsJoining(false); // Reset trạng thái sau khi xong
+      setIsJoining(false);
     }
   };
 

@@ -4,15 +4,9 @@ import { X } from "lucide-react";
 import { Avatar } from "antd";
 import moment from "moment";
 
-const ChatBox = ({
-  messages,
-  messageInput,
-  setMessageInput,
-  user,
-  onClose,
-  onSendMessage,
-}) => {
+const ChatBox = ({ messages, onSendMessage, currentUser }) => {
   const messagesEndRef = useRef(null);
+  const [messageInput, setMessageInput] = React.useState("");
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -41,12 +35,6 @@ const ChatBox = ({
       {/* Chat Header */}
       <div className="h-14 border-b border-gray-700 flex items-center justify-between px-4">
         <h3 className="text-white font-medium">Chat</h3>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-full hover:bg-gray-700"
-        >
-          <X className="text-white h-5 w-5" />
-        </button>
       </div>
 
       {/* Messages */}
@@ -57,13 +45,13 @@ const ChatBox = ({
             className={`flex items-start space-x-3 ${
               message.type === "system"
                 ? "justify-center"
-                : message.sender.userName === user.fullName
+                : message.sender.userName === currentUser.fullName
                 ? "justify-end"
                 : "justify-start"
             }`}
           >
             {message.type !== "system" &&
-              message.sender.userName !== user.fullName && (
+              message.sender.userName !== currentUser.fullName && (
                 <Avatar
                   size={36}
                   src={message.sender.avatar || "/default-avatar.png"}
@@ -74,13 +62,13 @@ const ChatBox = ({
               className={`max-w-[70%] ${
                 message.type === "system"
                   ? "bg-gray-700 text-gray-300 text-sm px-3 py-1 rounded-full"
-                  : message.sender.userName === user.fullName
+                  : message.sender.userName === currentUser.fullName
                   ? "bg-blue-600 text-white"
                   : "bg-gray-700 text-white"
               } rounded-lg px-4 py-2`}
             >
               {message.type !== "system" &&
-                message.sender.userName !== user.fullName && (
+                message.sender.userName !== currentUser.fullName && (
                   <div className="text-sm text-gray-300 mb-1">
                     {message.sender.userName}
                   </div>
@@ -91,11 +79,11 @@ const ChatBox = ({
               </div>
             </div>
             {message.type !== "system" &&
-              message.sender.userName === user.fullName && (
+              message.sender.userName === currentUser.fullName && (
                 <Avatar
                   size={36}
-                  src={user.picture || "/default-avatar.png"}
-                  alt={user.fullName}
+                  src={currentUser.picture || "/default-avatar.png"}
+                  alt={currentUser.fullName}
                 />
               )}
           </div>
