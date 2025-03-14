@@ -32,11 +32,6 @@ const ChatBox = ({ messages, onSendMessage, currentUser }) => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chat Header */}
-      <div className="h-14 border-b border-gray-700 flex items-center justify-between px-4">
-        <h3 className="text-white font-medium">Chat</h3>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (

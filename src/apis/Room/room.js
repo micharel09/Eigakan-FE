@@ -3,55 +3,45 @@ import axios from "axios";
 const API_URL = "https://localhost:7192/api";
 
 const roomService = {
-  createRoom: async (roomData) => {
+  getRoomDetails: async (roomId) => {
     try {
-      console.log("Creating room with data:", roomData);
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/Room/create`,
-        {
-          hostId: roomData.hostId,
-          movieID: roomData.movieID,
-          fileUrl: roomData.fileUrl,
-          createDate: new Date().toISOString(),
-          startTime: new Date().toISOString(),
-          endTime: new Date(Date.now() + 3600000).toISOString(),
-          isActive: true,
-          status: "Active",
+      const response = await axios.get(`${API_URL}/Room/${roomId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-        }
-      );
+      });
       return response.data;
     } catch (error) {
-      console.error("Room creation error:", error);
-      throw error.response?.data || error;
+      console.error("Error getting room details:", error);
+      throw error;
     }
   },
 
-  joinRoom: async (joinData) => {
+  createRoom: async (roomData) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/Room/join-room`,
-        {
-          roomId: joinData.roomId,
-          userId: joinData.userId,
+      const response = await axios.post(`${API_URL}/Room/create`, roomData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-        }
-      );
+      });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      console.error("Error creating room:", error);
+      throw error;
+    }
+  },
+
+  joinRoom: async (data) => {
+    try {
+      const response = await axios.post(`${API_URL}/Room/join`, data, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error joining room:", error);
+      throw error;
     }
   },
 
@@ -59,6 +49,21 @@ const roomService = {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(`${API_URL}/Room/active`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  getHostRoom: async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API_URL}/Room/get-host-room`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : "",
@@ -102,20 +107,19 @@ const roomService = {
 
   leaveRoom: async (roomId) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axios.post(
-        `${API_URL}/Room/leave-room/${roomId}`,
-        null,
+        `${API_URL}/Room/leave/${roomId}`,
+        {},
         {
           headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
       return response.data;
     } catch (error) {
-      throw error.response?.data || error;
+      console.error("Error leaving room:", error);
+      throw error;
     }
   },
 };

@@ -5,7 +5,7 @@ import SignupPage from "../pages/Auth/SignUpPage";
 import HomePage from "../pages/home/HomePage";
 import WatchPage from "../pages/Watchpage/WatchPage";
 import SearchPage from "../pages/home/Search.jsx";
-import MoviePage from "../pages/MoviePage/MoviePage.jsx";
+import MoviePage from "../pages/MoviePage/MoviePage";
 import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
 import PopularPeople from "../pages/Actor/PopularPeople.jsx";
@@ -50,7 +50,6 @@ import UpdateMovieAdmin from "../pages/Admin/Movie/UpdateMovieAdmin.jsx";
 import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard";
 import GenrePage from "../pages/Genre/GenrePage";
 import GenresPage from "../pages/Genre/GenresPage";
-import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard.jsx";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
 
 const isLoggedIn = () => {

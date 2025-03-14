@@ -29,19 +29,8 @@ const MovieHero = memo(
     const poster = movie.medias?.find((m) => m.type === "POSTER");
     const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
-  return (
-    <div className="relative w-full h-[70vh] overflow-hidden -mt-16 pt-16">
-      {/* Background Banner */}
-      <div className="absolute inset-0">
-        <img
-          src={banner?.url || poster?.url || "/placeholder.jpg"}
-          alt={movie.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80" />
-      </div>
     return (
-      <div className="relative w-full h-[70vh] overflow-hidden">
+      <div className="relative w-full h-[70vh] overflow-hidden -mt-16 pt-16">
         {/* Background Banner */}
         <div className="absolute inset-0">
           <img
@@ -247,6 +236,7 @@ const MoviePage = () => {
     useState(false);
   const [isJoinRoomModalVisible, setIsJoinRoomModalVisible] = useState(false);
   const [roomId, setRoomId] = useState("");
+  const [hostedRooms, setHostedRooms] = useState([]);
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -278,6 +268,44 @@ const MoviePage = () => {
 
     fetchMovieData();
   }, [movieId]);
+
+  useEffect(() => {
+    const fetchHostedRooms = async () => {
+      try {
+        const response = await roomService.getHostRoom();
+        console.log("Host room response:", response);
+
+        if (response.success) {
+          // Ensure response.data is an array
+          const rooms = Array.isArray(response.data)
+            ? response.data
+            : [response.data];
+          setHostedRooms(rooms);
+
+          // Find active room for current movie
+          const activeRoom = rooms.find(
+            (room) =>
+              room &&
+              room.movieID === movieId &&
+              room.status === "Active" &&
+              room.hostId === user?.userId?.replace(/^userid:\s*/i, "")
+          );
+
+          if (activeRoom) {
+            console.log("Found active room:", activeRoom);
+            setRoomId(activeRoom.id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching hosted rooms:", error);
+        setHostedRooms([]); // Reset to empty array on error
+      }
+    };
+
+    if (user && movieId) {
+      fetchHostedRooms();
+    }
+  }, [user, movieId]);
 
   const handleCreateRoom = async () => {
     if (isCreatingRoom) return;
@@ -519,20 +547,55 @@ const MoviePage = () => {
       <Modal
         title="Join Watch Room"
         open={isJoinRoomModalVisible}
-        onOk={handleJoinRoom} // Chỉ gọi API khi bấm nút Join
+        onOk={handleJoinRoom}
         onCancel={() => {
           setRoomId("");
           setIsJoinRoomModalVisible(false);
         }}
         okText="Join"
         cancelText="Cancel"
+        okButtonProps={{
+          loading: isJoining,
+          disabled: isJoining || !roomId.trim(),
+        }}
+        cancelButtonProps={{ disabled: isJoining }}
       >
-        <Input
-          placeholder="Enter Room ID"
-          value={roomId}
-          onChange={(e) => setRoomId(e.target.value)}
-          className="mt-4"
-        />
+        <div className="mt-4">
+          {hostedRooms.length > 0 &&
+            hostedRooms.some(
+              (room) => room?.movieID === movieId && room?.status === "Active"
+            ) && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-2">Your active room:</p>
+                {hostedRooms.map(
+                  (room) =>
+                    room &&
+                    room.movieID === movieId &&
+                    room.status === "Active" && (
+                      <div
+                        key={room.id}
+                        className="flex items-center justify-between bg-gray-100 p-2 rounded"
+                      >
+                        <span className="font-medium">{room.id}</span>
+                        <Button
+                          size="small"
+                          type="link"
+                          onClick={() => setRoomId(room.id)}
+                        >
+                          Use this room
+                        </Button>
+                      </div>
+                    )
+                )}
+              </div>
+            )}
+          <Input
+            placeholder="Enter Room ID"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+            disabled={isJoining}
+          />
+        </div>
       </Modal>
     </>
   );
