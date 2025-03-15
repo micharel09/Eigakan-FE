@@ -104,6 +104,23 @@ const WatchPage = () => {
     checkSession();
   }, []);
 
+  useEffect(() => {
+    const fetchUserRating = async () => {
+      if (!isAuthenticated || !movieId) return;
+
+      try {
+        const response = await ratingService.getUserRatingForMovie(movieId);
+        if (response.success && response.data) {
+          setRatingValue(response.data.stars);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy rating của người dùng:", error);
+      }
+    };
+
+    fetchUserRating();
+  }, [movieId, isAuthenticated]);
+
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentInput.trim()) return;
