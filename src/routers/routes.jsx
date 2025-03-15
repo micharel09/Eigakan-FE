@@ -50,6 +50,7 @@ import UpdateMovieAdmin from "../pages/Admin/Movie/UpdateMovieAdmin.jsx";
 import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard";
 import GenrePage from "../pages/Genre/GenrePage";
 import GenresPage from "../pages/Genre/GenresPage";
+import AdSlotTimeManagement from "../pages/Manager/AdSlot/AdSlotTimeManagement";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -318,6 +319,17 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="MANAGER">
         <NewsManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/adslot-time",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <AdSlotTimeManagement />
       </PrivateRoute>
     ),
     layout: "ManagerLayout",

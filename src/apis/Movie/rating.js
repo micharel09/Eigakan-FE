@@ -74,6 +74,18 @@ const ratingService = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
+  },
+
+  async getUserRatingForMovie(movieId) {
+    try {
+      const response = await axios.get(`${BASE_URL}/MovieRating/GetRatingByLogin`, {
+        params: { movieId },
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
   }
 };
 

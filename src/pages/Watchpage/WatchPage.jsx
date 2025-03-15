@@ -23,6 +23,7 @@ const WatchPage = () => {
   const [userRole, setUserRole] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
+  const [hasUserRated, setHasUserRated] = useState(false);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -60,7 +61,7 @@ const WatchPage = () => {
   useEffect(() => {
     const fetchUserDetails = async () => {
       if (!isAuthenticated || !movie?.comments) return;
-      setLoadingComments(true); // Bắt đầu loading
+      setLoadingComments(true); // Start loading
 
       try {
         const userIds = movie.comments.map((comment) => comment.createBy);
@@ -85,12 +86,12 @@ const WatchPage = () => {
       } catch (error) {
         console.error("Error fetching user details:", error);
       } finally {
-        setLoadingComments(false); // Kết thúc loading
+        setLoadingComments(false); // End loading
       }
     };
 
     fetchUserDetails();
-  }, [movie, isAuthenticated]); // Thêm isAuthenticated vào dependencies
+  }, [movie, isAuthenticated]); // Added isAuthenticated to dependencies
 
   useEffect(() => {
     const checkSession = () => {
@@ -98,11 +99,29 @@ const WatchPage = () => {
       const user = localStorage.getItem("user");
       const role = localStorage.getItem("role");
       setIsAuthenticated(!!token && !!user);
-      setUserRole(role); // Cập nhật userRole từ localStorage
+      setUserRole(role); // Update userRole from localStorage
     };
 
     checkSession();
   }, []);
+
+  useEffect(() => {
+    const fetchUserRating = async () => {
+      if (!isAuthenticated || !movieId) return;
+
+      try {
+        const response = await ratingService.getUserRatingForMovie(movieId);
+        if (response.success && response.data) {
+          setRatingValue(response.data.stars);
+          setHasUserRated(true);
+        }
+      } catch (error) {
+        console.error("Error fetching user rating:", error);
+      }
+    };
+
+    fetchUserRating();
+  }, [movieId, isAuthenticated]);
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
@@ -422,9 +441,7 @@ const WatchPage = () => {
                                 {actor.name}
                               </div>
                               <div className="text-sm text-white/50 truncate">
-                                {actor.job === "Diễn viên"
-                                  ? "Actor"
-                                  : actor.job}
+                                {actor.job === "Actor" ? "Actor" : actor.job}
                               </div>
                             </div>
                           </div>
@@ -465,7 +482,7 @@ const WatchPage = () => {
                           <Rate
                             value={ratingValue}
                             onChange={handleRatingChange}
-                            disabled={submittingRating}
+                            disabled={submittingRating || hasUserRated}
                             className="flex gap-2"
                             character={({ index, value }) => (
                               <div className="relative cursor-pointer transition-transform hover:scale-110">
@@ -516,7 +533,11 @@ const WatchPage = () => {
                                     {ratingValue} stars
                                   </span>
                                   <span className="mx-2">•</span>
-                                  <span>Thanks for rating!</span>
+                                  <span>
+                                    {hasUserRated
+                                      ? "You've already rated this movie"
+                                      : "Thanks for rating!"}
+                                  </span>
                                 </>
                               ) : (
                                 <span className="animate-pulse">
