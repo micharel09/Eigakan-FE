@@ -19,7 +19,7 @@ const renderWithLayout = (route) => {
     Layout = AdvertiserLayout;
   } else if (route.layout === "ManagerLayout") {
     Layout = ManagerLayout;
-  }else if (route.layout === "PublisherLayout") {
+  } else if (route.layout === "PublisherLayout") {
     Layout = PublisherLayout;
   }
 

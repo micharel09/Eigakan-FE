@@ -3,14 +3,17 @@ import axios from "axios";
 const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPackage";
 
 const subscriptionService = {
-  getAllPackages: async () => {
+  getAllPackages: async (page = 1, pageSize = 10) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.get(
+        `${API_URL}?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
