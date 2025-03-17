@@ -62,11 +62,17 @@ const WatchTogether = () => {
   const audioDataRef = useRef(null);
   const animationFrameRef = useRef(null);
   const videoElementRef = useRef(null);
+  // Thêm state cho chế độ test
+  const [testMode, setTestMode] = useState(false);
+  const [testStream, setTestStream] = useState(null);
 
   // Thêm các ref để theo dõi trạng thái
   const isVideoOffRef = useRef(false);
   const isMutedRef = useRef(false);
   const localStreamRef = useRef(null);
+
+  // Thêm state để theo dõi người đang nói chuyện
+  const [activeSpeaker, setActiveSpeaker] = useState(null);
 
   // Cập nhật các ref khi state thay đổi
   useEffect(() => {
@@ -421,6 +427,75 @@ const WatchTogether = () => {
             setUnreadMessages((prev) => prev + 1);
           }
         });
+
+        // Lắng nghe sự kiện WebRTC từ server
+        newConnection.on("ReceiveOffer", async (fromUserId, offerString) => {
+          console.log(`Received offer from user ${fromUserId}`);
+          try {
+            await webRTCService.handleIncomingCall(
+              fromUserId,
+              offerString,
+              newConnection
+            );
+          } catch (error) {
+            console.error("Error handling incoming call:", error);
+          }
+        });
+
+        newConnection.on("ReceiveAnswer", async (fromUserId, answerString) => {
+          console.log(`Received answer from user ${fromUserId}`);
+          try {
+            await webRTCService.handleAnswer(fromUserId, answerString);
+          } catch (error) {
+            console.error("Error handling answer:", error);
+          }
+        });
+
+        newConnection.on(
+          "ReceiveIceCandidate",
+          async (fromUserId, candidateString) => {
+            console.log(`Received ICE candidate from user ${fromUserId}`);
+            try {
+              await webRTCService.handleIceCandidate(
+                fromUserId,
+                candidateString
+              );
+            } catch (error) {
+              console.error("Error handling ICE candidate:", error);
+            }
+          }
+        );
+
+        newConnection.on("InitiatePeerConnection", async (targetUserId) => {
+          console.log(
+            `Server requested to initiate connection with user ${targetUserId}`
+          );
+
+          // Đảm bảo chúng ta có localStream trước khi tạo kết nối
+          if (!localStreamRef.current) {
+            console.log("No local stream available, initializing camera first");
+            try {
+              await initCamera();
+              // Đợi một chút để đảm bảo stream đã được khởi tạo
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            } catch (error) {
+              console.error(
+                "Failed to initialize camera for peer connection:",
+                error
+              );
+              return;
+            }
+          }
+
+          try {
+            await webRTCService.initiateCall(targetUserId, newConnection);
+          } catch (error) {
+            console.error(
+              `Error initiating call with user ${targetUserId}:`,
+              error
+            );
+          }
+        });
       })
       .catch((error) => console.error("SignalR Connection Error:", error));
 
@@ -437,6 +512,103 @@ const WatchTogether = () => {
     console.log("Current participant streams:", participantStreams);
   }, [roomUsers, participantStreams]);
 
+  // Cập nhật hàm setupAudioAnalyser để phân tích âm thanh và ghi log vào console
+  const setupAudioAnalyser = (stream) => {
+    console.log("Setting up audio analyser for console logging only");
+
+    try {
+      // Hủy bỏ analyser cũ nếu có
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
+      if (!stream || !stream.getAudioTracks().length) {
+        console.log("No audio tracks available for analysis");
+        return;
+      }
+
+      // Tạo audio context mới
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      const microphone = audioContext.createMediaStreamSource(stream);
+
+      // Kết nối microphone với analyser
+      microphone.connect(analyser);
+
+      // Cấu hình analyser
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      // Lưu trữ tham chiếu
+      audioAnalyserRef.current = analyser;
+      audioDataRef.current = dataArray;
+
+      // Biến để theo dõi tiếng ồn nền
+      let backgroundNoiseLevel = 0;
+      let sampleCount = 0;
+      const CALIBRATION_SAMPLES = 20; // Số mẫu để xác định tiếng ồn nền
+      const NOISE_THRESHOLD_MULTIPLIER = 1.5; // Hệ số nhân để xác định ngưỡng
+
+      // Hàm phân tích âm thanh
+      const analyzeAudio = () => {
+        if (!audioAnalyserRef.current) return;
+
+        analyser.getByteFrequencyData(dataArray);
+
+        // Tính toán mức âm thanh trung bình
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+
+        // Trong giai đoạn hiệu chuẩn, tính toán mức tiếng ồn nền
+        if (sampleCount < CALIBRATION_SAMPLES) {
+          backgroundNoiseLevel += average;
+          sampleCount++;
+
+          if (sampleCount === CALIBRATION_SAMPLES) {
+            backgroundNoiseLevel = backgroundNoiseLevel / CALIBRATION_SAMPLES;
+            console.log(
+              `Đã xác định mức tiếng ồn nền: ${backgroundNoiseLevel.toFixed(2)}`
+            );
+            console.log(
+              `Ngưỡng phát hiện tiếng nói: ${(
+                backgroundNoiseLevel * NOISE_THRESHOLD_MULTIPLIER
+              ).toFixed(2)}`
+            );
+          }
+
+          // Hiển thị mức âm thanh trong giai đoạn hiệu chuẩn
+          console.log(`[Hiệu chuẩn] Audio level: ${average.toFixed(2)}`);
+        } else {
+          // Sau khi hiệu chuẩn, chỉ hiển thị khi vượt ngưỡng
+          const threshold = backgroundNoiseLevel * NOISE_THRESHOLD_MULTIPLIER;
+
+          if (average > threshold) {
+            console.log(
+              `Audio level: ${average.toFixed(
+                2
+              )} (Vượt ngưỡng ${threshold.toFixed(2)})`
+            );
+          }
+        }
+
+        // Tiếp tục vòng lặp
+        animationFrameRef.current = requestAnimationFrame(analyzeAudio);
+      };
+
+      // Bắt đầu phân tích
+      analyzeAudio();
+    } catch (error) {
+      console.error("Error setting up audio analyser:", error);
+    }
+  };
+
+  // Cập nhật hàm handleToggleAudio để thêm phân tích âm thanh
   const handleToggleAudio = async () => {
     try {
       console.log("Toggling audio state");
@@ -447,17 +619,123 @@ const WatchTogether = () => {
       // Cập nhật ref ngay lập tức để tránh race condition
       isMutedRef.current = newMutedState;
 
-      // Cập nhật trạng thái track nếu có stream
-      if (localStreamRef.current) {
-        localStreamRef.current.getAudioTracks().forEach((track) => {
-          track.enabled = !newMutedState;
-          console.log(`Audio track ${track.label} enabled: ${!newMutedState}`);
-        });
+      if (!newMutedState) {
+        // Bật micro: Tạo một stream audio riêng biệt
+        try {
+          // Tạo stream mới chỉ với audio
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: false,
+          });
 
-        // Cập nhật WebRTC
-        webRTCService.toggleAudio(!newMutedState);
+          // Lấy audio track từ stream mới
+          const newAudioTrack = audioStream.getAudioTracks()[0];
+
+          if (newAudioTrack) {
+            console.log(`Adding new audio track: ${newAudioTrack.label}`);
+
+            // Dừng các audio tracks hiện tại nếu có
+            if (localStreamRef.current) {
+              const existingAudioTracks =
+                localStreamRef.current.getAudioTracks();
+              existingAudioTracks.forEach((track) => {
+                track.stop();
+                console.log(`Stopped existing audio track: ${track.label}`);
+              });
+            }
+
+            // Tạo một stream mới hoàn toàn
+            const newStream = new MediaStream();
+
+            // Thêm lại các video tracks hiện có nếu có
+            if (localStreamRef.current) {
+              const videoTracks = localStreamRef.current.getVideoTracks();
+              videoTracks.forEach((track) => {
+                newStream.addTrack(track);
+                console.log(`Re-added video track: ${track.label}`);
+              });
+            }
+
+            // Thêm audio track mới
+            newStream.addTrack(newAudioTrack);
+
+            // Cập nhật stream
+            setLocalStream(newStream);
+            localStreamRef.current = newStream;
+
+            // Cập nhật video element
+            if (videoElementRef.current) {
+              videoElementRef.current.srcObject = newStream;
+            }
+
+            // Cập nhật WebRTC
+            webRTCService.toggleAudio(true);
+
+            // Thiết lập audio analyser để ghi log mức âm thanh vào console
+            // Sử dụng một bản sao của stream để tránh ảnh hưởng đến stream chính
+            const analyserStream = new MediaStream();
+            analyserStream.addTrack(newAudioTrack.clone());
+            setupAudioAnalyser(analyserStream);
+          }
+        } catch (error) {
+          console.error("Error adding audio track:", error);
+          notification.error({
+            message: "Microphone Error",
+            description: "Could not access your microphone: " + error.message,
+          });
+
+          // Đặt lại trạng thái muted nếu có lỗi
+          setIsMuted(true);
+          isMutedRef.current = true;
+          return;
+        }
       } else {
-        console.warn("No local stream available when toggling audio");
+        // Tắt micro: Dừng tất cả các audio tracks
+        if (localStreamRef.current) {
+          const audioTracks = localStreamRef.current.getAudioTracks();
+          if (audioTracks.length > 0) {
+            console.log(
+              `Stopping ${audioTracks.length} audio tracks completely`
+            );
+            audioTracks.forEach((track) => {
+              console.log(`Stopping audio track: ${track.label}`);
+              track.enabled = false; // Tắt track trước
+              track.stop(); // Dừng hoàn toàn track
+            });
+
+            // Tạo stream mới chỉ với video tracks
+            const videoTracks = localStreamRef.current.getVideoTracks();
+            const newStream = new MediaStream();
+
+            // Chỉ giữ lại video tracks
+            videoTracks.forEach((track) => newStream.addTrack(track));
+
+            // Cập nhật stream
+            setLocalStream(newStream);
+            localStreamRef.current = newStream;
+
+            // Cập nhật video element
+            if (videoElementRef.current) {
+              videoElementRef.current.srcObject = newStream;
+            }
+
+            console.log("Audio is now OFF, microphone completely stopped");
+
+            // Cập nhật WebRTC
+            webRTCService.toggleAudio(false);
+
+            // Hủy bỏ audio analyser
+            if (audioAnalyserRef.current) {
+              audioAnalyserRef.current = null;
+            }
+            if (animationFrameRef.current) {
+              cancelAnimationFrame(animationFrameRef.current);
+              animationFrameRef.current = null;
+            }
+          } else {
+            console.log("No audio tracks to stop");
+          }
+        }
       }
 
       // Thông báo cho server về trạng thái micro
@@ -469,20 +747,588 @@ const WatchTogether = () => {
           console.error("Error notifying server of audio state:", error);
         }
       }
-
-      // Khởi tạo lại audio analyser nếu bật micro
-      if (!newMutedState) {
-        setupAudioAnalyser();
-      } else {
-        // Dừng phân tích âm thanh nếu tắt micro
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-        }
-        setAudioLevel(0);
-      }
     } catch (error) {
       console.error("Error toggling audio:", error);
+    }
+  };
+
+  // Cập nhật hàm initCamera để chỉ xử lý video, không xử lý audio
+  const initCamera = useCallback(async () => {
+    console.log("Initializing camera with webRTCService");
+    setIsCameraLoading(true);
+    setCameraError(null);
+
+    try {
+      // Dừng tất cả các video tracks hiện tại nếu có
+      if (localStreamRef.current) {
+        const videoTracks = localStreamRef.current.getVideoTracks();
+        videoTracks.forEach((track) => {
+          track.stop();
+          console.log(`Stopped existing video track: ${track.label}`);
+        });
+      }
+
+      // Đợi một chút để đảm bảo các tracks cũ đã được dọn dẹp
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Chỉ yêu cầu video, không yêu cầu audio
+      const constraints = {
+        video: true,
+        audio: false,
+      };
+
+      console.log("Getting user media with constraints:", constraints);
+
+      // Chỉ yêu cầu video
+      const videoStream = await navigator.mediaDevices.getUserMedia(
+        constraints
+      );
+
+      console.log("New video stream obtained:", videoStream);
+      console.log("Video tracks:", videoStream.getVideoTracks());
+
+      // Tạo một MediaStream mới
+      const newStream = new MediaStream();
+
+      // Thêm video tracks từ stream mới
+      videoStream.getVideoTracks().forEach((track) => {
+        newStream.addTrack(track);
+        console.log(`Added video track: ${track.label}`);
+      });
+
+      // Thêm lại các audio tracks hiện có nếu có và không bị muted
+      if (localStreamRef.current && !isMutedRef.current) {
+        const audioTracks = localStreamRef.current.getAudioTracks();
+        audioTracks.forEach((track) => {
+          newStream.addTrack(track);
+          console.log(`Re-added existing audio track: ${track.label}`);
+        });
+      }
+
+      // Lưu stream vào state và ref
+      setLocalStream(newStream);
+      localStreamRef.current = newStream;
+
+      // Nếu trạng thái hiện tại là video off, disable các video tracks
+      if (isVideoOffRef.current) {
+        console.log("Video is off, disabling video tracks");
+        newStream.getVideoTracks().forEach((track) => {
+          track.enabled = false;
+        });
+      }
+
+      setCameraReady(true);
+      return newStream;
+    } catch (error) {
+      console.error("Error initializing camera:", error);
+
+      if (error.name === "NotAllowedError") {
+        setCameraError(
+          "Camera access denied. Please allow camera access and refresh the page."
+        );
+      } else if (error.name === "NotFoundError") {
+        setCameraError(
+          "No camera found. Please connect a camera and refresh the page."
+        );
+      } else if (error.name === "NotReadableError") {
+        setCameraError(
+          "Camera is in use by another application. Please close other applications using the camera."
+        );
+      } else {
+        setCameraError(`Could not initialize camera: ${error.message}`);
+      }
+
+      setIsVideoOff(true);
+      isVideoOffRef.current = true;
+      return null;
+    } finally {
+      setIsCameraLoading(false);
+    }
+  }, []); // Không có dependencies
+
+  // Thêm hàm sendMessage nếu chưa có
+  const sendMessage = async (text) => {
+    if (!connection || !text.trim()) return;
+
+    try {
+      await connection.invoke(
+        "SendMessage",
+        roomId,
+        user.fullName,
+        text,
+        user.picture || "/default-avatar.png"
+      );
+    } catch (error) {
+      console.error("Error sending message:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to send message: " + error.message,
+      });
+    }
+  };
+
+  // Thêm hàm renderParticipantCount nếu chưa có
+  const renderParticipantCount = () => {
+    return (
+      <div className="mb-4 text-white">
+        <h3 className="text-lg font-medium mb-2">
+          Participants ({roomUsers.length})
+        </h3>
+      </div>
+    );
+  };
+
+  // Thêm hàm renderParticipantVideos nếu chưa có
+  const renderParticipantVideos = () => {
+    return (
+      <div className="space-y-4">
+        {roomUsers
+          .filter((participant) => participant.id !== user?.id) // Chỉ hiển thị người dùng khác
+          .map((participant) => (
+            <div key={participant.id} className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-700">
+                <img
+                  src={participant.avatar || "/default-avatar.png"}
+                  alt={participant.userName}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="text-white font-medium">
+                  {participant.userName}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  {participant.isMuted && (
+                    <span className="text-red-500">
+                      <MicOff size={12} />
+                    </span>
+                  )}
+                  {participant.isVideoOff && (
+                    <span className="text-red-500">
+                      <VideoOff size={12} />
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+      </div>
+    );
+  };
+
+  // Thêm component ParticipantVideo nếu chưa có
+  const ParticipantVideo = ({ participant, participantStream }) => {
+    const videoRef = useRef(null);
+
+    useEffect(() => {
+      if (participantStream && videoRef.current) {
+        videoRef.current.srcObject = participantStream;
+
+        const playVideo = async () => {
+          try {
+            await videoRef.current.play();
+          } catch (error) {
+            console.error("Error playing participant video:", error);
+            setTimeout(playVideo, 1000);
+          }
+        };
+
+        playVideo();
+      }
+
+      return () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
+      };
+    }, [participantStream]);
+
+    // Nếu người dùng tắt camera hoặc không có stream
+    if (participant.isVideoOff || !participantStream) {
+      return (
+        <div className="relative h-full w-32 bg-gray-800 rounded-lg overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <img
+              src={participant.avatar || "/default-avatar.png"}
+              alt={participant.userName}
+              className="w-12 h-12 rounded-full"
+            />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-1">
+            <div className="flex items-center justify-between">
+              <span className="text-white text-xs truncate max-w-[80px]">
+                {participant.userName}
+              </span>
+              <div className="flex items-center gap-1">
+                {participant.isMuted && (
+                  <span className="text-red-500">
+                    <MicOff size={10} />
+                  </span>
+                )}
+                {participant.isVideoOff && (
+                  <span className="text-red-500">
+                    <VideoOff size={10} />
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Nếu người dùng bật camera
+    return (
+      <div className="relative h-full w-32 bg-gray-800 rounded-lg overflow-hidden">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-1">
+          <div className="flex items-center justify-between">
+            <span className="text-white text-xs truncate max-w-[80px]">
+              {participant.userName}
+            </span>
+            <div className="flex items-center gap-1">
+              {participant.isMuted && (
+                <span className="text-red-500">
+                  <MicOff size={10} />
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Thêm component CameraVideo để không hiển thị chỉ báo âm thanh
+  const CameraVideo = ({
+    videoRef,
+    isVideoOff,
+    localStream,
+    user,
+    isCameraLoading,
+    cameraError,
+    setCameraError,
+    initCamera,
+  }) => {
+    // Kiểm tra xem có video tracks không
+    const hasVideoTracks =
+      localStream && localStream.getVideoTracks().length > 0;
+    console.log("Has video tracks:", hasVideoTracks);
+
+    if (isCameraLoading) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+        </div>
+      );
+    }
+
+    // Nếu video tắt hoặc không có video tracks, hiển thị avatar
+    if (isVideoOff || !hasVideoTracks) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+          <img
+            src={user?.picture || "/default-avatar.png"}
+            alt="User Avatar"
+            className="w-16 h-16 rounded-full"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative w-full h-full overflow-hidden">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+          style={{
+            transform: "scaleX(-1)",
+          }}
+        />
+
+        {/* Hiển thị lỗi camera nếu có */}
+        {cameraError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-20">
+            <div className="text-center p-2">
+              <div className="text-red-500 text-sm mb-1">Camera Error</div>
+              <p className="text-white text-xs mb-2">{cameraError}</p>
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded"
+                onClick={() => {
+                  setCameraError(null);
+                  initCamera();
+                }}
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Thêm component ActiveSpeakerVideo để không sử dụng activeSpeaker
+  const ActiveSpeakerVideo = () => {
+    // Luôn trả về null để vô hiệu hóa tính năng này
+    return null;
+  };
+
+  // Thêm useEffect để lắng nghe sự kiện UserToggleAudio từ server
+  useEffect(() => {
+    if (!connection) return;
+
+    // Lắng nghe sự kiện UserToggleAudio
+    connection.on("UserToggleAudio", (userId, isMuted) => {
+      console.log(
+        `User ${userId} toggled audio: ${isMuted ? "muted" : "unmuted"}`
+      );
+
+      // Nếu người dùng bật micro và không có người đang nói chuyện, đặt người này là người đang nói chuyện
+      if (!isMuted && (!activeSpeaker || activeSpeaker.id === user?.id)) {
+        const speaker = roomUsers.find((u) => u.id === userId);
+        if (speaker && speaker.id !== user?.id) {
+          setActiveSpeaker(speaker);
+        }
+      }
+
+      // Nếu người dùng tắt micro và là người đang nói chuyện, đặt lại active speaker
+      if (isMuted && activeSpeaker && activeSpeaker.id === userId) {
+        setActiveSpeaker(null);
+      }
+    });
+
+    return () => {
+      connection.off("UserToggleAudio");
+    };
+  }, [connection, activeSpeaker, roomUsers, user]);
+
+  // Thêm hàm để bật/tắt chế độ test
+  const toggleTestMode = async () => {
+    if (testMode) {
+      // Tắt chế độ test
+      setTestMode(false);
+
+      // Dọn dẹp test stream nếu có
+      if (testStream) {
+        testStream.getTracks().forEach((track) => track.stop());
+        setTestStream(null);
+      }
+
+      // Xóa stream giả lập khỏi participantStreams
+      setParticipantStreams((prev) => {
+        const newStreams = { ...prev };
+        delete newStreams["test-user-id"];
+        return newStreams;
+      });
+
+      // Xóa người dùng giả lập khỏi roomUsers
+      setRoomUsers((prev) => prev.filter((u) => u.id !== "test-user-id"));
+    } else {
+      // Bật chế độ test
+      setTestMode(true);
+
+      try {
+        // Tạo stream giả lập cho người dùng test
+        const fakeStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+
+        setTestStream(fakeStream);
+
+        // Thêm người dùng giả lập vào roomUsers
+        setRoomUsers((prev) => [
+          ...prev,
+          {
+            id: "test-user-id",
+            userName: "Test User",
+            avatar: "/default-avatar.png",
+            isMuted: false,
+            isVideoOff: false,
+          },
+        ]);
+
+        // Thêm stream giả lập vào participantStreams
+        setParticipantStreams((prev) => ({
+          ...prev,
+          "test-user-id": fakeStream,
+        }));
+
+        // Thông báo
+        notification.success({
+          message: "Test Mode Enabled",
+          description:
+            "A fake user has been added to test video functionality.",
+        });
+      } catch (error) {
+        console.error("Error creating test stream:", error);
+        notification.error({
+          message: "Test Mode Error",
+          description: "Could not create test stream: " + error.message,
+        });
+        setTestMode(false);
+      }
+    }
+  };
+
+  // Thêm useEffect để dọn dẹp test stream khi component unmount
+  useEffect(() => {
+    return () => {
+      if (testStream) {
+        testStream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [testStream]);
+
+  // Cập nhật hàm handleToggleVideo để tách biệt hoàn toàn với audio
+  const handleToggleVideo = async () => {
+    try {
+      const newVideoState = !isVideoOff;
+      console.log("Toggling video state to:", newVideoState ? "OFF" : "ON");
+
+      // Cập nhật state và ref ngay lập tức
+      setIsVideoOff(newVideoState);
+      isVideoOffRef.current = newVideoState;
+
+      if (newVideoState) {
+        // Tắt camera: Dừng hoàn toàn các video tracks
+        if (localStreamRef.current) {
+          const videoTracks = localStreamRef.current.getVideoTracks();
+          if (videoTracks.length > 0) {
+            console.log(
+              `Stopping ${videoTracks.length} video tracks completely`
+            );
+            videoTracks.forEach((track) => {
+              console.log(`Stopping video track: ${track.label}`);
+              track.enabled = false; // Tắt track trước
+              track.stop(); // Dừng hoàn toàn track
+            });
+
+            // Tạo stream mới chỉ với audio tracks
+            const audioTracks = localStreamRef.current.getAudioTracks();
+            const newStream = new MediaStream();
+
+            // Chỉ giữ lại audio tracks
+            audioTracks.forEach((track) => newStream.addTrack(track));
+
+            // Cập nhật stream
+            setLocalStream(newStream);
+            localStreamRef.current = newStream;
+
+            // Cập nhật video element
+            if (videoElementRef.current) {
+              videoElementRef.current.srcObject = newStream;
+            }
+
+            console.log("Video is now OFF, camera completely stopped");
+          } else {
+            console.log("No video tracks to stop");
+          }
+        }
+      } else {
+        // Bật camera: Tạo một stream video riêng biệt
+        try {
+          // Khởi tạo lại camera với video
+          const videoStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false, // Không yêu cầu audio khi bật camera
+          });
+
+          console.log("New camera stream obtained:", videoStream);
+
+          // Lấy video track từ stream mới
+          const newVideoTrack = videoStream.getVideoTracks()[0];
+
+          if (newVideoTrack) {
+            console.log(`Adding new video track: ${newVideoTrack.label}`);
+
+            // Dừng các video tracks hiện tại nếu có
+            if (localStreamRef.current) {
+              const existingVideoTracks =
+                localStreamRef.current.getVideoTracks();
+              existingVideoTracks.forEach((track) => {
+                track.stop();
+                console.log(`Stopped existing video track: ${track.label}`);
+              });
+            }
+
+            // Tạo một stream mới hoàn toàn
+            const newStream = new MediaStream();
+
+            // Thêm lại các audio tracks hiện có nếu có
+            if (localStreamRef.current) {
+              const audioTracks = localStreamRef.current.getAudioTracks();
+              audioTracks.forEach((track) => {
+                newStream.addTrack(track);
+                console.log(`Re-added audio track: ${track.label}`);
+              });
+            }
+
+            // Thêm video track mới
+            newStream.addTrack(newVideoTrack);
+
+            // Cập nhật stream
+            setLocalStream(newStream);
+            localStreamRef.current = newStream;
+
+            // Cập nhật video element
+            if (videoElementRef.current) {
+              videoElementRef.current.srcObject = newStream;
+            }
+
+            console.log(
+              "Video is now ON with tracks:",
+              newStream.getVideoTracks().length
+            );
+            setCameraReady(true);
+          }
+        } catch (error) {
+          console.error("Error reinitializing camera:", error);
+          notification.error({
+            message: "Camera Error",
+            description: "Could not turn on camera: " + error.message,
+          });
+
+          // Đặt lại trạng thái video nếu có lỗi
+          setIsVideoOff(true);
+          isVideoOffRef.current = true;
+        }
+      }
+
+      // Thông báo cho server
+      if (connection && connection.state === "Connected") {
+        try {
+          await connection.invoke("ToggleVideo", roomId, newVideoState);
+          console.log("Server notified of video state change");
+
+          // Cập nhật lại kết nối WebRTC với tất cả người dùng khác
+          if (!newVideoState) {
+            // Nếu bật camera
+            setTimeout(() => {
+              console.log("Updating WebRTC connections after video toggle");
+              connection
+                .invoke("RequestPeerConnections", roomId)
+                .catch((error) =>
+                  console.error("Error updating peer connections:", error)
+                );
+            }, 1500);
+          }
+        } catch (error) {
+          console.error("Error notifying server of video state:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Error in handleToggleVideo:", error);
     }
   };
 
@@ -529,300 +1375,92 @@ const WatchTogether = () => {
     };
   }, [localStream]);
 
-  // Sửa lại hàm initCamera để xử lý tốt hơn khi khởi tạo lại camera
-  const initCamera = useCallback(async () => {
-    console.log("Initializing camera with webRTCService");
-    setIsCameraLoading(true);
-    setCameraError(null);
-
-    try {
-      // Dừng tất cả các tracks hiện tại nếu có
-      if (localStreamRef.current) {
-        console.log("Stopping existing tracks before reinitializing camera");
-        localStreamRef.current.getTracks().forEach((track) => {
-          track.stop();
-          console.log(`Stopped existing ${track.kind} track: ${track.label}`);
-        });
-      }
-
-      // Sử dụng webRTCService để khởi tạo media
-      const stream = await webRTCService.initializeMedia(
-        true, // Luôn yêu cầu video khi khởi tạo
-        !isMutedRef.current
-      );
-
-      console.log("Camera stream obtained successfully:", stream);
-      console.log("Video tracks:", stream.getVideoTracks());
-      console.log("Audio tracks:", stream.getAudioTracks());
-
-      // Lưu stream vào state và ref
-      setLocalStream(stream);
-      localStreamRef.current = stream;
-
-      // Nếu trạng thái hiện tại là video off, disable các video tracks
-      if (isVideoOffRef.current && stream.getVideoTracks().length > 0) {
-        console.log("Video is off, disabling video tracks");
-        stream.getVideoTracks().forEach((track) => {
-          track.enabled = false;
-        });
-      }
-
-      // Nếu trạng thái hiện tại là muted, disable các audio tracks
-      if (isMutedRef.current && stream.getAudioTracks().length > 0) {
-        console.log("Audio is muted, disabling audio tracks");
-        stream.getAudioTracks().forEach((track) => {
-          track.enabled = false;
-        });
-      }
-
-      setCameraReady(true);
-
-      // Nếu không muted, thiết lập audio analyser
-      if (!isMutedRef.current) {
-        setupAudioAnalyser();
-      }
-    } catch (error) {
-      console.error("Error initializing camera:", error);
-
-      if (error.name === "NotAllowedError") {
-        setCameraError(
-          "Camera access denied. Please allow camera access and refresh the page."
-        );
-      } else if (error.name === "NotFoundError") {
-        setCameraError(
-          "No camera found. Please connect a camera and refresh the page."
-        );
-      } else if (error.name === "NotReadableError") {
-        setCameraError(
-          "Camera is in use by another application. Please close other applications using the camera."
-        );
-      } else {
-        setCameraError(`Could not initialize camera: ${error.message}`);
-      }
-
-      setIsVideoOff(true);
-      isVideoOffRef.current = true;
-    } finally {
-      setIsCameraLoading(false);
-    }
-  }, []); // Không có dependencies
-
-  const handleToggleVideo = async () => {
-    try {
-      const newVideoState = !isVideoOff;
-      console.log("Toggling video state to:", newVideoState);
-
-      // Cập nhật state
-      setIsVideoOff(newVideoState);
-      // Cập nhật ref ngay lập tức để tránh race condition
-      isVideoOffRef.current = newVideoState;
-
-      if (newVideoState) {
-        // Tắt camera: Dừng hoàn toàn các video tracks
-        if (localStreamRef.current) {
-          const videoTracks = localStreamRef.current.getVideoTracks();
-          videoTracks.forEach((track) => {
-            console.log(`Stopping video track: ${track.label}`);
-            track.stop(); // Dừng hoàn toàn track thay vì chỉ disable
-          });
-        }
-      } else {
-        // Bật camera: Khởi tạo lại camera
-        console.log("Reinitializing camera");
-        await initCamera();
-      }
-
-      // Thông báo cho server
-      try {
-        if (connection && connection.state === "Connected") {
-          await connection.invoke("ToggleVideo", roomId, newVideoState);
-          console.log("Server notified of video state change");
-        }
-      } catch (error) {
-        console.error("Error notifying server of video state:", error);
-      }
-    } catch (error) {
-      console.error("Error in handleToggleVideo:", error);
-    }
-  };
-
-  // Cập nhật hàm setupAudioAnalyser để phát hiện âm thanh chính xác hơn
-  const setupAudioAnalyser = () => {
-    if (!localStream) return;
-
-    // Kiểm tra xem có audio track không
-    const audioTracks = localStream.getAudioTracks();
-    if (audioTracks.length === 0) {
-      console.warn("No audio tracks available for audio analysis");
-      return;
-    }
-
-    try {
-      // Dừng phân tích âm thanh hiện tại nếu có
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-
-      const audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
-      const audioSource = audioContext.createMediaStreamSource(localStream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048; // Tăng độ phân giải để phát hiện chính xác hơn
-      analyser.smoothingTimeConstant = 0.2; // Giảm smoothing để phản ứng nhanh hơn với sự thay đổi
-      audioSource.connect(analyser);
-
-      audioAnalyserRef.current = analyser;
-      audioDataRef.current = new Uint8Array(analyser.frequencyBinCount);
-
-      // Thêm biến để theo dõi thời gian im lặng
-      let silenceTimer = 0;
-      const SILENCE_THRESHOLD = 10; // Giảm ngưỡng để dễ phát hiện âm thanh hơn
-      const MAX_SILENCE_FRAMES = 2; // Giảm số frame im lặng để phản ứng nhanh hơn
-
-      const updateAudioLevel = () => {
-        if (!audioAnalyserRef.current || !audioDataRef.current) return;
-
-        audioAnalyserRef.current.getByteFrequencyData(audioDataRef.current);
-        const values = audioDataRef.current;
-        let sum = 0;
-
-        // Tập trung vào dải tần số giọng nói (300-3000Hz)
-        // Với fftSize = 2048, chúng ta có 1024 giá trị tần số
-        // Dải tần số giọng nói khoảng từ 10-100 trong mảng này
-        const voiceRangeStart = 10;
-        const voiceRangeEnd = 100;
-
-        for (let i = voiceRangeStart; i < voiceRangeEnd; i++) {
-          sum += values[i];
-        }
-
-        const average = sum / (voiceRangeEnd - voiceRangeStart);
-
-        // Log mức âm thanh để debug
-        if (average > 1) {
-          console.log("Audio level detected:", average);
-        }
-
-        // Áp dụng ngưỡng và làm mượt sự thay đổi
-        if (average > SILENCE_THRESHOLD) {
-          // Có âm thanh, đặt lại bộ đếm im lặng
-          silenceTimer = 0;
-
-          // Cập nhật mức âm thanh với smoothing
-          setAudioLevel((prev) => {
-            // Tăng nhanh hơn khi phát hiện âm thanh
-            return prev * 0.2 + average * 0.8;
-          });
-        } else {
-          // Không có âm thanh, tăng bộ đếm im lặng
-          silenceTimer++;
-
-          if (silenceTimer > MAX_SILENCE_FRAMES) {
-            // Đã im lặng đủ lâu, giảm mức âm thanh về 0 nhanh chóng
-            setAudioLevel((prev) => prev * 0.3);
-          }
-        }
-
-        animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
-      };
-
-      updateAudioLevel();
-
-      console.log("Audio analyser setup complete");
-    } catch (error) {
-      console.error("Error setting up audio analyser:", error);
-      // Đặt mức âm thanh về 0 nếu có lỗi
-      setAudioLevel(0);
-    }
-  };
-
-  // Cập nhật hàm renderAudioIndicator để không hiển thị thanh xanh ngang
-  const renderAudioIndicator = () => {
-    // Không hiển thị gì cả, chỉ dùng viền xanh bao quanh video
-    return null;
-  };
-
-  // Thêm hàm sendMessage nếu chưa có
-  const sendMessage = async (text) => {
-    if (!connection || !text.trim()) return;
-
-    try {
-      await connection.invoke(
-        "SendMessage",
-        roomId,
-        user.fullName,
-        text,
-        user.picture || "/default-avatar.png"
-      );
-    } catch (error) {
-      console.error("Error sending message:", error);
-      notification.error({
-        message: "Error",
-        description: "Failed to send message: " + error.message,
-      });
-    }
-  };
-
-  // Thêm hàm renderParticipantCount nếu chưa có
-  const renderParticipantCount = () => {
-    return (
-      <div className="mb-4 text-white">
-        <h3 className="text-lg font-medium mb-2">
-          Participants ({roomUsers.length})
-        </h3>
-      </div>
-    );
-  };
-
-  // Thêm hàm renderParticipantVideos nếu chưa có
-  const renderParticipantVideos = () => {
-    return (
-      <div className="space-y-4">
-        {roomUsers.map((participant) => (
-          <div key={participant.id} className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-700">
-              <img
-                src={participant.avatar || "/default-avatar.png"}
-                alt={participant.userName}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1">
-              <div className="text-white font-medium">
-                {participant.userName}{" "}
-                {participant.id === user?.id ? "(You)" : ""}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                {participant.isMuted && (
-                  <span className="text-red-500">
-                    <MicOff size={12} />
-                  </span>
-                )}
-                {participant.isVideoOff && (
-                  <span className="text-red-500">
-                    <VideoOff size={12} />
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  // Thêm useEffect để khởi tạo lại audio analyser khi localStream thay đổi
+  // Thêm useEffect để tự động khởi tạo camera khi component được tải
   useEffect(() => {
-    if (localStream && !isMutedRef.current) {
-      // Đợi một chút để đảm bảo stream đã được thiết lập đầy đủ
+    // Chỉ khởi tạo camera khi đã tải xong movie và có roomId
+    if (!loading && roomId) {
+      console.log("Auto initializing camera on component mount");
+      // Đặt timeout để đảm bảo component đã render hoàn toàn
       const timer = setTimeout(() => {
-        setupAudioAnalyser();
-      }, 500);
+        initCamera().catch((error) => {
+          console.error("Failed to initialize camera on mount:", error);
+        });
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [localStream]);
+  }, [loading, roomId, initCamera]);
+
+  // Thêm useEffect để thiết lập callback onTrack cho WebRTC service
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    // Thiết lập callback onTrack để xử lý các stream video từ người dùng khác
+    webRTCService.onTrack = (userId, stream) => {
+      console.log(`Received stream from user ${userId}`, stream);
+
+      // Cập nhật participantStreams với stream mới nhận được
+      setParticipantStreams((prev) => {
+        // Kiểm tra xem stream đã tồn tại chưa
+        if (prev[userId] && prev[userId].id === stream.id) {
+          return prev; // Không thay đổi nếu stream đã tồn tại
+        }
+
+        console.log(`Adding new stream for user ${userId}`);
+        return {
+          ...prev,
+          [userId]: stream,
+        };
+      });
+
+      // Cập nhật trạng thái người dùng trong roomUsers
+      setRoomUsers((prev) => {
+        return prev.map((user) => {
+          if (user.id === userId) {
+            // Kiểm tra xem stream có video tracks không
+            const hasVideoTracks = stream.getVideoTracks().length > 0;
+            const isVideoEnabled =
+              hasVideoTracks && stream.getVideoTracks()[0].enabled;
+
+            return {
+              ...user,
+              isVideoOff: !isVideoEnabled,
+            };
+          }
+          return user;
+        });
+      });
+    };
+
+    return () => {
+      // Xóa callback khi component unmount
+      webRTCService.onTrack = null;
+    };
+  }, [roomId, user]);
+
+  // Thêm useEffect để thiết lập kết nối WebRTC khi localStream thay đổi
+  useEffect(() => {
+    if (
+      !localStream ||
+      !connection ||
+      !roomId ||
+      connection.state !== "Connected"
+    )
+      return;
+
+    console.log("Local stream changed, requesting peer connections");
+
+    // Đợi một chút để đảm bảo stream đã được thiết lập đầy đủ
+    const timer = setTimeout(() => {
+      connection
+        .invoke("RequestPeerConnections", roomId)
+        .catch((error) =>
+          console.error("Error requesting peer connections:", error)
+        );
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [localStream, connection, roomId]);
 
   // Cập nhật phần render camera trong UI
   return (
@@ -842,72 +1480,78 @@ const WatchTogether = () => {
               style={{ border: "none" }}
               ref={iframeRef}
             ></iframe>
+
+            {/* Hiển thị video của người đang nói chuyện */}
+            <ActiveSpeakerVideo />
+
+            {/* Hiển thị video của tất cả người dùng khác */}
+            <div className="absolute bottom-4 right-4 flex gap-2 z-10">
+              {roomUsers
+                .filter(
+                  (participant) =>
+                    participant.id !== user?.id &&
+                    participant.id !== "test-user-id" &&
+                    participant.userName !== user?.fullName
+                )
+                .map((participant) => (
+                  <div
+                    key={participant.id}
+                    className="w-32 h-24 bg-gray-800 rounded-lg overflow-hidden shadow-lg"
+                  >
+                    {participantStreams[participant.id] ? (
+                      <ParticipantVideo
+                        participant={participant}
+                        participantStream={participantStreams[participant.id]}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                        <div className="flex flex-col items-center">
+                          <img
+                            src={participant.avatar || "/default-avatar.png"}
+                            alt={participant.userName}
+                            className="w-12 h-12 rounded-full"
+                          />
+                          <span className="text-white text-xs mt-1 truncate max-w-[80px]">
+                            {participant.userName}
+                          </span>
+                          <div className="flex items-center gap-1 mt-1">
+                            {participant.isMuted && (
+                              <span className="text-red-500">
+                                <MicOff size={10} />
+                              </span>
+                            )}
+                            {participant.isVideoOff && (
+                              <span className="text-red-500">
+                                <VideoOff size={10} />
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
           </div>
 
-          {/* Camera Section */}
+          {/* Camera Section - Cải thiện layout */}
           <div className="h-36 bg-gray-800 border-t border-gray-700 p-2">
-            <div className="flex items-center justify-between h-full">
-              {/* Camera Preview */}
+            <div className="flex items-center h-full">
+              {/* Camera Preview - Chỉ hiển thị camera của bản thân */}
               <div
                 className="relative w-44 h-full bg-gray-900 rounded-lg overflow-hidden"
                 id="camera-container"
               >
-                {isCameraLoading ? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                  </div>
-                ) : isVideoOff || !localStream ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                    <img
-                      src={user?.picture || "/default-avatar.png"}
-                      alt="User Avatar"
-                      className="w-16 h-16 rounded-full"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className={`relative w-full h-full ${
-                      audioLevel > 1
-                        ? "ring-4 ring-green-500 shadow-lg shadow-green-500/50"
-                        : ""
-                    }`}
-                    style={{
-                      transition: "all 0.1s ease",
-                    }}
-                  >
-                    <video
-                      ref={videoElementRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-full object-cover"
-                      style={{
-                        transform: "scaleX(-1)",
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Hiển thị lỗi camera nếu có */}
-                {cameraError && !isCameraLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70">
-                    <div className="text-center p-2">
-                      <div className="text-red-500 text-sm mb-1">
-                        Camera Error
-                      </div>
-                      <p className="text-white text-xs mb-2">{cameraError}</p>
-                      <button
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded"
-                        onClick={() => {
-                          setCameraError(null);
-                          initCamera();
-                        }}
-                      >
-                        Try Again
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <CameraVideo
+                  videoRef={videoElementRef}
+                  isVideoOff={isVideoOff}
+                  localStream={localStream}
+                  user={user}
+                  isCameraLoading={isCameraLoading}
+                  cameraError={cameraError}
+                  setCameraError={setCameraError}
+                  initCamera={initCamera}
+                />
 
                 <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-1 z-10">
                   <div className="flex items-center justify-between">
@@ -957,12 +1601,10 @@ const WatchTogether = () => {
                     </div>
                   </div>
                 </div>
-                {/* Chỉ báo âm thanh */}
-                {renderAudioIndicator()}
               </div>
 
-              {/* Controls */}
-              <div className="flex items-center gap-3 ml-4">
+              {/* Controls - Di chuyển gần camera hơn */}
+              <div className="flex items-center gap-3 ml-6">
                 <Tooltip title={isMuted ? "Unmute" : "Mute"}>
                   <button
                     onClick={handleToggleAudio}
@@ -1010,6 +1652,22 @@ const WatchTogether = () => {
                     <Settings className="h-5 w-5 text-white" />
                   </button>
                 </Tooltip>
+
+                {/* Thêm nút Test Mode */}
+                <Tooltip
+                  title={testMode ? "Disable Test Mode" : "Enable Test Mode"}
+                >
+                  <button
+                    onClick={toggleTestMode}
+                    className={`p-3 rounded-full ${
+                      testMode
+                        ? "bg-purple-500 hover:bg-purple-600"
+                        : "bg-gray-700 hover:bg-gray-600"
+                    }`}
+                  >
+                    <span className="text-white text-xs font-bold">TEST</span>
+                  </button>
+                </Tooltip>
               </div>
 
               {/* Spacer */}
@@ -1017,7 +1675,7 @@ const WatchTogether = () => {
 
               {/* Right Controls */}
               <div className="flex items-center gap-3">
-                {/* Biểu tượng người dùng */}
+                {/* Biểu tượng người dùng - Thêm số người tham gia */}
                 <Tooltip
                   title={
                     showParticipants ? "Hide Participants" : "Show Participants"
@@ -1032,9 +1690,15 @@ const WatchTogether = () => {
                       showParticipants
                         ? "bg-gray-600 hover:bg-gray-500"
                         : "bg-gray-700 hover:bg-gray-600"
-                    }`}
+                    } relative`}
                   >
                     <Users className="h-5 w-5 text-white" />
+                    {/* Hiển thị số người tham gia trên nút */}
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-medium">
+                        {roomUsers.length}
+                      </span>
+                    </div>
                   </button>
                 </Tooltip>
 
@@ -1109,7 +1773,12 @@ const WatchTogether = () => {
                 />
               ) : (
                 <div className="p-4">
-                  {renderParticipantCount()}
+                  {/* Cập nhật số lượng người tham gia, bao gồm cả bản thân */}
+                  <div className="mb-4 text-white">
+                    <h3 className="text-lg font-medium mb-2">
+                      Participants ({roomUsers.length})
+                    </h3>
+                  </div>
                   {renderParticipantVideos()}
                 </div>
               )}
