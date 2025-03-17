@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Space, notification, Switch, Tag, Input } from "antd";
+import { Table, Button, Space, notification, Switch, Tag, Input, Modal,Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import UserApi from "../../../apis/User/user";
 import axios from "axios";
@@ -16,8 +16,12 @@ const User = () => {
   });
   const [filteredInfo, setFilteredInfo] = useState({});
   const [sortedInfo, setSortedInfo] = useState({});
-
-  // Fetch tất cả users cho tìm kiếm
+  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false);
+  const [userRegister, setUserRegister] = useState(null);
+  const [fullName, setFullName] = useState("");
+  const [roleId, setRoleId] = useState("");
+  const [email, setEmail] = useState("");
+  
   const fetchAllUsers = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -41,7 +45,6 @@ const User = () => {
     }
   };
 
-  // Fetch users có phân trang
   const fetchUsers = async (page = 1, pageSize = 8) => {
     try {
       setLoading(true);
@@ -66,13 +69,45 @@ const User = () => {
     }
   };
 
+  const handleCreateUser = async () => {
+    setLoading(true); // Bật trạng thái loading khi bắt đầu tạo user
+
+    const newUser = {
+      fullName,
+      email,
+      roleId,
+      userRegisterId: null,
+    };
+
+    try {
+      const response = await UserApi.CreateUser(newUser);
+
+      if (response.status === 200) {
+        notification.success({
+          message: response.data.message || "Created successfully!",
+        });
+        setIsAcceptModalVisible(false); // Đóng modal
+        window.location.reload(); // Refresh lại trang
+      } else {
+        notification.error({
+          message: response.data.message || "Failed to create user.",
+        });
+      }
+    } catch (error) {
+      console.error("Error Create User:", error);
+      notification.error({ message: error.message || "An error occurred!" });
+    } finally {
+      setLoading(false); // Tắt trạng thái loading sau khi xử lý xong
+    }
+  };
+
+
   // Gọi API lần đầu khi component mount
   useEffect(() => {
     fetchUsers(pagination.current, pagination.pageSize);
     fetchAllUsers();
   }, []);
 
-  // Xử lý search
   useEffect(() => {
     if (searchTerm) {
       const filteredResults = allUsers.filter(
@@ -87,40 +122,32 @@ const User = () => {
         total: filteredResults.length,
       }));
     } else {
-      // Nếu không có search term, load lại dữ liệu phân trang
       fetchUsers(pagination.current, pagination.pageSize);
     }
   }, [searchTerm]);
 
   const handleStatusChange = async (id, checked) => {
     try {
-      await UserApi.updateUserStatus(id, checked ? 0 : 1);
-
-      // Nếu đang tìm kiếm, cập nhật cả allUsers và users
-      if (searchTerm) {
-        fetchAllUsers();
-        // Cập nhật kết quả tìm kiếm
-        const updatedResults = allUsers.map((user) => {
-          if (user.id === id) {
-            return { ...user, status: checked ? "NORMAL" : "INACTIVE" };
-          }
-          return user;
-        });
-        setUsers(updatedResults);
+      const data = {
+        id,
+        status: checked ? 0 : 1,
+      };
+      const response = await UserApi.updateActive(data);
+      if (response && response.status === 200) {
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === id
+              ? { ...user, status: data.status === 0 ? "NORMAL" : "INACTIVE" }
+              : user
+          )
+        );
+        notification.success({ message: response.data.message });
       } else {
-        // Nếu không đang tìm kiếm, chỉ cần load lại trang hiện tại
-        fetchUsers(pagination.current, pagination.pageSize);
+        notification.error({ message: "Failed to update user status." });
       }
-
-      notification.success({
-        message: "Success",
-        description: "User status updated successfully",
-      });
     } catch (error) {
-      notification.error({
-        message: "Error",
-        description: "Failed to update user status",
-      });
+      console.error("Error updating status:", error);
+      notification.error({ message: "Error updating user status." });
     }
   };
 
@@ -165,17 +192,15 @@ const User = () => {
     {
       title: "Name",
       dataIndex: "fullName",
-      key: "name",
+      key: "fullName",
       sorter: (a, b) => a.fullName.localeCompare(b.fullName),
-      sortOrder: sortedInfo.columnKey === "name" && sortedInfo.order,
       filteredValue: filteredInfo.fullName || null,
-      onFilter: (value, record) =>
-        record.fullName.toLowerCase().includes(value.toLowerCase()),
-      filterSearch: true,
-      filters: users.map((user) => ({
-        text: user.fullName,
-        value: user.fullName,
-      })),
+      onFilter: (value, record) => record.fullName.includes(value),
+      render: (fullName, record) => (
+        <a href={`/user/${record.id}`} className="text-blue-400">
+          {fullName}
+        </a>
+      ),
     },
     {
       title: "Email",
@@ -217,6 +242,10 @@ const User = () => {
             ? "blue"
             : roleName === "VIP MEMBER"
             ? "purple"
+            : roleName === "MANAGER"
+            ? "yellow"
+            : roleName === "ADVERTISER"
+            ? "brown"
             : "default";
         return <Tag color={color}>{roleName}</Tag>;
       },
@@ -275,6 +304,10 @@ const User = () => {
           <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
           <Button onClick={() => setSortedInfo({})}>Clear sorters</Button>
         </Space>
+        <Button type="primary" onClick={() => setIsAcceptModalVisible(true)} loading={loading}>
+        Create User
+      </Button>
+
       </div>
 
       <div className="flex justify-center mb-6">
@@ -295,7 +328,57 @@ const User = () => {
         loading={loading}
         onChange={handleTableChange}
       />
+
+       {/* Create user Modal */}
+       <Modal
+        title="create account user"
+        open={isAcceptModalVisible}
+        onOk={handleCreateUser}
+        onCancel={() => setIsAcceptModalVisible(false)}
+        okText="Confirm Accept"
+        cancelText="Cancel"
+      >
+        <div>
+          <div className="mb-4">
+            <label>Full Name</label>
+            <Input
+              value={fullName || ""}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter full name"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label>Email</label>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter email"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label>Role </label>
+            <Select
+              value={roleId}
+              onChange={(value) => setRoleId(value)} // Cập nhật giá trị khi chọn
+              placeholder="Select a role"
+              className="w-52"
+            >
+              <Select.Option value="13AAA70C">Publisher</Select.Option>
+              <Select.Option value="23AAA70C">Advertiser</Select.Option>
+              <Select.Option value="33AAA70C">VIP MEMBER</Select.Option>
+              <Select.Option value="43AAA70C">MEMBER</Select.Option>
+              <Select.Option value="53AAA70C">ADMIN</Select.Option>
+              <Select.Option value="63AAA70C">MANAGER</Select.Option>
+            </Select>
+          </div>
+        </div>
+      </Modal>
+   
     </div>
+
+    
   );
 };
 

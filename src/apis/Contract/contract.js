@@ -40,7 +40,7 @@ const contractApi = {
     async getAllContractByLogin(page, pageSize) {
         try {
           const token = localStorage.getItem('token');
-          const response = await axios.get(`${API_URL}/GetAllContractUserByLogin`, {
+          const response = await axios.get(`https://eigakan2222-001-site1.jtempurl.com/api/contracts/GetAllContractUserByLogin`, {
             headers: {
               'Authorization': `Bearer ${token}`
             },
@@ -53,8 +53,8 @@ const contractApi = {
           console.log("API Response:", response);
           // Trả về đúng cấu trúc data
           return {
-            contracts: response.data.data?.contracts || [],
-            total: response.data.data?.total || 0
+            contracts: response.data?.contracts || [],
+            total: response.data?.total || 0
           };
         } catch (error) {
           throw error.response?.data || error.message;
