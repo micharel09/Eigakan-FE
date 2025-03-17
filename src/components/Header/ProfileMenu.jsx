@@ -1,7 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Settings, Clock, LogOut, LayoutDashboard } from "lucide-react";
+import {
+  User,
+  Settings,
+  Clock,
+  LogOut,
+  LayoutDashboard,
+  Heart,
+  Tv,
+  Search,
+} from "lucide-react";
 import {
   CrownOutlined,
   UserOutlined,
@@ -61,17 +70,39 @@ function ProfileMenu({
     isAdmin || isManager || isPublisher || isAdvertiser;
 
   const menuItems = [
-    { to: "/profile", icon: "fas fa-user", label: "Profile Settings" },
     {
-      to: "/watchlist",
-      icon: "fas fa-list",
-      label: "My Watchlist",
-      badge: "New",
+      to: "/profile",
+      icon: (
+        <User className="w-5 h-5 mr-3 text-white/60 group-hover:text-white transition-colors" />
+      ),
+      label: "Profile Settings",
     },
-    { to: "/settings", icon: "fas fa-cog", label: "Settings" },
+    {
+      to: "/favorites",
+      icon: (
+        <Heart className="w-5 h-5 mr-3 text-white/60 group-hover:text-white transition-colors" />
+      ),
+      label: "Favorites",
+    },
+    {
+      to: "/",
+      icon: (
+        <Tv className="w-5 h-5 mr-3 text-white/60 group-hover:text-white transition-colors" />
+      ),
+      label: "TV Shows",
+    },
+    {
+      to: "/history",
+      icon: (
+        <Search className="w-5 h-5 mr-3 text-white/60 group-hover:text-white transition-colors" />
+      ),
+      label: "Search History",
+    },
     {
       to: "/subscription-history",
-      icon: <HistoryOutlined />,
+      icon: (
+        <HistoryOutlined className="w-5 h-5 mr-3 text-white/60 group-hover:text-white transition-colors" />
+      ),
       label: "Subscription History",
     },
   ];
@@ -178,58 +209,17 @@ function ProfileMenu({
                       Dashboard
                     </Link>
                   )}
-                  <Link
-                    to="/profile"
-                    className="flex items-center px-4 py-2.5 text-sm text-white/80 
-                      hover:bg-white/10 hover:text-white transition-all duration-200 group"
-                  >
-                    <User
-                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
-                      transition-colors"
-                    />
-                    Profile Settings
-                  </Link>
-                  <Link
-                    to="/watchlist"
-                    className="flex items-center px-4 py-2.5 text-sm text-white/80 
-                      hover:bg-white/10 hover:text-white transition-all duration-200 group"
-                  >
-                    <Clock
-                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
-                      transition-colors"
-                    />
-                    My Watchlist
-                    {menuItems[1].badge && (
-                      <span
-                        className="ml-auto bg-red-500/20 text-red-400 px-2 py-0.5 
-                        rounded-full text-xs font-medium"
-                      >
-                        {menuItems[1].badge}
-                      </span>
-                    )}
-                  </Link>
-                  <Link
-                    to="/settings"
-                    className="flex items-center px-4 py-2.5 text-sm text-white/80 
-                      hover:bg-white/10 hover:text-white transition-all duration-200 group"
-                  >
-                    <Settings
-                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
-                      transition-colors"
-                    />
-                    Settings
-                  </Link>
-                  <Link
-                    to="/subscription-history"
-                    className="flex items-center px-4 py-2.5 text-sm text-white/80 
-                      hover:bg-white/10 hover:text-white transition-all duration-200 group"
-                  >
-                    <Clock
-                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
-                      transition-colors"
-                    />
-                    Subscription History
-                  </Link>
+                  {menuItems.map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                        hover:bg-white/10 hover:text-white transition-all duration-200 group"
+                    >
+                      {item.icon}
+                      {item.label}
+                    </Link>
+                  ))}
 
                   <div className="border-t border-white/10 my-1" />
 

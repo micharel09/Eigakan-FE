@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { ClockCircleOutlined } from "@ant-design/icons";
 
 const ManagerSidebar = () => {
   const [user, setUser] = useState(authService.getCurrentUser());
@@ -28,20 +29,20 @@ const ManagerSidebar = () => {
   return (
     <div className="min-h-screen flex flex-row bg-gray-100">
       <div className="flex flex-col w-56 bg-white rounded-r-3xl overflow-hidden">
-      <div className="relative flex items-center justify-center h-20 shadow-md">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="eigakan-gradient text-[#FF009F] font-bold text-2xl"
-        >
-          EIGAKAN
-        </motion.div>
+        <div className="relative flex items-center justify-center h-20 shadow-md">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="eigakan-gradient text-[#FF009F] font-bold text-2xl"
+          >
+            EIGAKAN
+          </motion.div>
 
-        <h2 className="absolute bottom-1 right-2 text-gray-500 text-xs">
-          Manager
-        </h2>
-      </div>
+          <h2 className="absolute bottom-1 right-2 text-gray-500 text-xs">
+            Manager
+          </h2>
+        </div>
         {/* avatar + name  */}
         <ul className="flex flex-col py-4">
           <li className="flex justify-center items-center">
@@ -107,7 +108,7 @@ const ManagerSidebar = () => {
           </li>
           <li>
             <Link
-              to="/manager/subscriptions"
+              to="/manager/subscription"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
@@ -129,6 +130,17 @@ const ManagerSidebar = () => {
               <span className="ml-3 text-sm font-medium">
                 Subscription Packages
               </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/manager/adslot-time"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            >
+              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+                <ClockCircleOutlined className="size-5" />
+              </span>
+              <span className="ml-3 text-sm font-medium">Ad Slot Time</span>
             </Link>
           </li>
           <li>
