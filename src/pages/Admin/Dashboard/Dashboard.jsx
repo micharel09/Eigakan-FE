@@ -37,7 +37,9 @@ import {
   FireOutlined,
   ReloadOutlined,
   SyncOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
+import { Link } from "react-router-dom";
 
 // Đăng ký các thành phần Chart.js
 ChartJS.register(
@@ -85,6 +87,68 @@ const formatVND = (value) => {
   }).format(value);
 };
 
+// Thêm component StatCard với nút điều hướng
+const StatCard = ({ title, value, icon, color, subTitle, linkTo }) => (
+  <Card
+    bordered={false}
+    className={`h-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-${color}-500 relative overflow-hidden`}
+  >
+    {/* Thêm background pattern cho card */}
+    <div
+      className={`absolute top-0 right-0 w-24 h-24 opacity-5 rounded-bl-full bg-${color}-500`}
+    ></div>
+
+    <div className="flex items-center justify-between">
+      <div>
+        <Statistic
+          title={<span className="text-gray-500">{title}</span>}
+          value={value}
+          valueStyle={{ color: colorMap[color], fontSize: "24px" }}
+        />
+        <div className="text-xs mt-2">
+          <span className="text-green-500 font-medium flex items-center gap-1">
+            {subTitle}
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-col items-end">
+        <div
+          className={`w-12 h-12 rounded-full bg-${color}-100 flex items-center justify-center`}
+        >
+          {icon}
+        </div>
+      </div>
+    </div>
+
+    {/* Nút điều hướng hiện đại */}
+    {linkTo && (
+      <div className="mt-4 pt-3 border-t border-gray-100">
+        <Link
+          to={linkTo}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-md bg-${color}-50 hover:bg-${color}-100 text-${color}-600 transition-all duration-300 group`}
+        >
+          <span className="font-medium text-sm">View Details</span>
+          <div
+            className={`w-6 h-6 rounded-full bg-${color}-500 flex items-center justify-center transform group-hover:translate-x-1 transition-transform duration-300`}
+          >
+            <ArrowRightOutlined className="text-white text-xs" />
+          </div>
+        </Link>
+      </div>
+    )}
+  </Card>
+);
+
+// Màu sắc cho các thẻ thống kê
+const colorMap = {
+  blue: "#1890ff",
+  purple: "#722ed1",
+  green: "#52c41a",
+  red: "#f5222d",
+  orange: "#fa8c16",
+  cyan: "#13c2c2",
+};
+
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -104,7 +168,6 @@ const Dashboard = () => {
   const [recentActivities, setRecentActivities] = useState([]);
   const [allZero, setAllZero] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [nextRefresh, setNextRefresh] = useState(30);
 
   // Cấu hình biểu đồ - được memo hóa để tránh tạo lại
   const chartOptions = useMemo(
@@ -588,9 +651,6 @@ const Dashboard = () => {
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
 
-    // Reset thời gian đếm ngược
-    setNextRefresh(30);
-
     // Gọi lại các hàm fetch data
     Promise.all([processStats(), processCharts(), processActivities()])
       .then(() => {
@@ -611,23 +671,6 @@ const Dashboard = () => {
         });
       });
   }, [processStats, processCharts, processActivities]);
-
-  // Thêm useEffect cho auto refresh
-  useEffect(() => {
-    // Cập nhật thời gian đếm ngược mỗi giây
-    const timer = setInterval(() => {
-      setNextRefresh((prev) => {
-        if (prev <= 1) {
-          // Khi đếm ngược đến 0, refresh data
-          handleRefresh();
-          return 30; // Reset về 30s
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [handleRefresh]);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -669,22 +712,17 @@ const Dashboard = () => {
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
 
-        {/* Thêm nút refresh và thời gian đếm ngược */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">
-            Auto-refresh in: <span className="font-medium">{nextRefresh}s</span>
-          </span>
-          <AntTooltip title="Refresh dashboard data">
-            <Button
-              type="primary"
-              shape="circle"
-              icon={refreshing ? <SyncOutlined spin /> : <ReloadOutlined />}
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center justify-center"
-            />
-          </AntTooltip>
-        </div>
+        {/* Chỉ giữ lại nút refresh */}
+        <AntTooltip title="Refresh dashboard data">
+          <Button
+            type="primary"
+            shape="circle"
+            icon={refreshing ? <SyncOutlined spin /> : <ReloadOutlined />}
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center justify-center"
+          />
+        </AntTooltip>
       </div>
 
       {statsLoading ? (
@@ -695,146 +733,56 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <Card
-            bordered={false}
-            className="h-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-blue-500"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <Statistic
-                  title={<span className="text-gray-500">Total Users</span>}
-                  value={stats.totalUsers}
-                  valueStyle={{ color: "#1890ff", fontSize: "24px" }}
-                />
-                <div className="text-xs mt-2">
-                  <span className="text-green-500 font-medium flex items-center gap-1">
-                    <RiseOutlined />{" "}
-                    {Math.round((stats.activeUsers / stats.totalUsers) * 100)}%
-                    active
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <UserOutlined className="text-2xl text-blue-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            bordered={false}
-            className="h-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-purple-500"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <Statistic
-                  title={<span className="text-gray-500">Total Movies</span>}
-                  value={stats.totalMovies}
-                  valueStyle={{ color: "#722ed1", fontSize: "24px" }}
-                />
-                <div className="text-xs mt-2">
-                  <span className="text-gray-500 font-medium flex items-center gap-1">
-                    <FireOutlined className="text-red-500" /> Recently updated
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <PlayCircleOutlined className="text-2xl text-purple-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            bordered={false}
-            className="h-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-green-500"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <Statistic
-                  title={<span className="text-gray-500">Registrations</span>}
-                  value={stats.totalRegistrations}
-                  valueStyle={{ color: "#52c41a", fontSize: "24px" }}
-                />
-                <div className="text-xs mt-2">
-                  <span className="text-orange-500 font-medium flex items-center gap-1">
-                    <ClockCircleOutlined /> Pending approval
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <FileTextOutlined className="text-2xl text-green-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            bordered={false}
-            className="h-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-red-500"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <Statistic
-                  title={<span className="text-gray-500">Revenue</span>}
-                  value={formatVND(stats.totalRevenue)}
-                  valueStyle={{ color: "#f5222d", fontSize: "24px" }}
-                  suffix="đ"
-                />
-                <div className="text-xs mt-2">
-                  <span className="text-blue-500 font-medium flex items-center gap-1">
-                    <CheckCircleOutlined /> Total completed
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                <DollarOutlined className="text-2xl text-red-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            bordered={false}
-            className="h-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-orange-500"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <Statistic
-                  title={<span className="text-gray-500">Active Users</span>}
-                  value={stats.activeUsers}
-                  valueStyle={{ color: "#fa8c16", fontSize: "24px" }}
-                />
-                <div className="text-xs mt-2">
-                  <span className="text-green-500 font-medium flex items-center gap-1">
-                    <RiseOutlined /> Currently active
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
-                <StarOutlined className="text-2xl text-orange-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            bordered={false}
-            className="h-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-cyan-500"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <Statistic
-                  title={<span className="text-gray-500">Approvals</span>}
-                  value={stats.totalSubscriptions}
-                  valueStyle={{ color: "#13c2c2", fontSize: "24px" }}
-                />
-                <div className="text-xs mt-2">
-                  <span className="text-blue-500 font-medium flex items-center gap-1">
-                    <ShoppingOutlined /> Waiting approval
-                  </span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-cyan-100 flex items-center justify-center">
-                <AppstoreOutlined className="text-2xl text-cyan-500" />
-              </div>
-            </div>
-          </Card>
+          <StatCard
+            title="Total Users"
+            value={stats.totalUsers}
+            icon={<UserOutlined className="text-2xl text-blue-500" />}
+            color="blue"
+            subTitle={`${Math.round(
+              (stats.activeUsers / stats.totalUsers) * 100
+            )}% active`}
+            linkTo="/user"
+          />
+          <StatCard
+            title="Total Movies"
+            value={stats.totalMovies}
+            icon={<PlayCircleOutlined className="text-2xl text-purple-500" />}
+            color="purple"
+            subTitle="Recently updated"
+            linkTo="/admin/movieAdmin"
+          />
+          <StatCard
+            title="Registrations"
+            value={stats.totalRegistrations}
+            icon={<FileTextOutlined className="text-2xl text-green-500" />}
+            color="green"
+            subTitle="Pending approval"
+            linkTo="/userRegister"
+          />
+          <StatCard
+            title="Revenue"
+            value={formatVND(stats.totalRevenue)}
+            icon={<DollarOutlined className="text-2xl text-red-500" />}
+            color="red"
+            subTitle="Total completed"
+            linkTo="/admin/subscription-orders"
+          />
+          <StatCard
+            title="Active Users"
+            value={stats.activeUsers}
+            icon={<StarOutlined className="text-2xl text-orange-500" />}
+            color="orange"
+            subTitle="Currently active"
+            linkTo="/user"
+          />
+          <StatCard
+            title="Approvals"
+            value={stats.totalSubscriptions}
+            icon={<CheckCircleOutlined className="text-2xl text-cyan-500" />}
+            color="cyan"
+            subTitle="Waiting approval"
+            linkTo="/admin/contract"
+          />
         </div>
       )}
 
@@ -848,7 +796,17 @@ const Dashboard = () => {
           <>
             <Card
               title={
-                <h3 className="text-gray-700 font-semibold">Recent Revenue</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-gray-700 font-semibold">
+                    Recent Revenue
+                  </h3>
+                  <Link
+                    to="/admin/subscription-orders"
+                    className="text-blue-500 text-sm hover:underline flex items-center"
+                  >
+                    View all <ArrowRightOutlined className="ml-1" />
+                  </Link>
+                </div>
               }
               bordered={false}
               className="shadow-sm hover:shadow-md transition-shadow"
@@ -895,9 +853,17 @@ const Dashboard = () => {
 
             <Card
               title={
-                <h3 className="text-gray-700 font-semibold">
-                  New Users by Month
-                </h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-gray-700 font-semibold">
+                    New Users by Month
+                  </h3>
+                  <Link
+                    to="/user"
+                    className="text-blue-500 text-sm hover:underline flex items-center"
+                  >
+                    View all <ArrowRightOutlined className="ml-1" />
+                  </Link>
+                </div>
               }
               bordered={false}
               className="shadow-sm hover:shadow-md transition-shadow"
@@ -948,7 +914,17 @@ const Dashboard = () => {
           <>
             <Card
               title={
-                <h3 className="text-gray-700 font-semibold">Movies by Genre</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-gray-700 font-semibold">
+                    Movies by Genre
+                  </h3>
+                  <Link
+                    to="/admin/genres"
+                    className="text-blue-500 text-sm hover:underline flex items-center"
+                  >
+                    View all <ArrowRightOutlined className="ml-1" />
+                  </Link>
+                </div>
               }
               bordered={false}
               className="shadow-sm hover:shadow-md transition-shadow"
@@ -1016,9 +992,17 @@ const Dashboard = () => {
 
             <Card
               title={
-                <h3 className="text-gray-700 font-semibold">
-                  Recent Activities
-                </h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-gray-700 font-semibold">
+                    Recent Activities
+                  </h3>
+                  <Link
+                    to="/admin/contract"
+                    className="text-blue-500 text-sm hover:underline flex items-center"
+                  >
+                    View all <ArrowRightOutlined className="ml-1" />
+                  </Link>
+                </div>
               }
               bordered={false}
               className="shadow-sm hover:shadow-md transition-shadow"

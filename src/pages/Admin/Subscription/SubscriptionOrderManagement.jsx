@@ -4,17 +4,15 @@ import { SearchOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { Helmet } from "react-helmet";
 import UserApi from "../../../apis/User/user";
+import { notification } from "antd";
 
 const SubscriptionOrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
+  const [totalOrders, setTotalOrders] = useState(100);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
 
   const fetchAllOrders = async () => {
     try {
@@ -72,7 +70,7 @@ const SubscriptionOrderManagement = () => {
     }
   };
 
-  const fetchOrders = async (page = 1, pageSize = 10) => {
+  const fetchOrders = async (page = 1, pageSize = 5) => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -85,8 +83,9 @@ const SubscriptionOrderManagement = () => {
         }
       );
 
-      if (response.data.success) {
-        const orderData = response.data.data.subscriptionPurchase || [];
+      if (response?.data?.success) {
+        const orderData = response?.data?.data?.subscriptionPurchase ?? [];
+        const total = response?.data?.data?.total ?? 0;
 
         const ordersWithUserDetails = await Promise.all(
           orderData.map(async (order) => {
@@ -95,8 +94,8 @@ const SubscriptionOrderManagement = () => {
               return {
                 ...order,
                 key: order.id,
-                userName: userResponse.data.fullName || "Unknown User",
-                userEmail: userResponse.data.email || "N/A",
+                userName: userResponse?.data?.fullName ?? "Unknown User",
+                userEmail: userResponse?.data?.email ?? "N/A",
               };
             } catch (error) {
               console.error(
@@ -118,11 +117,15 @@ const SubscriptionOrderManagement = () => {
           ...prev,
           current: page,
           pageSize: pageSize,
-          total: response.data.data.total || 0,
         }));
+        setTotalOrders(total);
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
+      notification.error({
+        message: "Error",
+        description: error.message || "Could not fetch orders",
+      });
     } finally {
       setLoading(false);
     }
@@ -233,7 +236,7 @@ const SubscriptionOrderManagement = () => {
       <Card title="Subscription Orders" className="shadow-md">
         <div className="flex justify-center mb-6">
           <Input
-            placeholder="Tìm kiếm theo ID giao dịch, tên người dùng, email hoặc ID gói..."
+            placeholder="Search by Transaction ID, User name, Email or Package ID..."
             prefix={<SearchOutlined className="text-gray-400" />}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="min-w-[400px]"
@@ -245,18 +248,24 @@ const SubscriptionOrderManagement = () => {
           columns={columns}
           dataSource={data}
           pagination={{
-            ...pagination,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
             showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `Total ${total} items`,
-          }}
-          onChange={(newPagination) => {
-            if (!searchTerm) {
-              fetchOrders(newPagination.current, newPagination.pageSize);
-              setPagination(newPagination);
-            } else {
-              setPagination(newPagination);
-            }
+            pageSizeOptions: ["5", "10", "20", "50"],
+            total: Math.min(totalOrders, pagination.pageSize * 6),
+            showTotal: (total) => `Total ${total} orders`,
+            onChange: (page, pageSize) => {
+              if (!searchTerm) {
+                fetchOrders(page, pageSize);
+              }
+            },
+            onShowSizeChange: (current, size) => {
+              if (!searchTerm) {
+                fetchOrders(current, size);
+              }
+            },
+            size: "default",
+            showLessItems: true,
           }}
           loading={loading}
           rowKey="id"
