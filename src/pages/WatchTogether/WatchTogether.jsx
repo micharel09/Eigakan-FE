@@ -62,17 +62,13 @@ const WatchTogether = () => {
   const audioDataRef = useRef(null);
   const animationFrameRef = useRef(null);
   const videoElementRef = useRef(null);
-  // Thêm state cho chế độ test
-  const [testMode, setTestMode] = useState(false);
-  const [testStream, setTestStream] = useState(null);
+  // Thêm state để theo dõi người đang nói chuyện
+  const [activeSpeaker, setActiveSpeaker] = useState(null);
 
   // Thêm các ref để theo dõi trạng thái
   const isVideoOffRef = useRef(false);
   const isMutedRef = useRef(false);
   const localStreamRef = useRef(null);
-
-  // Thêm state để theo dõi người đang nói chuyện
-  const [activeSpeaker, setActiveSpeaker] = useState(null);
 
   // Cập nhật các ref khi state thay đổi
   useEffect(() => {
@@ -183,7 +179,9 @@ const WatchTogether = () => {
     if (!roomId || !user) return;
 
     const newConnection = new HubConnectionBuilder()
-      .withUrl(`https://localhost:7192/roomHub?roomId=${roomId}`)
+      .withUrl(
+        `https://eigakan2222-001-site1.jtempurl.com/roomHub?roomId=${roomId}`
+      )
       .withAutomaticReconnect()
       .build();
 
@@ -1112,84 +1110,6 @@ const WatchTogether = () => {
     };
   }, [connection, activeSpeaker, roomUsers, user]);
 
-  // Thêm hàm để bật/tắt chế độ test
-  const toggleTestMode = async () => {
-    if (testMode) {
-      // Tắt chế độ test
-      setTestMode(false);
-
-      // Dọn dẹp test stream nếu có
-      if (testStream) {
-        testStream.getTracks().forEach((track) => track.stop());
-        setTestStream(null);
-      }
-
-      // Xóa stream giả lập khỏi participantStreams
-      setParticipantStreams((prev) => {
-        const newStreams = { ...prev };
-        delete newStreams["test-user-id"];
-        return newStreams;
-      });
-
-      // Xóa người dùng giả lập khỏi roomUsers
-      setRoomUsers((prev) => prev.filter((u) => u.id !== "test-user-id"));
-    } else {
-      // Bật chế độ test
-      setTestMode(true);
-
-      try {
-        // Tạo stream giả lập cho người dùng test
-        const fakeStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-
-        setTestStream(fakeStream);
-
-        // Thêm người dùng giả lập vào roomUsers
-        setRoomUsers((prev) => [
-          ...prev,
-          {
-            id: "test-user-id",
-            userName: "Test User",
-            avatar: "/default-avatar.png",
-            isMuted: false,
-            isVideoOff: false,
-          },
-        ]);
-
-        // Thêm stream giả lập vào participantStreams
-        setParticipantStreams((prev) => ({
-          ...prev,
-          "test-user-id": fakeStream,
-        }));
-
-        // Thông báo
-        notification.success({
-          message: "Test Mode Enabled",
-          description:
-            "A fake user has been added to test video functionality.",
-        });
-      } catch (error) {
-        console.error("Error creating test stream:", error);
-        notification.error({
-          message: "Test Mode Error",
-          description: "Could not create test stream: " + error.message,
-        });
-        setTestMode(false);
-      }
-    }
-  };
-
-  // Thêm useEffect để dọn dẹp test stream khi component unmount
-  useEffect(() => {
-    return () => {
-      if (testStream) {
-        testStream.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, [testStream]);
-
   // Cập nhật hàm handleToggleVideo để tách biệt hoàn toàn với audio
   const handleToggleVideo = async () => {
     try {
@@ -1490,7 +1410,6 @@ const WatchTogether = () => {
                 .filter(
                   (participant) =>
                     participant.id !== user?.id &&
-                    participant.id !== "test-user-id" &&
                     participant.userName !== user?.fullName
                 )
                 .map((participant) => (
@@ -1650,22 +1569,6 @@ const WatchTogether = () => {
                     className="p-3 rounded-full bg-blue-600 hover:bg-blue-700"
                   >
                     <Settings className="h-5 w-5 text-white" />
-                  </button>
-                </Tooltip>
-
-                {/* Thêm nút Test Mode */}
-                <Tooltip
-                  title={testMode ? "Disable Test Mode" : "Enable Test Mode"}
-                >
-                  <button
-                    onClick={toggleTestMode}
-                    className={`p-3 rounded-full ${
-                      testMode
-                        ? "bg-purple-500 hover:bg-purple-600"
-                        : "bg-gray-700 hover:bg-gray-600"
-                    }`}
-                  >
-                    <span className="text-white text-xs font-bold">TEST</span>
                   </button>
                 </Tooltip>
               </div>

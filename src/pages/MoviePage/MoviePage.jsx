@@ -357,7 +357,10 @@ const MoviePage = () => {
       console.error("Create room error:", error);
       notification.error({
         message: "Failed to create room",
-        description: error.message || "Could not create room",
+        description:
+          error.response?.data?.message ||
+          error.message ||
+          "Could not create room",
       });
     } finally {
       setIsCreatingRoom(false);
@@ -413,9 +416,48 @@ const MoviePage = () => {
       const userId = userData.userId.replace(/^userid:\s*/i, "");
       console.log("Joining room with userId:", userId);
 
+      // Luôn kiểm tra thông tin phòng trước để kiểm tra movie ID
+      try {
+        console.log("Fetching room details for room ID:", roomId.trim());
+        const roomDetails = await roomService.getRoomDetails(roomId.trim());
+        console.log("Room details response:", roomDetails);
+
+        if (roomDetails.success && roomDetails.data) {
+          const roomMovieId = roomDetails.data.movieID;
+          console.log("Room movieId:", roomMovieId);
+          console.log("Current page movieId:", movieId);
+
+          // Kiểm tra nếu movie ID của phòng khác với movie hiện tại
+          if (roomMovieId && roomMovieId !== movieId) {
+            notification.error({
+              message: "Movie ID mismatch",
+              description:
+                "You cannot join this room from this movie page. Please go to the correct movie page to join this room.",
+            });
+            setIsJoining(false);
+            return;
+          }
+        } else {
+          notification.warning({
+            message: "Room information unavailable",
+            description:
+              "Could not verify if this room matches the current movie. Proceeding anyway.",
+          });
+        }
+      } catch (detailsError) {
+        console.error("Error fetching room details:", detailsError);
+        notification.warning({
+          message: "Failed to check room details",
+          description:
+            "Could not verify if this room matches the current movie. Proceeding anyway.",
+        });
+      }
+
+      // Nếu đã qua được kiểm tra, thực hiện join phòng
       const response = await roomService.joinRoom({
         roomId: roomId.trim(),
         userId: userId,
+        movieId: movieId, // Vẫn gửi movieId trong body request
       });
 
       console.log("API Response:", response);
@@ -423,13 +465,18 @@ const MoviePage = () => {
       if (response.success) {
         notification.success({ message: "Joined room successfully!" });
         setIsJoinRoomModalVisible(false);
-        navigate(`/watch-together/${movieId}?roomId=${roomId}`);
+        navigate(
+          `/watch-together/${movieId}?roomId=${roomId}&movieId=${movieId}`
+        );
       }
     } catch (error) {
       console.error("Join room error:", error);
       notification.error({
         message: "Failed to join room",
-        description: error.message || "Could not join room",
+        description:
+          error.response?.data?.message ||
+          error.message ||
+          "Could not join room",
       });
     } finally {
       setIsJoining(false);

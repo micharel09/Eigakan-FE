@@ -1,11 +1,11 @@
 import axios from "axios";
 
-const API_URL = "https://localhost:7192/api";
+const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api";
 
 const roomService = {
   getRoomDetails: async (roomId) => {
     try {
-      const response = await axios.get(`${API_URL}/Room/${roomId}`, {
+      const response = await axios.get(`${API_URL}/Room/GetById/${roomId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -27,6 +27,9 @@ const roomService = {
       return response.data;
     } catch (error) {
       console.error("Error creating room:", error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
       throw error;
     }
   },
@@ -41,6 +44,9 @@ const roomService = {
       return response.data;
     } catch (error) {
       console.error("Error joining room:", error);
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
       throw error;
     }
   },
