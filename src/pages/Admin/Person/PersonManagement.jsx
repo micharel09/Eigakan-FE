@@ -24,13 +24,13 @@ import {
 import personService from "../../../apis/Person/person";
 import NewsApi from "../../../apis/News/news";
 import { Helmet } from "react-helmet";
-import dayjs from "dayjs"; // Import dayjs for date handling
-import customParseFormat from "dayjs/plugin/customParseFormat"; // Thêm plugin
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore"; // Thêm plugin này
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter"; // Thêm plugin này
+import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import axios from "axios";
 
-// Extend dayjs với các plugins cần thiết
+// Extend dayjs với các plugins
 dayjs.extend(customParseFormat);
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -46,27 +46,25 @@ const PersonManagement = () => {
   const [searchText, setSearchText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [abortController, setAbortController] = useState(null);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 5,
-    hasNextPage: true,
-  });
-  const [allPersons, setAllPersons] = useState([]);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
+  const [totalPersons, setTotalPersons] = useState(100);
 
-  // Fetch persons
-  const fetchPersons = async (page = 1, pageSize = 5) => {
+  // Fetch data
+  const fetchData = async (page = 1, pageSize = 5, name = "") => {
     try {
       setLoading(true);
-      const response = await personService.getAllPerson(page, pageSize);
-      if (response.success) {
-        setPersons(response.data);
-        setPagination((prev) => ({
-          ...prev,
-          current: page,
-          pageSize: pageSize,
-          total: response.total || 0,
-          hasNextPage: response.hasNextPage,
-        }));
+      const [personsRes, totalRes] = await Promise.all([
+        personService.getAllPerson(page, pageSize, name),
+        personService.getTotalPersons(),
+      ]);
+
+      if (personsRes.success) {
+        setPersons(personsRes.data);
+        setPagination((prev) => ({ ...prev, current: page, pageSize }));
+      }
+
+      if (totalRes.success) {
+        setTotalPersons(totalRes.total || 100);
       }
     } catch (error) {
       notification.error({
@@ -78,113 +76,41 @@ const PersonManagement = () => {
     }
   };
 
-  // Thêm hàm mới để fetch tất cả persons cho search
-  const fetchAllPersons = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        "https://eigakan2222-001-site1.jtempurl.com/api/Person?pageNumber=0&pageSize=1000",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (response.data && response.data.success) {
-        setAllPersons(response.data.data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching all persons:", error);
-      notification.error({
-        message: "Error",
-        description: "Could not fetch persons for search",
-      });
-    }
-  };
-
-  // Thêm useEffect để fetch dữ liệu khi component mount
+  // Search debounce
   useEffect(() => {
-    fetchPersons(pagination.current, pagination.pageSize);
-    fetchAllPersons();
+    const timer = setTimeout(() => {
+      fetchData(1, pagination.pageSize, searchText);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // Initial load
+  useEffect(() => {
+    fetchData(pagination.pageSize, pagination.pageSize);
+    return () => abortController?.abort();
   }, []);
 
-  // Thêm xử lý tìm kiếm với allPersons
-  useEffect(() => {
-    if (searchText) {
-      const filteredData = allPersons.filter((person) =>
-        person.name?.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setPersons(filteredData);
-      setPagination((prev) => ({
-        ...prev,
-        current: 1,
-        total: filteredData.length,
-      }));
-    } else {
-      fetchPersons(pagination.current, pagination.pageSize);
-    }
-  }, [searchText, allPersons]);
-
-  // Hàm hủy upload hiện tại
-  const cancelCurrentUpload = () => {
-    if (abortController) {
-      abortController.abort();
-      setAbortController(null);
-    }
-  };
-
-  // Cleanup khi component unmount
-  useEffect(() => {
-    return () => {
-      cancelCurrentUpload();
-    };
-  }, []);
-
-  // Handle Modal
+  // Modal functions
   const showModal = (person = null) => {
     setEditingPerson(person);
     if (person) {
-      try {
-        // Kiểm tra và parse ngày tháng cẩn thận hơn
-        let birthdayAsDayjs = null;
-        if (person.birthday) {
-          // Thử parse với nhiều format khác nhau
-          const formats = ["DD/MM/YYYY", "D/M/YYYY", "YYYY-MM-DD"];
-          for (let format of formats) {
-            const parsed = dayjs(person.birthday, format);
-            if (parsed.isValid()) {
-              birthdayAsDayjs = parsed;
-              break;
-            }
-          }
-          // Nếu không parse được, log lỗi
-          if (!birthdayAsDayjs) {
-            console.error("Could not parse date:", person.birthday);
-          }
-        }
-
-        const formData = {
-          ...person,
-          birthday: birthdayAsDayjs,
-          image: person.picture
-            ? [
-                {
-                  uid: "-1",
-                  name: "image.png",
-                  status: "done",
-                  url: person.picture,
-                },
-              ]
-            : [],
-        };
-        form.setFieldsValue(formData);
-      } catch (error) {
-        console.error("Error setting form values:", error);
-        notification.error({
-          message: "Error",
-          description: "Could not load person data",
-        });
-      }
+      const birthdayAsDayjs = person.birthday
+        ? dayjs(person.birthday, ["DD/MM/YYYY", "YYYY-MM-DD"])
+        : null;
+      form.setFieldsValue({
+        ...person,
+        birthday: birthdayAsDayjs,
+        image: person.picture
+          ? [
+              {
+                uid: "-1",
+                name: "image.png",
+                status: "done",
+                url: person.picture,
+              },
+            ]
+          : [],
+      });
     } else {
       form.resetFields();
     }
@@ -192,7 +118,7 @@ const PersonManagement = () => {
   };
 
   const handleCancel = () => {
-    cancelCurrentUpload();
+    abortController?.abort();
     setIsUploading(false);
     form.resetFields();
     setIsModalVisible(false);
@@ -207,12 +133,9 @@ const PersonManagement = () => {
         picture: values.picture || form.getFieldValue("picture"),
       };
 
-      let response;
-      if (editingPerson) {
-        response = await personService.updatePerson(editingPerson.id, formData);
-      } else {
-        response = await personService.createPerson(formData);
-      }
+      const response = editingPerson
+        ? await personService.updatePerson(editingPerson.id, formData)
+        : await personService.createPerson(formData);
 
       if (response.success) {
         notification.success({
@@ -222,59 +145,44 @@ const PersonManagement = () => {
           description: response.message,
         });
         handleCancel();
-        fetchPersons(pagination.current, pagination.pageSize);
+        fetchData(pagination.current, pagination.pageSize, searchText);
       }
     } catch (error) {
-      notification.error({
-        message: "Error",
-        description: error.message,
-      });
+      notification.error({ message: "Error", description: error.message });
     }
   };
 
   // Handle delete
-  const handleDelete = async (id) => {
-    try {
-      Modal.confirm({
-        title: "Are you sure you want to delete this person?",
-        content: "This action cannot be undone",
-        okText: "Yes",
-        okType: "danger",
-        cancelText: "No",
-        onOk: async () => {
-          const response = await personService.deletePerson(id);
-          if (response.success) {
-            notification.success({
-              message: "Deleted Successfully",
-              description: response.message,
-            });
-            fetchPersons(pagination.current, pagination.pageSize);
-          }
-        },
-      });
-    } catch (error) {
-      notification.error({
-        message: "Error",
-        description: error.message,
-      });
-    }
+  const handleDelete = (id) => {
+    Modal.confirm({
+      title: "Are you sure you want to delete this person?",
+      content: "This action cannot be undone",
+      okText: "Yes",
+      okType: "danger",
+      cancelText: "No",
+      onOk: async () => {
+        const response = await personService.deletePerson(id);
+        if (response.success) {
+          notification.success({
+            message: "Deleted Successfully",
+            description: response.message,
+          });
+          fetchData(pagination.current, pagination.pageSize, searchText);
+        }
+      },
+    });
   };
 
-  // Thêm hàm xử lý upload ảnh
-  const handleUpload = async (options) => {
-    const { file, onSuccess, onError } = options;
+  // Handle upload
+  const handleUpload = async ({ file, onSuccess, onError }) => {
     setIsUploading(true);
-
-    // Tạo AbortController mới cho request này
     const controller = new AbortController();
     setAbortController(controller);
 
     try {
       if (!file) throw new Error("No file selected");
-
       const response = await personService.uploadImage(file, controller.signal);
 
-      // Nếu request đã bị hủy hoặc modal đã đóng
       if (!response || !isModalVisible) {
         setIsUploading(false);
         return;
@@ -285,7 +193,6 @@ const PersonManagement = () => {
           image: [file],
           picture: response.data.data[0].url,
         });
-
         notification.success({
           message: "Upload Successful",
           description: "Image has been uploaded successfully",
@@ -295,7 +202,6 @@ const PersonManagement = () => {
         throw new Error(response?.data?.message || "Upload failed");
       }
     } catch (error) {
-      // Chỉ hiện thông báo lỗi nếu không phải do hủy request
       if (!axios.isCancel(error)) {
         onError(error);
         notification.error({
@@ -309,25 +215,22 @@ const PersonManagement = () => {
     }
   };
 
+  // Table columns
   const columns = [
     {
       title: "Picture",
       dataIndex: "picture",
       key: "picture",
       width: 100,
-      render: (picture) => (
+      render: (pic) => (
         <img
-          src={picture}
+          src={pic}
           alt="Person"
           className="w-12 h-12 rounded-full object-cover"
         />
       ),
     },
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-    },
+    { title: "Name", dataIndex: "name", key: "name" },
     {
       title: "Description",
       dataIndex: "description",
@@ -335,11 +238,7 @@ const PersonManagement = () => {
       ellipsis: true,
       width: 300,
     },
-    {
-      title: "Job",
-      dataIndex: "job",
-      key: "job",
-    },
+    { title: "Job", dataIndex: "job", key: "job" },
     {
       title: "Gender",
       dataIndex: "gender",
@@ -350,7 +249,7 @@ const PersonManagement = () => {
       title: "Birthday",
       dataIndex: "birthday",
       key: "birthday",
-      render: (birthday) => birthday || "-", // Just display the birthday string as is
+      render: (bday) => bday || "-",
     },
     {
       title: "Actions",
@@ -373,13 +272,6 @@ const PersonManagement = () => {
       ),
     },
   ];
-
-  // Thêm hàm xử lý thay đổi trang
-  const handleTableChange = (newPagination, filters, sorter) => {
-    if (!searchText) {
-      fetchPersons(newPagination.current, newPagination.pageSize);
-    }
-  };
 
   return (
     <div className="p-6">
@@ -419,36 +311,18 @@ const PersonManagement = () => {
           loading={loading}
           scroll={{ x: 1300 }}
           pagination={{
-            ...pagination,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
             showSizeChanger: true,
             pageSizeOptions: ["5", "10", "20", "50"],
-            defaultPageSize: 5,
-            showTotal: (total, range) => `Trang ${pagination.current}`,
-            itemRender: (page, type, originalElement) => {
-              const current = pagination.current;
-              if (type === "page") {
-                if (
-                  page === current ||
-                  page === current - 1 ||
-                  page === current + 1
-                ) {
-                  return (
-                    <Button type={current === page ? "primary" : "default"}>
-                      {page}
-                    </Button>
-                  );
-                }
-                return null;
-              }
-              return originalElement;
-            },
+            total: Math.min(totalPersons, pagination.pageSize * 6),
+            showTotal: (total) => `Total ${total} persons`,
+            onChange: (page, pageSize) => fetchData(page, pageSize, searchText),
+            onShowSizeChange: (current, size) =>
+              fetchData(current, size, searchText),
+            size: "default",
             showLessItems: true,
-            showQuickJumper: false,
-            total: pagination.hasNextPage
-              ? (pagination.current + 1) * pagination.pageSize
-              : pagination.current * pagination.pageSize,
           }}
-          onChange={handleTableChange}
         />
 
         <Modal
@@ -464,9 +338,7 @@ const PersonManagement = () => {
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
-            initialValues={{
-              gender: true, // Set default value for gender
-            }}
+            initialValues={{ gender: true }}
           >
             <Form.Item
               name="name"
@@ -510,9 +382,7 @@ const PersonManagement = () => {
                 { required: true, message: "Please select birthday!" },
                 {
                   validator: (_, value) => {
-                    if (!value) {
-                      return Promise.resolve();
-                    }
+                    if (!value) return Promise.resolve();
                     if (!dayjs.isDayjs(value) || !value.isValid()) {
                       return Promise.reject(new Error("Invalid date"));
                     }
@@ -540,9 +410,7 @@ const PersonManagement = () => {
               name="image"
               label="Image"
               valuePropName="fileList"
-              getValueFromEvent={(e) => {
-                return e?.fileList;
-              }}
+              getValueFromEvent={(e) => e?.fileList}
               rules={[{ required: true, message: "Please upload an image!" }]}
             >
               <Upload
@@ -553,7 +421,6 @@ const PersonManagement = () => {
                 beforeUpload={(file) => {
                   const isImage = file.type.startsWith("image/");
                   const isLt2M = file.size / 1024 / 1024 < 2;
-
                   if (!isImage) {
                     notification.error({
                       message: "Upload Failed",
@@ -561,7 +428,6 @@ const PersonManagement = () => {
                     });
                     return false;
                   }
-
                   if (!isLt2M) {
                     notification.error({
                       message: "Upload Failed",
@@ -569,7 +435,6 @@ const PersonManagement = () => {
                     });
                     return false;
                   }
-
                   return true;
                 }}
               >

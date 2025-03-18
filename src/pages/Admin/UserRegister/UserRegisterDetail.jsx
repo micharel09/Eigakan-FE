@@ -44,7 +44,7 @@ const UserRegisterDetail = () => {
       const accept = await UserRegisterApi.acceptedUserRegister(data);
 
       if (accept.status === 200) {
-        const response = await UserApi.CreateUser(newUser);
+        const response = await UserApi.CreateUserByRegister(newUser);
 
         if (response.status === 200) {
           setUserRegister((prevUserRegister) => ({
@@ -110,7 +110,6 @@ const UserRegisterDetail = () => {
       console.error("Error fetching preUrl:", error);
     }
   };
-
 
   const handleRejectUser = async () => {
     try {
@@ -248,18 +247,21 @@ const UserRegisterDetail = () => {
     <div style={{ padding: "20px" }}>
       <Descriptions title="User Register Info" bordered items={items} />
 
-      <div style={{ marginTop: "20px", textAlign: "right" }}>
-        <Button
-          onClick={() => setIsAcceptModalVisible(true)}
-          type="primary"
-          style={{ marginRight: "10px" }}
-        >
-          Approve
-        </Button>
-        <Button type="danger" onClick={handleReject}>
-          Reject
-        </Button>
-      </div>
+      {userRegister.status === "REVIEWING" && (
+        <div style={{ marginTop: "20px", textAlign: "right" }}>
+          <Button
+            onClick={() => setIsAcceptModalVisible(true)}
+            type="primary"
+            style={{ marginRight: "10px" }}
+          >
+            Approve
+          </Button>
+          <Button type="danger" onClick={handleReject}>
+            Reject
+          </Button>
+        </div>
+      )}
+
 
       {/* Reject Modal */}
       <Modal

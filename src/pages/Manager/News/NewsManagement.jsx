@@ -13,6 +13,7 @@ import {
   Card,
   Tooltip,
   Typography,
+  Tabs,
 } from "antd";
 import {
   EditOutlined,
@@ -22,13 +23,17 @@ import {
   EyeOutlined,
   SearchOutlined,
   FilterOutlined,
+  FileTextOutlined,
+  TagsOutlined,
 } from "@ant-design/icons";
 import NewsApi from "../../../apis/News/news";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title, Text } = Typography;
+const { TabPane } = Tabs;
 
 const NEWS_STATUS = {
   ACTIVE: "Active",
@@ -73,6 +78,76 @@ const NewsManagement = () => {
 
   // New state for upload tracking
   const [isUploading, setIsUploading] = useState(false);
+
+  // New state for category management
+  const [categories, setCategories] = useState([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryPagination, setCategoryPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  // Định nghĩa columns cho Categories table
+  const categoryColumns = [
+    {
+      title: "Category Name",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      render: (text) => (
+        <Text type="secondary" className="text-sm">
+          {text}
+        </Text>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: 100,
+      render: (status) => (
+        <span
+          className={`px-3 py-1 rounded-full text-xs ${
+            status === "Active"
+              ? "bg-green-100 text-green-500 border border-green-500"
+              : "bg-red-100 text-red-500 border border-red-500"
+          }`}
+        >
+          {status}
+        </span>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "action",
+      width: 120,
+      render: (_, record) => (
+        <Space size="small">
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => handleCategoryEdit(record)}
+              className="hover:text-blue-500"
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button
+              type="text"
+              icon={<DeleteOutlined />}
+              onClick={() => handleCategoryDelete(record.id)}
+              className="hover:text-red-500"
+            />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   // Fetch news của manager hiện tại dựa theo userId
   const fetchNews = async () => {
@@ -315,176 +390,253 @@ const NewsManagement = () => {
     setIsModalVisible(true);
   };
 
+  // Thêm các hàm xử lý cho Categories
+  const handleCategoryEdit = (record) => {
+    // TODO: Implement category edit
+    console.log("Edit category:", record);
+  };
+
+  const handleCategoryDelete = (id) => {
+    // TODO: Implement category delete
+    console.log("Delete category:", id);
+  };
+
+  const handleHistoryTableChange = (pagination) => {
+    setCategoryPagination(pagination);
+  };
+
   return (
-    <div className="p-4 bg-gray-50 min-h-screen">
-      {/* Header Section - Thu gọn padding */}
-      <Card className="mb-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <Title level={3} className="!mb-1">
-              News Management
-            </Title>
-            <Text type="secondary" className="text-sm">
-              Manage all your news articles in one place
-            </Text>
-          </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingId(null);
-              form.resetFields();
-              setIsModalVisible(true);
-            }}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            Add News
-          </Button>
-        </div>
-      </Card>
+    <div className="p-6">
+      <Helmet>
+        <title>News Management</title>
+      </Helmet>
 
-      {/* Filters Section - Thu gọn padding và spacing */}
-      <Card className="mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Input
-            placeholder="Search by title or content..."
-            prefix={<SearchOutlined className="text-gray-400" />}
-            className="rounded-lg"
-            allowClear
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          <Select
-            placeholder="Filter by status"
-            className="w-full"
-            allowClear
-            onChange={handleStatusFilterChange}
-            value={statusFilter}
-          >
-            <Option value="1">Active</Option>
-            <Option value="2">Draft</Option>
-            <Option value="3">Deleted</Option>
-          </Select>
-          <Button
-            icon={<FilterOutlined />}
-            onClick={() => {
-              setSearchText("");
-              setStatusFilter(null);
-            }}
-            className="md:w-fit md:ml-auto"
-          >
-            Clear Filters
-          </Button>
-        </div>
-      </Card>
-
-      {/* Table Section - Điều chỉnh columns và spacing */}
-      <Card>
-        <Table
-          columns={[
-            {
-              title: "Title & Preview",
-              key: "title",
-              render: (_, record) => (
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
-                    <img
-                      src={record.picture || "/default-news.jpg"}
-                      alt={record.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 truncate">
-                      {record.title}
-                    </div>
-                    <Text type="secondary" className="text-sm truncate block">
-                      {record.content?.substring(0, 60)}...
-                    </Text>
-                  </div>
-                </div>
-              ),
-            },
-            {
-              title: "Status",
-              dataIndex: "status",
-              key: "status",
-              width: 100,
-              render: (status) => {
-                const displayStatus = STATUS_MAP[status] || status;
-                return (
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs ${
-                      displayStatus === "Active"
-                        ? "bg-green-100 text-green-500 border border-green-500"
-                        : displayStatus === "Draft"
-                        ? "bg-yellow-100 text-yellow-500 border border-yellow-500"
-                        : "bg-red-100 text-red-500 border border-red-500"
-                    }`}
-                  >
-                    {displayStatus}
-                  </span>
-                );
-              },
-            },
-            {
-              title: "Created",
-              dataIndex: "createDate",
-              key: "createDate",
-              width: 120,
-              render: (date) => (
+      <Tabs defaultActiveKey="1" className="mb-4">
+        <TabPane
+          tab={
+            <span className="flex items-center">
+              <FileTextOutlined className="mr-2" />
+              News Articles
+            </span>
+          }
+          key="1"
+        >
+          <Card className="mb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <Title level={3} className="!mb-1">
+                  News Management
+                </Title>
                 <Text type="secondary" className="text-sm">
-                  {new Date(date).toLocaleDateString()}
+                  Manage all your news articles in one place
                 </Text>
-              ),
-            },
-            {
-              title: "Actions",
-              key: "action",
-              width: 120,
-              render: (_, record) => (
-                <Space size="small">
-                  <Tooltip title="Preview">
-                    <Button
-                      type="text"
-                      icon={<EyeOutlined />}
-                      onClick={() => handlePreview(record)}
-                      className="hover:text-blue-500"
-                    />
-                  </Tooltip>
-                  <Tooltip title="Edit">
-                    <Button
-                      type="text"
-                      icon={<EditOutlined />}
-                      onClick={() => handleEdit(record)}
-                      className="hover:text-blue-500"
-                    />
-                  </Tooltip>
-                  <Tooltip title="Delete">
-                    <Button
-                      type="text"
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleDelete(record.id)}
-                      className="hover:text-gray-500"
-                    />
-                  </Tooltip>
-                </Space>
-              ),
-            },
-          ]}
-          dataSource={filteredNews}
-          rowKey="id"
-          pagination={{
-            ...pagination,
-            total: filteredNews.length,
-            pageSize: 8, // Giảm số items mỗi trang
-            showSizeChanger: false, // Ẩn option thay đổi pageSize
-          }}
-          loading={loading}
-          onChange={handleTableChange}
-          className="rounded-lg overflow-hidden"
-          size="middle" // Giảm kích thước row
-        />
-      </Card>
+              </div>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingId(null);
+                  form.resetFields();
+                  setIsModalVisible(true);
+                }}
+                className="bg-blue-500 hover:bg-blue-600"
+              >
+                Add News
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Input
+                placeholder="Search by title or content..."
+                prefix={<SearchOutlined className="text-gray-400" />}
+                className="rounded-lg"
+                allowClear
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+              <Select
+                placeholder="Filter by status"
+                className="w-full"
+                allowClear
+                onChange={handleStatusFilterChange}
+                value={statusFilter}
+              >
+                <Option value="1">Active</Option>
+                <Option value="2">Draft</Option>
+                <Option value="3">Deleted</Option>
+              </Select>
+              <Button
+                icon={<FilterOutlined />}
+                onClick={() => {
+                  setSearchText("");
+                  setStatusFilter(null);
+                }}
+                className="md:w-fit md:ml-auto"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </Card>
+
+          <Card>
+            <Table
+              columns={[
+                {
+                  title: "Title & Preview",
+                  key: "title",
+                  render: (_, record) => (
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0">
+                        <img
+                          src={record.picture || "/default-news.jpg"}
+                          alt={record.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">
+                          {record.title}
+                        </div>
+                        <Text
+                          type="secondary"
+                          className="text-sm truncate block"
+                        >
+                          {record.content?.substring(0, 60)}...
+                        </Text>
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  title: "Status",
+                  dataIndex: "status",
+                  key: "status",
+                  width: 100,
+                  render: (status) => {
+                    const displayStatus = STATUS_MAP[status] || status;
+                    return (
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs ${
+                          displayStatus === "Active"
+                            ? "bg-green-100 text-green-500 border border-green-500"
+                            : displayStatus === "Draft"
+                            ? "bg-yellow-100 text-yellow-500 border border-yellow-500"
+                            : "bg-red-100 text-red-500 border border-red-500"
+                        }`}
+                      >
+                        {displayStatus}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  title: "Created",
+                  dataIndex: "createDate",
+                  key: "createDate",
+                  width: 120,
+                  render: (date) => (
+                    <Text type="secondary" className="text-sm">
+                      {new Date(date).toLocaleDateString()}
+                    </Text>
+                  ),
+                },
+                {
+                  title: "Actions",
+                  key: "action",
+                  width: 120,
+                  render: (_, record) => (
+                    <Space size="small">
+                      <Tooltip title="Preview">
+                        <Button
+                          type="text"
+                          icon={<EyeOutlined />}
+                          onClick={() => handlePreview(record)}
+                          className="hover:text-blue-500"
+                        />
+                      </Tooltip>
+                      <Tooltip title="Edit">
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => handleEdit(record)}
+                          className="hover:text-blue-500"
+                        />
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <Button
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleDelete(record.id)}
+                          className="hover:text-gray-500"
+                        />
+                      </Tooltip>
+                    </Space>
+                  ),
+                },
+              ]}
+              dataSource={filteredNews}
+              rowKey="id"
+              pagination={{
+                ...pagination,
+                total: filteredNews.length,
+                pageSize: 8, // Giảm số items mỗi trang
+                showSizeChanger: false, // Ẩn option thay đổi pageSize
+              }}
+              loading={loading}
+              onChange={handleTableChange}
+              className="rounded-lg overflow-hidden"
+              size="middle" // Giảm kích thước row
+            />
+          </Card>
+        </TabPane>
+
+        <TabPane
+          tab={
+            <span className="flex items-center">
+              <TagsOutlined className="mr-2" />
+              Categories
+            </span>
+          }
+          key="2"
+        >
+          <Card className="mb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <Title level={3} className="!mb-1">
+                  Categories
+                </Title>
+                <Text type="secondary" className="text-sm">
+                  Manage news categories
+                </Text>
+              </div>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  // TODO: Implement add category
+                  console.log("Add new category");
+                }}
+                className="bg-blue-500 hover:bg-blue-600"
+              >
+                Add Category
+              </Button>
+            </div>
+          </Card>
+
+          <Card>
+            <Table
+              columns={categoryColumns}
+              dataSource={categories}
+              pagination={categoryPagination}
+              loading={categoryLoading}
+              onChange={handleHistoryTableChange}
+              rowKey="id"
+              className="rounded-lg overflow-hidden"
+            />
+          </Card>
+        </TabPane>
+      </Tabs>
 
       <Modal
         title={editingId ? "Edit News" : "Add News"}

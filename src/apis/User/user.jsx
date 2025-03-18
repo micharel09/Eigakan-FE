@@ -69,6 +69,22 @@ const UserApi = {
     }
   },
 
+  async CreateUserByRegister(data) {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(`${API_URL}/CreateUserByRegister`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log(response);
+      return response;
+    } catch (error) {
+      console.error("API error:", error.message);
+      return error.response;
+    }
+  },
+
   async getUserDetail(id) {
     try {
       const token = localStorage.getItem("token");

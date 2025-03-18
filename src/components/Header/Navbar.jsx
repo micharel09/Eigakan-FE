@@ -347,7 +347,7 @@ const Navbar = () => {
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 className="text-[#FF009F] font-bold text-3xl tracking-wider"
               >
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r eigakan-gradient text-[#FF009F]">
                   EIGAKAN
                 </span>
               </motion.div>
@@ -370,20 +370,24 @@ const Navbar = () => {
                 </Link>
               )}
 
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
-                    location.pathname === link.path
-                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  {link.icon}
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks
+                .filter(
+                  (link) => !["/", "/favorites", "/history"].includes(link.path)
+                )
+                .map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                      location.pathname === link.path
+                        ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    {link.icon}
+                    {link.label}
+                  </Link>
+                ))}
               {isAdmin && (
                 <Link
                   to="/admin/persons"
