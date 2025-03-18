@@ -177,6 +177,28 @@ const adSlotService = {
       throw error.response?.data || error.message;
     }
   },
+
+  // AdSlotPayment APIs
+  createAdPayment: async (adSlotTimeId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${BASE_URL}/api/AdPurchaseTransaction`,
+        {
+          adSlotTimeId,
+          redirectUrl: `${window.location.origin}/payment-success-adslot`
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
 };
 
 export default adSlotService; 

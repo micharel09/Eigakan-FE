@@ -51,6 +51,7 @@ import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard";
 import GenrePage from "../pages/Genre/GenrePage";
 import GenresPage from "../pages/Genre/GenresPage";
 import AdSlotTimeManagement from "../pages/Manager/AdSlot/AdSlotTimeManagement";
+import BuyAdSlot from "../pages/Advertiser/BuyAdSlot/BuyAdSlot";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
 
 const isLoggedIn = () => {
@@ -477,6 +478,17 @@ const routes = [
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/advertiser/buy-adslot",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <BuyAdSlot />
+      </PrivateRoute>
+    ),
+    layout: "UserLayout",
+    private: true,
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
