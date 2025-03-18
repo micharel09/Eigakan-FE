@@ -10,6 +10,7 @@ import {
   Heart,
   Tv,
   Search,
+  ShoppingCart,
 } from "lucide-react";
 import {
   CrownOutlined,
@@ -105,6 +106,17 @@ function ProfileMenu({
       ),
       label: "Subscription History",
     },
+    ...(isAdvertiser
+      ? [
+          {
+            to: "/advertiser/buy-adslot",
+            icon: (
+              <ShoppingCart className="w-5 h-5 mr-3 text-white/60 group-hover:text-white transition-colors" />
+            ),
+            label: "Buy AdSlot",
+          },
+        ]
+      : []),
   ];
 
   return (

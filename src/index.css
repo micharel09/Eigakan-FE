@@ -44,6 +44,11 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  --ant-primary-color: #ff009f;
+  --ant-primary-color-hover: #ff6b9f;
+  --ant-primary-color-active: #d1007f;
+  --ant-primary-color-outline: rgba(255, 0, 159, 0.2);
 }
 
 @keyframes ken-burns {

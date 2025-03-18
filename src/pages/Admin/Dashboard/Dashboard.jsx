@@ -276,12 +276,13 @@ const Dashboard = () => {
         Authorization: `Bearer ${token}`,
       };
 
-      // Gửi các request song song để tăng tốc
+      // Gửi các request song song để tăng tốc, thêm API contracts
       const [
         usersResponse,
         moviesResponse,
         registersResponse,
         subscriptionsResponse,
+        contractsResponse, // Thêm API contracts
       ] = await Promise.all([
         axios.get(
           "https://eigakan2222-001-site1.jtempurl.com/api/User/GetAllUser?page=0&pageSize=1000",
@@ -299,6 +300,10 @@ const Dashboard = () => {
           "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment?page=1&pageSize=1000",
           { headers }
         ),
+        axios.get(
+          "https://eigakan2222-001-site1.jtempurl.com/api/contracts?page=0&pageSize=1000",
+          { headers }
+        ),
       ]);
 
       const users = usersResponse.data?.users || [];
@@ -306,6 +311,7 @@ const Dashboard = () => {
       const registers = registersResponse.data?.users || [];
       const subscriptions =
         subscriptionsResponse.data?.data?.subscriptionPurchase || [];
+      const contracts = contractsResponse.data?.contracts || []; // Lấy danh sách contracts
 
       const activeUsers = users.filter(
         (user) => user.status === "NORMAL"
@@ -315,6 +321,11 @@ const Dashboard = () => {
         0
       );
 
+      // Đếm số hợp đồng đang chờ phê duyệt
+      const waitingContractsCount = contracts.filter(
+        (contract) => contract.status === "WAITING_FOR_REVIEWING"
+      ).length;
+
       const newStats = {
         totalUsers: users.length,
         totalMovies: movies.length,
@@ -322,15 +333,16 @@ const Dashboard = () => {
         totalSubscriptions: subscriptions.length,
         totalRevenue: totalRevenue,
         activeUsers: activeUsers,
+        waitingContracts: waitingContractsCount, // Thêm số hợp đồng đang chờ
       };
 
       setStats(newStats);
       setCachedData("dashboard_stats", newStats);
     } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu thống kê:", error);
+      console.error("Error getting stats:", error);
       notification.error({
-        message: "Lỗi",
-        description: "Không thể lấy dữ liệu thống kê",
+        message: "Error",
+        description: "Could not fetch statistics data",
       });
     } finally {
       setStatsLoading(false);
@@ -637,10 +649,10 @@ const Dashboard = () => {
         }))
       );
     } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu hoạt động:", error);
+      console.error("Error fetching activities:", error);
       notification.error({
-        message: "Lỗi",
-        description: "Không thể lấy dữ liệu hoạt động gần đây",
+        message: "Error",
+        description: "Could not fetch recent activities",
       });
     } finally {
       setActivitiesLoading(false);
@@ -650,23 +662,36 @@ const Dashboard = () => {
   // Thêm hàm handleRefresh để refresh thủ công
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
+    setStatsLoading(true); // Add loading state for stats
+    setChartsLoading(true); // Loading state for charts
+    setActivitiesLoading(true); // Loading state for activities
 
-    // Gọi lại các hàm fetch data
+    // Clear cache to force fetch new data
+    localStorage.removeItem("dashboard_stats");
+    localStorage.removeItem("dashboard_activities");
+
+    // Call all fetch data functions
     Promise.all([processStats(), processCharts(), processActivities()])
       .then(() => {
         setRefreshing(false);
+        setStatsLoading(false);
+        setChartsLoading(false);
+        setActivitiesLoading(false);
         notification.success({
           message: "Refresh Successful",
-          description: "Dashboard data has been updated.",
+          description: "Dashboard data has been updated",
           duration: 2,
         });
       })
       .catch((error) => {
         console.error("Refresh error:", error);
         setRefreshing(false);
+        setStatsLoading(false);
+        setChartsLoading(false);
+        setActivitiesLoading(false);
         notification.error({
           message: "Refresh Failed",
-          description: "Could not update dashboard data.",
+          description: "Could not update dashboard data",
           duration: 3,
         });
       });
@@ -682,7 +707,7 @@ const Dashboard = () => {
           processActivities(),
         ]);
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu:", error);
+        console.error("Error loading data:", error);
       } finally {
         setLoading(false);
       }
@@ -776,8 +801,8 @@ const Dashboard = () => {
             linkTo="/user"
           />
           <StatCard
-            title="Approvals"
-            value={stats.totalSubscriptions}
+            title="Contract Approvals"
+            value={stats.waitingContracts}
             icon={<CheckCircleOutlined className="text-2xl text-cyan-500" />}
             color="cyan"
             subTitle="Waiting approval"
