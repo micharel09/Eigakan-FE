@@ -5,7 +5,7 @@ import SignupPage from "../pages/Auth/SignUpPage";
 import HomePage from "../pages/home/HomePage";
 import WatchPage from "../pages/Watchpage/WatchPage";
 import SearchPage from "../pages/home/Search.jsx";
-import MoviePage from "../pages/MoviePage/MoviePage.jsx";
+import MoviePage from "../pages/MoviePage/MoviePage";
 import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
 import PopularPeople from "../pages/Actor/PopularPeople.jsx";
@@ -51,6 +51,7 @@ import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard";
 import GenrePage from "../pages/Genre/GenrePage";
 import GenresPage from "../pages/Genre/GenresPage";
 import AdSlotTimeManagement from "../pages/Manager/AdSlot/AdSlotTimeManagement";
+import WatchTogether from "../pages/WatchTogether/WatchTogether";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -235,6 +236,12 @@ const routes = [
   { path: "/movie/:movieId", element: <MoviePage />, layout: "UserLayout" },
 
   { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
+
+  {
+    path: "/watch-together/:movieId",
+    element: <WatchTogether />,
+    layout: "UserLayout",
+  },
 
   { path: "/search", element: <SearchPage />, layout: "UserLayout" },
 
