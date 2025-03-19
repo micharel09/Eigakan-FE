@@ -53,6 +53,8 @@ import GenresPage from "../pages/Genre/GenresPage";
 import AdSlotTimeManagement from "../pages/Manager/AdSlot/AdSlotTimeManagement";
 import BuyAdSlot from "../pages/Advertiser/BuyAdSlot/BuyAdSlot";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
+import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
+import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -481,6 +483,16 @@ const routes = [
   },
 
   {
+    path: "/advertiser/select-adpackage",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <SelectAdPackage />
+      </PrivateRoute>
+    ),
+    layout: "UserLayout",
+  },
+
+  {
     path: "/advertiser/buy-adslot",
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
@@ -489,6 +501,16 @@ const routes = [
     ),
     layout: "UserLayout",
     private: true,
+  },
+
+  {
+    path: "/payment-success-adslot",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <PaymentSuccessAdSlot />
+      </PrivateRoute>
+    ),
+    layout: "UserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
