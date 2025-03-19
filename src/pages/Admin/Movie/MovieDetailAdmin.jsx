@@ -19,6 +19,9 @@ import {
   Form,
   DatePicker,
   InputNumber,
+  Row,
+  Col,
+  Divider 
 } from "antd"
 import {
   PlayCircleOutlined,
@@ -29,6 +32,8 @@ import {
   CloseCircleOutlined,
   EyeOutlined,
   EditOutlined,
+  CalendarOutlined,
+  BarChartOutlined  
 } from "@ant-design/icons"
 import { useParams, useNavigate } from "react-router-dom"
 import movieService from "../../../apis/Movie/movie"
@@ -37,6 +42,7 @@ import { extractUrl } from "../../../utils/extractUrl"
 import uploadFileApi from "../../../apis/Upload/upload.jsx"
 import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow.jsx"
 import { Link } from "react-router-dom"
+import MovieCount from "./MovieCount.jsx"
 
 const { Content } = Layout
 const { TabPane } = Tabs
@@ -190,45 +196,117 @@ const MovieDetail = () => {
 
     if (type === "DASHBOARD") {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-white rounded-lg shadow">
-          {/* Thông tin chung */}
-          <div className="space-y-4">
-            <div>
-              <Text strong className="text-gray-600">
-                📅 Submission Date:
-              </Text>
-              <Paragraph className="text-gray-800">{movie?.submissionDate || "N/A"}</Paragraph>
-            </div>
-            <div>
-              <Text strong className="text-gray-600">
-                ❌ Reason For Rejection:
-              </Text>
-              <Paragraph className="text-gray-800">{movie?.reasonForRejection || "N/A"}</Paragraph>
-            </div>
+        <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg p-6">
+          <div className="mb-6">
+            <Title level={3} className="text-gray-800 mb-1">
+              Movie Dashboard
+            </Title>
+            <Text className="text-gray-500">Comprehensive analytics and information</Text>
           </div>
+  
+          <Row gutter={[24, 24]}>
+            {/* Left Column - Movie Information */}
+            <Col xs={24} lg={12}>
+              <Card
+                className="h-full shadow-md hover:shadow-lg transition-shadow duration-300"
+                title={
+                  <div className="flex items-center">
+                    <div className="bg-blue-500 w-1 h-6 mr-3 rounded-full"></div>
+                    <span>Movie Information</span>
+                  </div>
+                }
+                bordered={false}
+              >
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center mb-2">
+                      <CalendarOutlined className="text-blue-500 mr-2" />
+                      <Text strong className="text-gray-700">
+                        Submission Date
+                      </Text>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <Paragraph className="text-gray-800 m-0">{movie?.submissionDate || "Not available"}</Paragraph>
+                    </div>
+                  </div>
+  
+                  <div>
+                    <div className="flex items-center mb-2">
+                      <CloseCircleOutlined className="text-red-500 mr-2" />
+                      <Text strong className="text-gray-700">
+                        Reason For Rejection
+                      </Text>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <Paragraph className="text-gray-800 m-0">{movie?.reasonForRejection || "No rejection"}</Paragraph>
+                    </div>
+                  </div>
 
-          {/* Thống kê */}
-          <div className="flex flex-col items-center md:items-end space-y-4">
-            <Card className="w-full md:w-52 shadow-md">
-              <Statistic
-                title="👁️ View Count"
-                value={movie?.viewCount || 0}
-                valueStyle={{ fontSize: "1.5rem", fontWeight: "bold" }}
-                prefix={<EyeOutlined className="text-blue-500" />}
-              />
-            </Card>
-
-            <div className="flex items-center space-x-2">
-              <Text strong className="text-gray-600">
-                ⭐ User Rating:
-              </Text>
-              <Rate disabled defaultValue={movie?.userRating || 0} />
-            </div>
-
-            <Button type="primary" icon={<EyeOutlined />} className="w-full md:w-auto">
-              View Dashboard Details
-            </Button>
-          </div>
+                </div>
+              </Card>
+            </Col>
+  
+            {/* Right Column - Statistics */}
+            <Col xs={24} lg={12}>
+              <Card
+                className="h-full shadow-md hover:shadow-lg transition-shadow duration-300"
+                title={
+                  <div className="flex items-center">
+                    <div className="bg-green-500 w-1 h-6 mr-3 rounded-full"></div>
+                    <span>Performance Metrics</span>
+                  </div>
+                }
+                bordered={false}
+              >
+                <div className="space-y-6">
+                  <Row gutter={[16, 16]}>
+                    <Col xs={12}>
+                      <Card className="bg-blue-50 border-0">
+                        <Statistic
+                          title={
+                            <div className="flex items-center text-blue-700">
+                              <EyeOutlined className="mr-1" />
+                              <span>Views</span>
+                            </div>
+                          }
+                          value={movie?.viewCount || 0}
+                          valueStyle={{ color: "#1890ff", fontWeight: "bold" }}
+                        />
+                      </Card>
+                    </Col>
+  
+                    <Col xs={12}>
+                      <Card className="bg-green-50 border-0">
+                        <Statistic
+                          title={
+                            <div className="flex items-center text-green-700">
+                              <StarOutlined className="mr-1" />
+                              <span>Rating</span>
+                            </div>
+                          }
+                          value={movie?.userRating || 0}
+                          suffix="/5"
+                          valueStyle={{ color: "#52c41a", fontWeight: "bold" }}
+                        />
+                      </Card>
+                    </Col>
+                  </Row>
+  
+                  <Divider className="my-4" />
+  
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="mb-2 flex items-center">
+                      <BarChartOutlined className="text-purple-500 mr-2" />
+                      <Text strong className="text-gray-700">
+                        View Statistics
+                      </Text>
+                    </div>
+                    <MovieCount />
+                  </div>
+                </div>
+              </Card>
+            </Col>
+          </Row>
         </div>
       )
     }
@@ -554,7 +632,7 @@ const MovieDetail = () => {
           confirmLoading={loading}
         >
           <h1>Are you sure to active this movie and publish on website?</h1>
-        </Modal>
+        </Modal>      
       </Content>
     </Layout>
   )
