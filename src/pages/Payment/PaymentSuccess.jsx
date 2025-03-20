@@ -3,6 +3,7 @@ import { Result, Spin, Button } from "antd";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CheckCircleFilled, CloseCircleFilled } from "@ant-design/icons";
+import subscriptionService from "../../apis/Subscription/subscription";
 
 function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -13,43 +14,30 @@ function PaymentSuccess() {
 
   useEffect(() => {
     const verifyPayment = async () => {
-      // Nếu đã có kết quả thành công hoặc đã gọi API rồi thì không gọi nữa
       if (apiCalled.current) return;
 
       try {
-        apiCalled.current = true; // Đánh dấu là đã gọi API
-        const token = localStorage.getItem("token");
+        apiCalled.current = true;
         const queryString = Array.from(searchParams.entries())
           .map(([key, value]) => `${key}=${value}`)
           .join("&");
 
-        const response = await axios.get(
-          `https://eigakan1111-001-site1.qtempurl.com/api/SubscriptionPurchasePayment/vnpay-return?${queryString}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await subscriptionService.verifyPayment(queryString);
+        setPaymentInfo(response);
 
-        setPaymentInfo(response.data);
-
-        // Nếu thanh toán thành công, cập nhật user info
-        if (response.data.success) {
+        if (response.success) {
           const user = JSON.parse(localStorage.getItem("user") || "{}");
           user.subscriptionStatus = "Active";
           user.roleName = "VIP MEMBER";
           localStorage.setItem("user", JSON.stringify(user));
           localStorage.setItem("role", "VIP MEMBER");
 
-          // Dispatch một custom event
           window.dispatchEvent(new Event("userRoleChanged"));
         }
       } catch (error) {
         setPaymentInfo({
           success: false,
-          message:
-            error.response?.data?.message || "Payment verification failed",
+          message: error.message || "Payment verification failed",
         });
       } finally {
         setLoading(false);
@@ -57,7 +45,7 @@ function PaymentSuccess() {
     };
 
     verifyPayment();
-  }, []); // Chỉ chạy một lần khi component mount
+  }, []);
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {

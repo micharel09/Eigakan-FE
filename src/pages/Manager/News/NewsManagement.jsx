@@ -79,76 +79,6 @@ const NewsManagement = () => {
   // New state for upload tracking
   const [isUploading, setIsUploading] = useState(false);
 
-  // New state for category management
-  const [categories, setCategories] = useState([]);
-  const [categoryLoading, setCategoryLoading] = useState(false);
-  const [categoryPagination, setCategoryPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
-
-  // Định nghĩa columns cho Categories table
-  const categoryColumns = [
-    {
-      title: "Category Name",
-      dataIndex: "name",
-      key: "name",
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-      render: (text) => (
-        <Text type="secondary" className="text-sm">
-          {text}
-        </Text>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 100,
-      render: (status) => (
-        <span
-          className={`px-3 py-1 rounded-full text-xs ${
-            status === "Active"
-              ? "bg-green-100 text-green-500 border border-green-500"
-              : "bg-red-100 text-red-500 border border-red-500"
-          }`}
-        >
-          {status}
-        </span>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "action",
-      width: 120,
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => handleCategoryEdit(record)}
-              className="hover:text-blue-500"
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button
-              type="text"
-              icon={<DeleteOutlined />}
-              onClick={() => handleCategoryDelete(record.id)}
-              className="hover:text-red-500"
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
-
   // Fetch news của manager hiện tại dựa theo userId
   const fetchNews = async () => {
     setLoading(true);
@@ -390,21 +320,6 @@ const NewsManagement = () => {
     setIsModalVisible(true);
   };
 
-  // Thêm các hàm xử lý cho Categories
-  const handleCategoryEdit = (record) => {
-    // TODO: Implement category edit
-    console.log("Edit category:", record);
-  };
-
-  const handleCategoryDelete = (id) => {
-    // TODO: Implement category delete
-    console.log("Delete category:", id);
-  };
-
-  const handleHistoryTableChange = (pagination) => {
-    setCategoryPagination(pagination);
-  };
-
   return (
     <div className="p-6">
       <Helmet>
@@ -587,52 +502,6 @@ const NewsManagement = () => {
               onChange={handleTableChange}
               className="rounded-lg overflow-hidden"
               size="middle" // Giảm kích thước row
-            />
-          </Card>
-        </TabPane>
-
-        <TabPane
-          tab={
-            <span className="flex items-center">
-              <TagsOutlined className="mr-2" />
-              Categories
-            </span>
-          }
-          key="2"
-        >
-          <Card className="mb-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <Title level={3} className="!mb-1">
-                  Categories
-                </Title>
-                <Text type="secondary" className="text-sm">
-                  Manage news categories
-                </Text>
-              </div>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  // TODO: Implement add category
-                  console.log("Add new category");
-                }}
-                className="bg-blue-500 hover:bg-blue-600"
-              >
-                Add Category
-              </Button>
-            </div>
-          </Card>
-
-          <Card>
-            <Table
-              columns={categoryColumns}
-              dataSource={categories}
-              pagination={categoryPagination}
-              loading={categoryLoading}
-              onChange={handleHistoryTableChange}
-              rowKey="id"
-              className="rounded-lg overflow-hidden"
             />
           </Card>
         </TabPane>

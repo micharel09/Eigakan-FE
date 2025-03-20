@@ -1,4 +1,3 @@
-"use client"
 
 import React, { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
@@ -48,6 +47,11 @@ const WatchPage = () => {
 
     fetchMovie()
 
+    // If in room mode, join the room
+    if (roomId && user) {
+      handleJoinRoom();
+    }
+
     // Hide controls after 3 seconds of inactivity
     const timer = setTimeout(() => setShowControls(false), 3000)
 
@@ -60,10 +64,34 @@ const WatchPage = () => {
     window.addEventListener("mousemove", handleMouseMove)
 
     return () => {
+
       clearTimeout(timer)
       window.removeEventListener("mousemove", handleMouseMove)
     }
   }, [movieId])
+
+
+  const handleJoinRoom = async () => {
+    try {
+      const joinData = {
+        roomId: roomId,
+        userId: user.id,
+      };
+
+      const response = await roomService.joinRoom(joinData);
+      if (response.success) {
+        notification.success({
+          message: "Joined room successfully!",
+        });
+        setRoomUsers(response.data);
+      }
+    } catch (error) {
+      notification.error({
+        message: "Failed to join room",
+        description: error.message,
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -699,6 +727,30 @@ const WatchPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Room Users Modal */}
+      <Modal
+        title="Room Users"
+        open={showRoomUsers}
+        onCancel={() => setShowRoomUsers(false)}
+        footer={null}
+      >
+        <List
+          itemLayout="horizontal"
+          dataSource={roomUsers}
+          renderItem={(item) => (
+            <List.Item>
+              <List.Item.Meta
+                avatar={<Avatar src={item.avatar || "/default-avatar.png"} />}
+                title={item.isHost ? `${item.userName} (Host)` : item.userName}
+                description={`Joined at ${moment(item.joinedAt).format(
+                  "HH:mm:ss"
+                )}`}
+              />
+            </List.Item>
+          )}
+        />
+      </Modal>
     </>
   )
 }
