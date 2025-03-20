@@ -79,13 +79,15 @@ const NewsManagement = () => {
   // New state for upload tracking
   const [isUploading, setIsUploading] = useState(false);
 
+  // Thêm state để lưu URL ảnh preview
+  const [imageUrl, setImageUrl] = useState("");
+
   // Fetch news của manager hiện tại dựa theo userId
   const fetchNews = async () => {
     setLoading(true);
     try {
       const userId = localStorage.getItem("userId");
 
-      // Kiểm tra userId
       if (!userId) {
         notification.error({
           message: "Error",
@@ -96,22 +98,22 @@ const NewsManagement = () => {
 
       const response = await NewsApi.getNewsByUserId(userId);
 
-      if (response?.data?.success) {
-        setNews(response.data.data);
+      if (response.success) {
+        setNews(response.data);
         setPagination({
           ...pagination,
-          total: response.data.data.length,
+          total: response.data.length,
         });
       } else {
         notification.error({
           message: "Error",
-          description: response?.data?.message || "Failed to fetch news",
+          description: response.message || "Failed to fetch news",
         });
       }
     } catch (error) {
       notification.error({
         message: "Error",
-        description: error.response?.data?.message || error.message,
+        description: error.message || "Failed to fetch news",
       });
     } finally {
       setLoading(false);
@@ -171,16 +173,16 @@ const NewsManagement = () => {
         response = await NewsApi.createNews(formData);
       }
 
-      if (response?.data?.success) {
+      if (response.success) {
         notification.success({
           message: editingId ? "Updated Successfully" : "Created Successfully",
-          description: response.data.message,
+          description: response.message,
         });
         setIsModalVisible(false);
         form.resetFields();
         fetchNews();
       } else {
-        throw new Error(response?.data?.message || "Operation failed");
+        throw new Error(response.message || "Operation failed");
       }
     } catch (error) {
       notification.error({
@@ -202,16 +204,16 @@ const NewsManagement = () => {
         onOk: async () => {
           const response = await NewsApi.deleteNews(id);
 
-          if (response?.data?.success) {
+          if (response.success) {
             notification.success({
               message: "Deleted Successfully",
-              description: response.data.message,
+              description: response.message,
             });
             fetchNews();
           } else {
             notification.error({
               message: "Delete Failed",
-              description: response?.data?.message,
+              description: response.message,
             });
           }
         },
@@ -219,7 +221,7 @@ const NewsManagement = () => {
     } catch (error) {
       notification.error({
         message: "Error",
-        description: error.response?.data?.message || error.message,
+        description: error.message,
       });
     }
   };
@@ -254,31 +256,35 @@ const NewsManagement = () => {
     setIsUploading(true);
 
     try {
-      // Validate file trước khi upload
       if (!file) throw new Error("No file selected");
 
       const response = await NewsApi.uploadImage(file);
 
-      if (response?.data?.status) {
-        // Set URL ảnh vào form sau khi upload thành công
+      if (response.status) {
+        const uploadedUrl = response.data[0].url;
+
+        // Lưu URL ảnh vào state
+        setImageUrl(uploadedUrl);
+
         form.setFieldsValue({
           image: [file],
-          picture: response.data.data[0].url,
+          picture: uploadedUrl,
         });
 
         notification.success({
           message: "Upload Successful",
-          description: response.data.message,
+          description: response.message,
         });
-        onSuccess(response.data);
+        onSuccess(response);
       } else {
-        throw new Error(response?.data?.message || "Upload failed");
+        throw new Error(response.message || "Upload failed");
       }
     } catch (error) {
       notification.error({
         message: "Upload Failed",
         description: error.message || "Failed to upload image",
       });
+      onError(error);
     } finally {
       setIsUploading(false);
     }
@@ -303,20 +309,21 @@ const NewsManagement = () => {
   // Sửa lại phần xử lý khi click edit để set initial values
   const handleEdit = (record) => {
     setEditingId(record.id);
-    // Set initial form values including the existing image
+    setImageUrl(record.picture || "");
     form.setFieldsValue({
-      ...record,
-      image: record.image
-        ? [
-            {
-              uid: "-1",
-              name: "image.png",
-              status: "done",
-              url: record.image,
-            },
-          ]
-        : [],
+      title: record.title,
+      content: record.content,
+      status: record.status,
+      picture: record.picture,
     });
+    setIsModalVisible(true);
+  };
+
+  // Cập nhật hàm showAddModal để reset ảnh
+  const showAddModal = () => {
+    setEditingId(null);
+    setImageUrl("");
+    form.resetFields();
     setIsModalVisible(true);
   };
 
@@ -349,11 +356,7 @@ const NewsManagement = () => {
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => {
-                  setEditingId(null);
-                  form.resetFields();
-                  setIsModalVisible(true);
-                }}
+                onClick={showAddModal}
                 className="bg-blue-500 hover:bg-blue-600"
               >
                 Add News
@@ -566,7 +569,7 @@ const NewsManagement = () => {
             }}
             rules={[
               {
-                required: editingId ? false : true, // Chỉ required khi tạo mới
+                required: editingId ? false : true,
                 message: "Please upload an image!",
               },
             ]}
@@ -602,6 +605,24 @@ const NewsManagement = () => {
               <Button icon={<UploadOutlined />}>Upload Image</Button>
             </Upload>
           </Form.Item>
+
+          {/* Thêm phần hiển thị ảnh preview */}
+          {imageUrl && (
+            <Form.Item label="Image Preview">
+              <div className="image-preview" style={{ marginTop: "8px" }}>
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "200px",
+                    borderRadius: "4px",
+                    border: "1px solid #d9d9d9",
+                  }}
+                />
+              </div>
+            </Form.Item>
+          )}
 
           <Form.Item name="status" label="Status" initialValue="1">
             <Select>

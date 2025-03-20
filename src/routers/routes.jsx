@@ -55,6 +55,7 @@ import BuyAdSlot from "../pages/Advertiser/BuyAdSlot/BuyAdSlot";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
 import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
 import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
+import { Navigate } from "react-router-dom";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -70,23 +71,8 @@ const routes = [
   {
     path: "/",
     element:
-      role === "ADMIN" ? (
-        <Dashboard />
-      ) : role === "MEMBER" ? (
-        isLoggedIn() ? (
-          <HomeScreen />
-        ) : (
-          <HomeScreen />
-        )
-      ) : (
-        <HomeScreen />
-      ),
-    layout:
-      role === "ADMIN"
-        ? "AdminLayout"
-        : role === "MEMBER"
-        ? "UserLayout"
-        : "GuestLayout",
+      role === "ADMIN" ? <Dashboard /> : <Navigate to="/homescreen" replace />,
+    layout: role === "ADMIN" ? "AdminLayout" : "UserLayout",
   },
 
   {
@@ -289,7 +275,11 @@ const routes = [
 
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
-  { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
+  {
+    path: "/homescreen",
+    element: <HomeScreen />,
+    layout: "UserLayout",
+  },
   { path: "/login", element: <LoginPage /> },
   { path: "/verify", element: <VerifyAccount /> },
   { path: "/registerPage", element: <RegisterPage /> },

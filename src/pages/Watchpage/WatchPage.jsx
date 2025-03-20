@@ -14,7 +14,6 @@ import { useSelector } from "react-redux";
 const WatchPage = () => {
   const { movieId } = useParams();
   const [searchParams] = useSearchParams();
-  const roomId = searchParams.get("roomId");
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showControls, setShowControls] = useState(true);
@@ -22,7 +21,7 @@ const WatchPage = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [userDetails, setUserDetails] = useState({});
   const [commentInput, setCommentInput] = useState("");
-  const [ratingValue, setRatingValue] = useState(movie?.userRating || 0);
+  const [userRating, setUserRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,50 +43,7 @@ const WatchPage = () => {
     };
 
     fetchMovie();
-
-    // If in room mode, join the room
-    if (roomId && user) {
-      handleJoinRoom();
-    }
-
-    // Hide controls after 3 seconds of inactivity
-    const timer = setTimeout(() => setShowControls(false), 3000);
-
-    // Show controls on mouse move
-    const handleMouseMove = () => {
-      setShowControls(true);
-      clearTimeout(timer);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      clearTimeout(timer);
-    };
-  }, [movieId, roomId, user]);
-
-  const handleJoinRoom = async () => {
-    try {
-      const joinData = {
-        roomId: roomId,
-        userId: user.id,
-      };
-
-      const response = await roomService.joinRoom(joinData);
-      if (response.success) {
-        notification.success({
-          message: "Joined room successfully!",
-        });
-        setRoomUsers(response.data);
-      }
-    } catch (error) {
-      notification.error({
-        message: "Failed to join room",
-        description: error.message,
-      });
-    }
-  };
+  }, [movieId]);
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -138,21 +94,21 @@ const WatchPage = () => {
 
   useEffect(() => {
     const fetchUserRating = async () => {
-      if (!isAuthenticated || !movieId) return;
-
       try {
         const response = await ratingService.getUserRatingForMovie(movieId);
         if (response.success && response.data) {
-          setRatingValue(response.data.stars);
+          setUserRating(response.data.stars);
           setHasUserRated(true);
         }
       } catch (error) {
-        console.error("Error fetching user rating:", error);
+        console.error("Failed to fetch user rating:", error);
       }
     };
 
-    fetchUserRating();
-  }, [movieId, isAuthenticated]);
+    if (movieId) {
+      fetchUserRating();
+    }
+  }, [movieId]);
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
@@ -160,47 +116,48 @@ const WatchPage = () => {
 
     try {
       const response = await ratingService.createComment(commentInput, movieId);
+
       if (response.success) {
+        // Refresh movie data to get updated comments
         const movieResponse = await movieService.getMovieById(movieId);
         if (movieResponse.success) {
           setMovie(movieResponse.data);
         }
+
         setCommentInput("");
         notification.success({
           message: "Success",
-          description: "Comment posted successfully!",
+          description: "Comment posted successfully",
         });
+      } else {
+        throw new Error(response.message || "Failed to post comment");
       }
     } catch (error) {
       notification.error({
         message: "Error",
-        description: "Failed to post comment",
+        description: error.message || "Failed to post comment",
       });
     }
   };
 
-  const handleRatingChange = async (value) => {
-    setRatingValue(value);
-    setSubmittingRating(true);
+  const handleRating = async (value) => {
     try {
       const response = await ratingService.createMovieRating(value, movieId);
+
       if (response.success) {
-        const movieResponse = await movieService.getMovieById(movieId);
-        if (movieResponse.success) {
-          setMovie(movieResponse.data);
-        }
+        setUserRating(value);
         notification.success({
           message: "Success",
-          description: "Rating submitted successfully!",
+          description: "Rating submitted successfully",
         });
+      } else {
+        throw new Error(response.message || "Failed to submit rating");
       }
     } catch (error) {
       notification.error({
         message: "Error",
-        description: "Failed to submit rating",
+        description: error.message || "Failed to submit rating",
       });
-    } finally {
-      setSubmittingRating(false);
     }
   };
 
@@ -392,7 +349,7 @@ const WatchPage = () => {
                           <div
                             key={i}
                             className={`w-4 h-4 ${
-                              i < Math.round(movie.userRating)
+                              i < Math.round(userRating)
                                 ? "text-[#FF009F]"
                                 : "text-[#FF009F]/20"
                             }`}
@@ -405,7 +362,7 @@ const WatchPage = () => {
                       </div>
                       <div className="flex items-baseline gap-1">
                         <span className="text-2xl font-bold text-[#FF009F]">
-                          {movie.userRating}
+                          {userRating}
                         </span>
                         <span className="text-[#FF009F]/70 text-sm">/5</span>
                       </div>
@@ -496,7 +453,7 @@ const WatchPage = () => {
                         {/* Current Rating Display */}
                         <div className="flex items-center gap-3">
                           <span className="text-4xl font-bold text-white">
-                            {ratingValue || "?"}
+                            {userRating || "?"}
                           </span>
                           <div className="flex flex-col">
                             <span className="text-sm text-white/70">
@@ -511,8 +468,8 @@ const WatchPage = () => {
                         {/* Rating Stars - Cải tiến */}
                         <div className="relative">
                           <Rate
-                            value={ratingValue}
-                            onChange={handleRatingChange}
+                            value={userRating}
+                            onChange={handleRating}
                             disabled={submittingRating || hasUserRated}
                             className="flex gap-2"
                             character={({ index, value }) => (
@@ -558,10 +515,10 @@ const WatchPage = () => {
                             </div>
                           ) : (
                             <div className="text-white/70 font-medium">
-                              {ratingValue ? (
+                              {userRating ? (
                                 <>
                                   <span className="text-[#FF009F]">
-                                    {ratingValue} stars
+                                    {userRating} stars
                                   </span>
                                   <span className="mx-2">•</span>
                                   <span>
@@ -708,30 +665,6 @@ const WatchPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Room Users Modal */}
-      <Modal
-        title="Room Users"
-        open={showRoomUsers}
-        onCancel={() => setShowRoomUsers(false)}
-        footer={null}
-      >
-        <List
-          itemLayout="horizontal"
-          dataSource={roomUsers}
-          renderItem={(item) => (
-            <List.Item>
-              <List.Item.Meta
-                avatar={<Avatar src={item.avatar || "/default-avatar.png"} />}
-                title={item.isHost ? `${item.userName} (Host)` : item.userName}
-                description={`Joined at ${moment(item.joinedAt).format(
-                  "HH:mm:ss"
-                )}`}
-              />
-            </List.Item>
-          )}
-        />
-      </Modal>
     </>
   );
 };

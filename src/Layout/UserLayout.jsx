@@ -7,17 +7,16 @@ import Loading from "../components/Loading/Loading";
 const UserLayout = ({ children }) => {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
-  const isHomeScreen = location.pathname === "/homescreen";
-  const isAuthPage =
-    location.pathname === "/login" || location.pathname === "/signup";
   const isWatchPage = location.pathname.includes("/watch/");
 
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
+    const handleInitialLoad = async () => {
+      setLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
       setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    };
+
+    handleInitialLoad();
   }, [location.pathname]);
 
   if (loading) {
@@ -26,25 +25,24 @@ const UserLayout = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {!isHomeScreen && !isAuthPage && <Navbar />}
+      <Navbar />
       <main
         className={`
           flex-grow
-          ${!isHomeScreen && !isAuthPage && !isWatchPage ? "pt-20" : ""}
-          ${isWatchPage ? "!p-0 !m-0 h-screen w-screen" : ""}
+          ${isWatchPage ? "!p-0 !m-0 h-screen w-screen" : "pt-20"}
         `}
       >
         <Suspense
           fallback={
-            <div className="loading-container">
-              <div className="loading-spinner" />
+            <div className="flex items-center justify-center h-screen">
+              <div className="w-12 h-12 border-4 border-[#FF009F]/30 border-t-[#FF009F] rounded-full animate-spin" />
             </div>
           }
         >
           {children}
         </Suspense>
       </main>
-      {!isAuthPage && !isWatchPage && <Footer className="mt-auto" />}
+      {!isWatchPage && <Footer className="mt-auto" />}
     </div>
   );
 };

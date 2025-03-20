@@ -96,7 +96,7 @@ const MovieHero = memo(
                     icon={<PlayCircleOutlined />}
                     size="large"
                     onClick={onWatchNow}
-                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-[#FF009F] hover:bg-[#D1007F]"
+                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-[#FF009F] hover:bg-[#D1007F] border-none text-white hover:text-white shadow-lg hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
                   >
                     Watch Now
                   </Button>
@@ -105,7 +105,7 @@ const MovieHero = memo(
                       icon={<YoutubeOutlined />}
                       size="large"
                       onClick={onTrailerClick}
-                      className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none"
+                      className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none hover:text-white"
                     >
                       Watch Trailer
                     </Button>
@@ -114,7 +114,7 @@ const MovieHero = memo(
                     icon={<TeamOutlined />}
                     size="large"
                     onClick={onCreateRoom}
-                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none"
+                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none hover:text-white"
                   >
                     Create Room
                   </Button>
@@ -122,7 +122,7 @@ const MovieHero = memo(
                     icon={<UsergroupAddOutlined />}
                     size="large"
                     onClick={onJoinRoom}
-                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none"
+                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none hover:text-white"
                   >
                     Join Room
                   </Button>
@@ -584,8 +584,15 @@ const MoviePage = () => {
         onCancel={() => setIsCreateRoomModalVisible(false)}
         okText="Create"
         cancelText="Cancel"
-        okButtonProps={{ loading: isCreatingRoom }}
-        cancelButtonProps={{ disabled: isCreatingRoom }}
+        okButtonProps={{
+          loading: isCreatingRoom,
+          className:
+            "bg-[#FF009F] hover:bg-[#D1007F] border-none text-white hover:text-white shadow-lg hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]",
+        }}
+        cancelButtonProps={{
+          disabled: isCreatingRoom,
+          className: "hover:text-[#FF009F] hover:border-[#FF009F]",
+        }}
       >
         <p>Create a new room to watch this movie with friends?</p>
       </Modal>
@@ -604,8 +611,13 @@ const MoviePage = () => {
         okButtonProps={{
           loading: isJoining,
           disabled: isJoining || !roomId.trim(),
+          className:
+            "bg-[#FF009F] hover:bg-[#D1007F] border-none text-white hover:text-white shadow-lg hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]",
         }}
-        cancelButtonProps={{ disabled: isJoining }}
+        cancelButtonProps={{
+          disabled: isJoining,
+          className: "hover:text-[#FF009F] hover:border-[#FF009F]",
+        }}
       >
         <div className="mt-4">
           {hostedRooms.length > 0 &&
@@ -628,6 +640,7 @@ const MoviePage = () => {
                           size="small"
                           type="link"
                           onClick={() => setRoomId(room.id)}
+                          className="text-[#FF009F] hover:text-[#D1007F]"
                         >
                           Use this room
                         </Button>
@@ -641,6 +654,7 @@ const MoviePage = () => {
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             disabled={isJoining}
+            className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F]"
           />
         </div>
       </Modal>

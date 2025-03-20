@@ -13,11 +13,13 @@
   }
 
   .loading-spinner::before {
-    @apply border-4 border-[#FF009F]/30;
+    border: 4px solid rgba(255, 0, 159, 0.3);
   }
 
   .loading-spinner::after {
-    @apply border-4 border-[#FF009F] border-t-transparent animate-spin;
+    border: 4px solid #ff009f;
+    border-top-color: transparent;
+    @apply animate-spin;
   }
 
   .loading-container {
@@ -49,6 +51,11 @@
   --ant-primary-color-hover: #ff6b9f;
   --ant-primary-color-active: #d1007f;
   --ant-primary-color-outline: rgba(255, 0, 159, 0.2);
+  --eigakan-primary: #ff009f;
+  --eigakan-primary-hover: #d1007f;
+  --eigakan-primary-disabled: rgba(255, 255, 255, 0.3);
+  --eigakan-border-disabled: #434343;
+  --eigakan-bg-disabled: #262626;
 }
 
 @keyframes ken-burns {
@@ -88,17 +95,17 @@
 
 /* Custom Ant Design Spin color */
 .ant-spin .ant-spin-dot-item {
-  background-color: #ff009f !important;
+  background-color: var(--eigakan-primary) !important;
 }
 
 /* Custom loading icon color */
 .anticon.anticon-loading.anticon-spin {
-  color: #ff009f !important;
+  color: var(--eigakan-primary) !important;
 }
 
 /* Custom spin dot color */
 .ant-spin-dot-spin > i {
-  background-color: #ff009f !important;
+  background-color: var(--eigakan-primary) !important;
 }
 
 .eigakan-glow {
@@ -148,13 +155,12 @@
 /* Custom Swiper Navigation Buttons */
 .movie-list-swiper .swiper-button-next,
 .movie-list-swiper .swiper-button-prev {
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.9); /* Tối hơn để nổi bật */
-  border: 2px solid rgba(255, 0, 159, 0.8); /* Border đậm hơn */
+  @apply w-12 h-12 flex items-center justify-center;
+  @apply bg-black/80 backdrop-blur-sm;
+  @apply border-2 border-[#FF009F]/20;
   border-radius: 50%;
-  color: #ff009f;
-  transition: all 0.3s ease;
+  @apply text-white;
+  @apply transition-all duration-300;
   opacity: 0;
 }
 
@@ -165,17 +171,15 @@
 
 .movie-list-swiper .swiper-button-next:hover,
 .movie-list-swiper .swiper-button-prev:hover {
-  background: rgba(0, 0, 0, 0.95); /* Gần như đen hoàn toàn */
-  border-color: #ff009f;
-  transform: scale(1.1);
-  box-shadow: 0 0 10px #ff009f; /* Giảm độ blur của glow */
+  @apply bg-[#FF009F]/90;
+  @apply border-white/20;
+  @apply scale-110;
+  @apply shadow-lg shadow-[#FF009F]/20;
 }
 
 .movie-list-swiper .swiper-button-next:after,
 .movie-list-swiper .swiper-button-prev:after {
-  font-size: 18px;
-  font-weight: bold;
-  text-shadow: 0 0 5px #ff009f; /* Giảm độ blur của text shadow */
+  @apply text-base font-bold;
 }
 
 .movie-list-swiper .swiper-button-disabled {
@@ -183,13 +187,145 @@
   cursor: not-allowed;
 }
 
-/* Đơn giản hóa hiệu ứng hover */
-.movie-list-swiper .swiper-button-next:hover:before,
-.movie-list-swiper .swiper-button-prev:hover:before {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 0, 159, 0.3); /* Thêm border mờ bên ngoài */
-  z-index: -1;
+/* Movie card animations */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.movie-card-enter {
+  animation: fadeSlideUp 0.5s ease forwards;
+}
+
+/* Movie card hover effects */
+.movie-card {
+  @apply relative overflow-hidden rounded-lg;
+  @apply transform transition-all duration-500;
+  @apply hover:z-10;
+}
+
+.movie-card:hover {
+  @apply scale-105;
+  @apply shadow-xl shadow-black/50;
+}
+
+.movie-card-content {
+  @apply absolute inset-0;
+  @apply bg-gradient-to-t from-black/90 via-black/50 to-transparent;
+  @apply opacity-0 transition-opacity duration-300;
+  @apply flex flex-col justify-between p-4;
+  @apply hover:opacity-100;
+}
+
+/* Backdrop blur effects */
+.backdrop-blur-card {
+  @apply backdrop-blur-sm bg-black/30;
+  @apply rounded-md border border-white/10;
+  @apply transition-colors duration-300;
+}
+
+.backdrop-blur-card:hover {
+  @apply bg-[#FF009F]/20 border-[#FF009F]/30;
+}
+
+/* Loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Override Ant Design Button styles */
+.ant-btn {
+  transition: all 0.2s ease-in-out !important;
+}
+
+/* Default button hover states */
+.ant-btn:not(.ant-btn-primary):not(.ant-btn-link):not([disabled]):hover,
+.ant-btn:not(.ant-btn-primary):not(.ant-btn-link):not([disabled]):focus {
+  color: var(--eigakan-primary) !important;
+  border-color: var(--eigakan-primary) !important;
+  background-color: transparent !important;
+}
+
+/* Primary button hover states */
+.ant-btn-primary:not([disabled]):hover,
+.ant-btn-primary:not([disabled]):focus {
+  background-color: var(--eigakan-primary-hover) !important;
+  border-color: var(--eigakan-primary-hover) !important;
+  color: white !important;
+}
+
+/* Link button hover states */
+.ant-btn-link:not([disabled]):hover,
+.ant-btn-link:not([disabled]):focus {
+  color: var(--eigakan-primary-hover) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Modal buttons */
+.ant-modal-footer .ant-btn-primary {
+  background-color: var(--eigakan-primary) !important;
+  border-color: var(--eigakan-primary) !important;
+}
+
+.ant-modal-footer .ant-btn-primary:hover {
+  background-color: var(--eigakan-primary-hover) !important;
+  border-color: var(--eigakan-primary-hover) !important;
+  box-shadow: 0 5px 15px var(--eigakan-primary-outline) !important;
+}
+
+.ant-modal-footer .ant-btn:not(.ant-btn-primary):hover {
+  color: var(--eigakan-primary) !important;
+  border-color: var(--eigakan-primary) !important;
+}
+
+/* Input hover and focus states */
+.ant-input:hover,
+.ant-input:focus,
+.ant-input-focused {
+  border-color: var(--eigakan-primary) !important;
+  box-shadow: 0 0 0 2px var(--eigakan-primary-outline) !important;
+}
+
+/* Disabled states */
+.ant-btn[disabled],
+.ant-btn[disabled]:hover {
+  color: var(--eigakan-primary-disabled) !important;
+  border-color: var(--eigakan-border-disabled) !important;
+  background: var(--eigakan-bg-disabled) !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+/* Active states */
+.ant-btn:active {
+  color: var(--eigakan-primary-hover) !important;
+  border-color: var(--eigakan-primary-hover) !important;
+}
+
+.ant-btn-primary:active {
+  background-color: var(--eigakan-primary-hover) !important;
+  color: white !important;
 }
