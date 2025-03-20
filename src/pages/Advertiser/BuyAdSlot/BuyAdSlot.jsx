@@ -29,7 +29,7 @@ import {
   AppstoreOutlined,
   LayoutOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const BuyAdSlot = () => {
@@ -37,11 +37,25 @@ const BuyAdSlot = () => {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const location = useLocation();
   const navigate = useNavigate();
+  const [selectedPackageId, setSelectedPackageId] = useState(null);
 
   useEffect(() => {
+    // Lấy packageId từ query params
+    const searchParams = new URLSearchParams(location.search);
+    const packageId = searchParams.get("packageId");
+
+    if (!packageId) {
+      // Nếu không có packageId, chuyển hướng về trang chọn gói
+      navigate("/advertiser/select-adpackage");
+      return;
+    }
+
+    setSelectedPackageId(packageId);
+
     fetchAdSlotTimes();
-  }, []);
+  }, [location, navigate]);
 
   const fetchAdSlotTimes = async () => {
     try {
@@ -74,22 +88,60 @@ const BuyAdSlot = () => {
     }
   };
 
-  const handlePurchase = async (adSlotId) => {
+  const handlePurchase = async (adSlotTimeId) => {
     if (purchasing) return;
 
     try {
       setPurchasing(true);
-      setSelectedSlot(adSlotId);
-      // API call for purchasing AdSlot will be implemented here
-      notification.success({
-        message: "Success",
-        description: "AdSlot purchase request has been sent",
-      });
+      setSelectedSlot(adSlotTimeId);
+
+      // Chuẩn bị dữ liệu cho API request
+      const requestData = {
+        orders: [
+          {
+            adSlotTimeId: adSlotTimeId,
+            adPackageId: selectedPackageId,
+            startDate: new Date().toISOString(),
+          },
+        ],
+        redirectUrl: `${window.location.origin}/payment-success-adslot`,
+      };
+
+      // Gọi API để mua AdSlot
+      const response = await adSlotService.createAdPurchaseTransaction(
+        requestData
+      );
+
+      if (response.success) {
+        // Kiểm tra nếu có paymentUrl trong response
+        if (response.paymentUrl) {
+          window.location.href = response.paymentUrl;
+          return;
+        }
+        // Nếu không có paymentUrl nhưng có message chứa URL
+        else if (response.message && response.message.startsWith("http")) {
+          window.location.href = response.message;
+          return;
+        }
+        // Nếu không có URL nào, hiển thị thông báo thành công
+        else {
+          notification.success({
+            message: "Success",
+            description: "Ad purchase request has been sent",
+          });
+        }
+      } else {
+        notification.error({
+          message: "Error",
+          description: response.message || "Failed to create payment",
+        });
+      }
+
       await fetchAdSlotTimes();
     } catch (error) {
       notification.error({
         message: "Error",
-        description: error.message || "Error occurred while purchasing AdSlot",
+        description: error.message || "An error occurred during payment",
       });
     } finally {
       setPurchasing(false);
@@ -358,7 +410,7 @@ const BuyAdSlot = () => {
                                 disabled:opacity-50 disabled:cursor-not-allowed
                                 ${
                                   adSlot.recommended
-                                    ? "bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] hover:from-[#D1007F] hover:to-[#D15B8F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
+                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
                                     : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)]"
                                 }
                                 group-hover:translate-y-[-2px] text-white border-0
@@ -545,7 +597,7 @@ const BuyAdSlot = () => {
                                 disabled:opacity-50 disabled:cursor-not-allowed
                                 ${
                                   adSlot.recommended
-                                    ? "bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] hover:from-[#D1007F] hover:to-[#D15B8F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
+                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
                                     : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)]"
                                 }
                                 group-hover:translate-y-[-2px] text-white border-0
@@ -738,7 +790,7 @@ const BuyAdSlot = () => {
                                 disabled:opacity-50 disabled:cursor-not-allowed
                                 ${
                                   adSlot.recommended
-                                    ? "bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] hover:from-[#D1007F] hover:to-[#D15B8F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
+                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
                                     : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)]"
                                 }
                                 group-hover:translate-y-[-2px] text-white border-0

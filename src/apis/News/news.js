@@ -1,134 +1,103 @@
 import axios from "axios"
+import { makeAuthenticatedRequest, makePublicRequest, API_URLS } from "../../utils/api"
 
-const API_URL = 'https://eigakan2222-001-site1.jtempurl.com/api/News'
-
+/**
+ * Service for handling news operations
+ */
 const NewsApi = {
-    // Get all news
-    async getNews() {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
-        }
-    },
+    /**
+     * Get all news - Public endpoint
+     */
+    getAllNews: () => makePublicRequest(async () => {
+        const response = await axios.get(API_URLS.NEWS)
+        return response
+    }),
 
-    // Get news by ID
-    async getNewsById(id) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
-        }
-    },
+    /**
+     * Get news by ID - Public endpoint
+     */
+    getNewsById: (id) => makePublicRequest(async () => {
+        const response = await axios.get(`${API_URLS.NEWS}/${id}`)
+        return response
+    }),
 
-    // Upload image first
-    async uploadImage(file) {
-        try {
-            const token = localStorage.getItem('token');
-            const formData = new FormData();
-            
-            const actualFile = file.originFileObj || file;
-            formData.append('formFiles', actualFile);
+    /**
+     * Upload image for news - Authenticated endpoint
+     */
+    uploadImage: (file) => makeAuthenticatedRequest(async (headers) => {
+        const formData = new FormData()
+        const actualFile = file.originFileObj || file
+        formData.append('formFiles', actualFile)
 
-            const res = await axios.post('https://eigakan2222-001-site1.jtempurl.com/api/Upload/Upload_Pictures', formData, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data',
-                    'accept': '*/*'
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
+        const uploadHeaders = {
+            ...headers,
+            'Content-Type': 'multipart/form-data',
+            'accept': '*/*'
         }
-    },
 
-    // Create news
-    async createNews(data) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.post(`${API_URL}`, data, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
-        }
-    },
+        const response = await axios.post(API_URLS.UPLOAD, formData, { headers: uploadHeaders })
+        return response.data
+    }),
 
-    // Update news
-    async updateNews(id, data) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.put(`${API_URL}/${id}`, data, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
-        }
-    },
+    /**
+     * Create new news
+     * @param {Object} data News data
+     * @returns {Promise<{success: boolean, data: Object, message: string}>} Created news details
+     */
+    createNews: (data) =>
+        makeAuthenticatedRequest(async (headers) => {
+            const response = await axios.post(API_URLS.NEWS, data, { headers })
+            return response.data
+        }),
 
-    // Delete news (set to inactive)
-    async setInactive(id) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.patch(`${API_URL}/${id}/status`, {}, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
-        }
-    },
+    /**
+     * Update existing news
+     * @param {string} id News ID
+     * @param {Object} data Updated news data
+     * @returns {Promise<{success: boolean, data: Object, message: string}>} Updated news details
+     */
+    updateNews: (id, data) =>
+        makeAuthenticatedRequest(async (headers) => {
+            const response = await axios.put(`${API_URLS.NEWS}/${id}`, data, { headers })
+            return response.data
+        }),
 
-    // Delete news
-    async deleteNews(id) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.delete(`${API_URL}/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
-        }
-    },
+    /**
+     * Set news status to inactive
+     * @param {string} id News ID
+     * @returns {Promise<{success: boolean, data: Object, message: string}>} Operation result
+     */
+    setInactive: (id) =>
+        makeAuthenticatedRequest(async (headers) => {
+            const response = await axios.patch(
+                `${API_URLS.NEWS}/${id}/status`,
+                {},
+                { headers }
+            )
+            return response.data
+        }),
 
-    // Get news by user ID
-    async getNewsByUserId(userId) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}/user/${userId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res;
-        } catch (err) {
-            return err.response;
-        }
-    },
+    /**
+     * Delete news
+     * @param {string} id News ID
+     * @returns {Promise<{success: boolean, data: Object, message: string}>} Operation result
+     */
+    deleteNews: (id) =>
+        makeAuthenticatedRequest(async (headers) => {
+            const response = await axios.delete(`${API_URLS.NEWS}/${id}`, { headers })
+            return response.data
+        }),
+
+    /**
+     * Get news by user ID
+     * @param {string} userId User ID
+     * @returns {Promise<{success: boolean, data: Array, message: string}>} List of user's news
+     */
+    getNewsByUserId: (userId) =>
+        makeAuthenticatedRequest(async (headers) => {
+            const response = await axios.get(`${API_URLS.NEWS}/user/${userId}`, { headers })
+            return response.data
+        })
 }
 
-export default NewsApi; 
+export default NewsApi 

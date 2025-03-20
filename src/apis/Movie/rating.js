@@ -1,92 +1,66 @@
 import axios from "axios";
+import { makeAuthenticatedRequest, API_URLS } from "../../utils/api";
 
-const BASE_URL = "https://eigakan2222-001-site1.jtempurl.com/api";
-
-const getAuthHeader = () => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
+/**
+ * Service for handling movie ratings and comments
+ */
 const ratingService = {
-  getAllMovieRatings: async () => {
-    try {
-      const response = await axios.get(`${BASE_URL}/MovieRating`, {
-        headers: getAuthHeader()
-      });
+  /**
+   * Create a new movie rating
+   * @param {number} stars Rating value (1-5 stars)
+   * @param {string} movieId Movie ID
+   * @returns {Promise<Object>} Created rating details
+   */
+  createMovieRating: (stars, movieId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.post(API_URLS.RATING, {
+        stars,
+        movieId
+      }, { headers });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  // createMovieRating: async (stars, movieId) => {
-  //   try {
-  //     const userId = JSON.parse(localStorage.getItem('user'))?.id;
-  //     const response = await axios.post(`${BASE_URL}/MovieRating`, {
-  //       stars,
-  //       userId,
-  //       movieId
-  //     }, {
-  //       headers: getAuthHeader()
-  //     });
-  //     return response.data;
-  //   } catch (error) {
-  //     throw error.response?.data || error.message;
-  //   }
-  // },
-
-  getMovieRatingById: async (ratingId) => {
-    try {
-      const response = await axios.get(`${BASE_URL}/MovieRating/${ratingId}`, {
-        headers: getAuthHeader()
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
-  async createMovieRating(rating, movieId) {
-    try {
-      const userId = JSON.parse(localStorage.getItem('user'))?.id;
-      const response = await axios.post(`${BASE_URL}/MovieRating`, {
-        stars: rating,
-        userId: userId,
-        movieId: movieId
-      }, {
-        headers: getAuthHeader()
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
-  async createComment(content, movieId) {
-    try {
-      const response = await axios.post(`${BASE_URL}/Comment`, {
-        content: content,
-        movieId: movieId
-      }, {
-        headers: getAuthHeader()
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
-  async getUserRatingForMovie(movieId) {
-    try {
-      const response = await axios.get(`${BASE_URL}/MovieRating/GetRatingByLogin`, {
+  /**
+   * Get user's rating for a specific movie
+   * @param {string} movieId Movie ID
+   * @returns {Promise<Object>} User's rating details
+   */
+  getUserRatingForMovie: (movieId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${API_URLS.RATING}/GetRatingByLogin`, {
         params: { movieId },
-        headers: getAuthHeader()
+        headers
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  }
+    }),
+
+  /**
+   * Create a new comment for a movie
+   * @param {string} content Comment content
+   * @param {string} movieId Movie ID
+   * @returns {Promise<Object>} Created comment details
+   */
+  createComment: (content, movieId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.post(API_URLS.COMMENT, {
+        content,
+        movieId
+      }, { headers });
+      return response.data;
+    }),
+
+  /**
+   * Get comments for a movie
+   * @param {string} movieId Movie ID
+   * @returns {Promise<Array>} List of comments
+   */
+  getMovieComments: (movieId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${API_URLS.COMMENT}/movie/${movieId}`, {
+        headers
+      });
+      return response.data;
+    }),
 };
 
 export default ratingService; 

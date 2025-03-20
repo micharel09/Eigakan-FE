@@ -1,105 +1,96 @@
 import axios from "axios";
+import { makeAuthenticatedRequest, makePublicRequest, API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Genre";
-
+/**
+ * Service for handling genre operations
+ */
 const genreService = {
-  // Lấy tất cả thể loại
-  async getGenres() {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(API_URL, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+  /**
+   * Get all genres - Public endpoint
+   * @returns {Promise<{success: boolean, data: Array, message: string}>} List of genres
+   */
+  getGenres: () => 
+    makePublicRequest(async () => {
+      const response = await axios.get(API_URLS.GENRE);
+      return response;
+    }),
 
-  // Lấy chi tiết thể loại
-  async getGenreById(id) {
-    try {
-      const response = await axios.get(`${API_URL}/${id}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+  /**
+   * Get genre by ID - Public endpoint
+   * @param {string} id Genre ID
+   * @returns {Promise<{success: boolean, data: Object, message: string}>} Genre details
+   */
+  getGenreById: (id) =>
+    makePublicRequest(async () => {
+      const response = await axios.get(`${API_URLS.GENRE}/${id}`);
+      return response;
+    }),
 
-  // Thêm thể loại mới - Chỉ ADMIN
-  async createGenre(genreData) {
-    try {
-      const token = localStorage.getItem("token");
+  /**
+   * Create new genre - Admin only
+   * @param {Object} genreData Genre data to create
+   * @returns {Promise<{success: boolean, data: Object, message: string}>} Created genre
+   */
+  createGenre: (genreData) =>
+    makeAuthenticatedRequest(async (headers) => {
       const role = localStorage.getItem("role");
-      
       if (role !== "ADMIN") {
-        throw new Error("Unauthorized - Only admin can create/update/delete genres");
+        throw new Error("Unauthorized - Only admin can create genres");
       }
 
-      const response = await axios.post(API_URL, genreData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.post(API_URLS.GENRE, genreData, {
+        headers
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  // Cập nhật thể loại - Chỉ ADMIN
-  async updateGenre(id, genreData) {
-    try {
-      const token = localStorage.getItem("token");
+  /**
+   * Update genre - Admin only
+   * @param {string} id Genre ID
+   * @param {Object} genreData Updated genre data
+   * @returns {Promise<{success: boolean, data: Object, message: string}>} Updated genre
+   */
+  updateGenre: (id, genreData) =>
+    makeAuthenticatedRequest(async (headers) => {
       const role = localStorage.getItem("role");
-
       if (role !== "ADMIN") {
-        throw new Error("Unauthorized - Only admin can create/update/delete genres");
+        throw new Error("Unauthorized - Only admin can update genres");
       }
 
-      const response = await axios.put(`${API_URL}/${id}`, genreData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.put(`${API_URLS.GENRE}/${id}`, genreData, {
+        headers
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  // Xóa thể loại - Chỉ ADMIN
-  async deleteGenre(id) {
-    try {
-      const token = localStorage.getItem("token");
+  /**
+   * Delete genre - Admin only
+   * @param {string} id Genre ID
+   * @returns {Promise<{success: boolean, message: string}>} Operation result
+   */
+  deleteGenre: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
       const role = localStorage.getItem("role");
-
       if (role !== "ADMIN") {
-        throw new Error("Unauthorized - Only admin can create/update/delete genres");
+        throw new Error("Unauthorized - Only admin can delete genres");
       }
 
-      await axios.delete(`${API_URL}/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      // Trả về success true nếu không có lỗi
-      return { success: true };
-    } catch (error) {
-      // Nếu status là 400 nhưng thực tế đã xóa thành công
-      if (error.response?.status === 400) {
+      try {
+        await axios.delete(`${API_URLS.GENRE}/${id}`, {
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json'
+          }
+        });
         return { success: true };
+      } catch (error) {
+        // Nếu status là 400 nhưng thực tế đã xóa thành công
+        if (error.response?.status === 400) {
+          return { success: true };
+        }
+        throw error;
       }
-      // Các lỗi khác
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      throw error.response?.data || error.message;
-    }
-  }
+    })
 };
 
 export default genreService; 
