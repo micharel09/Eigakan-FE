@@ -20,7 +20,7 @@ const WatchPage = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [userDetails, setUserDetails] = useState({});
   const [commentInput, setCommentInput] = useState("");
-  const [ratingValue, setRatingValue] = useState(movie?.userRating || 0);
+  const [userRating, setUserRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -46,11 +46,6 @@ const WatchPage = () => {
 
     fetchMovie();
 
-    // If in room mode, join the room
-    if (roomId && user) {
-      handleJoinRoom();
-    }
-
     // Hide controls after 3 seconds of inactivity
     const timer = setTimeout(() => setShowControls(false), 3000);
 
@@ -67,28 +62,6 @@ const WatchPage = () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [movieId]);
-
-  const handleJoinRoom = async () => {
-    try {
-      const joinData = {
-        roomId: roomId,
-        userId: user.id,
-      };
-
-      const response = await roomService.joinRoom(joinData);
-      if (response.success) {
-        notification.success({
-          message: "Joined room successfully!",
-        });
-        setRoomUsers(response.data);
-      }
-    } catch (error) {
-      notification.error({
-        message: "Failed to join room",
-        description: error.message,
-      });
-    }
-  };
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -155,7 +128,7 @@ const WatchPage = () => {
     if (movieId) {
       fetchUserRating();
     }
-  }, [movieId]);
+  }, [movieId, isAuthenticated]); // Added isAuthenticated to dependencies
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
@@ -188,23 +161,26 @@ const WatchPage = () => {
   };
 
   const handleRating = async (value) => {
+    if (!isAuthenticated) return;
+
+    setSubmittingRating(true);
     try {
       const response = await ratingService.createMovieRating(value, movieId);
-
       if (response.success) {
         setUserRating(value);
+        setHasUserRated(true);
         notification.success({
           message: "Success",
           description: "Rating submitted successfully",
         });
-      } else {
-        throw new Error(response.message || "Failed to submit rating");
       }
     } catch (error) {
       notification.error({
         message: "Error",
         description: error.message || "Failed to submit rating",
       });
+    } finally {
+      setSubmittingRating(false);
     }
   };
 
