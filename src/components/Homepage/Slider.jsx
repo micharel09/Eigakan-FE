@@ -73,7 +73,7 @@ const Slider = () => {
 
   if (!isInitialized && !isLoading && !error) {
     return (
-      <div className="relative h-[80vh] bg-gray-900 flex items-center justify-center">
+      <div className="relative h-[65vh] bg-gray-900 flex items-center justify-center -mt-16">
         <div className="text-white text-center">
           <p>Initializing content...</p>
           <motion.button
@@ -91,7 +91,7 @@ const Slider = () => {
 
   if (error) {
     return (
-      <div className="h-[80vh] flex items-center justify-center">
+      <div className="h-[65vh] flex items-center justify-center -mt-16">
         <div className="text-center">
           <p className="text-red-500 mb-4">Error loading content: {error}</p>
           <motion.button
@@ -109,7 +109,7 @@ const Slider = () => {
 
   if (isLoading) {
     return (
-      <div className="relative h-[80vh] bg-gray-900">
+      <div className="relative h-[65vh] bg-gray-900 -mt-16">
         <div className="flex justify-center items-center h-full">
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 border-4 border-[#FF009F]/30 border-t-[#FF009F] rounded-full animate-spin mb-4" />
@@ -122,7 +122,7 @@ const Slider = () => {
 
   if (!movies.length) {
     return (
-      <div className="relative h-[80vh] bg-gray-900 flex items-center justify-center">
+      <div className="relative h-[65vh] bg-gray-900 flex items-center justify-center -mt-16">
         <div className="text-white text-center">
           <p>No movies found. Please try again later.</p>
           <motion.button
@@ -139,7 +139,9 @@ const Slider = () => {
   }
 
   return (
-    <div className="relative h-[85vh] bg-black overflow-hidden">
+    <div className="relative h-[55vh] bg-black overflow-hidden -mt-16">
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black via-black/50 to-transparent z-10" />
+
       <AnimatePresence mode="wait">
         {movies.map(
           (movie, index) =>
@@ -172,7 +174,7 @@ const Slider = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
-                  className="relative z-20 flex flex-col justify-center h-full ml-[5%] max-w-[50%] text-white"
+                  className="relative z-20 flex flex-col justify-center h-full ml-[5%] max-w-[50%] text-white mt-2"
                 >
                   <h1 className="text-5xl md:text-6xl font-bold mb-4 leading-tight">
                     {movie.title}

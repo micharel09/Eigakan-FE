@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import authService from "../../apis/Auth/auth";
-import roomService from "../../apis/Room/room";
-import SearchBar from "./SearchBar";
-import ProfileMenu from "./ProfileMenu";
+import PropTypes from "prop-types";
 import { CrownOutlined } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, Input, notification } from "antd";
@@ -23,31 +20,45 @@ import {
   UsersRound,
 } from "lucide-react";
 
-const navLinks = [
-  { path: "/homescreen", label: "Movies", icon: <Film className="w-4 h-4" /> },
+import authService from "../../apis/Auth/auth";
+import roomService from "../../apis/Room/room";
+import SearchBar from "./SearchBar";
+import ProfileMenu from "./ProfileMenu";
+
+const NAV_LINKS = [
+  { path: "/homescreen", label: "Movies", icon: <Film className="h-4 w-4" /> },
   {
     path: "/genres",
     label: "Genres",
-    icon: <TrendingUp className="w-4 h-4" />,
+    icon: <TrendingUp className="h-4 w-4" />,
   },
-  { path: "/", label: "TV Shows", icon: <Home className="w-4 h-4" /> },
+  { path: "/", label: "TV Shows", icon: <Home className="h-4 w-4" /> },
   {
     path: "/favorites",
     label: "Favorite",
-    icon: <Bookmark className="w-4 h-4" />,
+    icon: <Bookmark className="h-4 w-4" />,
   },
   {
     path: "/people",
     label: "Popular People",
-    icon: <Users className="w-4 h-4" />,
+    icon: <Users className="h-4 w-4" />,
   },
-  { path: "/news", label: "News", icon: <Newspaper className="w-4 h-4" /> },
+  { path: "/news", label: "News", icon: <Newspaper className="h-4 w-4" /> },
   {
     path: "/history",
     label: "Search History",
-    icon: <Clock className="w-4 h-4" />,
+    icon: <Clock className="h-4 w-4" />,
   },
 ];
+
+const ROLES = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  PUBLISHER: "PUBLISHER",
+  ADVERTISER: "ADVERTISER",
+  MEMBER: "MEMBER",
+  VIP_MEMBER: "VIP MEMBER",
+};
 
 const Navbar = () => {
   const [user, setUser] = useState(() => {
@@ -62,21 +73,28 @@ const Navbar = () => {
   const [roomId, setRoomId] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [hostedRooms, setHostedRooms] = useState([]);
+
   const navigate = useNavigate();
   const location = useLocation();
+
   const role = user?.roleName || localStorage.getItem("role");
-  const isManager = role === "MANAGER";
-  const isAdmin = role === "ADMIN";
-  const isPublisher = role === "PUBLISHER";
-  const isInManagerPage = location.pathname.includes("/manager");
-  const isInAdminPage =
-    location.pathname.includes("/dashboard") ||
-    location.pathname.includes("/userRegister");
-  const isInPublisherPage = location.pathname.includes("/publisher");
-  const isVipMember = role === "VIP MEMBER";
   const token = localStorage.getItem("token");
-  const isAdvertiser = role === "ADVERTISER";
-  const isInAdvertiserPage = location.pathname.includes("/advertiser");
+
+  const isUserRole = (roleType) => role === roleType;
+  const isInPath = (path) => location.pathname.includes(path);
+
+  const isAdmin = isUserRole(ROLES.ADMIN);
+  const isManager = isUserRole(ROLES.MANAGER);
+  const isPublisher = isUserRole(ROLES.PUBLISHER);
+  const isAdvertiser = isUserRole(ROLES.ADVERTISER);
+  const isVipMember = isUserRole(ROLES.VIP_MEMBER);
+  const isMember = isUserRole(ROLES.MEMBER);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const updateUser = () => setUser(authService.getCurrentUser());
@@ -85,58 +103,30 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    // Lắng nghe sự kiện role thay đổi
     const handleRoleChange = () => {
       setUser(JSON.parse(localStorage.getItem("user") || "{}"));
     };
-
     window.addEventListener("userRoleChanged", handleRoleChange);
-
-    return () => {
+    return () =>
       window.removeEventListener("userRoleChanged", handleRoleChange);
-    };
   }, []);
 
   useEffect(() => {
     const fetchHostedRooms = async () => {
+      if (!token || !user) return;
+
       try {
-        if (!token || !user) return;
-
         const response = await roomService.getHostRoom();
-        console.log("Host room response:", response);
+        if (!response.success) return;
 
-        if (response.success) {
-          // Check if data is an object with properties or an array
-          let roomData;
-          if (response.data && !Array.isArray(response.data)) {
-            // If data is a single object (not in array)
-            roomData = [response.data];
-          } else {
-            // If data is already an array
-            roomData = Array.isArray(response.data) ? response.data : [];
-          }
+        const roomData = Array.isArray(response.data)
+          ? response.data
+          : [response.data].filter(Boolean);
 
-          // Filter only active rooms and add to state
-          setHostedRooms(
-            roomData.filter((room) => room && room.status === "Active")
-          );
-        }
+        setHostedRooms(roomData.filter((room) => room?.status === "Active"));
       } catch (error) {
         console.error("Error fetching hosted rooms:", error);
-        setHostedRooms([]); // Reset to empty array on error
+        setHostedRooms([]);
       }
     };
 
@@ -144,30 +134,88 @@ const Navbar = () => {
   }, [user, token]);
 
   const handleLogout = () => {
-    // Xóa toàn bộ thông tin user trong localStorage
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    localStorage.removeItem("fullName");
-    localStorage.removeItem("avatar");
-    localStorage.removeItem("role");
-    localStorage.removeItem("userId");
-
-    // Redirect về trang login
+    const keysToRemove = [
+      "user",
+      "token",
+      "fullName",
+      "avatar",
+      "role",
+      "userId",
+    ];
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
     navigate("/login");
-
-    // Refresh lại trang để đảm bảo state được reset
     window.location.reload();
   };
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
+  const handleJoinRoom = async () => {
+    if (isJoining || !roomId.trim()) return;
+    setIsJoining(true);
+
+    try {
+      if (!token) {
+        notification.error({
+          message: "Authentication Required",
+          description: "Please login to join a watch room",
+        });
+        setIsJoinRoomModalVisible(false);
+        navigate("/login");
+        return;
+      }
+
+      const userId = user?.userId?.replace(/^userid:\s*/i, "");
+      if (!userId) {
+        notification.error({
+          message: "User Data Missing",
+          description: "Please try logging in again",
+        });
+        return;
+      }
+
+      const roomDetails = await roomService.getRoomDetails(roomId.trim());
+      let movieId = roomDetails.success ? roomDetails.data?.movieID : null;
+
+      if (!movieId) {
+        const hostedRoom = hostedRooms.find(
+          (room) => room?.id === roomId.trim()
+        );
+        movieId = hostedRoom?.movieID;
+      }
+
+      const joinResponse = await roomService.joinRoom({
+        roomId: roomId.trim(),
+        userId,
+        movieId,
+      });
+
+      if (joinResponse.success) {
+        notification.success({ message: "Joined room successfully!" });
+        setIsJoinRoomModalVisible(false);
+
+        // Extract movieId from response if not already set
+        if (!movieId && joinResponse.data) {
+          movieId = Array.isArray(joinResponse.data)
+            ? joinResponse.data[0]?.movieID
+            : joinResponse.data.movieID;
+        }
+
+        navigate(
+          `/watch-together/${
+            movieId || "undefined"
+          }?roomId=${roomId.trim()}&movieId=${movieId || ""}`
+        );
+      } else {
+        throw new Error(joinResponse.message || "Could not join room");
+      }
+    } catch (error) {
+      notification.error({
+        message: "Failed to join room",
+        description: error.message,
+      });
+    } finally {
+      setIsJoining(false);
+    }
   };
 
-  const toggleSearch = () => {
-    setShowSearch(!showSearch);
-  };
-
-  // Xác định đường dẫn dashboard dựa trên vai trò
   const getDashboardPath = () => {
     if (isAdmin) return "/dashboard";
     if (isManager) return "/manager/dashboard";
@@ -176,156 +224,15 @@ const Navbar = () => {
     return "";
   };
 
-  // Kiểm tra xem có phải là vai trò cần hiển thị nút Dashboard không
   const shouldShowDashboardButton =
     isAdmin || isManager || isPublisher || isAdvertiser;
 
-  const handleJoinRoom = async () => {
-    if (isJoining) return;
-    setIsJoining(true);
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
 
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        notification.error({
-          message: "Please login",
-          description: "You need to be logged in to join a watch room",
-        });
-        setIsJoinRoomModalVisible(false);
-        navigate("/login");
-        return;
-      }
-
-      if (!roomId.trim()) {
-        notification.error({
-          message: "Room ID required",
-          description: "Please enter a room ID",
-        });
-        return;
-      }
-
-      // Lấy dữ liệu người dùng từ localStorage nếu không có trong Redux
-      let userData = user;
-      if (!userData || !userData.userId) {
-        const userDataStr = localStorage.getItem("user");
-        if (userDataStr) {
-          try {
-            userData = JSON.parse(userDataStr);
-          } catch (e) {
-            console.error("Error parsing user data:", e);
-          }
-        }
-      }
-
-      if (!userData || !userData.userId) {
-        notification.error({
-          message: "User data missing",
-          description:
-            "Cannot join room without user data. Please try logging in again.",
-        });
-        return;
-      }
-
-      const userId = userData.userId.replace(/^userid:\s*/i, "");
-      console.log("Joining room with userId:", userId);
-
-      // Trước tiên, luôn lấy thông tin phòng để có movieID từ API
-      console.log("Fetching room details for room ID:", roomId.trim());
-      let movieId;
-
-      try {
-        const roomDetails = await roomService.getRoomDetails(roomId.trim());
-        console.log("Room details response:", roomDetails);
-
-        if (roomDetails.success && roomDetails.data) {
-          movieId = roomDetails.data.movieID;
-          console.log("Found movieId in room details:", movieId);
-        } else {
-          console.warn("Room details success but no data or movieID found");
-        }
-      } catch (detailsError) {
-        console.error("Error fetching room details:", detailsError);
-        notification.warning({
-          message: "Unable to get room details",
-          description:
-            "Continuing with join attempt, but movie information may be missing.",
-        });
-      }
-
-      // Nếu vẫn không có movieId, kiểm tra xem phòng có phải là phòng do người dùng host không
-      if (!movieId) {
-        const hostedRoom = hostedRooms.find(
-          (room) => room && room.id === roomId.trim()
-        );
-        if (hostedRoom && hostedRoom.movieID) {
-          console.log("Using hosted room movieID:", hostedRoom.movieID);
-          movieId = hostedRoom.movieID;
-        } else {
-          console.warn("No movieID found from hosted rooms");
-        }
-      }
-
-      // Luôn gọi API join room
-      const joinResponse = await roomService.joinRoom({
-        roomId: roomId.trim(),
-        userId: userId,
-        movieId: movieId,
-      });
-
-      console.log("Join API Response:", joinResponse);
-
-      if (joinResponse.success) {
-        notification.success({ message: "Joined room successfully!" });
-        setIsJoinRoomModalVisible(false);
-
-        // Nếu vẫn chưa có movieID sau khi kiểm tra các nguồn trước đó,
-        // thử từ response join room như một phương án dự phòng cuối cùng
-        if (!movieId && joinResponse.data) {
-          if (
-            Array.isArray(joinResponse.data) &&
-            joinResponse.data.length > 0
-          ) {
-            movieId =
-              joinResponse.data[0].movieID || joinResponse.data[0].MovieID;
-          } else {
-            movieId = joinResponse.data.movieID || joinResponse.data.MovieID;
-          }
-        }
-
-        console.log("Final movieId to use:", movieId);
-
-        if (!movieId) {
-          console.warn("No movieID found from any source. Using 'undefined'");
-          notification.warning({
-            message: "Movie information missing",
-            description: "The room does not have movie information available.",
-          });
-        }
-
-        // Chuyển hướng với movieId nếu tìm thấy, nếu không thì sử dụng undefined
-        navigate(
-          `/watch-together/${
-            movieId || "undefined"
-          }?roomId=${roomId.trim()}&movieId=${movieId || ""}`
-        );
-      } else {
-        notification.error({
-          message: "Failed to join room",
-          description: joinResponse.message || "Could not join room",
-        });
-      }
-    } catch (error) {
-      console.error("Join room error:", error);
-      notification.error({
-        message: "Failed to join room",
-        description:
-          error.response?.data?.message ||
-          error.message ||
-          "Could not join room",
-      });
-    } finally {
-      setIsJoining(false);
-    }
+  const toggleSearch = () => {
+    setShowSearch(!showSearch);
   };
 
   return (
@@ -370,24 +277,22 @@ const Navbar = () => {
                 </Link>
               )}
 
-              {navLinks
-                .filter(
-                  (link) => !["/", "/favorites", "/history"].includes(link.path)
-                )
-                .map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
-                      location.pathname === link.path
-                        ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
-                        : "text-gray-300 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {link.icon}
-                    {link.label}
-                  </Link>
-                ))}
+              {NAV_LINKS.filter(
+                (link) => !["/", "/favorites", "/history"].includes(link.path)
+              ).map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                    location.pathname === link.path
+                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  {link.icon}
+                  {link.label}
+                </Link>
+              ))}
               {isAdmin && (
                 <Link
                   to="/admin/persons"
@@ -502,7 +407,7 @@ const Navbar = () => {
                   </button>
                 )}
 
-                {navLinks.map((link) => (
+                {NAV_LINKS.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
