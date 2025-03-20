@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { ChevronLeft, Info, Calendar, Clock, Users } from "lucide-react";
-import { Rate, notification, Modal, List, Avatar } from "antd";
+import { Calendar, Clock } from "lucide-react";
+import { Rate, notification } from "antd";
 import moment from "moment";
 import UserApi from "../../apis/User/user";
 import ratingService from "../../apis/Movie/rating";
 import Loading from "../../components/Loading/Loading";
 import movieService from "../../apis/Movie/movie";
-import roomService from "../../apis/Room/room";
-import { useSelector } from "react-redux";
+import movieCountService from "../../apis/MovieCount/MovieCount";
+import movieHistoryService from "../../apis/MovieHistory/MovieHistory";
 
 const WatchPage = () => {
   const { movieId } = useParams();
-  const [searchParams] = useSearchParams();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showControls, setShowControls] = useState(true);
@@ -21,12 +20,15 @@ const WatchPage = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [userDetails, setUserDetails] = useState({});
   const [commentInput, setCommentInput] = useState("");
-  const [userRating, setUserRating] = useState(0);
+  const [ratingValue, setRatingValue] = useState(movie?.userRating || 0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
   const [hasUserRated, setHasUserRated] = useState(false);
+  const [isViewCounted, setIsViewCounted] = useState(false);
+  const iframeRef = React.useRef(null);
+  const viewTimeoutRef = React.useRef(null);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -43,7 +45,50 @@ const WatchPage = () => {
     };
 
     fetchMovie();
+
+    // If in room mode, join the room
+    if (roomId && user) {
+      handleJoinRoom();
+    }
+
+    // Hide controls after 3 seconds of inactivity
+    const timer = setTimeout(() => setShowControls(false), 3000);
+
+    // Show controls on mouse move
+    const handleMouseMove = () => {
+      setShowControls(true);
+      clearTimeout(timer);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, [movieId]);
+
+  const handleJoinRoom = async () => {
+    try {
+      const joinData = {
+        roomId: roomId,
+        userId: user.id,
+      };
+
+      const response = await roomService.joinRoom(joinData);
+      if (response.success) {
+        notification.success({
+          message: "Joined room successfully!",
+        });
+        setRoomUsers(response.data);
+      }
+    } catch (error) {
+      notification.error({
+        message: "Failed to join room",
+        description: error.message,
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -94,6 +139,8 @@ const WatchPage = () => {
 
   useEffect(() => {
     const fetchUserRating = async () => {
+      if (!isAuthenticated || !movieId) return;
+
       try {
         const response = await ratingService.getUserRatingForMovie(movieId);
         if (response.success && response.data) {
@@ -181,6 +228,82 @@ const WatchPage = () => {
     </div>
   );
 
+  //Đếm view
+  const increaseViewCount = async () => {
+    const movieId = {
+      movieId: movie.id,
+    };
+    try {
+      await movieCountService.increaseMovieCount(movieId);
+      console.log("✅ View count increased for movie:", movie.title);
+    } catch (error) {
+      console.error("❌ Failed to increase view count", error);
+    }
+  };
+
+  const createMovieHistory = async () => {
+    const movieId = {
+      movieId: movie.id,
+    };
+    try {
+      await movieHistoryService.CreateMovieHistory(movieId);
+      console.log("✅ save to history:", movie.title);
+    } catch (error) {
+      console.error("❌ not save to history", error);
+    }
+  };
+
+  const startViewCount = () => {
+    if (!isViewCounted) {
+      viewTimeoutRef.current = setTimeout(() => {
+        increaseViewCount();
+        createMovieHistory();
+        setIsViewCounted(true);
+      }, 5000); // Chờ 5 giây
+    }
+  };
+
+  const stopViewCount = () => {
+    if (viewTimeoutRef.current) {
+      clearTimeout(viewTimeoutRef.current);
+      viewTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    // Only set up the observer if we have a movie and it's not a trailer
+    if (!movie || !iframeRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && document.visibilityState === "visible") {
+            startViewCount();
+          } else {
+            stopViewCount();
+          }
+        });
+      },
+      { threshold: 0.5 } // Ít nhất 50% iframe phải hiển thị trên màn hình
+    );
+
+    observer.observe(iframeRef.current);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        stopViewCount();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (iframeRef.current) observer.unobserve(iframeRef.current);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      stopViewCount();
+    };
+  }, [movie, isViewCounted, showTrailer]);
+
   if (loading) return <Loading />;
   if (!movie) {
     return (
@@ -207,12 +330,12 @@ const WatchPage = () => {
     if (url.includes("mediadelivery.net")) {
       return url;
     }
-    // Nếu là URL khác (ví dụ YouTube) thì xử lý riêng
     return url;
   };
 
   const directMovieUrl = movieUrl ? getVideoUrl(movieUrl) : "";
   const directTrailerUrl = trailer ? getVideoUrl(trailer) : "";
+  const videoUrl = showTrailer ? directTrailerUrl : directMovieUrl;
 
   // Thêm hàm để xác định style cho video container
   const getVideoContainerStyle = () => {
@@ -251,6 +374,7 @@ const WatchPage = () => {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative w-full h-full">
             <iframe
+              ref={iframeRef}
               src={showTrailer ? directTrailerUrl : directMovieUrl}
               className="absolute top-0 left-0"
               style={getVideoContainerStyle()}
@@ -420,7 +544,7 @@ const WatchPage = () => {
                         >
                           <div className="w-[100px]">
                             <img
-                              src={actor.picture}
+                              src={actor.picture || "/placeholder.svg"}
                               alt={actor.name}
                               className="w-20 h-20 rounded-xl object-cover mb-2 group-hover:ring-2 ring-[#FF009F] transition-all"
                             />
@@ -565,7 +689,9 @@ const WatchPage = () => {
                         <img
                           src={
                             userDetails[movie.comments[0]?.createBy]?.picture ||
-                            "https://ui-avatars.com/api/?name=User&background=FF009F&color=fff"
+                            "https://ui-avatars.com/api/?name=User&background=FF009F&color=fff" ||
+                            "/placeholder.svg" ||
+                            "/placeholder.svg"
                           }
                           alt="User"
                           className="w-10 h-10 rounded-full"
@@ -612,11 +738,11 @@ const WatchPage = () => {
                               <img
                                 src={
                                   userDetails[comment.createBy]?.picture ||
-                                  `https://ui-avatars.com/api/?name=${userDetails[
-                                    comment.createBy
-                                  ]?.fullName?.charAt(
-                                    0
-                                  )}&background=FF009F&color=fff`
+                                  `https://ui-avatars.com/api/?name=${
+                                    userDetails[
+                                      comment.createBy
+                                    ]?.fullName?.charAt(0) || "/placeholder.svg"
+                                  }&background=FF009F&color=fff`
                                 }
                                 alt={userDetails[comment.createBy]?.fullName}
                                 className="w-10 h-10 rounded-full object-cover"

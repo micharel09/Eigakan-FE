@@ -60,20 +60,10 @@ const Profile = () => {
     }
   };
 
-  const fetchSubscriptionHistory = async () => {
-    try {
-      const response = await subscriptionService.getAllPurchaseHistory();
-      if (response.success) {
-        setSubscriptionData(response.data.subscriptionPurchase || []);
-      }
-    } catch (error) {
-      console.error("Error fetching subscription history:", error);
-    }
-  };
+
 
   useEffect(() => {
     fetchProfile();
-    fetchSubscriptionHistory();
   }, []);
 
   const showUpdateModal = () => {
@@ -148,7 +138,6 @@ const Profile = () => {
     <Layout className="min-h-screen bg-gray-50">
       <Content className="p-6 md:p-8 max-w-7xl mx-auto w-full">
         <Breadcrumb className="mb-6">
-          <Breadcrumb.Item>Dashboard</Breadcrumb.Item>
           <Breadcrumb.Item>Profile</Breadcrumb.Item>
         </Breadcrumb>
 
@@ -260,50 +249,10 @@ const Profile = () => {
                     children: (
                       <>
                         <BillingTab />
-                        <h2 className="text-lg font-bold mt-4">
-                          Subscription History
-                        </h2>
-                        {subscriptionData.map((subscription) => (
-                          <Card key={subscription.id} className="mb-4">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="text-lg font-bold">
-                                  Order ID: {subscription.id}
-                                </h3>
-                                <p>
-                                  Purchase date:{" "}
-                                  {new Date(
-                                    subscription.purchaseDate
-                                  ).toLocaleDateString()}
-                                </p>
-                                <p>
-                                  Expired date:{" "}
-                                  {new Date(
-                                    subscription.expiredDate
-                                  ).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold mb-2">
-                                  Total:{" "}
-                                  {subscription.totalPrice.toLocaleString()} đ
-                                </p>
-                                <Tag
-                                  className={`${
-                                    subscription.status === "Active"
-                                      ? "bg-green-100 text-green-500 border border-green-500"
-                                      : "bg-red-100 text-red-500 border border-red-500"
-                                  }`}
-                                >
-                                  {subscription.status}
-                                </Tag>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
                       </>
                     ),
                   },
+                  
                   {
                     key: "3",
                     label: (
