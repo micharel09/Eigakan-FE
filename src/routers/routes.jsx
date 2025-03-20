@@ -51,6 +51,7 @@ import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard";
 import GenrePage from "../pages/Genre/GenrePage";
 import GenresPage from "../pages/Genre/GenresPage";
 import AdSlotTimeManagement from "../pages/Manager/AdSlot/AdSlotTimeManagement";
+import MovieCount from "../pages/Admin/Movie/MovieCount.jsx";
 import BuyAdSlot from "../pages/Advertiser/BuyAdSlot/BuyAdSlot";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
 
@@ -226,6 +227,13 @@ const routes = [
       </PrivateRoute>
     ),
     layout: "AdminLayout",
+  },
+
+  {
+    path: "/MovieCount/:id",
+    element: (
+        <MovieCount />
+    ),
   },
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
