@@ -10,6 +10,8 @@ import Loading from "../../components/Loading/Loading";
 import movieService from "../../apis/Movie/movie";
 import movieCountService from "../../apis/MovieCount/MovieCount";
 import movieHistoryService from "../../apis/MovieHistory/MovieHistory";
+import adMediaService from "../../apis/AdMedia/adMedia";
+import adPurchaseSlotService from "../../apis/AdPurchaseSlot/adPurchaseSlot";
 
 const WatchPage = () => {
   const { movieId } = useParams();
@@ -29,6 +31,11 @@ const WatchPage = () => {
   const [isViewCounted, setIsViewCounted] = useState(false);
   const iframeRef = React.useRef(null);
   const viewTimeoutRef = React.useRef(null);
+  const [adMedia, setAdMedia] = useState([]);
+  const [sidebarAd, setSidebarAd] = useState(null);
+  const [leftSidebarAd, setLeftSidebarAd] = useState(null);
+  const [headerAd, setHeaderAd] = useState(null);
+  const [footerAd, setFooterAd] = useState(null);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -103,8 +110,13 @@ const WatchPage = () => {
       const token = localStorage.getItem("token");
       const user = localStorage.getItem("user");
       const role = localStorage.getItem("role");
-      setIsAuthenticated(!!token && !!user);
-      setUserRole(role); // Update userRole from localStorage
+      const authenticated = !!token && !!user;
+
+      setIsAuthenticated(authenticated);
+      setUserRole(role);
+
+      // Call fetchAdMedia after setting isAuthenticated
+      fetchAdMedia(role);
     };
 
     checkSession();
@@ -280,6 +292,118 @@ const WatchPage = () => {
     };
   }, [movie, isViewCounted, showTrailer]);
 
+  // Sửa lại hàm fetchAdMedia để xử lý các vị trí quảng cáo
+  const fetchAdMedia = async (role) => {
+    const shouldShowAds = !role || role === "MEMBER";
+    console.log("Current role:", role);
+    console.log("Should show ads:", shouldShowAds);
+
+    if (!shouldShowAds) {
+      console.log("Premium user, no ads shown");
+      return;
+    }
+
+    try {
+      console.log("Fetching ad media...");
+      const response = await adMediaService.getActiveAdMedia();
+      console.log("Ad Media Response:", response);
+
+      if (response.success && response.data && response.data.length > 0) {
+        setAdMedia(response.data);
+
+        // Xử lý từng quảng cáo và phân loại theo vị trí
+        for (const ad of response.data) {
+          const adSlotId = ad.adPurchaseSlotId;
+          try {
+            // Use different methods based on authentication status
+            const adSlotDetails = isAuthenticated
+              ? await adPurchaseSlotService.getAdPurchaseSlotById(adSlotId)
+              : await adPurchaseSlotService.getPublicAdPurchaseSlotById(
+                  adSlotId
+                );
+
+            console.log("Ad Slot Details:", adSlotDetails);
+
+            if (adSlotDetails.success) {
+              const slotLocation =
+                adSlotDetails.data.adSlotTime.adSlot.slotLocation;
+              console.log("Slot location:", slotLocation);
+
+              // Phân loại quảng cáo theo vị trí
+              switch (slotLocation) {
+                case "SIDEBAR-RIGHT":
+                  setSidebarAd(ad);
+                  break;
+                case "SIDEBAR-LEFT":
+                  setLeftSidebarAd(ad);
+                  break;
+                case "HEADER":
+                  setHeaderAd(ad);
+                  break;
+                case "FOOTER":
+                  setFooterAd(ad);
+                  break;
+              }
+            }
+          } catch (slotError) {
+            console.error("Failed to fetch ad slot details:", slotError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch ad media:", error);
+    }
+  };
+
+  // Thêm component AdDisplay để tái sử dụng cho các quảng cáo
+  const AdDisplay = ({ ad, className }) => {
+    if (!ad) return null;
+
+    // Kiểm tra xem có phải className chứa "max-h-[100px]" (header ad) không
+    const isHeaderAd = className && className.includes("max-h-[100px]");
+    // Kiểm tra xem có phải là sidebar ad không (có class h-auto max-h-none)
+    const isSidebarAd = className && className.includes("max-h-none");
+
+    return (
+      <div
+        className={`p-2 bg-black/40 rounded border border-white/10 w-full h-auto flex flex-col items-center ${className}`}
+      >
+        <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
+          SPONSORED
+        </div>
+
+        <a
+          href={ad.url || "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full"
+        >
+          <img
+            src={ad.image}
+            alt="Advertisement"
+            className={`w-full object-contain hover:opacity-90 transition-opacity rounded ${
+              isHeaderAd
+                ? "max-h-[60px]"
+                : isSidebarAd
+                ? "max-h-[800px]" // Tăng chiều cao tối đa cho sidebar ads
+                : "max-h-[400px]"
+            }`}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://placehold.co/200x400?text=Ad";
+            }}
+          />
+        </a>
+
+        {ad.content && !isHeaderAd && (
+          <div className="text-white/80 text-sm mt-2 text-center">
+            {ad.content}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) return <Loading />;
   if (!movie) {
     return (
@@ -313,30 +437,28 @@ const WatchPage = () => {
   const directTrailerUrl = trailer ? getVideoUrl(trailer) : "";
   const videoUrl = showTrailer ? directTrailerUrl : directMovieUrl;
 
-  // Thêm hàm để xác định style cho video container
+  // Sửa lại hàm getVideoContainerStyle để video luôn căn giữa hoàn toàn
   const getVideoContainerStyle = () => {
     const role = localStorage.getItem("role");
-    if (role === "MEMBER") {
+
+    // VIP MEMBER có video to, chiếm toàn màn hình
+    if (role === "VIP MEMBER") {
       return {
-        width: "70%",
-        height: "80%",
-        border: "none",
-        margin: "auto",
+        width: "100%",
+        height: "96%",
         position: "absolute",
-        top: "10%",
-        left: "15%",
-        transform: "none",
+        inset: 0,
       };
     }
+
+    // Các role khác có video nhỏ hơn và căn giữa hoàn toàn
     return {
-      width: "100%",
-      height: "80%",
-      border: "none",
-      margin: "auto",
+      width: "70%", // Giảm kích thước video
+      height: "70%", // Giảm kích thước video
       position: "absolute",
-      top: "10%",
-      left: "0%",
-      transform: "none",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)", // Điều này sẽ căn giữa video hoàn toàn
     };
   };
 
@@ -347,33 +469,118 @@ const WatchPage = () => {
       </Helmet>
 
       <div className="fixed inset-0 bg-black">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative w-full h-full">
+        {/* Header Ad */}
+        {headerAd && (
+          <div className="absolute top-2 left-0 right-0 z-10 flex justify-center">
+            <AdDisplay
+              ad={headerAd}
+              className="max-w-[900px] max-h-[180px] bg-opacity-70 overflow-hidden"
+            />
+          </div>
+        )}
+
+        <div className="relative w-full h-full">
+          {/* Left Sidebar Ad */}
+          {leftSidebarAd && (
+            <div className="absolute left-0 top-0 h-full w-[280px] flex flex-col items-start justify-start z-10 pt-20">
+              <div className="bg-black/40 p-2 rounded border border-white/10 w-full">
+                <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
+                  SPONSORED
+                </div>
+                <a
+                  href={leftSidebarAd.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full"
+                >
+                  <img
+                    src={leftSidebarAd.image}
+                    alt="Advertisement"
+                    className="w-full h-[700px] object-cover hover:opacity-90 transition-opacity rounded"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://placehold.co/280x600?text=Ad";
+                    }}
+                  />
+                </a>
+                {leftSidebarAd.content && (
+                  <div className="text-white/80 text-sm mt-2 text-center">
+                    {leftSidebarAd.content}
+                  </div>
+                )}
+                <div className="text-white/50 text-xs text-center mt-2">
+                  LEFT
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Video container */}
+          <div style={getVideoContainerStyle()} className="relative">
             <iframe
               ref={iframeRef}
               src={showTrailer ? directTrailerUrl : directMovieUrl}
-              className="absolute top-0 left-0"
-              style={getVideoContainerStyle()}
+              className="absolute inset-0 w-full h-full"
               allowFullScreen
               allow="autoplay; fullscreen"
               frameBorder="0"
             />
           </div>
+
+          {/* Right Sidebar Ad */}
+          {sidebarAd && (
+            <div className="absolute right-0 top-0 h-full w-[280px] flex flex-col items-start justify-start z-10 pt-20">
+              <div className="bg-black/40 p-2 rounded border border-white/10 w-full">
+                <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
+                  SPONSORED
+                </div>
+                <a
+                  href={sidebarAd.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full"
+                >
+                  <img
+                    src={sidebarAd.image}
+                    alt="Advertisement"
+                    className="w-full h-[700px] object-cover hover:opacity-90 transition-opacity rounded"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://placehold.co/280x600?text=Ad";
+                    }}
+                  />
+                </a>
+                {sidebarAd.content && (
+                  <div className="text-white/80 text-sm mt-2 text-center">
+                    {sidebarAd.content}
+                  </div>
+                )}
+                <div className="text-white/50 text-xs text-center mt-2">
+                  RIGHT
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Controls Container */}
+        {/* Footer Ad - Điều chỉnh vị trí và thêm pointer-events-none */}
+        {footerAd && (
+          <div className="absolute bottom-[60px] left-0 right-0 z-10 flex justify-center pointer-events-auto">
+            <AdDisplay ad={footerAd} className="max-w-[728px] max-h-[100px]" />
+          </div>
+        )}
+
+        {/* Video controls - Tăng z-index để đảm bảo luôn hiển thị trên quảng cáo */}
         <div
           className={`absolute inset-0 transition-all duration-500 ${
             showControls ? "opacity-100" : "opacity-0"
-          } pointer-events-none`}
+          } pointer-events-none z-20`}
         >
-          {/* Bottom Info Panel */}
           <div
             className={`fixed left-0 right-0 bottom-0 transform ${
               showInfo ? "translate-y-0" : "translate-y-full"
             } transition-transform duration-500 ease-in-out bg-black/90 pointer-events-auto`}
           >
-            {/* Handle Bar */}
             <div className="absolute -top-10 left-0 right-0 h-10 flex items-end justify-center group">
               <div
                 onClick={() => setShowInfo(!showInfo)}
@@ -386,12 +593,9 @@ const WatchPage = () => {
               </div>
             </div>
 
-            {/* Content Panel - Thêm scroll */}
             <div className="px-8 py-6 h-[70vh] overflow-y-auto scrollbar-hide">
               <div className="space-y-8">
-                {/* Existing Content */}
                 <div className="space-y-6">
-                  {/* Title Section */}
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]">
@@ -409,9 +613,7 @@ const WatchPage = () => {
                     </div>
                   </div>
 
-                  {/* Rating Pills - Đặt chung một hàng */}
                   <div className="flex items-center gap-4">
-                    {/* IMDB Rating */}
                     <div className="flex items-center gap-3 bg-[#F6C700]/10 px-4 py-2 rounded-xl">
                       <div className="flex items-center gap-2">
                         <svg
@@ -442,7 +644,6 @@ const WatchPage = () => {
                       </div>
                     </div>
 
-                    {/* User Rating */}
                     <div className="flex items-center gap-3 bg-[#FF009F]/10 px-4 py-2 rounded-xl">
                       <div className="flex -space-x-1">
                         {[...Array(5)].map((_, i) => (
@@ -469,7 +670,6 @@ const WatchPage = () => {
                     </div>
                   </div>
 
-                  {/* Info Pills - Các thông tin khác */}
                   <div className="flex flex-wrap gap-3 text-sm">
                     {[
                       {
@@ -501,12 +701,10 @@ const WatchPage = () => {
                     ))}
                   </div>
 
-                  {/* Description */}
                   <p className="text-white/70 leading-relaxed text-lg">
                     {movie.description}
                   </p>
 
-                  {/* Cast Section */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-[#FF009F]">
                       Cast
@@ -539,7 +737,6 @@ const WatchPage = () => {
                   </div>
                 </div>
 
-                {/* Rating Section */}
                 {canRateAndComment() ? (
                   <div className="space-y-4 border-t border-white/10 pt-6">
                     <div className="flex items-center justify-between">
@@ -550,7 +747,6 @@ const WatchPage = () => {
 
                     <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-8 backdrop-blur-sm">
                       <div className="flex flex-col items-center gap-6">
-                        {/* Current Rating Display */}
                         <div className="flex items-center gap-3">
                           <span className="text-4xl font-bold text-white">
                             {userRating || "?"}
@@ -565,7 +761,6 @@ const WatchPage = () => {
                           </div>
                         </div>
 
-                        {/* Rating Stars - Cải tiến */}
                         <div className="relative">
                           <Rate
                             value={userRating}
@@ -574,7 +769,6 @@ const WatchPage = () => {
                             className="flex gap-2"
                             character={({ index, value }) => (
                               <div className="relative cursor-pointer transition-transform hover:scale-110">
-                                {/* Star Border - Luôn hiển thị */}
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
                                   viewBox="0 0 24 24"
@@ -585,7 +779,6 @@ const WatchPage = () => {
                                 >
                                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                                 </svg>
-                                {/* Star Fill - Chỉ hiển thị khi được chọn */}
                                 <div
                                   className="absolute inset-0 transition-opacity"
                                   style={{
@@ -606,7 +799,6 @@ const WatchPage = () => {
                           />
                         </div>
 
-                        {/* Status Message */}
                         <div className="text-center">
                           {submittingRating ? (
                             <div className="flex items-center gap-2 text-[#FF009F]">
@@ -647,7 +839,6 @@ const WatchPage = () => {
                   </div>
                 )}
 
-                {/* Comments Section */}
                 {isAuthenticated ? (
                   <div className="space-y-6 border-t border-white/10 pt-6">
                     <div className="flex items-center justify-between">
@@ -659,7 +850,6 @@ const WatchPage = () => {
                       </span>
                     </div>
 
-                    {/* Comment Input - Chỉ hiện khi là VIP */}
                     {canRateAndComment() ? (
                       <div className="flex gap-4">
                         <img
@@ -698,7 +888,6 @@ const WatchPage = () => {
                       />
                     )}
 
-                    {/* Comments List */}
                     <div className="space-y-6">
                       {loadingComments ? (
                         <div className="flex items-center justify-center py-8">

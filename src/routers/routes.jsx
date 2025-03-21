@@ -57,6 +57,7 @@ import WatchTogether from "../pages/WatchTogether/WatchTogether";
 import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
 import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
 import { Navigate } from "react-router-dom";
+import AdPurchaseSlotManagement from "../pages/Advertiser/AdPurchaseSlotManagement";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -219,9 +220,7 @@ const routes = [
 
   {
     path: "/MovieCount/:id",
-    element: (
-        <MovieCount />
-    ),
+    element: <MovieCount />,
   },
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
@@ -509,6 +508,16 @@ const routes = [
       </PrivateRoute>
     ),
     layout: "UserLayout",
+  },
+
+  {
+    path: "/advertiser/ad-purchase-slots",
+    element: (
+      <PrivateRoute>
+        <AdPurchaseSlotManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
