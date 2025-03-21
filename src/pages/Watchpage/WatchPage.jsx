@@ -1,192 +1,200 @@
-"use client"
-
-import React, { useState, useEffect } from "react"
-import { useParams, Link } from "react-router-dom"
-import { Helmet } from "react-helmet"
-import { Calendar, Clock } from "lucide-react"
-import { Rate, notification } from "antd"
-import moment from "moment"
-import UserApi from "../../apis/User/user"
-import ratingService from "../../apis/Movie/rating"
-import Loading from "../../components/Loading/Loading"
-import movieService from "../../apis/Movie/movie"
-import movieCountService from "../../apis/MovieCount/MovieCount"
-import movieHistoryService from "../../apis/MovieHistory/MovieHistory"
+import React, { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import { Calendar, Clock } from "lucide-react";
+import { Rate, notification } from "antd";
+import moment from "moment";
+import UserApi from "../../apis/User/user";
+import ratingService from "../../apis/Movie/rating";
+import Loading from "../../components/Loading/Loading";
+import movieService from "../../apis/Movie/movie";
+import movieCountService from "../../apis/MovieCount/MovieCount";
+import movieHistoryService from "../../apis/MovieHistory/MovieHistory";
 
 const WatchPage = () => {
-  const { movieId } = useParams()
-  const [movie, setMovie] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [showControls, setShowControls] = useState(true)
-  const [showTrailer, setShowTrailer] = useState(false)
-  const [showInfo, setShowInfo] = useState(false)
-  const [userDetails, setUserDetails] = useState({})
-  const [commentInput, setCommentInput] = useState("")
-  const [ratingValue, setRatingValue] = useState(movie?.userRating || 0)
-  const [submittingRating, setSubmittingRating] = useState(false)
-  const [userRole, setUserRole] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loadingComments, setLoadingComments] = useState(true)
-  const [hasUserRated, setHasUserRated] = useState(false)
-  const [isViewCounted, setIsViewCounted] = useState(false)
-  const iframeRef = React.useRef(null)
-  const viewTimeoutRef = React.useRef(null)
+  const { movieId } = useParams();
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showControls, setShowControls] = useState(true);
+  const [showTrailer, setShowTrailer] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [userDetails, setUserDetails] = useState({});
+  const [commentInput, setCommentInput] = useState("");
+  const [userRating, setUserRating] = useState(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(true);
+  const [hasUserRated, setHasUserRated] = useState(false);
+  const [isViewCounted, setIsViewCounted] = useState(false);
+  const iframeRef = React.useRef(null);
+  const viewTimeoutRef = React.useRef(null);
 
   useEffect(() => {
     const fetchMovie = async () => {
       try {
-        const response = await movieService.getMovieById(movieId)
+        const response = await movieService.getMovieById(movieId);
         if (response.success) {
-          setMovie(response.data)
+          setMovie(response.data);
         }
       } catch (error) {
-        console.error("Error fetching movie:", error)
+        console.error("Error fetching movie:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchMovie()
+    fetchMovie();
 
     // Hide controls after 3 seconds of inactivity
-    const timer = setTimeout(() => setShowControls(false), 3000)
+    const timer = setTimeout(() => setShowControls(false), 3000);
 
     // Show controls on mouse move
     const handleMouseMove = () => {
-      setShowControls(true)
-      clearTimeout(timer)
-    }
+      setShowControls(true);
+      clearTimeout(timer);
+    };
 
-    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
-      clearTimeout(timer)
-      window.removeEventListener("mousemove", handleMouseMove)
-    }
-  }, [movieId])
+      clearTimeout(timer);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [movieId]);
 
   useEffect(() => {
     const fetchUserDetails = async () => {
-      if (!isAuthenticated || !movie?.comments) return
-      setLoadingComments(true) // Start loading
+      if (!isAuthenticated || !movie?.comments) return;
+      setLoadingComments(true); // Start loading
 
       try {
-        const userIds = movie.comments.map((comment) => comment.createBy)
-        const uniqueUserIds = [...new Set(userIds)]
+        const userIds = movie.comments.map((comment) => comment.createBy);
+        const uniqueUserIds = [...new Set(userIds)];
 
-        const userPromises = uniqueUserIds.map((id) => UserApi.getUserDetail(id))
-        const users = await Promise.all(userPromises)
+        const userPromises = uniqueUserIds.map((id) =>
+          UserApi.getUserDetail(id)
+        );
+        const users = await Promise.all(userPromises);
 
-        const userDetailsMap = {}
+        const userDetailsMap = {};
         users.forEach((response) => {
           if (response.success) {
             userDetailsMap[response.data.id] = {
               fullName: response.data.fullName,
               picture: response.data.picture,
-            }
+            };
           }
-        })
+        });
 
-        setUserDetails(userDetailsMap)
+        setUserDetails(userDetailsMap);
       } catch (error) {
-        console.error("Error fetching user details:", error)
+        console.error("Error fetching user details:", error);
       } finally {
-        setLoadingComments(false) // End loading
+        setLoadingComments(false); // End loading
       }
-    }
+    };
 
-    fetchUserDetails()
-  }, [movie, isAuthenticated]) // Added isAuthenticated to dependencies
+    fetchUserDetails();
+  }, [movie, isAuthenticated]); // Added isAuthenticated to dependencies
 
   useEffect(() => {
     const checkSession = () => {
-      const token = localStorage.getItem("token")
-      const user = localStorage.getItem("user")
-      const role = localStorage.getItem("role")
-      setIsAuthenticated(!!token && !!user)
-      setUserRole(role) // Update userRole from localStorage
-    }
+      const token = localStorage.getItem("token");
+      const user = localStorage.getItem("user");
+      const role = localStorage.getItem("role");
+      setIsAuthenticated(!!token && !!user);
+      setUserRole(role); // Update userRole from localStorage
+    };
 
-    checkSession()
-  }, [])
+    checkSession();
+  }, []);
 
   useEffect(() => {
     const fetchUserRating = async () => {
-      if (!isAuthenticated || !movieId) return
+      if (!isAuthenticated || !movieId) return;
 
       try {
-        const response = await ratingService.getUserRatingForMovie(movieId)
+        const response = await ratingService.getUserRatingForMovie(movieId);
         if (response.success && response.data) {
-          setRatingValue(response.data.stars)
-          setHasUserRated(true)
+          setUserRating(response.data.stars);
+          setHasUserRated(true);
         }
       } catch (error) {
-        console.error("Error fetching user rating:", error)
+        console.error("Failed to fetch user rating:", error);
       }
-    }
+    };
 
-    fetchUserRating()
-  }, [movieId, isAuthenticated])
+    if (movieId) {
+      fetchUserRating();
+    }
+  }, [movieId, isAuthenticated]); // Added isAuthenticated to dependencies
 
   const handleCommentSubmit = async (e) => {
-    e.preventDefault()
-    if (!commentInput.trim()) return
+    e.preventDefault();
+    if (!commentInput.trim()) return;
 
     try {
-      const response = await ratingService.createComment(commentInput, movieId)
+      const response = await ratingService.createComment(commentInput, movieId);
+
       if (response.success) {
-        const movieResponse = await movieService.getMovieById(movieId)
+        // Refresh movie data to get updated comments
+        const movieResponse = await movieService.getMovieById(movieId);
         if (movieResponse.success) {
-          setMovie(movieResponse.data)
+          setMovie(movieResponse.data);
         }
-        setCommentInput("")
+
+        setCommentInput("");
         notification.success({
           message: "Success",
-          description: "Comment posted successfully!",
-        })
+          description: "Comment posted successfully",
+        });
+      } else {
+        throw new Error(response.message || "Failed to post comment");
       }
     } catch (error) {
       notification.error({
         message: "Error",
-        description: "Failed to post comment",
-      })
+        description: error.message || "Failed to post comment",
+      });
     }
-  }
+  };
 
-  const handleRatingChange = async (value) => {
-    setRatingValue(value)
-    setSubmittingRating(true)
+  const handleRating = async (value) => {
+    if (!isAuthenticated) return;
+
+    setSubmittingRating(true);
     try {
-      const response = await ratingService.createMovieRating(value, movieId)
+      const response = await ratingService.createMovieRating(value, movieId);
       if (response.success) {
-        const movieResponse = await movieService.getMovieById(movieId)
-        if (movieResponse.success) {
-          setMovie(movieResponse.data)
-        }
+        setUserRating(value);
+        setHasUserRated(true);
         notification.success({
           message: "Success",
-          description: "Rating submitted successfully!",
-        })
+          description: "Rating submitted successfully",
+        });
       }
     } catch (error) {
       notification.error({
         message: "Error",
-        description: "Failed to submit rating",
-      })
+        description: error.message || "Failed to submit rating",
+      });
     } finally {
-      setSubmittingRating(false)
+      setSubmittingRating(false);
     }
-  }
+  };
 
   const canRateAndComment = () => {
-    const role = localStorage.getItem("role")
-    return role === "VIP MEMBER" || role === "ADMIN" || role === "MANAGER"
-  }
+    const role = localStorage.getItem("role");
+    return role === "VIP MEMBER" || role === "ADMIN" || role === "MANAGER";
+  };
 
   // Sửa lại component UpgradeMessage để nhận thêm prop isAuthenticated
   const UpgradeMessage = ({ message, isAuthenticated }) => (
     <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-4 text-center">
-      <p className="text-white/70">{isAuthenticated ? message : "Please login to access this feature"}</p>
+      <p className="text-white/70">
+        {isAuthenticated ? message : "Please login to access this feature"}
+      </p>
       <Link
         to={isAuthenticated ? "/subscription-plans" : "/login"}
         className="text-[#FF009F] hover:text-[#D1007F] mt-2 inline-block"
@@ -194,118 +202,120 @@ const WatchPage = () => {
         {isAuthenticated ? "Upgrade Now" : "Login Now"}
       </Link>
     </div>
-  )
-
+  );
 
   //Đếm view
   const increaseViewCount = async () => {
-    const movieId ={
-      movieId: movie.id
-    }
+    const movieId = {
+      movieId: movie.id,
+    };
     try {
-      await movieCountService.increaseMovieCount(movieId)
-      console.log("✅ View count increased for movie:", movie.title)
+      await movieCountService.increaseMovieCount(movieId);
+      console.log("✅ View count increased for movie:", movie.title);
     } catch (error) {
-      console.error("❌ Failed to increase view count", error)
+      console.error("❌ Failed to increase view count", error);
     }
-  }
+  };
 
   const createMovieHistory = async () => {
-    const movieId ={
-      movieId: movie.id
-    }
+    const movieId = {
+      movieId: movie.id,
+    };
     try {
-      await movieHistoryService.CreateMovieHistory(movieId)
-      console.log("✅ save to history:", movie.title)
+      await movieHistoryService.CreateMovieHistory(movieId);
+      console.log("✅ save to history:", movie.title);
     } catch (error) {
-      console.error("❌ not save to history", error)
+      console.error("❌ not save to history", error);
     }
-  }
+  };
 
   const startViewCount = () => {
     if (!isViewCounted) {
       viewTimeoutRef.current = setTimeout(() => {
-        increaseViewCount()
-        createMovieHistory()
-        setIsViewCounted(true)
-      }, 5000) // Chờ 5 giây
+        increaseViewCount();
+        createMovieHistory();
+        setIsViewCounted(true);
+      }, 5000); // Chờ 5 giây
     }
-  }
+  };
 
   const stopViewCount = () => {
     if (viewTimeoutRef.current) {
-      clearTimeout(viewTimeoutRef.current)
-      viewTimeoutRef.current = null
+      clearTimeout(viewTimeoutRef.current);
+      viewTimeoutRef.current = null;
     }
-  }
+  };
 
   useEffect(() => {
     // Only set up the observer if we have a movie and it's not a trailer
-    if (!movie || !iframeRef.current) return
+    if (!movie || !iframeRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && document.visibilityState === "visible") {
-            startViewCount()
+            startViewCount();
           } else {
-            stopViewCount()
+            stopViewCount();
           }
-        })
+        });
       },
-      { threshold: 0.5 }, // Ít nhất 50% iframe phải hiển thị trên màn hình
-    )
+      { threshold: 0.5 } // Ít nhất 50% iframe phải hiển thị trên màn hình
+    );
 
-    observer.observe(iframeRef.current)
+    observer.observe(iframeRef.current);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        stopViewCount()
+        stopViewCount();
       }
-    }
+    };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange)
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      if (iframeRef.current) observer.unobserve(iframeRef.current)
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
-      stopViewCount()
-    }
-  }, [movie, isViewCounted, showTrailer])
+      if (iframeRef.current) observer.unobserve(iframeRef.current);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      stopViewCount();
+    };
+  }, [movie, isViewCounted, showTrailer]);
 
-  if (loading) return <Loading />
+  if (loading) return <Loading />;
   if (!movie) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center text-white">
           <h2 className="text-2xl font-bold mb-4">Movie not found</h2>
-          <Link to="/homescreen" className="text-[#FF009F] hover:text-[#D1007F] transition-colors">
+          <Link
+            to="/homescreen"
+            className="text-[#FF009F] hover:text-[#D1007F] transition-colors"
+          >
             Return to Home
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
-  const movieUrl = movie.medias?.find((m) => m.type === "FILMVIP")?.url
-  const trailer = movie.medias?.find((m) => m.type === "TRAILER")?.url
+  const movieUrl = movie.medias?.find((m) => m.type === "FILMVIP")?.url;
+  const trailer = movie.medias?.find((m) => m.type === "TRAILER")?.url;
 
   const getVideoUrl = (url) => {
-    if (!url) return ""
+    if (!url) return "";
     // Nếu là URL từ Bunny CDN thì giữ nguyên
     if (url.includes("mediadelivery.net")) {
-      return url
+      return url;
     }
-    return url
-  }
+    return url;
+  };
 
-  const directMovieUrl = movieUrl ? getVideoUrl(movieUrl) : ""
-  const directTrailerUrl = trailer ? getVideoUrl(trailer) : ""
-  const videoUrl = showTrailer ? directTrailerUrl : directMovieUrl
+  const directMovieUrl = movieUrl ? getVideoUrl(movieUrl) : "";
+  const directTrailerUrl = trailer ? getVideoUrl(trailer) : "";
+  const videoUrl = showTrailer ? directTrailerUrl : directMovieUrl;
 
   // Thêm hàm để xác định style cho video container
   const getVideoContainerStyle = () => {
-    const role = localStorage.getItem("role")
+    const role = localStorage.getItem("role");
     if (role === "MEMBER") {
       return {
         width: "70%",
@@ -316,7 +326,7 @@ const WatchPage = () => {
         top: "10%",
         left: "15%",
         transform: "none",
-      }
+      };
     }
     return {
       width: "100%",
@@ -327,8 +337,8 @@ const WatchPage = () => {
       top: "10%",
       left: "0%",
       transform: "none",
-    }
-  }
+    };
+  };
 
   return (
     <>
@@ -387,7 +397,9 @@ const WatchPage = () => {
                       <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]">
                         {movie.title}
                       </h1>
-                      <h2 className="text-lg text-white/70">{movie.originName}</h2>
+                      <h2 className="text-lg text-white/70">
+                        {movie.originName}
+                      </h2>
                     </div>
                     <div className="flex flex-col items-end">
                       <span className="px-3 py-1 bg-[#FF009F]/20 text-[#FF009F] rounded-full text-sm font-semibold">
@@ -402,7 +414,13 @@ const WatchPage = () => {
                     {/* IMDB Rating */}
                     <div className="flex items-center gap-3 bg-[#F6C700]/10 px-4 py-2 rounded-xl">
                       <div className="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="16" viewBox="0 0 64 32" fill="none">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="32"
+                          height="16"
+                          viewBox="0 0 64 32"
+                          fill="none"
+                        >
                           <rect width="64" height="32" fill="#F6C700" />
                           <path d="M8 8H12V24H8V8Z" fill="black" />
                           <path
@@ -417,7 +435,9 @@ const WatchPage = () => {
                         </svg>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold text-[#F6C700]">{movie.rating}</span>
+                        <span className="text-2xl font-bold text-[#F6C700]">
+                          {movie.rating}
+                        </span>
                         <span className="text-[#F6C700]/70 text-sm">/10</span>
                       </div>
                     </div>
@@ -429,7 +449,9 @@ const WatchPage = () => {
                           <div
                             key={i}
                             className={`w-4 h-4 ${
-                              i < Math.round(movie.userRating) ? "text-[#FF009F]" : "text-[#FF009F]/20"
+                              i < Math.round(userRating)
+                                ? "text-[#FF009F]"
+                                : "text-[#FF009F]/20"
                             }`}
                           >
                             <svg viewBox="0 0 20 20" fill="currentColor">
@@ -439,7 +461,9 @@ const WatchPage = () => {
                         ))}
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold text-[#FF009F]">{movie.userRating}</span>
+                        <span className="text-2xl font-bold text-[#FF009F]">
+                          {userRating}
+                        </span>
                         <span className="text-[#FF009F]/70 text-sm">/5</span>
                       </div>
                     </div>
@@ -478,11 +502,15 @@ const WatchPage = () => {
                   </div>
 
                   {/* Description */}
-                  <p className="text-white/70 leading-relaxed text-lg">{movie.description}</p>
+                  <p className="text-white/70 leading-relaxed text-lg">
+                    {movie.description}
+                  </p>
 
                   {/* Cast Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-[#FF009F]">Cast</h3>
+                    <h3 className="text-lg font-semibold text-[#FF009F]">
+                      Cast
+                    </h3>
                     <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
                       {movie.person?.map((actor) => (
                         <Link
@@ -497,7 +525,9 @@ const WatchPage = () => {
                               className="w-20 h-20 rounded-xl object-cover mb-2 group-hover:ring-2 ring-[#FF009F] transition-all"
                             />
                             <div className="text-center">
-                              <div className="text-white font-medium truncate">{actor.name}</div>
+                              <div className="text-white font-medium truncate">
+                                {actor.name}
+                              </div>
                               <div className="text-sm text-white/50 truncate">
                                 {actor.job === "Actor" ? "Actor" : actor.job}
                               </div>
@@ -513,25 +543,33 @@ const WatchPage = () => {
                 {canRateAndComment() ? (
                   <div className="space-y-4 border-t border-white/10 pt-6">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-[#FF009F]">Rate This Movie</h3>
+                      <h3 className="text-lg font-semibold text-[#FF009F]">
+                        Rate This Movie
+                      </h3>
                     </div>
 
                     <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-8 backdrop-blur-sm">
                       <div className="flex flex-col items-center gap-6">
                         {/* Current Rating Display */}
                         <div className="flex items-center gap-3">
-                          <span className="text-4xl font-bold text-white">{ratingValue || "?"}</span>
+                          <span className="text-4xl font-bold text-white">
+                            {userRating || "?"}
+                          </span>
                           <div className="flex flex-col">
-                            <span className="text-sm text-white/70">Your rating</span>
-                            <span className="text-xs text-white/50">out of 5</span>
+                            <span className="text-sm text-white/70">
+                              Your rating
+                            </span>
+                            <span className="text-xs text-white/50">
+                              out of 5
+                            </span>
                           </div>
                         </div>
 
                         {/* Rating Stars - Cải tiến */}
                         <div className="relative">
                           <Rate
-                            value={ratingValue}
-                            onChange={handleRatingChange}
+                            value={userRating}
+                            onChange={handleRating}
                             disabled={submittingRating || hasUserRated}
                             className="flex gap-2"
                             character={({ index, value }) => (
@@ -577,14 +615,22 @@ const WatchPage = () => {
                             </div>
                           ) : (
                             <div className="text-white/70 font-medium">
-                              {ratingValue ? (
+                              {userRating ? (
                                 <>
-                                  <span className="text-[#FF009F]">{ratingValue} stars</span>
+                                  <span className="text-[#FF009F]">
+                                    {userRating} stars
+                                  </span>
                                   <span className="mx-2">•</span>
-                                  <span>{hasUserRated ? "You've already rated this movie" : "Thanks for rating!"}</span>
+                                  <span>
+                                    {hasUserRated
+                                      ? "You've already rated this movie"
+                                      : "Thanks for rating!"}
+                                  </span>
                                 </>
                               ) : (
-                                <span className="animate-pulse">Click the stars to rate</span>
+                                <span className="animate-pulse">
+                                  Click the stars to rate
+                                </span>
                               )}
                             </div>
                           )}
@@ -594,7 +640,10 @@ const WatchPage = () => {
                   </div>
                 ) : (
                   <div className="space-y-4 border-t border-white/10 pt-6">
-                    <UpgradeMessage message="Upgrade your account to rate movies" isAuthenticated={isAuthenticated} />
+                    <UpgradeMessage
+                      message="Upgrade your account to rate movies"
+                      isAuthenticated={isAuthenticated}
+                    />
                   </div>
                 )}
 
@@ -602,8 +651,12 @@ const WatchPage = () => {
                 {isAuthenticated ? (
                   <div className="space-y-6 border-t border-white/10 pt-6">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-[#FF009F]">Comments</h3>
-                      <span className="text-white/50 text-sm">{movie.comments?.length || 0} comments</span>
+                      <h3 className="text-lg font-semibold text-[#FF009F]">
+                        Comments
+                      </h3>
+                      <span className="text-white/50 text-sm">
+                        {movie.comments?.length || 0} comments
+                      </span>
                     </div>
 
                     {/* Comment Input - Chỉ hiện khi là VIP */}
@@ -662,7 +715,9 @@ const WatchPage = () => {
                                 src={
                                   userDetails[comment.createBy]?.picture ||
                                   `https://ui-avatars.com/api/?name=${
-                                    userDetails[comment.createBy]?.fullName?.charAt(0) || "/placeholder.svg"
+                                    userDetails[
+                                      comment.createBy
+                                    ]?.fullName?.charAt(0) || "/placeholder.svg"
                                   }&background=FF009F&color=fff`
                                 }
                                 alt={userDetails[comment.createBy]?.fullName}
@@ -670,15 +725,23 @@ const WatchPage = () => {
                               />
                               <div className="flex-1 space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="font-medium text-white">{userDetails[comment.createBy]?.fullName}</h4>
-                                  <span className="text-white/30 text-sm">{moment(comment.createDate).fromNow()}</span>
+                                  <h4 className="font-medium text-white">
+                                    {userDetails[comment.createBy]?.fullName}
+                                  </h4>
+                                  <span className="text-white/30 text-sm">
+                                    {moment(comment.createDate).fromNow()}
+                                  </span>
                                 </div>
-                                <p className="text-white/70">{comment.content}</p>
+                                <p className="text-white/70">
+                                  {comment.content}
+                                </p>
                               </div>
                             </div>
                           ))}
                           {(!movie.comments || movie.comments.length === 0) && (
-                            <p className="text-center text-white/50">No comments yet</p>
+                            <p className="text-center text-white/50">
+                              No comments yet
+                            </p>
                           )}
                         </>
                       )}
@@ -687,8 +750,13 @@ const WatchPage = () => {
                 ) : (
                   <div className="space-y-4 border-t border-white/10 pt-6">
                     <div className="bg-gradient-to-r from-white/5 to-white/10 rounded-xl p-4 text-center">
-                      <p className="text-white/70">Please login to view comments</p>
-                      <Link to="/login" className="text-[#FF009F] hover:text-[#D1007F] mt-2 inline-block">
+                      <p className="text-white/70">
+                        Please login to view comments
+                      </p>
+                      <Link
+                        to="/login"
+                        className="text-[#FF009F] hover:text-[#D1007F] mt-2 inline-block"
+                      >
                         Login Now
                       </Link>
                     </div>
@@ -700,8 +768,7 @@ const WatchPage = () => {
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default WatchPage
-
+export default WatchPage;

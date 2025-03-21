@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPackage";
+const PAYMENT_API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment";
 
 const subscriptionService = {
   getAllPackages: async (page = 1, pageSize = 10) => {
@@ -118,6 +119,23 @@ const subscriptionService = {
       const token = localStorage.getItem("token");
       const response = await axios.get(
         `https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment/GetAllSubscriptionPurchaseUser?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  verifyPayment: async (queryString) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${PAYMENT_API_URL}/vnpay-return?${queryString}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

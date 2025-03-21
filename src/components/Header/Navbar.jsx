@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import authService from "../../apis/Auth/auth";
-import SearchBar from "./SearchBar";
-import ProfileMenu from "./ProfileMenu";
+import PropTypes from "prop-types";
 import { CrownOutlined } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
+import { Modal, Input, notification } from "antd";
 import {
   Menu,
   X,
@@ -18,33 +17,48 @@ import {
   Clock,
   TrendingUp,
   LayoutDashboard,
+  UsersRound,
 } from "lucide-react";
 
-const navLinks = [
-  { path: "/homescreen", label: "Movies", icon: <Film className="w-4 h-4" /> },
+import authService from "../../apis/Auth/auth";
+import roomService from "../../apis/Room/room";
+import SearchBar from "./SearchBar";
+import ProfileMenu from "./ProfileMenu";
+
+const NAV_LINKS = [
+  { path: "/homescreen", label: "Movies", icon: <Film className="h-4 w-4" /> },
   {
     path: "/genres",
     label: "Genres",
-    icon: <TrendingUp className="w-4 h-4" />,
+    icon: <TrendingUp className="h-4 w-4" />,
   },
-  { path: "/", label: "TV Shows", icon: <Home className="w-4 h-4" /> },
+  { path: "/", label: "TV Shows", icon: <Home className="h-4 w-4" /> },
   {
     path: "/favorites",
     label: "Favorite",
-    icon: <Bookmark className="w-4 h-4" />,
+    icon: <Bookmark className="h-4 w-4" />,
   },
   {
     path: "/people",
     label: "Popular People",
-    icon: <Users className="w-4 h-4" />,
+    icon: <Users className="h-4 w-4" />,
   },
-  { path: "/news", label: "News", icon: <Newspaper className="w-4 h-4" /> },
+  { path: "/news", label: "News", icon: <Newspaper className="h-4 w-4" /> },
   {
     path: "/history",
     label: "Search History",
-    icon: <Clock className="w-4 h-4" />,
+    icon: <Clock className="h-4 w-4" />,
   },
 ];
+
+const ROLES = {
+  ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
+  PUBLISHER: "PUBLISHER",
+  ADVERTISER: "ADVERTISER",
+  MEMBER: "MEMBER",
+  VIP_MEMBER: "VIP MEMBER",
+};
 
 const Navbar = () => {
   const [user, setUser] = useState(() => {
@@ -55,21 +69,32 @@ const Navbar = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [isJoinRoomModalVisible, setIsJoinRoomModalVisible] = useState(false);
+  const [roomId, setRoomId] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
+  const [hostedRooms, setHostedRooms] = useState([]);
+
   const navigate = useNavigate();
   const location = useLocation();
+
   const role = user?.roleName || localStorage.getItem("role");
-  const isManager = role === "MANAGER";
-  const isAdmin = role === "ADMIN";
-  const isPublisher = role === "PUBLISHER";
-  const isInManagerPage = location.pathname.includes("/manager");
-  const isInAdminPage =
-    location.pathname.includes("/dashboard") ||
-    location.pathname.includes("/userRegister");
-  const isInPublisherPage = location.pathname.includes("/publisher");
-  const isVipMember = role === "VIP MEMBER";
   const token = localStorage.getItem("token");
-  const isAdvertiser = role === "ADVERTISER";
-  const isInAdvertiserPage = location.pathname.includes("/advertiser");
+
+  const isUserRole = (roleType) => role === roleType;
+  const isInPath = (path) => location.pathname.includes(path);
+
+  const isAdmin = isUserRole(ROLES.ADMIN);
+  const isManager = isUserRole(ROLES.MANAGER);
+  const isPublisher = isUserRole(ROLES.PUBLISHER);
+  const isAdvertiser = isUserRole(ROLES.ADVERTISER);
+  const isVipMember = isUserRole(ROLES.VIP_MEMBER);
+  const isMember = isUserRole(ROLES.MEMBER);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const updateUser = () => setUser(authService.getCurrentUser());
@@ -78,56 +103,119 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    // Lắng nghe sự kiện role thay đổi
     const handleRoleChange = () => {
       setUser(JSON.parse(localStorage.getItem("user") || "{}"));
     };
-
     window.addEventListener("userRoleChanged", handleRoleChange);
-
-    return () => {
+    return () =>
       window.removeEventListener("userRoleChanged", handleRoleChange);
-    };
   }, []);
 
+  useEffect(() => {
+    const fetchHostedRooms = async () => {
+      if (!token || !user) return;
+
+      try {
+        const response = await roomService.getHostRoom();
+        if (!response.success) return;
+
+        const roomData = Array.isArray(response.data)
+          ? response.data
+          : [response.data].filter(Boolean);
+
+        setHostedRooms(roomData.filter((room) => room?.status === "Active"));
+      } catch (error) {
+        console.error("Error fetching hosted rooms:", error);
+        setHostedRooms([]);
+      }
+    };
+
+    fetchHostedRooms();
+  }, [user, token]);
+
   const handleLogout = () => {
-    // Xóa toàn bộ thông tin user trong localStorage
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    localStorage.removeItem("fullName");
-    localStorage.removeItem("avatar");
-    localStorage.removeItem("role");
-    localStorage.removeItem("userId");
-
-    // Redirect về trang login
+    const keysToRemove = [
+      "user",
+      "token",
+      "fullName",
+      "avatar",
+      "role",
+      "userId",
+    ];
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
     navigate("/login");
-
-    // Refresh lại trang để đảm bảo state được reset
     window.location.reload();
   };
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
+  const handleJoinRoom = async () => {
+    if (isJoining || !roomId.trim()) return;
+    setIsJoining(true);
+
+    try {
+      if (!token) {
+        notification.error({
+          message: "Authentication Required",
+          description: "Please login to join a watch room",
+        });
+        setIsJoinRoomModalVisible(false);
+        navigate("/login");
+        return;
+      }
+
+      const userId = user?.userId?.replace(/^userid:\s*/i, "");
+      if (!userId) {
+        notification.error({
+          message: "User Data Missing",
+          description: "Please try logging in again",
+        });
+        return;
+      }
+
+      const roomDetails = await roomService.getRoomDetails(roomId.trim());
+      let movieId = roomDetails.success ? roomDetails.data?.movieID : null;
+
+      if (!movieId) {
+        const hostedRoom = hostedRooms.find(
+          (room) => room?.id === roomId.trim()
+        );
+        movieId = hostedRoom?.movieID;
+      }
+
+      const joinResponse = await roomService.joinRoom({
+        roomId: roomId.trim(),
+        userId,
+        movieId,
+      });
+
+      if (joinResponse.success) {
+        notification.success({ message: "Joined room successfully!" });
+        setIsJoinRoomModalVisible(false);
+
+        // Extract movieId from response if not already set
+        if (!movieId && joinResponse.data) {
+          movieId = Array.isArray(joinResponse.data)
+            ? joinResponse.data[0]?.movieID
+            : joinResponse.data.movieID;
+        }
+
+        navigate(
+          `/watch-together/${
+            movieId || "undefined"
+          }?roomId=${roomId.trim()}&movieId=${movieId || ""}`
+        );
+      } else {
+        throw new Error(joinResponse.message || "Could not join room");
+      }
+    } catch (error) {
+      notification.error({
+        message: "Failed to join room",
+        description: error.message,
+      });
+    } finally {
+      setIsJoining(false);
+    }
   };
 
-  const toggleSearch = () => {
-    setShowSearch(!showSearch);
-  };
-
-  // Xác định đường dẫn dashboard dựa trên vai trò
   const getDashboardPath = () => {
     if (isAdmin) return "/dashboard";
     if (isManager) return "/manager/dashboard";
@@ -136,9 +224,16 @@ const Navbar = () => {
     return "";
   };
 
-  // Kiểm tra xem có phải là vai trò cần hiển thị nút Dashboard không
   const shouldShowDashboardButton =
     isAdmin || isManager || isPublisher || isAdvertiser;
+
+  const toggleMenu = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const toggleSearch = () => {
+    setShowSearch(!showSearch);
+  };
 
   return (
     <>
@@ -182,24 +277,22 @@ const Navbar = () => {
                 </Link>
               )}
 
-              {navLinks
-                .filter(
-                  (link) => !["/", "/favorites", "/history"].includes(link.path)
-                )
-                .map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
-                      location.pathname === link.path
-                        ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
-                        : "text-gray-300 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    {link.icon}
-                    {link.label}
-                  </Link>
-                ))}
+              {NAV_LINKS.filter(
+                (link) => !["/", "/favorites", "/history"].includes(link.path)
+              ).map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                    location.pathname === link.path
+                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  {link.icon}
+                  {link.label}
+                </Link>
+              ))}
               {isAdmin && (
                 <Link
                   to="/admin/persons"
@@ -217,6 +310,17 @@ const Navbar = () => {
 
             {/* Right Side Actions */}
             <div className="flex items-center space-x-4">
+              {/* Join Room Button */}
+              {token && user && (
+                <button
+                  onClick={() => setIsJoinRoomModalVisible(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30 hover:border-[#FF009F]/50 shadow-lg hover:shadow-[#FF009F]/10"
+                >
+                  <UsersRound className="w-4 h-4 text-[#FF009F]" />
+                  <span className="text-sm hidden sm:inline">Join Room</span>
+                </button>
+              )}
+
               {/* Search Button */}
               <button
                 onClick={toggleSearch}
@@ -290,7 +394,20 @@ const Navbar = () => {
           >
             <div className="container mx-auto px-4 py-8">
               <nav className="flex flex-col space-y-4">
-                {navLinks.map((link) => (
+                {token && user && (
+                  <button
+                    onClick={() => {
+                      setIsJoinRoomModalVisible(true);
+                      setIsOpen(false);
+                    }}
+                    className="flex items-center gap-3 p-3 rounded-lg transition-all duration-300 text-gray-300 hover:bg-white/5 hover:text-white"
+                  >
+                    <UsersRound className="w-5 h-5 text-[#FF009F]" />
+                    <span className="text-lg font-medium">Join Room</span>
+                  </button>
+                )}
+
+                {NAV_LINKS.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
@@ -339,6 +456,54 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Join Room Modal */}
+      <Modal
+        title="Join Watch Room"
+        open={isJoinRoomModalVisible}
+        onOk={handleJoinRoom}
+        onCancel={() => {
+          setRoomId("");
+          setIsJoinRoomModalVisible(false);
+        }}
+        okText="Join"
+        cancelText="Cancel"
+        okButtonProps={{
+          loading: isJoining,
+          disabled: isJoining || !roomId.trim(),
+        }}
+        cancelButtonProps={{ disabled: isJoining }}
+      >
+        <div className="mt-4">
+          {hostedRooms.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-2">Your active room:</p>
+              {hostedRooms.map((room) => (
+                <div
+                  key={room.id}
+                  className="flex items-center justify-between bg-gray-100 p-2 rounded mb-2"
+                >
+                  <span className="font-medium text-sm truncate max-w-[200px]">
+                    {room.id}
+                  </span>
+                  <button
+                    className="text-blue-500 text-sm hover:text-blue-700"
+                    onClick={() => setRoomId(room.id)}
+                  >
+                    Use this room
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <Input
+            placeholder="Enter Room ID"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+            disabled={isJoining}
+          />
+        </div>
+      </Modal>
 
       {/* Search Overlay */}
       {showSearch && <SearchBar onClose={toggleSearch} />}

@@ -5,7 +5,7 @@ import SignupPage from "../pages/Auth/SignUpPage";
 import HomePage from "../pages/home/HomePage";
 import WatchPage from "../pages/Watchpage/WatchPage";
 import SearchPage from "../pages/home/Search.jsx";
-import MoviePage from "../pages/MoviePage/MoviePage.jsx";
+import MoviePage from "../pages/MoviePage/MoviePage";
 import PrivateRoute from "./PrivateRoute";
 import User from "../pages/Admin/User/User.jsx";
 import PopularPeople from "../pages/Actor/PopularPeople.jsx";
@@ -52,6 +52,11 @@ import GenrePage from "../pages/Genre/GenrePage";
 import GenresPage from "../pages/Genre/GenresPage";
 import AdSlotTimeManagement from "../pages/Manager/AdSlot/AdSlotTimeManagement";
 import MovieCount from "../pages/Admin/Movie/MovieCount.jsx";
+import BuyAdSlot from "../pages/Advertiser/BuyAdSlot/BuyAdSlot";
+import WatchTogether from "../pages/WatchTogether/WatchTogether";
+import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
+import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
+import { Navigate } from "react-router-dom";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -67,23 +72,8 @@ const routes = [
   {
     path: "/",
     element:
-      role === "ADMIN" ? (
-        <Dashboard />
-      ) : role === "MEMBER" ? (
-        isLoggedIn() ? (
-          <HomeScreen />
-        ) : (
-          <HomeScreen />
-        )
-      ) : (
-        <HomeScreen />
-      ),
-    layout:
-      role === "ADMIN"
-        ? "AdminLayout"
-        : role === "MEMBER"
-        ? "UserLayout"
-        : "GuestLayout",
+      role === "ADMIN" ? <Dashboard /> : <Navigate to="/homescreen" replace />,
+    layout: role === "ADMIN" ? "AdminLayout" : "UserLayout",
   },
 
   {
@@ -244,6 +234,12 @@ const routes = [
 
   { path: "/watch/:movieId", element: <WatchPage />, layout: "UserLayout" },
 
+  {
+    path: "/watch-together/:movieId",
+    element: <WatchTogether />,
+    layout: "UserLayout",
+  },
+
   { path: "/search", element: <SearchPage />, layout: "UserLayout" },
 
   { path: "/people", element: <PopularPeople />, layout: "UserLayout" },
@@ -287,7 +283,11 @@ const routes = [
 
   { path: "/signup", element: <SignupPage /> },
   { path: "/homepage", element: <HomePage />, layout: "UserLayout" },
-  { path: "/homescreen", element: <HomeScreen />, layout: "UserLayout" },
+  {
+    path: "/homescreen",
+    element: <HomeScreen />,
+    layout: "UserLayout",
+  },
   { path: "/login", element: <LoginPage /> },
   { path: "/verify", element: <VerifyAccount /> },
   { path: "/registerPage", element: <RegisterPage /> },
@@ -478,6 +478,37 @@ const routes = [
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/advertiser/select-adpackage",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <SelectAdPackage />
+      </PrivateRoute>
+    ),
+    layout: "UserLayout",
+  },
+
+  {
+    path: "/advertiser/buy-adslot",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <BuyAdSlot />
+      </PrivateRoute>
+    ),
+    layout: "UserLayout",
+    private: true,
+  },
+
+  {
+    path: "/payment-success-adslot",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <PaymentSuccessAdSlot />
+      </PrivateRoute>
+    ),
+    layout: "UserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },

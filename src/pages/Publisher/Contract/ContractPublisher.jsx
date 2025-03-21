@@ -95,12 +95,12 @@ const ContractPublisher = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Your contract</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Your Contracts</h1>
       </div>
 
       <div className="flex flex-wrap gap-4 mb-6">
         <Input
-          placeholder="Tìm kiếm theo tên phim, nhà phát hành hoặc email..."
+          placeholder="Search by movie name, distributor or email..."
           prefix={<SearchOutlined className="text-gray-400" />}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 min-w-[250px] text-lg"

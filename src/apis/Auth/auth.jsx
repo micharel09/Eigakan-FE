@@ -1,109 +1,111 @@
 import axios from "axios";
+import { makePublicRequest, API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Auth";
-
+/**
+ * Service for handling authentication operations
+ */
 const authService = {
   listeners: [],
 
-  async login(email, password) {
-    try {
-      const res = await axios.post(
-        `${API_URL}/Login`,
+  /**
+   * Login user
+   * @param {string} email User email
+   * @param {string} password User password
+   * @returns {Promise<Object>} Login response with token and user data
+   */
+  login: (email, password) =>
+    makePublicRequest(async () => {
+      const response = await axios.post(
+        `${API_URLS.AUTH}/Login`,
         { email, password },
         { maxRedirects: 0 }
       );
-      this.notifyListeners();
-      return res.data;
-    } catch (err) {
-      if (err.response?.data) {
-        throw err.response.data;
-      }
-      throw { success: false, message: "Network error" };
-    }
-  },
+      authService.notifyListeners();
+      return response;
+    }),
 
-  async signup(email, password, confirmPassword, fullName) {
-    try {
-      const res = await axios.post(`${API_URL}/SignUp`, {
+  /**
+   * Register new user
+   * @param {Object} userData User registration data
+   * @returns {Promise<Object>} Registration response
+   */
+  signup: (email, password, confirmPassword, fullName) =>
+    makePublicRequest(async () => {
+      const response = await axios.post(`${API_URLS.AUTH}/SignUp`, {
         email,
         password,
         confirmPassword,
         fullName,
       });
-      return res.data;
-    } catch (err) {
-      if (err.response?.data?.errors) {
-        const firstError = Object.values(err.response.data.errors)[0];
-        throw {
-          message: Array.isArray(firstError) ? firstError[0] : firstError,
-        };
+      return response;
+    }),
+
+  /**
+   * Verify email
+   * @param {string} token Verification token
+   * @returns {Promise<Object>} Verification response
+   */
+  verify: (token) =>
+    makePublicRequest(async () => {
+      const response = await axios.get(
+        `${API_URLS.AUTH}/Verify?token=${token}`
+      );
+      if (!response.success) {
+        throw new Error(response.message);
       }
-      throw err.response?.data || { message: "Network error" };
-    }
-  },
+      return response;
+    }),
 
-  async verify(token) {
-    try {
-      const res = await axios.get(`${API_URL}/Verify?token=${token}`);
+  /**
+   * Request password reset
+   * @param {string} email User email
+   * @returns {Promise<Object>} Password reset request response
+   */
+  forgotPassword: (email) =>
+    makePublicRequest(async () => {
+      const response = await axios.post(`${API_URLS.AUTH}/Forgot-password`, {
+        email,
+      });
+      return response;
+    }),
 
-      console.log("API URL:", `${API_URL}/Verify?token=${token}`);
-      console.log("Response:", res);
-
-      if (!res.data.success) {
-        throw new Error(res.data.message);
-      }
-      return res.data;
-    } catch (err) {
-      console.error("API Error:", err);
-      throw err.response?.data || { message: "Verification failed" };
-    }
-  },
-
-  getCurrentUser() {
-    const userString = localStorage.getItem("user");
-    if (userString) {
-      return JSON.parse(userString);
-    }
-    return null;
-  },
-
-  logout() {
-    localStorage.clear();
-    this.notifyListeners();
-  },
-
-  addListener(listener) {
-    this.listeners.push(listener);
-  },
-
-  removeListener(listener) {
-    this.listeners = this.listeners.filter((l) => l !== listener);
-  },
-
-  notifyListeners() {
-    this.listeners.forEach((listener) => listener());
-  },
-
-  async forgotPassword(email) {
-    try {
-      const res = await axios.post(`${API_URL}/Forgot-password`, { email });
-      return res.data;
-    } catch (err) {
-      throw err.response?.data || { message: "Failed to process request" };
-    }
-  },
-
-  async resetPassword(token, newPassword, confirmPassword) {
-    try {
-      const res = await axios.post(`${API_URL}/Reset-password`, {
+  /**
+   * Reset password
+   * @param {Object} resetData Password reset data
+   * @returns {Promise<Object>} Password reset response
+   */
+  resetPassword: (token, newPassword, confirmPassword) =>
+    makePublicRequest(async () => {
+      const response = await axios.post(`${API_URLS.AUTH}/Reset-password`, {
         token,
         newPassword,
         confirmPassword,
       });
-      return res.data;
-    } catch (err) {
-      throw err.response?.data || { message: "Reset password failed" };
-    }
+      return response;
+    }),
+
+  // Local storage management
+  getCurrentUser: () => {
+    const userString = localStorage.getItem("user");
+    return userString ? JSON.parse(userString) : null;
+  },
+
+  logout: () => {
+    localStorage.clear();
+    authService.notifyListeners();
+  },
+
+  // Listener management for auth state changes
+  addListener: (listener) => {
+    authService.listeners.push(listener);
+  },
+
+  removeListener: (listener) => {
+    authService.listeners = authService.listeners.filter((l) => l !== listener);
+  },
+
+  notifyListeners: () => {
+    authService.listeners.forEach((listener) => listener());
   },
 };
 

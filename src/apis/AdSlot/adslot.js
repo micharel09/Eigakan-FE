@@ -2,181 +2,172 @@ import axios from "axios";
 
 const BASE_URL = "https://eigakan2222-001-site1.jtempurl.com/api";
 
+/**
+ * Helper function to make authenticated API requests
+ * @param {Function} apiCall - The API call function to execute
+ * @returns {Promise} - The API response
+ */
+const makeAuthenticatedRequest = async (apiCall) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Authentication token not found");
+    }
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    return await apiCall(headers);
+  } catch (error) {
+    // Log error để debug
+    console.error('API Error:', error);
+    throw error.response?.data || error.message;
+  }
+};
+
 const adSlotService = {
   // AdSlot APIs
-  getAllAdSlots: async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${BASE_URL}/AdSlot`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  getAllAdSlots: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdSlot`, { headers });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  createAdSlot: async (data) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(`${BASE_URL}/AdSlot`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  createAdSlot: (data) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.post(`${BASE_URL}/AdSlot`, data, { headers });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  updateAdSlot: async (id, data) => {
-    try {
-      const token = localStorage.getItem("token");
+  updateAdSlot: (id, data) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.put(`${BASE_URL}/AdSlot/${id}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  deleteAdSlot: async (id) => {
-    try {
-      const token = localStorage.getItem("token");
+  deleteAdSlot: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.delete(`${BASE_URL}/AdSlot/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
   // AdSlotTime APIs
-  getAllAdSlotTimes: async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${BASE_URL}/AdSlotTime`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  getAllAdSlotTimes: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdSlotTime`, { headers });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  createAdSlotTime: async (data) => {
-    try {
-      const token = localStorage.getItem("token");
+  createAdSlotTime: (data) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.post(`${BASE_URL}/AdSlotTime`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  updateAdSlotTime: async (id, data) => {
-    try {
-      const token = localStorage.getItem("token");
+  updateAdSlotTime: (id, data) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.put(`${BASE_URL}/AdSlotTime/${id}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  deleteAdSlotTime: async (id) => {
-    try {
-      const token = localStorage.getItem("token");
+  deleteAdSlotTime: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.delete(`${BASE_URL}/AdSlotTime/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
   // AdSlotTimeRange APIs
-  getAllAdSlotTimeRanges: async () => {
-    try {
-      const token = localStorage.getItem("token");
+  getAllAdSlotTimeRanges: () =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(`${BASE_URL}/AdSlotTimeRange`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  createAdSlotTimeRange: async (data) => {
-    try {
-      const token = localStorage.getItem("token");
+  createAdSlotTimeRange: (data) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.post(`${BASE_URL}/AdSlotTimeRange`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  updateAdSlotTimeRange: async (id, data) => {
-    try {
-      const token = localStorage.getItem("token");
+  updateAdSlotTimeRange: (id, data) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.put(
         `${BASE_URL}/AdSlotTimeRange/${id}`,
         data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers }
       );
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  deleteAdSlotTimeRange: async (id) => {
-    try {
-      const token = localStorage.getItem("token");
+  deleteAdSlotTimeRange: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.delete(`${BASE_URL}/AdSlotTimeRange/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
+
+  // AdSlotPayment APIs
+  createAdPayment: (adSlotTimeId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.post(
+        `${BASE_URL}/AdPurchaseTransaction`,
+        {
+          adSlotTimeId,
+          redirectUrl: `${window.location.origin}/payment-success-adslot`,
+        },
+        { 
+          headers,
+          validateStatus: (status) => status < 500 // Chấp nhận status codes < 500
+        }
+      );
+      // Log response để debug
+      console.log('API Response:', response);
+      return response.data;
+    }),
+
+  // AdPackage APIs
+  getAllAdPackages: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdPackage`, { headers });
+      return response.data;
+    }),
+
+  // Ad Purchase Transaction API
+  createAdPurchaseTransaction: (data) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.post(
+        `${BASE_URL}/AdPurchaseTransaction`,
+        data,
+        { headers }
+      );
+      return response.data;
+    }),
+
+  // Payment verification
+  verifyAdPayment: (queryString) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${BASE_URL}/AdPurchaseTransaction/payment_return?${queryString}`,
+        { headers }
+      );
+      return response.data;
+    }),
 };
 
 export default adSlotService; 
