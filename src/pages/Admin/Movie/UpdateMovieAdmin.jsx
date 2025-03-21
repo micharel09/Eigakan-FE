@@ -76,9 +76,9 @@ const UpdateMovieAdmin = () => {
     }
   }
 
-  const fetchPersons = async () => {
+  const fetchPersons = async (pageNumber = 1, pageSize = 1000) => {
     try {
-      const response = await personService.getAllPerson()
+      const response = await personService.getAllPerson(pageNumber,pageSize)
       setPersons(response.data)
     } catch (error) {
       console.error("Error fetching persons:", error)

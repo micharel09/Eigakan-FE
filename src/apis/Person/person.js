@@ -4,7 +4,7 @@ const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Person";
 
 const personService = {
   // Get all persons with pagination and search
-  async getAllPerson(pageNumber = 1, pageSize = 10, name = '') {
+  async getAllPerson(pageNumber = 1, pageSize = 1000, name = '') {
     try {
       const token = localStorage.getItem("token");
       const params = { pageNumber, pageSize };
