@@ -60,7 +60,7 @@ const AdSlotTimeManagement = () => {
   const [statusFilter, setStatusFilter] = useState(null);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 5,
     total: 0,
   });
   const [adSlotTimeRanges, setAdSlotTimeRanges] = useState([]);
@@ -72,7 +72,7 @@ const AdSlotTimeManagement = () => {
   const [rangeStatusFilter, setRangeStatusFilter] = useState(null);
   const [rangePagination, setRangePagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 5,
     total: 0,
   });
   const [activeTab, setActiveTab] = useState("1");
@@ -85,7 +85,7 @@ const AdSlotTimeManagement = () => {
   const [slotStatusFilter, setSlotStatusFilter] = useState(null);
   const [slotPagination, setSlotPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 5,
     total: 0,
   });
   const [adMedias, setAdMedias] = useState([]);
@@ -94,7 +94,7 @@ const AdSlotTimeManagement = () => {
   const [adMediaStatusFilter, setAdMediaStatusFilter] = useState(null);
   const [adMediaPagination, setAdMediaPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 5,
     total: 0,
   });
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);

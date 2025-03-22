@@ -36,6 +36,8 @@ const WatchPage = () => {
   const [leftSidebarAd, setLeftSidebarAd] = useState(null);
   const [headerAd, setHeaderAd] = useState(null);
   const [footerAd, setFooterAd] = useState(null);
+  const [centerAd, setCenterAd] = useState(null);
+  const [showCenterAd, setShowCenterAd] = useState(true);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -292,7 +294,7 @@ const WatchPage = () => {
     };
   }, [movie, isViewCounted, showTrailer]);
 
-  // Sửa lại hàm fetchAdMedia để xử lý các vị trí quảng cáo
+  // Modified fetchAdMedia function to handle CENTER ad type
   const fetchAdMedia = async (role) => {
     const shouldShowAds = !role || role === "MEMBER";
     console.log("Current role:", role);
@@ -342,6 +344,10 @@ const WatchPage = () => {
                   break;
                 case "FOOTER":
                   setFooterAd(ad);
+                  break;
+                case "CENTER": // Handle CENTER ad type
+                  setCenterAd(ad);
+                  setShowCenterAd(true);
                   break;
               }
             }
@@ -400,6 +406,97 @@ const WatchPage = () => {
             {ad.content}
           </div>
         )}
+      </div>
+    );
+  };
+
+  // Add a CENTER Ad component
+  const CenterAdDisplay = () => {
+    if (!centerAd || !showCenterAd) return null;
+
+    // Add state to track if user has clicked on the ad content
+    const [hasInteracted, setHasInteracted] = useState(false);
+
+    // Handle interaction with ad content
+    const handleAdContentClick = (e) => {
+      e.stopPropagation(); // Prevent background click event
+      setHasInteracted(true);
+    };
+
+    return (
+      <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/70">
+        <div className="relative max-w-3xl max-h-[80vh] w-full mx-auto p-4">
+          {/* Only show close button after user interaction with ad content */}
+          {hasInteracted && (
+            <button
+              onClick={() => setShowCenterAd(false)}
+              className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-[#FF009F] text-white flex items-center justify-center hover:bg-[#D1007F] transition-colors z-10"
+              aria-label="Close advertisement"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
+
+          {/* Ad content container - clicking this enables the close button */}
+          <div
+            className="bg-black/90 rounded-xl border border-white/20 p-3 shadow-xl cursor-pointer"
+            onClick={handleAdContentClick}
+          >
+            <div className="text-white text-sm uppercase tracking-wider mb-2 text-center font-light">
+              SPONSORED
+            </div>
+
+            <a
+              href={centerAd.url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full"
+              onClick={(e) => {
+                // Allow link to work but also count as interaction
+                e.stopPropagation();
+                setHasInteracted(true);
+              }}
+            >
+              <img
+                src={centerAd.image}
+                alt="Advertisement"
+                className="w-full object-contain rounded max-h-[60vh]"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://placehold.co/800x600?text=Ad";
+                }}
+              />
+            </a>
+
+            {centerAd.content && (
+              <div className="text-white text-base mt-3 text-center">
+                {centerAd.content}
+              </div>
+            )}
+
+            {/* Show instruction if not interacted yet */}
+            {!hasInteracted && (
+              <div className="mt-4 text-center">
+                <p className="text-white/70 text-sm animate-pulse">
+                  Click on ad to enable close button
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
@@ -526,6 +623,9 @@ const WatchPage = () => {
               frameBorder="0"
             />
           </div>
+
+          {/* CENTER Ad */}
+          <CenterAdDisplay />
 
           {/* Right Sidebar Ad */}
           {sidebarAd && (

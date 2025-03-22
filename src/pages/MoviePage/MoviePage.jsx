@@ -60,16 +60,16 @@ const MovieHero = memo(
                   {movie.title}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm mb-6">
-                  <div className="flex items-center">
+                <div className="flex flex-wrap items-center gap-4 text-sm mb-6 text-white">
+                  <div className="flex items-center text-white">
                     <Calendar className="w-4 h-4 mr-2" />
                     {movie.releaseYear}
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center text-white">
                     <Clock className="w-4 h-4 mr-2" />
                     {movie.duration}m
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center text-white">
                     <Star className="w-4 h-4 mr-2 text-yellow-500" />
                     {movie.rating}
                   </div>
@@ -79,7 +79,7 @@ const MovieHero = memo(
                   {movie.genres?.map((genre) => (
                     <span
                       key={genre.id}
-                      className="px-3 py-1 bg-white/10 rounded-full text-sm hover:bg-white/20 transition"
+                      className="px-3 py-1 bg-white/10 rounded-full text-sm hover:bg-white/20 transition text-white"
                     >
                       {genre.name}
                     </span>
@@ -140,7 +140,7 @@ const MovieHero = memo(
 const MovieFacts = memo(({ movie }) => {
   return (
     <div className="lg:w-1/3 space-y-6">
-      <div className="bg-gray-800/50 rounded-xl p-6 mt-14">
+      <div className="bg-gray-800 rounded-xl p-6 mt-14">
         <h2 className="text-xl font-bold mb-4 text-white">Movie Facts</h2>
         <div className="space-y-4">
           {[
@@ -593,8 +593,11 @@ const MoviePage = () => {
           disabled: isCreatingRoom,
           className: "hover:text-[#FF009F] hover:border-[#FF009F]",
         }}
+        className="text-white [&_.ant-modal-title]:text-white [&_.ant-modal-content]:bg-gray-800 [&_.ant-modal-content]:text-white [&_.ant-modal-header]:bg-gray-800 [&_.ant-modal-header]:border-b-gray-700 [&_.ant-modal-close-x]:text-white"
       >
-        <p>Create a new room to watch this movie with friends?</p>
+        <p className="text-white">
+          Create a new room to watch this movie with friends?
+        </p>
       </Modal>
 
       {/* Join Room Modal */}
@@ -618,6 +621,7 @@ const MoviePage = () => {
           disabled: isJoining,
           className: "hover:text-[#FF009F] hover:border-[#FF009F]",
         }}
+        className="text-white [&_.ant-modal-title]:text-white [&_.ant-modal-content]:bg-gray-800 [&_.ant-modal-content]:text-white [&_.ant-modal-header]:bg-gray-800 [&_.ant-modal-header]:border-b-gray-700 [&_.ant-modal-close-x]:text-white"
       >
         <div className="mt-4">
           {hostedRooms.length > 0 &&
@@ -625,7 +629,7 @@ const MoviePage = () => {
               (room) => room?.movieID === movieId && room?.status === "Active"
             ) && (
               <div className="mb-4">
-                <p className="text-sm text-gray-500 mb-2">Your active room:</p>
+                <p className="text-sm text-white mb-2">Your active room:</p>
                 {hostedRooms.map(
                   (room) =>
                     room &&
@@ -633,9 +637,11 @@ const MoviePage = () => {
                     room.status === "Active" && (
                       <div
                         key={room.id}
-                        className="flex items-center justify-between bg-gray-100 p-2 rounded"
+                        className="flex items-center justify-between bg-gray-800 p-2 rounded"
                       >
-                        <span className="font-medium">{room.id}</span>
+                        <span className="font-medium text-white">
+                          {room.id}
+                        </span>
                         <Button
                           size="small"
                           type="link"
@@ -654,7 +660,7 @@ const MoviePage = () => {
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             disabled={isJoining}
-            className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F]"
+            className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F] bg-gray-800 text-white"
           />
         </div>
       </Modal>
