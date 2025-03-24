@@ -25,6 +25,24 @@ const uploadFileApi = {
     }
   },
 
+  async UploadFileContractTemp(file) {
+    try {
+      const formData = new FormData();
+      formData.append("formFiles", file);
+
+
+      // Gửi request mà không cần set Content-Type
+      const res = await axios.post(`${API_URL}/UploadFileContractTemp`, formData);
+
+      console.log("Response từ server:", res.data); // Log kết quả từ server
+
+      return res.data; // Trả về kết quả sau khi upload thành công
+    } catch (err) {
+      console.error("Lỗi upload:", err); // Log lỗi chi tiết
+      throw err.response?.data || { message: "Upload failed" };
+    }
+  },
+
   async UploadPicture(file) {
     try {
       const formData = new FormData();
@@ -94,7 +112,7 @@ const uploadFileApi = {
       return error.response?.data || "An error occurred";
     }
   },
-
+  
   async getPreFileContract(userId, fileName) {
     try {
       const token = localStorage.getItem("token");

@@ -226,6 +226,8 @@ const WatchTogether = () => {
             });
           });
 
+
+        //=================================================================
         // Lắng nghe sự kiện UserLeft
         newConnection.on("UserLeft", (data) => {
           console.log("User left event received:", data);
@@ -276,6 +278,7 @@ const WatchTogether = () => {
           setMessages((prev) => [...prev, leaveMessage]);
         });
 
+        //=================================================================
         // Thêm sự kiện cập nhật danh sách người dùng từ server
         newConnection.on("UpdateParticipants", (participants) => {
           console.log("Received participant update:", participants);
@@ -336,6 +339,7 @@ const WatchTogether = () => {
           }
         });
 
+         //=================================================================
         // Lắng nghe sự kiện UserJoined
         newConnection.on("UserJoined", (joinedUser) => {
           // Only add if not the current user
@@ -395,6 +399,7 @@ const WatchTogether = () => {
           });
         });
 
+         //=================================================================
         // Lắng nghe sự kiện nhận tin nhắn
         newConnection.on("ReceiveMessage", (message) => {
           console.log("Received message:", message);
@@ -426,6 +431,7 @@ const WatchTogether = () => {
           }
         });
 
+         //=================================================================
         // Lắng nghe sự kiện WebRTC từ server
         newConnection.on("ReceiveOffer", async (fromUserId, offerString) => {
           console.log(`Received offer from user ${fromUserId}`);
@@ -440,6 +446,7 @@ const WatchTogether = () => {
           }
         });
 
+         //=================================================================
         newConnection.on("ReceiveAnswer", async (fromUserId, answerString) => {
           console.log(`Received answer from user ${fromUserId}`);
           try {
@@ -449,6 +456,7 @@ const WatchTogether = () => {
           }
         });
 
+         //=================================================================
         newConnection.on(
           "ReceiveIceCandidate",
           async (fromUserId, candidateString) => {
@@ -464,6 +472,7 @@ const WatchTogether = () => {
           }
         );
 
+         //=================================================================
         newConnection.on("InitiatePeerConnection", async (targetUserId) => {
           console.log(
             `Server requested to initiate connection with user ${targetUserId}`
@@ -494,8 +503,9 @@ const WatchTogether = () => {
             );
           }
         });
+    
       })
-      .catch((error) => console.error("SignalR Connection Error:", error));
+    .catch((error) => console.error("SignalR Connection Error:", error));
 
     return () => {
       if (newConnection) {
@@ -510,6 +520,7 @@ const WatchTogether = () => {
     console.log("Current participant streams:", participantStreams);
   }, [roomUsers, participantStreams]);
 
+  
   // Cập nhật hàm setupAudioAnalyser để phân tích âm thanh và ghi log vào console
   const setupAudioAnalyser = (stream) => {
     console.log("Setting up audio analyser for console logging only");
@@ -1387,8 +1398,10 @@ const WatchTogether = () => {
     <div className="fixed inset-0 bg-black flex pt-16">
       {/* Main Content - Movie and Participants */}
       <div className="flex-1 flex">
+        
         {/* Movie Section */}
         <div className="flex-1 flex flex-col">
+          
           {/* Video Container */}
           <div className="flex-1 relative">
             <iframe
@@ -1400,7 +1413,7 @@ const WatchTogether = () => {
               style={{ border: "none" }}
               ref={iframeRef}
             ></iframe>
-
+            
             {/* Hiển thị video của người đang nói chuyện */}
             <ActiveSpeakerVideo />
 
@@ -1451,6 +1464,7 @@ const WatchTogether = () => {
                   </div>
                 ))}
             </div>
+          
           </div>
 
           {/* Camera Section - Cải thiện layout */}

@@ -683,7 +683,8 @@ const MovieDetail = () => {
           confirmLoading={loading}
         >
           <h1>Are you sure to active this movie and publish on website?</h1>
-        </Modal>      
+        </Modal> 
+             
       </Content>
     </Layout>
   )

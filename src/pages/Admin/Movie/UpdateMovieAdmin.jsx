@@ -181,7 +181,7 @@ const UpdateMovieAdmin = () => {
     try {
       if (file.type.startsWith("video/")) {
         // Upload Video to Bunny CDN
-        const createResponse = await fetch("https://eigakan1111-001-site1.qtempurl.com/api/Upload/upload_VideoBunny", {
+        const createResponse = await fetch("https://eigakan2222-001-site1.jtempurl.com/api/Upload/upload_VideoBunny", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: file.name }),
