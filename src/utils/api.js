@@ -47,5 +47,13 @@ export const API_URLS = {
   RATING: "https://eigakan2222-001-site1.jtempurl.com/api/MovieRating",
   COMMENT: "https://eigakan2222-001-site1.jtempurl.com/api/Comment",
   GENRE: "https://eigakan2222-001-site1.jtempurl.com/api/Genre",
+  // Ad related endpoints
+  AD_MEDIA: "https://eigakan2222-001-site1.jtempurl.com/api/AdMedia",
+  AD_PURCHASE_SLOT: "https://eigakan2222-001-site1.jtempurl.com/api/AdPurchaseSlot",
+  AD_SLOT: "https://eigakan2222-001-site1.jtempurl.com/api/AdSlot",
+  AD_SLOT_TIME: "https://eigakan2222-001-site1.jtempurl.com/api/AdSlotTime",
+  AD_SLOT_TIME_RANGE: "https://eigakan2222-001-site1.jtempurl.com/api/AdSlotTimeRange",
+  AD_PACKAGE: "https://eigakan2222-001-site1.jtempurl.com/api/AdPackage",
+  AD_PURCHASE_TRANSACTION: "https://eigakan2222-001-site1.jtempurl.com/api/AdPurchaseTransaction",
   // ... thêm các endpoint khác
 }; 

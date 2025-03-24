@@ -23,7 +23,7 @@
   }
 
   .loading-container {
-    @apply min-h-screen bg-[#161515] pt-24 flex items-center justify-center;
+    @apply min-h-screen bg-white pt-24 flex items-center justify-center;
   }
 }
 
@@ -37,10 +37,6 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #161515;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -53,9 +49,9 @@
   --ant-primary-color-outline: rgba(255, 0, 159, 0.2);
   --eigakan-primary: #ff009f;
   --eigakan-primary-hover: #d1007f;
-  --eigakan-primary-disabled: rgba(255, 255, 255, 0.3);
-  --eigakan-border-disabled: #434343;
-  --eigakan-bg-disabled: #262626;
+  --eigakan-primary-disabled: rgba(0, 0, 0, 0.25);
+  --eigakan-border-disabled: #d9d9d9;
+  --eigakan-bg-disabled: #f5f5f5;
 }
 
 @keyframes ken-burns {
@@ -328,4 +324,154 @@
 .ant-btn-primary:active {
   background-color: var(--eigakan-primary-hover) !important;
   color: white !important;
+}
+
+/* Thêm vào đầu file index.css */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: black;
+}
+
+/* Loại bỏ mọi outline và border bởi User Agent stylesheet */
+* {
+  outline: none !important;
+  box-sizing: border-box;
+}
+
+/* Đảm bảo navbar không có border */
+header,
+.navbar-wrapper {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Add these specific rules for Ant Design Tabs to match the pink theme */
+
+/* The tab ink bar (bottom indicator line) */
+.ant-tabs-ink-bar {
+  background-color: var(--eigakan-primary) !important;
+}
+
+/* Active tab text color */
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--eigakan-primary) !important;
+}
+
+/* Tab hover color */
+.ant-tabs-tab:hover .ant-tabs-tab-btn {
+  color: var(--eigakan-primary-hover) !important;
+}
+
+/* For tabs with icons - ensure icons also get the right color */
+.ant-tabs-tab.ant-tabs-tab-active .anticon {
+  color: var(--eigakan-primary) !important;
+}
+
+/* For tabs with icons - hover state */
+.ant-tabs-tab:hover .anticon {
+  color: var(--eigakan-primary-hover) !important;
+}
+
+/* Optional: customize the active tab background if needed */
+.ant-tabs-tab.ant-tabs-tab-active {
+  background-color: rgba(255, 0, 159, 0.05);
+}
+
+/* Update these styles for a more modern tab design */
+
+/* Tab container styling */
+.eigakan-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+/* Simplified, minimalist tab styling */
+
+/* Reset any conflicting styles */
+.ant-tabs-tab.ant-tabs-tab-active {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Clean tab styling */
+.ant-tabs-tab {
+  transition: all 0.2s ease !important;
+  padding: 8px 16px !important;
+  margin: 0 2px !important;
+  border-radius: 0 !important;
+  position: relative;
+  background: transparent !important;
+}
+
+/* Minimal hover effect */
+.ant-tabs-tab:hover {
+  background-color: transparent !important;
+}
+
+/* Clean, minimal active tab styling */
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--eigakan-primary) !important;
+  transform: none !important; /* remove the movement */
+}
+
+/* Simpler icon styling */
+.ant-tabs-tab .anticon {
+  margin-right: 6px;
+  transition: all 0.2s ease;
+}
+
+/* Cleaner active tab icon */
+.ant-tabs-tab.ant-tabs-tab-active .anticon {
+  color: var(--eigakan-primary) !important;
+  transform: none !important; /* remove the scale effect */
+}
+
+/* Simplified ink bar */
+.ant-tabs-ink-bar {
+  height: 2px !important; /* thinner line */
+  background: var(
+    --eigakan-primary
+  ) !important; /* solid color instead of gradient */
+  border-radius: 0 !important; /* flat design */
+  box-shadow: none !important; /* remove shadow */
+  transition: all 0.2s ease !important;
+}
+
+/* Cleaner content area */
+.ant-tabs-content-holder {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding-top: 12px;
+}
+
+/* For Select component hover/focus states */
+.ant-select:hover .ant-select-selector,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--eigakan-primary) !important;
+}
+
+/* For TimePicker component hover/focus states */
+.ant-picker:hover,
+.ant-picker-focused {
+  border-color: var(--eigakan-primary) !important;
+}
+
+/* For InputNumber component hover/focus states */
+.ant-input-number:hover,
+.ant-input-number-focused {
+  border-color: var(--eigakan-primary) !important;
+}
+
+/* For dropdown hover states */
+.ant-select-dropdown .ant-select-item-option-active,
+.ant-select-dropdown .ant-select-item-option-selected {
+  background-color: rgba(255, 0, 159, 0.1) !important;
+}
+
+/* For any remaining blue focus rings */
+*:focus {
+  outline-color: var(--eigakan-primary) !important;
 }

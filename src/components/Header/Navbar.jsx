@@ -25,6 +25,22 @@ import roomService from "../../apis/Room/room";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
 
+// CSS Animation for Shimmer Effect
+const shimmerKeyframes = `
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s infinite;
+}
+`;
+
 const NAV_LINKS = [
   { path: "/homescreen", label: "Movies", icon: <Film className="h-4 w-4" /> },
   {
@@ -236,27 +252,37 @@ const Navbar = () => {
   };
 
   return (
-    <>
+    <div
+      className="navbar-wrapper"
+      style={{ margin: 0, padding: 0, border: 0 }}
+    >
+      <style dangerouslySetInnerHTML={{ __html: shimmerKeyframes }} />
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          isScrolled
-            ? "bg-black/85 backdrop-blur-md shadow-lg"
-            : "bg-gradient-to-b from-black/80 to-transparent"
-        }`}
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-0"
+        style={{
+          backgroundColor: "rgba(0, 0, 0, 0.85)",
+          backdropFilter: "blur(10px)",
+          borderBottom: "1px solid rgba(255, 0, 159, 0.1)",
+          boxShadow: "0 4px 30px rgba(0, 0, 0, 0.3)",
+          margin: 0,
+          padding: 0,
+        }}
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/homepage" className="flex items-center">
+            <Link to="/homepage" className="flex items-center group">
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
-                className="text-[#FF009F] font-bold text-3xl tracking-wider"
+                className="text-[#FF009F] font-bold text-3xl tracking-wider relative"
+                whileHover={{ scale: 1.05 }}
               >
-                <span className="bg-clip-text text-transparent bg-gradient-to-r eigakan-gradient text-[#FF009F]">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] eigakan-gradient relative z-10">
                   EIGAKAN
                 </span>
+                <div className="absolute inset-0 bg-[#FF009F] blur-[20px] opacity-20 group-hover:opacity-30 transition-opacity duration-300 z-0"></div>
               </motion.div>
             </Link>
 
@@ -266,11 +292,21 @@ const Navbar = () => {
               {shouldShowDashboardButton && (
                 <Link
                   to={getDashboardPath()}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
-                    location.pathname === getDashboardPath()
-                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
+                  className="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer hover:scale-105"
+                  style={{
+                    color:
+                      location.pathname === getDashboardPath()
+                        ? "#ffffff"
+                        : "#d1d5db",
+                    backgroundColor:
+                      location.pathname === getDashboardPath()
+                        ? "rgba(255, 0, 159, 0.2)"
+                        : "transparent",
+                    borderBottom:
+                      location.pathname === getDashboardPath()
+                        ? "2px solid #FF009F"
+                        : "none",
+                  }}
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   Dashboard
@@ -283,27 +319,97 @@ const Navbar = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
-                    location.pathname === link.path
-                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer hover:scale-105 relative group overflow-hidden`}
+                  style={{
+                    color:
+                      location.pathname === link.path ? "#ffffff" : "#d1d5db",
+                    backgroundColor:
+                      location.pathname === link.path
+                        ? "rgba(255, 0, 159, 0.2)"
+                        : "transparent",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (location.pathname !== link.path) {
+                      e.currentTarget.style.backgroundColor =
+                        "rgba(255, 255, 255, 0.05)";
+                      e.currentTarget.style.color = "#ffffff";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (location.pathname !== link.path) {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "#d1d5db";
+                    }
+                  }}
                 >
-                  {link.icon}
-                  {link.label}
+                  <div
+                    className={`${
+                      location.pathname === link.path
+                        ? "text-[#FF009F]"
+                        : "text-gray-400 group-hover:text-[#FF009F]"
+                    } transition-colors duration-300`}
+                  >
+                    {link.icon}
+                  </div>
+                  <span>{link.label}</span>
+                  {location.pathname === link.path && (
+                    <motion.div
+                      layoutId="activeNavIndicator"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
                 </Link>
               ))}
               {isAdmin && (
                 <Link
                   to="/admin/persons"
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
-                    location.pathname === "/admin/persons"
-                      ? "text-white bg-[#FF009F]/20 border-b-2 border-[#FF009F]"
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
+                  className="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer hover:scale-105 relative group overflow-hidden"
+                  style={{
+                    color:
+                      location.pathname === "/admin/persons"
+                        ? "#ffffff"
+                        : "#d1d5db",
+                    backgroundColor:
+                      location.pathname === "/admin/persons"
+                        ? "rgba(255, 0, 159, 0.2)"
+                        : "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (location.pathname !== "/admin/persons") {
+                      e.currentTarget.style.backgroundColor =
+                        "rgba(255, 255, 255, 0.05)";
+                      e.currentTarget.style.color = "#ffffff";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (location.pathname !== "/admin/persons") {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "#d1d5db";
+                    }
+                  }}
                 >
-                  <User className="w-4 h-4" />
-                  Person Management
+                  <div
+                    className={`${
+                      location.pathname === "/admin/persons"
+                        ? "text-[#FF009F]"
+                        : "text-gray-400 group-hover:text-[#FF009F]"
+                    } transition-colors duration-300`}
+                  >
+                    <User className="w-4 h-4" />
+                  </div>
+                  <span>Person Management</span>
+                  {location.pathname === "/admin/persons" && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  )}
                 </Link>
               )}
             </nav>
@@ -314,20 +420,26 @@ const Navbar = () => {
               {token && user && (
                 <button
                   onClick={() => setIsJoinRoomModalVisible(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30 hover:border-[#FF009F]/50 shadow-lg hover:shadow-[#FF009F]/10"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30 hover:border-[#FF009F]/50 shadow-lg hover:shadow-[0_0_15px_rgba(255,0,159,0.3)] cursor-pointer hover:scale-105 relative overflow-hidden group"
                 >
-                  <UsersRound className="w-4 h-4 text-[#FF009F]" />
-                  <span className="text-sm hidden sm:inline">Join Room</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer"></div>
+                  <UsersRound className="w-4 h-4 text-[#FF009F] group-hover:scale-110 transition-transform duration-300" />
+                  <span className="text-sm hidden sm:inline relative z-10">
+                    Join Room
+                  </span>
                 </button>
               )}
 
               {/* Search Button */}
               <button
                 onClick={toggleSearch}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all duration-300 border border-white/10 hover:border-white/20 shadow-lg hover:shadow-[#FF009F]/10"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all duration-300 border border-white/10 hover:border-white/20 shadow-lg hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] cursor-pointer hover:scale-105 relative overflow-hidden group"
               >
-                <Search className="w-4 h-4 text-[#FF009F]" />
-                <span className="text-sm hidden sm:inline">Search</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer"></div>
+                <Search className="w-4 h-4 text-[#FF009F] group-hover:scale-110 transition-transform duration-300" />
+                <span className="text-sm hidden sm:inline relative z-10">
+                  Search
+                </span>
               </button>
 
               {/* User Menu or Login Button */}
@@ -348,10 +460,11 @@ const Navbar = () => {
                       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                       bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white transition-all
                       duration-300 ease-in-out shadow-md hover:shadow-[0_0_15px_rgba(255,0,159,0.5)]
-                      transform hover:translate-y-[-2px]"
+                      transform hover:translate-y-[-2px] cursor-pointer hover:scale-105 relative overflow-hidden group"
                     >
-                      <CrownOutlined />
-                      <span>Upgrade Plan</span>
+                      <div className="absolute top-0 left-0 right-0 h-full w-full bg-gradient-to-r from-[#FF009F]/0 via-white/20 to-[#FF009F]/0 transform -skew-x-30 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-700"></div>
+                      <CrownOutlined className="text-yellow-300 group-hover:animate-pulse" />
+                      <span className="relative z-10">Upgrade Plan</span>
                     </Link>
                   )}
                 </>
@@ -360,16 +473,20 @@ const Navbar = () => {
                   to="/login"
                   className="bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 
                   text-white px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300 
-                  shadow-md hover:shadow-[0_0_15px_rgba(255,0,159,0.3)] transform hover:translate-y-[-2px]"
+                  shadow-md hover:shadow-[0_0_20px_rgba(255,0,159,0.4)] transform hover:translate-y-[-2px] cursor-pointer
+                  relative overflow-hidden group"
                 >
-                  Login
+                  <span className="relative z-10">Login</span>
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] blur-sm"></div>
+                  </div>
                 </Link>
               )}
 
               {/* Mobile Menu Button */}
               <button
                 onClick={toggleMenu}
-                className="md:hidden p-2 text-white hover:text-[#FF009F] transition-colors bg-white/5 rounded-lg"
+                className="md:hidden p-2 text-white hover:text-[#FF009F] transition-colors bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer"
               >
                 {isOpen ? (
                   <X className="w-6 h-6" />
@@ -390,7 +507,11 @@ const Navbar = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-40 bg-black/95 backdrop-blur-md pt-16 md:hidden"
+            className="fixed inset-0 z-40 pt-16 md:hidden"
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.95)",
+              backdropFilter: "blur(8px)",
+            }}
           >
             <div className="container mx-auto px-4 py-8">
               <nav className="flex flex-col space-y-4">
@@ -400,7 +521,7 @@ const Navbar = () => {
                       setIsJoinRoomModalVisible(true);
                       setIsOpen(false);
                     }}
-                    className="flex items-center gap-3 p-3 rounded-lg transition-all duration-300 text-gray-300 hover:bg-white/5 hover:text-white"
+                    className="flex items-center gap-3 p-3 rounded-lg transition-all duration-300 text-gray-300 hover:bg-white/5 hover:text-white cursor-pointer hover:scale-102"
                   >
                     <UsersRound className="w-5 h-5 text-[#FF009F]" />
                     <span className="text-lg font-medium">Join Room</span>
@@ -411,21 +532,30 @@ const Navbar = () => {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 cursor-pointer hover:scale-102 group ${
                       location.pathname === link.path
                         ? "bg-[#FF009F]/20 text-white border-l-4 border-[#FF009F]"
-                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white relative overflow-hidden"
                     }`}
                     onClick={() => setIsOpen(false)}
                   >
-                    {link.icon}
+                    {location.pathname !== link.path && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-x-[-100%] group-hover:translate-x-[100%] pointer-events-none"></div>
+                    )}
+                    <span
+                      className={`${
+                        location.pathname === link.path ? "text-[#FF009F]" : ""
+                      } transition-colors duration-300`}
+                    >
+                      {link.icon}
+                    </span>
                     <span className="text-lg font-medium">{link.label}</span>
                   </Link>
                 ))}
                 {isAdmin && (
                   <Link
                     to="/admin/persons"
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 cursor-pointer hover:scale-102 ${
                       location.pathname === "/admin/persons"
                         ? "bg-[#FF009F]/20 text-white border-l-4 border-[#FF009F]"
                         : "text-gray-300 hover:bg-white/5 hover:text-white"
@@ -446,7 +576,7 @@ const Navbar = () => {
                     toggleSearch();
                     setIsOpen(false);
                   }}
-                  className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all duration-300"
+                  className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all duration-300 cursor-pointer hover:scale-102"
                 >
                   <Search className="w-5 h-5 text-[#FF009F]" />
                   <span className="text-lg font-medium">Search</span>
@@ -487,8 +617,11 @@ const Navbar = () => {
                     {room.id}
                   </span>
                   <button
-                    className="text-blue-500 text-sm hover:text-blue-700"
-                    onClick={() => setRoomId(room.id)}
+                    className="text-blue-500 text-sm hover:text-blue-700 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRoomId(room.id);
+                    }}
                   >
                     Use this room
                   </button>
@@ -501,13 +634,16 @@ const Navbar = () => {
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             disabled={isJoining}
+            className="cursor-text"
           />
         </div>
       </Modal>
 
       {/* Search Overlay */}
-      {showSearch && <SearchBar onClose={toggleSearch} />}
-    </>
+      <AnimatePresence>
+        {showSearch && <SearchBar onClose={() => setShowSearch(false)} />}
+      </AnimatePresence>
+    </div>
   );
 };
 
