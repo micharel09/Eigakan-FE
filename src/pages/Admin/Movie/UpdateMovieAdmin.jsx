@@ -76,9 +76,9 @@ const UpdateMovieAdmin = () => {
     }
   }
 
-  const fetchPersons = async () => {
+  const fetchPersons = async (pageNumber = 1, pageSize = 1000) => {
     try {
-      const response = await personService.getAllPerson()
+      const response = await personService.getAllPerson(pageNumber,pageSize)
       setPersons(response.data)
     } catch (error) {
       console.error("Error fetching persons:", error)
@@ -181,7 +181,7 @@ const UpdateMovieAdmin = () => {
     try {
       if (file.type.startsWith("video/")) {
         // Upload Video to Bunny CDN
-        const createResponse = await fetch("https://eigakan1111-001-site1.qtempurl.com/api/Upload/upload_VideoBunny", {
+        const createResponse = await fetch("https://eigakan2222-001-site1.jtempurl.com/api/Upload/upload_VideoBunny", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: file.name }),

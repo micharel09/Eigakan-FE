@@ -2160,6 +2160,11 @@ hasown@^2.0.0, hasown@^2.0.1, hasown@^2.0.2:
   dependencies:
     function-bind "^1.1.2"
 
+hls.js@^1.5.20:
+  version "1.5.20"
+  resolved "https://registry.npmjs.org/hls.js/-/hls.js-1.5.20.tgz"
+  integrity sha512-uu0VXUK52JhihhnN/MVVo1lvqNNuhoxkonqgO3IpjvQiGpJBdIXMGkofjQb/j9zvV7a1SW8U9g1FslWx/1HOiQ==
+
 hoist-non-react-statics@^3.3.0:
   version "3.3.2"
   resolved "https://registry.npmjs.org/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz"

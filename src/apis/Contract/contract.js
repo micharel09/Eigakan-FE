@@ -98,7 +98,6 @@ const contractApi = {
       }
     },
     
-
     async deniedContract(data) {
         try {
             const token = localStorage.getItem('token');
@@ -112,6 +111,26 @@ const contractApi = {
             console.error("API error:", error.message);
             return error.response;
           }
+    },
+
+    async updateContract(id, contractData) {
+      try {
+        const token = localStorage.getItem("token");
+  
+        const response = await axios.put(`${API_URL}/${id}`, contractData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+        });
+        return response.data;
+      } catch (error) {
+        console.error("Error updating person:", error);
+        throw error.response?.data || {
+          success: false,
+          message: "Failed to update person"
+        };
+      }
     },
 
 
