@@ -354,11 +354,17 @@ header,
 /* The tab ink bar (bottom indicator line) */
 .ant-tabs-ink-bar {
   background-color: var(--eigakan-primary) !important;
+  height: 2px !important; /* thinner line */
+  border-radius: 0 !important; /* flat design */
+  box-shadow: none !important; /* remove shadow */
+  transition: all 0.2s ease !important;
 }
 
-/* Active tab text color */
+/* Active tab text color - không cần font-weight bold */
 .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
   color: var(--eigakan-primary) !important;
+  font-weight: normal !important;
+  transform: none !important; /* remove the movement */
 }
 
 /* Tab hover color */
@@ -369,26 +375,13 @@ header,
 /* For tabs with icons - ensure icons also get the right color */
 .ant-tabs-tab.ant-tabs-tab-active .anticon {
   color: var(--eigakan-primary) !important;
+  transform: none !important; /* remove the scale effect */
 }
 
 /* For tabs with icons - hover state */
 .ant-tabs-tab:hover .anticon {
   color: var(--eigakan-primary-hover) !important;
 }
-
-/* Optional: customize the active tab background if needed */
-.ant-tabs-tab.ant-tabs-tab-active {
-  background-color: rgba(255, 0, 159, 0.05);
-}
-
-/* Update these styles for a more modern tab design */
-
-/* Tab container styling */
-.eigakan-tabs .ant-tabs-nav {
-  margin-bottom: 0;
-}
-
-/* Simplified, minimalist tab styling */
 
 /* Reset any conflicting styles */
 .ant-tabs-tab.ant-tabs-tab-active {
@@ -412,39 +405,62 @@ header,
   background-color: transparent !important;
 }
 
-/* Clean, minimal active tab styling */
-.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
-  color: var(--eigakan-primary) !important;
-  transform: none !important; /* remove the movement */
-}
-
 /* Simpler icon styling */
 .ant-tabs-tab .anticon {
   margin-right: 6px;
   transition: all 0.2s ease;
 }
 
-/* Cleaner active tab icon */
-.ant-tabs-tab.ant-tabs-tab-active .anticon {
-  color: var(--eigakan-primary) !important;
-  transform: none !important; /* remove the scale effect */
-}
-
-/* Simplified ink bar */
-.ant-tabs-ink-bar {
-  height: 2px !important; /* thinner line */
-  background: var(
-    --eigakan-primary
-  ) !important; /* solid color instead of gradient */
-  border-radius: 0 !important; /* flat design */
-  box-shadow: none !important; /* remove shadow */
-  transition: all 0.2s ease !important;
-}
-
 /* Cleaner content area */
 .ant-tabs-content-holder {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding-top: 12px;
+}
+
+/* Eigakan tabs styling - hợp nhất các quy tắc */
+.eigakan-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.eigakan-tabs .ant-tabs-nav::before {
+  border-bottom: none;
+}
+
+.eigakan-tabs .ant-tabs-tab {
+  border-radius: 8px 8px 0 0;
+  padding: 8px 16px;
+  margin-right: 4px;
+  transition: all 0.3s;
+}
+
+.eigakan-tabs .ant-tabs-tab:hover {
+  color: var(--eigakan-primary);
+}
+
+.eigakan-tabs .ant-tabs-tab-active {
+  background-color: #fff;
+  border-bottom-color: #fff;
+}
+
+.eigakan-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--eigakan-primary);
+  font-weight: normal;
+}
+
+/* Transaction details table styling */
+.transaction-details .ant-descriptions-item-label {
+  width: 180px;
+}
+
+/* Ad slots collapse styling */
+.ad-slots-collapse .ant-collapse-header {
+  padding: 12px 16px;
+  background-color: #f9f9f9;
+  border-radius: 8px !important;
+}
+
+.ad-slots-collapse .ant-collapse-content-box {
+  padding: 16px;
 }
 
 /* For Select component hover/focus states */

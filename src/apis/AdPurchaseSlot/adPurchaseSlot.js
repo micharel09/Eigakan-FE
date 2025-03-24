@@ -59,12 +59,24 @@ const adPurchaseSlotService = {
       return response.data;
     }),
 
-  getAdPurchaseTransactions: (page = 1, pageSize = 10) =>
+  getAdPurchaseTransactions: (page = 1, pageSize = 5) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_SLOT.replace('AdPurchaseSlot', 'AdPurchaseTransaction')}/AdPurchaseTransactionByUser`,
+        `${API_URLS.AD_PURCHASE_TRANSACTION}/AdPurchaseTransactionByUser`,
         {
           params: { page, pageSize },
+          headers
+        }
+      );
+      return response.data;
+    }),
+    
+  getAllAdPurchaseTransactions: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${API_URLS.AD_PURCHASE_TRANSACTION}/AdPurchaseTransactionByUser`,
+        {
+          params: { page: 1, pageSize: 1000 },
           headers
         }
       );
@@ -74,7 +86,7 @@ const adPurchaseSlotService = {
   getAdPurchaseTransactionById: (id) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_SLOT.replace('AdPurchaseSlot', 'AdPurchaseTransaction')}/${id}`,
+        `${API_URLS.AD_PURCHASE_TRANSACTION}/${id}`,
         { headers }
       );
       return response.data;

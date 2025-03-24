@@ -1,52 +1,59 @@
 import axios from "axios";
-import { makeAuthenticatedRequest, API_URLS } from "../../utils/api";
+
+const BASE_URL = "https://eigakan2222-001-site1.jtempurl.com/api";
+
+/**
+ * Helper function to make authenticated API requests
+ * @param {Function} apiCall - The API call function to execute
+ * @returns {Promise} - The API response
+ */
+const makeAuthenticatedRequest = async (apiCall) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Authentication token not found");
+    }
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+    return await apiCall(headers);
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
 
 const adSlotService = {
   // AdSlot APIs
   getAllAdSlots: () =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(API_URLS.AD_SLOT, { 
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        } 
-      });
+      const response = await axios.get(`${BASE_URL}/AdSlot`, { headers });
+      return response.data;
+    }),
+
+  getAdSlotById: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdSlot/${id}`, { headers });
       return response.data;
     }),
 
   createAdSlot: (data) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.post(API_URLS.AD_SLOT, data, { 
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        } 
-      });
+      const response = await axios.post(`${BASE_URL}/AdSlot`, data, { headers });
       return response.data;
     }),
 
   updateAdSlot: (id, data) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.put(`${API_URLS.AD_SLOT}/${id}`, data, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await axios.put(`${BASE_URL}/AdSlot/${id}`, data, {
+        headers,
       });
       return response.data;
     }),
 
   deleteAdSlot: (id) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.delete(`${API_URLS.AD_SLOT}/${id}`, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await axios.delete(`${BASE_URL}/AdSlot/${id}`, {
+        headers,
       });
       return response.data;
     }),
@@ -54,48 +61,36 @@ const adSlotService = {
   // AdSlotTime APIs
   getAllAdSlotTimes: () =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(API_URLS.AD_SLOT_TIME, { 
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        } 
-      });
+      const response = await axios.get(`${BASE_URL}/AdSlotTime`, { headers });
+      return response.data;
+    }),
+
+  getAdSlotTimeById: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdSlotTime/${id}`, { headers });
       return response.data;
     }),
 
   createAdSlotTime: (data) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.post(API_URLS.AD_SLOT_TIME, data, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await axios.post(`${BASE_URL}/AdSlotTime`, data, {
+        headers,
       });
       return response.data;
     }),
 
   updateAdSlotTime: (id, data) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.put(`${API_URLS.AD_SLOT_TIME}/${id}`, data, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await axios.put(`${BASE_URL}/AdSlotTime/${id}`, data, {
+        headers,
       });
       return response.data;
     }),
 
   deleteAdSlotTime: (id) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.delete(`${API_URLS.AD_SLOT_TIME}/${id}`, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await axios.delete(`${BASE_URL}/AdSlotTime/${id}`, {
+        headers,
       });
       return response.data;
     }),
@@ -103,24 +98,22 @@ const adSlotService = {
   // AdSlotTimeRange APIs
   getAllAdSlotTimeRanges: () =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(API_URLS.AD_SLOT_TIME_RANGE, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await axios.get(`${BASE_URL}/AdSlotTimeRange`, {
+        headers,
       });
+      return response.data;
+    }),
+
+  getAdSlotTimeRangeById: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdSlotTimeRange/${id}`, { headers });
       return response.data;
     }),
 
   createAdSlotTimeRange: (data) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.post(API_URLS.AD_SLOT_TIME_RANGE, data, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await axios.post(`${BASE_URL}/AdSlotTimeRange`, data, {
+        headers,
       });
       return response.data;
     }),
@@ -128,27 +121,17 @@ const adSlotService = {
   updateAdSlotTimeRange: (id, data) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.put(
-        `${API_URLS.AD_SLOT_TIME_RANGE}/${id}`,
+        `${BASE_URL}/AdSlotTimeRange/${id}`,
         data,
-        { 
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          } 
-        }
+        { headers }
       );
       return response.data;
     }),
 
   deleteAdSlotTimeRange: (id) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.delete(`${API_URLS.AD_SLOT_TIME_RANGE}/${id}`, {
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await axios.delete(`${BASE_URL}/AdSlotTimeRange/${id}`, {
+        headers,
       });
       return response.data;
     }),
@@ -156,41 +139,21 @@ const adSlotService = {
   // AdSlotPayment APIs
   createAdPayment: (adSlotTimeId) =>
     makeAuthenticatedRequest(async (headers) => {
-      try {
-        const response = await axios.post(
-          API_URLS.AD_PURCHASE_TRANSACTION,
-          {
-            adSlotTimeId,
-            redirectUrl: `${window.location.origin}/payment-success-adslot`,
-          },
-          { 
-            headers: {
-              ...headers,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            validateStatus: (status) => status < 500 // Accept status codes < 500
-          }
-        );
-        // Log response for debugging
-        console.log('API Response:', response);
-        return response.data;
-      } catch (error) {
-        console.error('API Error:', error);
-        throw error.response?.data || error.message;
-      }
+      const response = await axios.post(
+        `${BASE_URL}/api/AdPurchaseTransaction`,
+        {
+          adSlotTimeId,
+          redirectUrl: `${window.location.origin}/payment-success-adslot`,
+        },
+        { headers }
+      );
+      return response.data;
     }),
 
   // AdPackage APIs
   getAllAdPackages: () =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(API_URLS.AD_PACKAGE, { 
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        } 
-      });
+      const response = await axios.get(`${BASE_URL}/AdPackage`, { headers });
       return response.data;
     }),
 
@@ -198,15 +161,9 @@ const adSlotService = {
   createAdPurchaseTransaction: (data) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.post(
-        API_URLS.AD_PURCHASE_TRANSACTION,
+        `${BASE_URL}/AdPurchaseTransaction`,
         data,
-        { 
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          } 
-        }
+        { headers }
       );
       return response.data;
     }),
@@ -215,14 +172,8 @@ const adSlotService = {
   verifyAdPayment: (queryString) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_TRANSACTION}/payment_return?${queryString}`,
-        { 
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          } 
-        }
+        `${BASE_URL}/AdPurchaseTransaction/payment_return?${queryString}`,
+        { headers }
       );
       return response.data;
     }),
