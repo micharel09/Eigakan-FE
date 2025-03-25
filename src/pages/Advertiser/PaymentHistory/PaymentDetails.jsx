@@ -302,6 +302,51 @@ const PaymentDetails = () => {
     </Card>
   );
 
+  // New function to render package details separately
+  const renderPackageDetails = () => {
+    // Get the package info from the first slot as all slots have the same package
+    const packageInfo = payment.adPurchaseSlots?.[0]?.adPackage;
+
+    if (!packageInfo) {
+      return (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="No package information available"
+        />
+      );
+    }
+
+    return (
+      <Card
+        className="shadow-sm"
+        title={
+          <div className="flex items-center">
+            <FileTextOutlined className="mr-2 text-[#FF009F]" />
+            <span>Package Details</span>
+          </div>
+        }
+      >
+        <Descriptions
+          bordered
+          column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
+        >
+          <Descriptions.Item label="Package Name">
+            <Text strong>{packageInfo.packageName}</Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="Price">
+            {formatVND(packageInfo.packPrice)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Duration">
+            {packageInfo.duration} day(s)
+          </Descriptions.Item>
+          <Descriptions.Item label="Status">
+            {getStatusTag(packageInfo.status)}
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+    );
+  };
+
   const renderPurchasedSlots = () => (
     <Card className="shadow-sm">
       {payment.adPurchaseSlots?.length > 0 ? (
@@ -483,36 +528,6 @@ const PaymentDetails = () => {
                     </Row>
                   </Card>
                 </Col>
-
-                {/* Package Details */}
-                {slot.adPackage && (
-                  <Col span={24}>
-                    <Card
-                      title={
-                        <div className="flex items-center">
-                          <FileTextOutlined className="mr-2 text-[#FF009F]" />
-                          <span>Package Details</span>
-                        </div>
-                      }
-                      size="small"
-                    >
-                      <Descriptions column={1} size="small">
-                        <Descriptions.Item label="Package Name">
-                          <Text strong>{slot.adPackage.packageName}</Text>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Price">
-                          {formatVND(slot.adPackage.packPrice)}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Duration">
-                          {slot.adPackage.duration} day(s)
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Status">
-                          {getStatusTag(slot.adPackage.status)}
-                        </Descriptions.Item>
-                      </Descriptions>
-                    </Card>
-                  </Col>
-                )}
               </Row>
             </Panel>
           ))}
@@ -648,13 +663,26 @@ const PaymentDetails = () => {
                 {renderPurchasedSlots()}
               </TabPane>
 
+              {payment.adPurchaseSlots?.[0]?.adPackage && (
+                <TabPane
+                  tab={
+                    <span>
+                      <FileTextOutlined /> Package Details
+                    </span>
+                  }
+                  key="3"
+                >
+                  {renderPackageDetails()}
+                </TabPane>
+              )}
+
               <TabPane
                 tab={
                   <span>
                     <ClockCircleOutlined /> Timeline
                   </span>
                 }
-                key="3"
+                key="4"
               >
                 {renderTimeline()}
               </TabPane>

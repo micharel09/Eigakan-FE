@@ -7,12 +7,6 @@ import { makePublicRequest, API_URLS } from "../../utils/api";
 const authService = {
   listeners: [],
 
-  /**
-   * Login user
-   * @param {string} email User email
-   * @param {string} password User password
-   * @returns {Promise<Object>} Login response with token and user data
-   */
   login: (email, password) =>
     makePublicRequest(async () => {
       const response = await axios.post(
@@ -24,11 +18,6 @@ const authService = {
       return response;
     }),
 
-  /**
-   * Register new user
-   * @param {Object} userData User registration data
-   * @returns {Promise<Object>} Registration response
-   */
   signup: (email, password, confirmPassword, fullName) =>
     makePublicRequest(async () => {
       const response = await axios.post(`${API_URLS.AUTH}/SignUp`, {
@@ -40,11 +29,6 @@ const authService = {
       return response;
     }),
 
-  /**
-   * Verify email
-   * @param {string} token Verification token
-   * @returns {Promise<Object>} Verification response
-   */
   verify: (token) =>
     makePublicRequest(async () => {
       const response = await axios.get(
@@ -56,11 +40,6 @@ const authService = {
       return response;
     }),
 
-  /**
-   * Request password reset
-   * @param {string} email User email
-   * @returns {Promise<Object>} Password reset request response
-   */
   forgotPassword: (email) =>
     makePublicRequest(async () => {
       const response = await axios.post(`${API_URLS.AUTH}/Forgot-password`, {
@@ -69,11 +48,6 @@ const authService = {
       return response;
     }),
 
-  /**
-   * Reset password
-   * @param {Object} resetData Password reset data
-   * @returns {Promise<Object>} Password reset response
-   */
   resetPassword: (token, newPassword, confirmPassword) =>
     makePublicRequest(async () => {
       const response = await axios.post(`${API_URLS.AUTH}/Reset-password`, {
