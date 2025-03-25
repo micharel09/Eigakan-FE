@@ -18,12 +18,15 @@ import {
   TrendingUp,
   LayoutDashboard,
   UsersRound,
+  Sparkles,
+  BrainCircuit,
 } from "lucide-react";
 
 import authService from "../../apis/Auth/auth";
 import roomService from "../../apis/Room/room";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
+import RecommendedMovies from "../Homepage/RecommendedMovies";
 
 // CSS Animation for Shimmer Effect
 const shimmerKeyframes = `
@@ -89,6 +92,8 @@ const Navbar = () => {
   const [roomId, setRoomId] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [hostedRooms, setHostedRooms] = useState([]);
+  const [showRecommendationsModal, setShowRecommendationsModal] =
+    useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -249,6 +254,14 @@ const Navbar = () => {
 
   const toggleSearch = () => {
     setShowSearch(!showSearch);
+  };
+
+  const openRecommendationsModal = () => {
+    setShowRecommendationsModal(true);
+  };
+
+  const closeRecommendationsModal = () => {
+    setShowRecommendationsModal(false);
   };
 
   return (
@@ -429,6 +442,19 @@ const Navbar = () => {
                   </span>
                 </button>
               )}
+
+              {/* AI Recommendations Button */}
+              <button
+                onClick={openRecommendationsModal}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30 hover:border-[#FF009F]/50 shadow-lg hover:shadow-[0_0_15px_rgba(255,0,159,0.3)] cursor-pointer hover:scale-105 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer"></div>
+                <BrainCircuit className="w-4 h-4 text-[#FF009F] group-hover:scale-110 transition-transform duration-300" />
+                <span className="text-sm hidden sm:inline relative z-10">
+                  AI Picks
+                </span>
+                <Sparkles className="w-3 h-3 text-[#FF009F]" />
+              </button>
 
               {/* Search Button */}
               <button
@@ -638,6 +664,15 @@ const Navbar = () => {
           />
         </div>
       </Modal>
+
+      {/* AI Recommendations Modal */}
+      {showRecommendationsModal && (
+        <RecommendedMovies
+          showModal={showRecommendationsModal}
+          setShowModal={setShowRecommendationsModal}
+          isModal={true}
+        />
+      )}
 
       {/* Search Overlay */}
       <AnimatePresence>
