@@ -164,7 +164,13 @@ const ContractAdmin = () => {
                         <Tag icon={<FolderOutlined />} color="gray">
                           Archived
                         </Tag>
-                      ) : (
+                      ) : 
+                      contract.status === "DENIED" ? (
+                        <Tag icon={<FolderOutlined />} color="red">
+                          DENIED
+                        </Tag>
+                      ) :
+                      (
                         <Tag color="default">Unknown</Tag>
                       )}
                     </div>

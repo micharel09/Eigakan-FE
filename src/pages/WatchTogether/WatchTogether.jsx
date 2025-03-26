@@ -32,32 +32,19 @@ const WatchTogether = () => {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [roomUsers, setRoomUsers] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [messageInput, setMessageInput] = useState("");
-  const connectionRef = useRef(null);
-  const isConnectingRef = useRef(false);
   const user = useSelector((state) => state.auth.user);
   const [connection, setConnection] = useState(null);
   const [localStream, setLocalStream] = useState(null);
-  const [remoteStreams, setRemoteStreams] = useState(new Map());
-  const videoRef = useRef(null);
   const navigate = useNavigate();
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isHost, setIsHost] = useState(false);
   const iframeRef = useRef(null);
   const isLeavingRoom = useRef(false);
-  const [iframeReady, setIframeReady] = useState(false);
   const [lastReadTime, setLastReadTime] = useState(new Date());
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const videoContainerRef = useRef(null);
-  const [cameraReady, setCameraReady] = useState(false);
-  const cameraContainerRef = useRef(null);
+  const [cameraReady, setCameraReady] = useState(false);    
   const [isCameraLoading, setIsCameraLoading] = useState(false);
   const [participantStreams, setParticipantStreams] = useState({});
   const [movieUrl, setMovieUrl] = useState("");
   const [cameraError, setCameraError] = useState(null);
-  const cameraInitAttemptsRef = useRef(0);
-  const [forceUpdate, setForceUpdate] = useState(0);
-  const [audioLevel, setAudioLevel] = useState(0);
   const audioAnalyserRef = useRef(null);
   const audioDataRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -70,446 +57,8 @@ const WatchTogether = () => {
   const isMutedRef = useRef(false);
   const localStreamRef = useRef(null);
 
-  // Cập nhật các ref khi state thay đổi
-  useEffect(() => {
-    isVideoOffRef.current = isVideoOff;
-  }, [isVideoOff]);
-
-  useEffect(() => {
-    isMutedRef.current = isMuted;
-  }, [isMuted]);
-
-  useEffect(() => {
-    localStreamRef.current = localStream;
-  }, [localStream]);
-
-  const handleLeaveRoom = async () => {
-    if (isLeavingRoom.current) return;
-    isLeavingRoom.current = true;
-
-    try {
-      // Cleanup local media streams
-      if (localStream) {
-        localStream.getTracks().forEach((track) => track.stop());
-      }
-
-      // Leave room via API
-      await roomService.leaveRoom(roomId);
-
-      // Leave SignalR room and stop connection
-      if (connection) {
-        try {
-          await connection.invoke("LeaveRoom", roomId);
-          await connection.stop();
-        } catch (error) {
-          console.error("Error leaving SignalR room:", error);
-        }
-      }
-
-      // Cleanup WebRTC
-      webRTCService.cleanup();
-
-      notification.success({
-        message: "Success",
-        description: "You have left the room",
-      });
-
-      // Navigate back to movie page
-      navigate(`/movie/${movieId}`);
-    } catch (error) {
-      console.error("Error leaving room:", error);
-      notification.error({
-        message: "Error",
-        description: "Failed to leave room: " + error.message,
-      });
-    } finally {
-      isLeavingRoom.current = false;
-    }
-  };
-
-  useEffect(() => {
-    const fetchMovie = async () => {
-      try {
-        const response = await movieService.getMovieById(movieId);
-        if (response.success) {
-          setMovie(response.data);
-          // Set the movie URL
-          const mediaUrl =
-            response.data.medias?.find((m) => m.type === "FILMVIP")?.url ||
-            response.data.medias?.find((m) => m.type === "FILM")?.url ||
-            response.data.medias?.find((m) => m.type === "VIDEO")?.url;
-          if (mediaUrl) {
-            setMovieUrl(mediaUrl);
-          } else {
-            console.error("No valid media URL found for this movie");
-            notification.error({
-              message: "Media Error",
-              description: "No valid media URL found for this movie",
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching movie:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMovie();
-  }, [movieId]);
-
-  useEffect(() => {
-    if (!roomId || !user) return;
-
-    const handleBeforeUnload = (e) => {
-      if (!isLeavingRoom.current) {
-        e.preventDefault();
-        e.returnValue = "Are you sure you want to leave the room?";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [roomId, user]);
-
-  useEffect(() => {
-    if (!roomId || !user) return;
-
-    const newConnection = new HubConnectionBuilder()
-      .withUrl(
-        `https://eigakan2222-001-site1.jtempurl.com/roomHub?roomId=${roomId}`
-      )
-      .withAutomaticReconnect()
-      .build();
-
-    setConnection(newConnection);
-
-    newConnection
-      .start()
-      .then(() => {
-        console.log("Connected to SignalR");
-
-        newConnection
-          .invoke(
-            "JoinRoom",
-            roomId,
-            user.fullName,
-            user.picture || "/default-avatar.png",
-            user.id
-          )
-          .then(() => {
-            console.log("Joined SignalR room:", roomId);
-
-            // Request peer connections after a successful join
-            setTimeout(() => {
-              if (newConnection.state === "Connected") {
-                console.log("Requesting peer connections after joining room");
-                newConnection
-                  .invoke("RequestPeerConnections", roomId)
-                  .catch((error) =>
-                    console.error(
-                      "Error requesting initial peer connections:",
-                      error
-                    )
-                  );
-              }
-            }, 2000);
-          })
-          .catch((error) => {
-            console.error("Error joining room:", error);
-            notification.error({
-              message: "Error",
-              description: "Failed to join room: " + error.message,
-            });
-          });
-
-        // Lắng nghe sự kiện UserLeft
-        newConnection.on("UserLeft", (data) => {
-          console.log("User left event received:", data);
-
-          // Update room users list using user id
-          setRoomUsers((prev) => {
-            const updatedUsers = prev.filter((u) => u.id !== data.id);
-            console.log("Updated room users after left:", updatedUsers);
-            return updatedUsers;
-          });
-
-          // Also clean up any streams for this user
-          setParticipantStreams((prev) => {
-            const newStreams = { ...prev };
-            if (newStreams[data.id]) {
-              console.log(`Removing stream for departed user: ${data.id}`);
-              delete newStreams[data.id];
-            }
-            return newStreams;
-          });
-
-          // Remove video element and container for this user
-          try {
-            const videoElement = document.getElementById(`video-${data.id}`);
-            if (videoElement) {
-              videoElement.srcObject = null;
-            }
-
-            const container = document.getElementById(
-              `video-container-${data.id}`
-            );
-            if (container) {
-              container.remove();
-            }
-          } catch (error) {
-            console.error("Error removing video elements:", error);
-          }
-
-          // Add system message for user leaving
-          const leaveMessage = {
-            id: `leave-${Date.now()}`,
-            text: `${data.userName} left the room`,
-            sender: { userName: "System" },
-            timestamp: new Date(),
-            type: "system",
-          };
-
-          setMessages((prev) => [...prev, leaveMessage]);
-        });
-
-        // Thêm sự kiện cập nhật danh sách người dùng từ server
-        newConnection.on("UpdateParticipants", (participants) => {
-          console.log("Received participant update:", participants);
-
-          // Remove duplicates based on user id or connectionId
-          const uniqueParticipants = [];
-          const addedIds = new Set();
-          const addedNames = new Set();
-
-          participants.forEach((participant) => {
-            // Skip if undefined or null
-            if (!participant) return;
-
-            // Try to get a stable ID (either userId or connection Id)
-            const stableId = participant.userId || participant.id;
-            const userName = participant.userName;
-
-            // Skip if we've already added this user by ID or name
-            if (!stableId || addedIds.has(stableId) || addedNames.has(userName))
-              return;
-
-            addedIds.add(stableId);
-            addedNames.add(userName);
-            uniqueParticipants.push(participant);
-          });
-
-          console.log("Filtered to unique participants:", uniqueParticipants);
-          setRoomUsers(uniqueParticipants);
-
-          // Check if there are new participants we need to connect with
-          if (localStream) {
-            const previousUserIds = new Set(roomUsers.map((u) => u.id));
-            const newUsers = uniqueParticipants.filter(
-              (u) => !previousUserIds.has(u.id) && u.id !== user?.id
-            );
-
-            if (newUsers.length > 0) {
-              console.log(
-                "Detected new users, will request connections:",
-                newUsers.map((u) => u.userName)
-              );
-
-              // Set a small delay to ensure participants are stored first
-              setTimeout(() => {
-                if (connection.state === "Connected") {
-                  console.log("Requesting peer connections with new users");
-                  connection
-                    .invoke("RequestPeerConnections", roomId)
-                    .catch((error) =>
-                      console.error(
-                        "Error requesting peer connections with new users:",
-                        error
-                      )
-                    );
-                }
-              }, 1000);
-            }
-          }
-        });
-
-        // Lắng nghe sự kiện UserJoined
-        newConnection.on("UserJoined", (joinedUser) => {
-          // Only add if not the current user
-          if (joinedUser.id === user.id) return;
-
-          console.log("User joined event received:", joinedUser);
-
-          // Kiểm tra xem user đã tồn tại trong roomUsers chưa
-          setRoomUsers((prev) => {
-            if (prev.some((u) => u.id === joinedUser.id)) {
-              return prev;
-            }
-            console.log("Adding new user to room:", joinedUser);
-
-            // Attempt to initiate a connection with this new user
-            if (localStream && newConnection.state === "Connected") {
-              setTimeout(() => {
-                console.log(
-                  `Attempting to connect with new user: ${joinedUser.userName}`
-                );
-                newConnection
-                  .invoke("RequestPeerConnections", roomId)
-                  .catch((error) =>
-                    console.error(
-                      `Error requesting connections with new users:`,
-                      error
-                    )
-                  );
-              }, 1500);
-            }
-
-            return [...prev, joinedUser];
-          });
-
-          // Kiểm tra trùng lặp tin nhắn
-          setMessages((prev) => {
-            const joinMessage = {
-              id: `join-${joinedUser.id}-${Date.now()}`,
-              text: `${joinedUser.userName} joined the room`,
-              sender: { userName: "System" },
-              timestamp: new Date(),
-              type: "system",
-            };
-
-            // Kiểm tra xem tin nhắn tương tự đã tồn tại trong 5 giây gần đây chưa
-            const recentDuplicate = prev.some(
-              (msg) =>
-                msg.type === "system" &&
-                msg.text === joinMessage.text &&
-                new Date(msg.timestamp).getTime() > Date.now() - 5000
-            );
-
-            if (recentDuplicate) {
-              return prev;
-            }
-            return [...prev, joinMessage];
-          });
-        });
-
-        // Lắng nghe sự kiện nhận tin nhắn
-        newConnection.on("ReceiveMessage", (message) => {
-          console.log("Received message:", message);
-          const messageTime = new Date(message.timestamp);
-          const formattedMessage = {
-            id: message.id || Date.now().toString(),
-            text: message.text,
-            sender: message.sender,
-            timestamp: messageTime,
-          };
-
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === formattedMessage.id)) {
-              return prev;
-            }
-            return [...prev, formattedMessage];
-          });
-
-          // Kiểm tra điều kiện để hiển thị notification:
-          // 1. Chat đang đóng
-          // 2. Tin nhắn mới hơn lần đọc cuối cùng
-          // 3. Người gửi không phải là người dùng hiện tại
-          if (
-            !showChat &&
-            messageTime > lastReadTime &&
-            message.sender.userName !== user.fullName
-          ) {
-            setUnreadMessages((prev) => prev + 1);
-          }
-        });
-
-        // Lắng nghe sự kiện WebRTC từ server
-        newConnection.on("ReceiveOffer", async (fromUserId, offerString) => {
-          console.log(`Received offer from user ${fromUserId}`);
-          try {
-            await webRTCService.handleIncomingCall(
-              fromUserId,
-              offerString,
-              newConnection
-            );
-          } catch (error) {
-            console.error("Error handling incoming call:", error);
-          }
-        });
-
-        newConnection.on("ReceiveAnswer", async (fromUserId, answerString) => {
-          console.log(`Received answer from user ${fromUserId}`);
-          try {
-            await webRTCService.handleAnswer(fromUserId, answerString);
-          } catch (error) {
-            console.error("Error handling answer:", error);
-          }
-        });
-
-        newConnection.on(
-          "ReceiveIceCandidate",
-          async (fromUserId, candidateString) => {
-            console.log(`Received ICE candidate from user ${fromUserId}`);
-            try {
-              await webRTCService.handleIceCandidate(
-                fromUserId,
-                candidateString
-              );
-            } catch (error) {
-              console.error("Error handling ICE candidate:", error);
-            }
-          }
-        );
-
-        newConnection.on("InitiatePeerConnection", async (targetUserId) => {
-          console.log(
-            `Server requested to initiate connection with user ${targetUserId}`
-          );
-
-          // Đảm bảo chúng ta có localStream trước khi tạo kết nối
-          if (!localStreamRef.current) {
-            console.log("No local stream available, initializing camera first");
-            try {
-              await initCamera();
-              // Đợi một chút để đảm bảo stream đã được khởi tạo
-              await new Promise((resolve) => setTimeout(resolve, 500));
-            } catch (error) {
-              console.error(
-                "Failed to initialize camera for peer connection:",
-                error
-              );
-              return;
-            }
-          }
-
-          try {
-            await webRTCService.initiateCall(targetUserId, newConnection);
-          } catch (error) {
-            console.error(
-              `Error initiating call with user ${targetUserId}:`,
-              error
-            );
-          }
-        });
-      })
-      .catch((error) => console.error("SignalR Connection Error:", error));
-
-    return () => {
-      if (newConnection) {
-        newConnection.stop();
-      }
-    };
-  }, [roomId, user]);
-
-  // Add debug logging to see participant data
-  useEffect(() => {
-    console.log("Current room users:", roomUsers);
-    console.log("Current participant streams:", participantStreams);
-  }, [roomUsers, participantStreams]);
-
+  //=======================AUDIO & CAMERA HERE=======================
+  
   // Cập nhật hàm setupAudioAnalyser để phân tích âm thanh và ghi log vào console
   const setupAudioAnalyser = (stream) => {
     console.log("Setting up audio analyser for console logging only");
@@ -842,7 +391,7 @@ const WatchTogether = () => {
     } finally {
       setIsCameraLoading(false);
     }
-  }, []); // Không có dependencies
+  }, []); 
 
   // Thêm hàm sendMessage nếu chưa có
   const sendMessage = async (text) => {
@@ -863,17 +412,6 @@ const WatchTogether = () => {
         description: "Failed to send message: " + error.message,
       });
     }
-  };
-
-  // Thêm hàm renderParticipantCount nếu chưa có
-  const renderParticipantCount = () => {
-    return (
-      <div className="mb-4 text-white">
-        <h3 className="text-lg font-medium mb-2">
-          Participants ({roomUsers.length})
-        </h3>
-      </div>
-    );
   };
 
   // Thêm hàm renderParticipantVideos nếu chưa có
@@ -1017,7 +555,7 @@ const WatchTogether = () => {
     // Kiểm tra xem có video tracks không
     const hasVideoTracks =
       localStream && localStream.getVideoTracks().length > 0;
-    console.log("Has video tracks:", hasVideoTracks);
+      console.log("Has video tracks:", hasVideoTracks);
 
     if (isCameraLoading) {
       return (
@@ -1080,35 +618,6 @@ const WatchTogether = () => {
     // Luôn trả về null để vô hiệu hóa tính năng này
     return null;
   };
-
-  // Thêm useEffect để lắng nghe sự kiện UserToggleAudio từ server
-  useEffect(() => {
-    if (!connection) return;
-
-    // Lắng nghe sự kiện UserToggleAudio
-    connection.on("UserToggleAudio", (userId, isMuted) => {
-      console.log(
-        `User ${userId} toggled audio: ${isMuted ? "muted" : "unmuted"}`
-      );
-
-      // Nếu người dùng bật micro và không có người đang nói chuyện, đặt người này là người đang nói chuyện
-      if (!isMuted && (!activeSpeaker || activeSpeaker.id === user?.id)) {
-        const speaker = roomUsers.find((u) => u.id === userId);
-        if (speaker && speaker.id !== user?.id) {
-          setActiveSpeaker(speaker);
-        }
-      }
-
-      // Nếu người dùng tắt micro và là người đang nói chuyện, đặt lại active speaker
-      if (isMuted && activeSpeaker && activeSpeaker.id === userId) {
-        setActiveSpeaker(null);
-      }
-    });
-
-    return () => {
-      connection.off("UserToggleAudio");
-    };
-  }, [connection, activeSpeaker, roomUsers, user]);
 
   // Cập nhật hàm handleToggleVideo để tách biệt hoàn toàn với audio
   const handleToggleVideo = async () => {
@@ -1252,6 +761,37 @@ const WatchTogether = () => {
     }
   };
 
+  //============USE EFFECT WEBRTC=======================  
+  
+  // Thêm useEffect để lắng nghe sự kiện UserToggleAudio từ server
+   useEffect(() => {
+    if (!connection) return;
+
+    // Lắng nghe sự kiện UserToggleAudio
+    connection.on("UserToggleAudio", (userId, isMuted) => {
+      console.log(
+        `User ${userId} toggled audio: ${isMuted ? "muted" : "unmuted"}`
+      );
+
+      // Nếu người dùng bật micro và không có người đang nói chuyện, đặt người này là người đang nói chuyện
+      if (!isMuted && (!activeSpeaker || activeSpeaker.id === user?.id)) {
+        const speaker = roomUsers.find((u) => u.id === userId);
+        if (speaker && speaker.id !== user?.id) {
+          setActiveSpeaker(speaker);
+        }
+      }
+
+      // Nếu người dùng tắt micro và là người đang nói chuyện, đặt lại active speaker
+      if (isMuted && activeSpeaker && activeSpeaker.id === userId) {
+        setActiveSpeaker(null);
+      }
+    });
+
+    return () => {
+      connection.off("UserToggleAudio");
+    };
+  }, [connection, activeSpeaker, roomUsers, user]);
+
   // Thêm useEffect để gắn stream vào video element khi stream thay đổi
   useEffect(() => {
     if (!localStream || !videoElementRef.current) return;
@@ -1382,13 +922,500 @@ const WatchTogether = () => {
     return () => clearTimeout(timer);
   }, [localStream, connection, roomId]);
 
+  //=======================END AUDIO & CAMERA=======================
+
+    
+ 
+ 
+  //=======================SIGNALR HERE======================= 
+  
+  const handleLeaveRoom = async () => {
+    if (isLeavingRoom.current) return;
+    isLeavingRoom.current = true;
+
+    try {
+      // Cleanup local media streams
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+
+      // Leave room via API
+      await roomService.leaveRoom(roomId);
+
+      // Leave SignalR room and stop connection
+      if (connection) {
+        try {
+          await connection.invoke("LeaveRoom", roomId);
+          await connection.stop();
+        } catch (error) {
+          console.error("Error leaving SignalR room:", error);
+        }
+      }
+
+      // Cleanup WebRTC
+      webRTCService.cleanup();
+
+      notification.success({
+        message: "Success",
+        description: "You have left the room",
+      });
+
+      // Navigate back to movie page
+      navigate(`/movie/${movieId}`);
+    } catch (error) {
+      console.error("Error leaving room:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to leave room: " + error.message,
+      });
+    } finally {
+      isLeavingRoom.current = false;
+    }
+  };
+  // Khi bấm "Go Live"
+  const goLive = async () => {
+    if (connection) {
+      await connection.invoke("GoLive", roomId);
+    }
+  };
+
+  //==========USE EFFECT SIGNALR=======================
+
+  // Cập nhật các ref khi state thay đổi
+  useEffect(() => {
+    isVideoOffRef.current = isVideoOff;
+  }, [isVideoOff]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
+
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
+
+  useEffect(() => {
+    const fetchMovie = async () => {
+      try {
+        const response = await movieService.getMovieById(movieId);
+        if (response.success) {
+          setMovie(response.data);
+          // Set the movie URL
+          const mediaUrl =
+            response.data.medias?.find((m) => m.type === "FILMVIP")?.url ||
+            response.data.medias?.find((m) => m.type === "FILM")?.url ||
+            response.data.medias?.find((m) => m.type === "VIDEO")?.url;
+          if (mediaUrl) {
+            setMovieUrl(mediaUrl);
+          } else {
+            console.error("No valid media URL found for this movie");
+            notification.error({
+              message: "Media Error",
+              description: "No valid media URL found for this movie",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching movie:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovie();
+  }, [movieId]);
+
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    const handleBeforeUnload = (e) => {
+      if (!isLeavingRoom.current) {
+        e.preventDefault();
+        e.returnValue = "Are you sure you want to leave the room?";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [roomId, user]);
+
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    const newConnection = new HubConnectionBuilder()
+      .withUrl(
+        `https://eigakan2222-001-site1.jtempurl.com/roomHub?roomId=${roomId}`
+      )
+      .withAutomaticReconnect()
+      .build();
+
+    setConnection(newConnection);
+
+    newConnection
+      .start()
+      .then(() => {
+        console.log("Connected to SignalR");
+
+        newConnection
+          .invoke(
+            "JoinRoom",
+            roomId,
+            user.fullName,
+            user.picture || "/default-avatar.png",
+            user.id
+          )
+          .then(() => {
+            console.log("Joined SignalR room:", roomId);
+
+            // Request peer connections after a successful join
+            setTimeout(() => {
+              if (newConnection.state === "Connected") {
+                console.log("Requesting peer connections after joining room");
+                newConnection
+                  .invoke("RequestPeerConnections", roomId)
+                  .catch((error) =>
+                    console.error(
+                      "Error requesting initial peer connections:",
+                      error
+                    )
+                  );
+              }
+            }, 2000);
+          })
+          .catch((error) => {
+            console.error("Error joining room:", error);
+            notification.error({
+              message: "Error",
+              description: "Failed to join room: " + error.message,
+            });
+          });
+
+
+        //=================================================================
+        // Lắng nghe sự kiện UserLeft
+        newConnection.on("UserLeft", (data) => {
+          console.log("User left event received:", data);
+
+          // Update room users list using user id
+          setRoomUsers((prev) => {
+            const updatedUsers = prev.filter((u) => u.id !== data.id);
+            console.log("Updated room users after left:", updatedUsers);
+            return updatedUsers;
+          });
+
+          // Also clean up any streams for this user
+          setParticipantStreams((prev) => {
+            const newStreams = { ...prev };
+            if (newStreams[data.id]) {
+              console.log(`Removing stream for departed user: ${data.id}`);
+              delete newStreams[data.id];
+            }
+            return newStreams;
+          });
+
+          // Remove video element and container for this user
+          try {
+            const videoElement = document.getElementById(`video-${data.id}`);
+            if (videoElement) {
+              videoElement.srcObject = null;
+            }
+
+            const container = document.getElementById(
+              `video-container-${data.id}`
+            );
+            if (container) {
+              container.remove();
+            }
+          } catch (error) {
+            console.error("Error removing video elements:", error);
+          }
+
+          // Add system message for user leaving
+          const leaveMessage = {
+            id: `leave-${Date.now()}`,
+            text: `${data.userName} left the room`,
+            sender: { userName: "System" },
+            timestamp: new Date(),
+            type: "system",
+          };
+
+          setMessages((prev) => [...prev, leaveMessage]);
+        });
+
+        //=================================================================
+        // Thêm sự kiện cập nhật danh sách người dùng từ server
+        newConnection.on("UpdateParticipants", (participants) => {
+          console.log("Received participant update:", participants);
+
+          // Remove duplicates based on user id or connectionId
+          const uniqueParticipants = [];
+          const addedIds = new Set();
+          const addedNames = new Set();
+
+          participants.forEach((participant) => {
+            // Skip if undefined or null
+            if (!participant) return;
+
+            // Try to get a stable ID (either userId or connection Id)
+            const stableId = participant.userId || participant.id;
+            const userName = participant.userName;
+
+            // Skip if we've already added this user by ID or name
+            if (!stableId || addedIds.has(stableId) || addedNames.has(userName))
+              return;
+
+            addedIds.add(stableId);
+            addedNames.add(userName);
+            uniqueParticipants.push(participant);
+          });
+
+          console.log("Filtered to unique participants:", uniqueParticipants);
+          setRoomUsers(uniqueParticipants);
+
+          // Check if there are new participants we need to connect with
+          if (localStream) {
+            const previousUserIds = new Set(roomUsers.map((u) => u.id));
+            const newUsers = uniqueParticipants.filter(
+              (u) => !previousUserIds.has(u.id) && u.id !== user?.id
+            );
+
+            if (newUsers.length > 0) {
+              console.log(
+                "Detected new users, will request connections:",
+                newUsers.map((u) => u.userName)
+              );
+
+              // Set a small delay to ensure participants are stored first
+              setTimeout(() => {
+                if (connection.state === "Connected") {
+                  console.log("Requesting peer connections with new users");
+                  connection
+                    .invoke("RequestPeerConnections", roomId)
+                    .catch((error) =>
+                      console.error(
+                        "Error requesting peer connections with new users:",
+                        error
+                      )
+                    );
+                }
+              }, 1000);
+            }
+          }
+        });
+
+         //=================================================================
+        // Lắng nghe sự kiện UserJoined
+        newConnection.on("UserJoined", (joinedUser) => {
+          // Only add if not the current user
+          if (joinedUser.id === user.id) return;
+
+          console.log("User joined event received:", joinedUser);
+
+          // Kiểm tra xem user đã tồn tại trong roomUsers chưa
+          setRoomUsers((prev) => {
+            if (prev.some((u) => u.id === joinedUser.id)) {
+              return prev;
+            }
+            console.log("Adding new user to room:", joinedUser);
+
+            // Attempt to initiate a connection with this new user
+            if (localStream && newConnection.state === "Connected") {
+              setTimeout(() => {
+                console.log(
+                  `Attempting to connect with new user: ${joinedUser.userName}`
+                );
+                newConnection
+                  .invoke("RequestPeerConnections", roomId)
+                  .catch((error) =>
+                    console.error(
+                      `Error requesting connections with new users:`,
+                      error
+                    )
+                  );
+              }, 1500);
+            }
+
+            return [...prev, joinedUser];
+          });
+
+          // Kiểm tra trùng lặp tin nhắn
+          setMessages((prev) => {
+            const joinMessage = {
+              id: `join-${joinedUser.id}-${Date.now()}`,
+              text: `${joinedUser.userName} joined the room`,
+              sender: { userName: "System" },
+              timestamp: new Date(),
+              type: "system",
+            };
+
+            // Kiểm tra xem tin nhắn tương tự đã tồn tại trong 5 giây gần đây chưa
+            const recentDuplicate = prev.some(
+              (msg) =>
+                msg.type === "system" &&
+                msg.text === joinMessage.text &&
+                new Date(msg.timestamp).getTime() > Date.now() - 5000
+            );
+
+            if (recentDuplicate) {
+              return prev;
+            }
+            return [...prev, joinMessage];
+          });
+        });
+
+        // Lắng nghe sự kiện đồng bộ video
+        newConnection.on("SyncVideo", (elapsedTime, isPlaying) => {
+          console.log("📺 Received SyncVideo:", { elapsedTime, isPlaying });
+
+          if (iframeRef.current) {
+            iframeRef.current.contentWindow.postMessage(
+              { command: "seek", time: elapsedTime },
+              "*"
+            );
+            if (isPlaying) {
+              iframeRef.current.contentWindow.postMessage({ command: "play" }, "*");
+            } else {
+              iframeRef.current.contentWindow.postMessage({ command: "pause" }, "*");
+            }
+          }
+        });
+
+         //=================================================================
+        // Lắng nghe sự kiện nhận tin nhắn
+        newConnection.on("ReceiveMessage", (message) => {
+          console.log("Received message:", message);
+          const messageTime = new Date(message.timestamp);
+          const formattedMessage = {
+            id: message.id || Date.now().toString(),
+            text: message.text,
+            sender: message.sender,
+            timestamp: messageTime,
+          };
+
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === formattedMessage.id)) {
+              return prev;
+            }
+            return [...prev, formattedMessage];
+          });
+
+          // Kiểm tra điều kiện để hiển thị notification:
+          // 1. Chat đang đóng
+          // 2. Tin nhắn mới hơn lần đọc cuối cùng
+          // 3. Người gửi không phải là người dùng hiện tại
+          if (
+            !showChat &&
+            messageTime > lastReadTime &&
+            message.sender.userName !== user.fullName
+          ) {
+            setUnreadMessages((prev) => prev + 1);
+          }
+        });
+
+         //=================================================================
+        // Lắng nghe sự kiện WebRTC từ server
+        newConnection.on("ReceiveOffer", async (fromUserId, offerString) => {
+          console.log(`Received offer from user ${fromUserId}`);
+          try {
+            await webRTCService.handleIncomingCall(
+              fromUserId,
+              offerString,
+              newConnection
+            );
+          } catch (error) {
+            console.error("Error handling incoming call:", error);
+          }
+        });
+
+         //=================================================================
+        newConnection.on("ReceiveAnswer", async (fromUserId, answerString) => {
+          console.log(`Received answer from user ${fromUserId}`);
+          try {
+            await webRTCService.handleAnswer(fromUserId, answerString);
+          } catch (error) {
+            console.error("Error handling answer:", error);
+          }
+        });
+
+         //=================================================================
+        newConnection.on(
+          "ReceiveIceCandidate",
+          async (fromUserId, candidateString) => {
+            console.log(`Received ICE candidate from user ${fromUserId}`);
+            try {
+              await webRTCService.handleIceCandidate(
+                fromUserId,
+                candidateString
+              );
+            } catch (error) {
+              console.error("Error handling ICE candidate:", error);
+            }
+          }
+        );
+
+         //=================================================================
+        newConnection.on("InitiatePeerConnection", async (targetUserId) => {
+          console.log(
+            `Server requested to initiate connection with user ${targetUserId}`
+          );
+
+          // Đảm bảo chúng ta có localStream trước khi tạo kết nối
+          if (!localStreamRef.current) {
+            console.log("No local stream available, initializing camera first");
+            try {
+              await initCamera();
+              // Đợi một chút để đảm bảo stream đã được khởi tạo
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            } catch (error) {
+              console.error(
+                "Failed to initialize camera for peer connection:",
+                error
+              );
+              return;
+            }
+          }
+
+          try {
+            await webRTCService.initiateCall(targetUserId, newConnection);
+          } catch (error) {
+            console.error(
+              `Error initiating call with user ${targetUserId}:`,
+              error
+            );
+          }
+        });
+    
+      })
+    .catch((error) => console.error("SignalR Connection Error:", error));
+
+    return () => {
+      if (newConnection) {
+        newConnection.stop();
+      }
+    };
+  }, [roomId, user]);
+
+  // Add debug logging to see participant data
+  useEffect(() => {
+    console.log("Current room users:", roomUsers);
+    console.log("Current participant streams:", participantStreams);
+  }, [roomUsers, participantStreams]);
+
+
+  //=======================END SIGNALR==========================================
+
   // Cập nhật phần render camera trong UI
   return (
     <div className="fixed inset-0 bg-black flex pt-16">
       {/* Main Content - Movie and Participants */}
       <div className="flex-1 flex">
+        
         {/* Movie Section */}
         <div className="flex-1 flex flex-col">
+          
           {/* Video Container */}
           <div className="flex-1 relative">
             <iframe
@@ -1451,6 +1478,7 @@ const WatchTogether = () => {
                   </div>
                 ))}
             </div>
+          
           </div>
 
           {/* Camera Section - Cải thiện layout */}
@@ -1572,7 +1600,9 @@ const WatchTogether = () => {
                   </button>
                 </Tooltip>
               </div>
-
+              <button onClick={goLive} className="p-2 bg-blue-500 text-white rounded">
+        Go Live
+      </button>
               {/* Spacer */}
               <div className="flex-1"></div>
 

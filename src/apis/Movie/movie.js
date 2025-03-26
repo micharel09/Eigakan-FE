@@ -97,7 +97,22 @@ const movieService = {
         console.error("API error:", error.message);
         return error.response;
       }
-},
+  },
+
+  async acceptedMovieNotContract(data) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.patch(`${API_URL}/AcceptedMovieNotContract`, data, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response;
+      } catch (error) {
+        console.error("API error:", error.message);
+        return error.response;
+      }
+  },
 
   async rejectedMovie(newMovie) {
       try {
