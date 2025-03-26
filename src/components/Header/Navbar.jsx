@@ -443,18 +443,20 @@ const Navbar = () => {
                 </button>
               )}
 
-              {/* AI Recommendations Button */}
-              <button
-                onClick={openRecommendationsModal}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30 hover:border-[#FF009F]/50 shadow-lg hover:shadow-[0_0_15px_rgba(255,0,159,0.3)] cursor-pointer hover:scale-105 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer"></div>
-                <BrainCircuit className="w-4 h-4 text-[#FF009F] group-hover:scale-110 transition-transform duration-300" />
-                <span className="text-sm hidden sm:inline relative z-10">
-                  AI Picks
-                </span>
-                <Sparkles className="w-3 h-3 text-[#FF009F]" />
-              </button>
+              {/* AI Recommendations Button - Only for VIP MEMBER, ADMIN or MANAGER*/}
+              {isVipMember || isAdmin || isManager ? (
+                <button
+                  onClick={openRecommendationsModal}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30 hover:border-[#FF009F]/50 shadow-lg hover:shadow-[0_0_15px_rgba(255,0,159,0.3)] cursor-pointer hover:scale-105 relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer"></div>
+                  <BrainCircuit className="w-4 h-4 text-[#FF009F] group-hover:scale-110 transition-transform duration-300" />
+                  <span className="text-sm hidden sm:inline relative z-10">
+                    AI Picks
+                  </span>
+                  <Sparkles className="w-3 h-3 text-[#FF009F]" />
+                </button>
+              ) : null}
 
               {/* Search Button */}
               <button
@@ -597,6 +599,21 @@ const Navbar = () => {
               </nav>
 
               <div className="mt-8 border-t border-white/10 pt-6">
+                {/* AI Picks Button in Mobile Menu - Only for VIP MEMBER, ADMIN or MANAGER */}
+                {(isVipMember || isAdmin || isManager) && (
+                  <button
+                    onClick={() => {
+                      openRecommendationsModal();
+                      setIsOpen(false);
+                    }}
+                    className="flex items-center gap-3 w-full p-3 mb-4 rounded-lg bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 cursor-pointer hover:scale-102 border border-[#FF009F]/30"
+                  >
+                    <BrainCircuit className="w-5 h-5 text-[#FF009F]" />
+                    <span className="text-lg font-medium">AI Picks</span>
+                    <Sparkles className="w-3 h-3 text-[#FF009F] ml-1" />
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     toggleSearch();

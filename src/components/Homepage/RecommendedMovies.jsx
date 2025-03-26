@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, EffectCoverflow } from "swiper/modules";
+import {
+  Autoplay,
+  EffectCoverflow,
+  Navigation,
+  Keyboard,
+} from "swiper/modules";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PlayCircle,
@@ -14,10 +19,14 @@ import {
   RefreshCw,
   GripHorizontal,
   Loader,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import recommendationService from "../../apis/Recommendation/recommendation";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
+import "swiper/css/navigation";
+import "swiper/css/keyboard";
 
 const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
   const [movies, setMovies] = useState([]);
@@ -27,6 +36,7 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
     useState("personalized");
   const [animationComplete, setAnimationComplete] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const swiperRef = useRef(null);
   const navigate = useNavigate();
 
   const handleMovieClick = (movieId) => {
@@ -47,6 +57,38 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
       handleMovieClick(movieId);
     }
   };
+
+  // Handler for navigating to previous slide
+  const goPrev = () => {
+    if (swiperRef.current && swiperRef.current.swiper) {
+      swiperRef.current.swiper.slidePrev();
+    }
+  };
+
+  // Handler for navigating to next slide
+  const goNext = () => {
+    if (swiperRef.current && swiperRef.current.swiper) {
+      swiperRef.current.swiper.slideNext();
+    }
+  };
+
+  // Keyboard event listener for arrow key navigation when not focusing on swiper
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (showModal) {
+        if (e.key === "ArrowLeft") {
+          goPrev();
+        } else if (e.key === "ArrowRight") {
+          goNext();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleGlobalKeyDown);
+    };
+  }, [showModal]);
 
   const fetchRecommendations = async () => {
     setLoading(true);
@@ -410,11 +452,62 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
                           className="absolute -top-2 left-1/2 transform -translate-x-1/2 text-center text-gray-400 text-xs flex items-center gap-1"
                         >
                           <GripHorizontal className="w-4 h-4" />
-                          <span>Drag to explore</span>
+                          <span>Drag or use arrow keys to navigate</span>
                         </motion.div>
 
+                        {/* Navigation Arrows */}
+                        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
+                          <motion.button
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 1.2 }}
+                            className="bg-black/70 hover:bg-[#FF009F]/80 text-white p-3 rounded-full backdrop-blur-sm transition-colors duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#FF009F] shadow-lg hover:shadow-[0_0_15px_rgba(255,0,159,0.3)]"
+                            onClick={goPrev}
+                            aria-label="Previous movie"
+                            tabIndex={0}
+                          >
+                            <ChevronLeft className="w-6 h-6" />
+                          </motion.button>
+                        </div>
+
+                        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10">
+                          <motion.button
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 1.2 }}
+                            className="bg-black/70 hover:bg-[#FF009F]/80 text-white p-3 rounded-full backdrop-blur-sm transition-colors duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#FF009F] shadow-lg hover:shadow-[0_0_15px_rgba(255,0,159,0.3)]"
+                            onClick={goNext}
+                            aria-label="Next movie"
+                            tabIndex={0}
+                          >
+                            <ChevronRight className="w-6 h-6" />
+                          </motion.button>
+                        </div>
+
+                        {/* Add keyboard navigation instructions */}
+                        <div className="absolute inset-x-0 -bottom-10 flex justify-center">
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.8 }}
+                            transition={{ delay: 1.5 }}
+                            className="px-3 py-1 rounded-full bg-black/30 text-white/70 text-xs flex items-center gap-2 backdrop-blur-sm"
+                          >
+                            <div className="flex items-center gap-1">
+                              <ChevronLeft className="w-3 h-3" />
+                              <ChevronRight className="w-3 h-3" />
+                            </div>
+                            <span>Use arrow keys or buttons to navigate</span>
+                          </motion.div>
+                        </div>
+
                         <Swiper
-                          modules={[Autoplay, EffectCoverflow]}
+                          ref={swiperRef}
+                          modules={[
+                            Autoplay,
+                            EffectCoverflow,
+                            Navigation,
+                            Keyboard,
+                          ]}
                           effect="coverflow"
                           coverflowEffect={{
                             rotate: 30,
@@ -426,9 +519,14 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
                           grabCursor={true}
                           autoplay={{
                             delay: 5000,
-                            disableOnInteraction: true,
+                            disableOnInteraction: false,
                             pauseOnMouseEnter: true,
                           }}
+                          keyboard={{
+                            enabled: true,
+                            onlyInViewport: false,
+                          }}
+                          navigation={false} // We're using custom navigation
                           spaceBetween={10}
                           slidesPerView="auto"
                           centeredSlides={true}
@@ -457,9 +555,14 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
                                   role="button"
                                   tabIndex={0}
                                   onClick={() => handleMovieClick(movie.id)}
-                                  onKeyDown={(e) => handleKeyDown(e, movie.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      handleMovieClick(movie.id);
+                                    }
+                                  }}
                                   className="relative group/item focus:outline-none focus:ring-2 focus:ring-[#FF009F] rounded-lg overflow-hidden cursor-grab active:cursor-grabbing"
-                                  aria-label={`Watch ${movie.title}`}
+                                  aria-label={`View details for ${movie.title}`}
                                 >
                                   <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-900 shadow-xl shadow-[#FF009F]/10">
                                     <img
@@ -494,7 +597,17 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
                                             onClick={(e) =>
                                               handlePlayClick(e, movie.id)
                                             }
-                                            className="p-2 rounded-full bg-white/10 backdrop-blur-sm hover:bg-[#FF009F]/80 transition-colors"
+                                            onKeyDown={(e) => {
+                                              if (
+                                                e.key === "Enter" ||
+                                                e.key === " "
+                                              ) {
+                                                e.preventDefault();
+                                                handlePlayClick(e, movie.id);
+                                              }
+                                            }}
+                                            tabIndex={0}
+                                            className="p-2 rounded-full bg-white/10 backdrop-blur-sm hover:bg-[#FF009F]/80 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF009F]"
                                             aria-label={`Play ${movie.title}`}
                                           >
                                             <PlayCircle className="w-5 h-5 text-white" />

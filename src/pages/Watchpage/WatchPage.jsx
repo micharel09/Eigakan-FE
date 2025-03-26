@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { Calendar, Clock } from "lucide-react";
@@ -16,7 +16,6 @@ import adPurchaseSlotService from "../../apis/AdPurchaseSlot/adPurchaseSlot";
 const WatchPage = () => {
   const { movieId } = useParams();
   const [movie, setMovie] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -29,8 +28,9 @@ const WatchPage = () => {
   const [loadingComments, setLoadingComments] = useState(true);
   const [hasUserRated, setHasUserRated] = useState(false);
   const [isViewCounted, setIsViewCounted] = useState(false);
-  const iframeRef = React.useRef(null);
-  const viewTimeoutRef = React.useRef(null);
+  const [loading, setLoading] = useState(true);
+  const iframeRef = useRef(null);
+  const viewTimeoutRef = useRef(null);
   const [adMedia, setAdMedia] = useState([]);
   const [sidebarAd, setSidebarAd] = useState(null);
   const [leftSidebarAd, setLeftSidebarAd] = useState(null);
@@ -38,6 +38,15 @@ const WatchPage = () => {
   const [footerAd, setFooterAd] = useState(null);
   const [centerAd, setCenterAd] = useState(null);
   const [showCenterAd, setShowCenterAd] = useState(true);
+
+  // Player.js related state variables
+  const playerRef = useRef(null);
+  const timeUpdateIntervalRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playerReady, setPlayerReady] = useState(false);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -69,8 +78,420 @@ const WatchPage = () => {
     return () => {
       clearTimeout(timer);
       window.removeEventListener("mousemove", handleMouseMove);
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+      }
     };
   }, [movieId]);
+
+  // Function to get localStorage key for saving video position
+  const getPlaybackKey = () => {
+    if (!movieId) return null;
+    return `eigakan_video_position_${movieId}_${
+      showTrailer ? "trailer" : "movie"
+    }`;
+  };
+
+  // Save playback time to localStorage
+  const savePlaybackTime = (seconds) => {
+    if (!movieId) return;
+
+    try {
+      // Early returns để tăng tính dễ đọc
+      if (seconds < 5) return;
+      if (duration && duration - seconds < 10) return;
+
+      const key = getPlaybackKey();
+      if (!key) return;
+
+      const savedTime = parseFloat(localStorage.getItem(key)) || 0;
+      if (Math.abs(savedTime - seconds) < 1) return;
+
+      localStorage.setItem(key, seconds.toString());
+
+      // Log significant changes (for debugging)
+      if (Math.abs(savedTime - seconds) > 10) {
+        console.log(
+          `Saved significant position change: ${seconds.toFixed(
+            2
+          )} (previous: ${savedTime.toFixed(2)}s)`
+        );
+      }
+    } catch (error) {
+      console.error("Error saving playback time:", error);
+    }
+  };
+
+  // Get saved playback time
+  const getSavedPlaybackTime = () => {
+    const key = getPlaybackKey();
+    if (!key) return 0;
+
+    try {
+      const saved = localStorage.getItem(key);
+      return saved ? parseFloat(saved) : 0;
+    } catch (e) {
+      console.error("Error retrieving playback position:", e);
+      return 0;
+    }
+  };
+
+  // Clear saved playback time (e.g., when video finishes)
+  const clearPlaybackTime = () => {
+    const key = getPlaybackKey();
+    if (!key) return;
+
+    try {
+      localStorage.removeItem(key);
+      console.log("Cleared playback position");
+    } catch (e) {
+      console.error("Error clearing playback position:", e);
+    }
+  };
+
+  // Initialize Player.js and handle video events
+  useEffect(() => {
+    if (!movie || !iframeRef.current) return;
+
+    console.log("Starting Player.js initialization for movie:", movie.title);
+
+    // Add timer for saving position regardless of player state
+    const saveTimerID = setInterval(() => {
+      if (playerRef.current && playerReady) {
+        console.log("Regular timer save check");
+        try {
+          playerRef.current.getCurrentTime((seconds) => {
+            if (typeof seconds === "number") {
+              console.log("Auto timer saving position:", seconds);
+              savePlaybackTime(seconds);
+            }
+          });
+        } catch (error) {
+          console.warn("Error in timer save:", error);
+        }
+      }
+    }, 3000); // Save every 3 seconds regardless of state
+
+    // Function to handle player initialization
+    const initializePlayer = () => {
+      try {
+        // Check if Player.js is already loaded
+        console.log(
+          "Checking if Player.js is loaded in window:",
+          typeof window.playerjs !== "undefined"
+        );
+
+        if (typeof window.playerjs === "undefined") {
+          console.log(
+            "Player.js not found, attempting to load from Bunny CDN..."
+          );
+
+          // Load the Player.js script
+          const script = document.createElement("script");
+          script.src =
+            "https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js";
+          script.async = true;
+
+          script.onload = () => {
+            console.log(
+              "✅ Player.js script loaded successfully, window.playerjs =",
+              typeof window.playerjs
+            );
+            if (typeof window.playerjs === "undefined") {
+              console.error(
+                "⚠️ Player.js script loaded but window.playerjs is still undefined"
+              );
+              // Try loading from direct HTTPS URL
+              const httpsScript = document.createElement("script");
+              httpsScript.src =
+                "https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js";
+              httpsScript.async = true;
+              httpsScript.onload = () => {
+                console.log(
+                  "Second attempt with HTTPS loaded, window.playerjs =",
+                  typeof window.playerjs
+                );
+                setupPlayerInstance();
+              };
+              httpsScript.onerror = (error) => {
+                console.error(
+                  "❌ Failed to load Player.js with HTTPS URL:",
+                  error
+                );
+              };
+              document.head.appendChild(httpsScript);
+            } else {
+              setupPlayerInstance();
+            }
+          };
+
+          script.onerror = (error) => {
+            console.error(
+              "❌ Failed to load Player.js script with protocol-relative URL:",
+              error
+            );
+
+            // Try loading with explicit HTTPS
+            console.log("Attempting to load with explicit HTTPS URL...");
+            const httpsScript = document.createElement("script");
+            httpsScript.src =
+              "https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js";
+            httpsScript.async = true;
+            httpsScript.onload = () => {
+              console.log("✅ Player.js script loaded with HTTPS URL");
+              setupPlayerInstance();
+            };
+            httpsScript.onerror = (error) => {
+              console.error(
+                "❌ Failed to load Player.js with HTTPS URL:",
+                error
+              );
+            };
+            document.head.appendChild(httpsScript);
+          };
+
+          document.head.appendChild(script);
+        } else {
+          console.log(
+            "Player.js already loaded, window.playerjs =",
+            typeof window.playerjs
+          );
+          setupPlayerInstance();
+        }
+      } catch (error) {
+        console.error("Error during Player.js initialization check:", error);
+      }
+    };
+
+    // Function to create player instance and set up event listeners
+    const setupPlayerInstance = () => {
+      try {
+        console.log(
+          "Setting up player instance for iframe:",
+          iframeRef.current
+        );
+
+        if (!iframeRef.current) {
+          console.error(
+            "❌ Iframe reference is missing when setting up player"
+          );
+          return;
+        }
+
+        if (typeof window.playerjs === "undefined") {
+          console.error(
+            "❌ Player.js is still undefined, cannot create player instance"
+          );
+          return;
+        }
+
+        // Clean up existing player
+        if (playerRef.current) {
+          console.log("Clearing existing player reference");
+          playerRef.current = null;
+        }
+
+        // Create new player instance
+        console.log(
+          "Creating new Player.js instance for iframe:",
+          iframeRef.current.src
+        );
+        playerRef.current = new window.playerjs.Player(iframeRef.current);
+        console.log("Player instance created:", playerRef.current);
+
+        if (!playerRef.current) {
+          console.error("❌ Failed to create player instance");
+          return;
+        }
+
+        // Handle player ready event
+        console.log("Setting up 'ready' event listener");
+        playerRef.current.on("ready", () => {
+          console.log("✅ Player ready event received!");
+          setPlayerReady(true);
+
+          // Check for saved position
+          const savedTime = getSavedPlaybackTime();
+          console.log(`Saved playback position: ${savedTime}s`);
+
+          if (savedTime > 0) {
+            console.log(`Showing resume dialog for position ${savedTime}s`);
+            setShowResumeDialog(true);
+
+            // Auto-resume after 8 seconds if no user action
+            const resumeTimer = setTimeout(() => {
+              if (showResumeDialog) {
+                console.log("Auto-resuming playback after timeout");
+                handleResumePlayback(true);
+              }
+            }, 8000);
+
+            return () => clearTimeout(resumeTimer);
+          } else {
+            console.log("No saved position, starting fresh");
+            // Automatically start playing
+            playerRef.current.play();
+          }
+
+          // Set up THREE different methods to save playback time:
+          // 1. Periodic interval (already set up outside this function)
+          // 2. Save on timeupdate events
+          // 3. Save when user pauses video
+
+          console.log("Setting up interval to save playback position");
+          if (timeUpdateIntervalRef.current) {
+            clearInterval(timeUpdateIntervalRef.current);
+          }
+
+          // Add event listeners to track play and pause events
+          playerRef.current.on("play", () => {
+            console.log("Video is playing");
+            setIsPlaying(true);
+          });
+
+          playerRef.current.on("pause", () => {
+            console.log("Video is paused");
+            setIsPlaying(false);
+
+            try {
+              playerRef.current.getCurrentTime((seconds) => {
+                if (typeof seconds === "number") {
+                  console.log("Saving position on pause:", seconds);
+                  savePlaybackTime(seconds);
+                }
+              });
+            } catch (error) {
+              console.warn("Error in pause handler:", error);
+            }
+          });
+        });
+
+        // Track time updates - set up a more aggressive timeupdate event handler
+        playerRef.current.on("timeupdate", (data) => {
+          try {
+            if (data && typeof data.seconds === "number") {
+              setCurrentTime(data.seconds);
+              if (data.duration) setDuration(data.duration);
+
+              // Always save position on every timeupdate event to ensure it's saved continuously
+              savePlaybackTime(data.seconds);
+            }
+          } catch (error) {
+            console.warn("Error in timeupdate handler:", error);
+          }
+        });
+
+        // Handle end of video
+        playerRef.current.on("ended", () => {
+          try {
+            console.log("Video ended event received");
+            clearPlaybackTime();
+          } catch (error) {
+            console.warn("Error in ended handler:", error);
+          }
+        });
+
+        // Handle errors
+        playerRef.current.on("error", (error) => {
+          console.error("Player error event received:", error);
+        });
+      } catch (error) {
+        console.error("Error initializing player:", error);
+      }
+    };
+
+    // Start initialization
+    initializePlayer();
+
+    // Cleanup on unmount
+    return () => {
+      console.log("Cleaning up player resources");
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+      }
+
+      // Clear the regular save timer
+      clearInterval(saveTimerID);
+
+      // Save position on unmount if player exists
+      if (playerRef.current && playerReady) {
+        try {
+          console.log("Saving position on component unmount");
+          playerRef.current.getCurrentTime((seconds) => {
+            if (typeof seconds === "number" && seconds > 0) {
+              savePlaybackTime(seconds);
+            }
+          });
+        } catch (error) {
+          console.warn("Error saving time on unmount:", error);
+        }
+      }
+    };
+  }, [movie, showTrailer]);
+
+  // Make a more robust handler for resume playback
+  const handleResumePlayback = (shouldResume) => {
+    if (!playerRef.current || !playerReady) {
+      console.error("Player not ready when trying to handle resume");
+      return;
+    }
+
+    try {
+      if (shouldResume) {
+        // Resume from saved position
+        const savedTime = getSavedPlaybackTime();
+        console.log(`Resuming from saved position: ${savedTime}s`);
+
+        // Use a timeout to ensure the player has time to initialize fully
+        setTimeout(() => {
+          playerRef.current.setCurrentTime(savedTime);
+          playerRef.current.play();
+        }, 500);
+      } else {
+        // Start from beginning
+        console.log("Starting playback from beginning");
+
+        // Use a timeout to ensure the player has time to initialize fully
+        setTimeout(() => {
+          playerRef.current.setCurrentTime(0);
+          playerRef.current.play();
+        }, 500);
+      }
+
+      // Hide the resume dialog
+      setShowResumeDialog(false);
+    } catch (error) {
+      console.error("Error in handleResumePlayback:", error);
+      // Try to play anyway
+      playerRef.current.play();
+      setShowResumeDialog(false);
+    }
+  };
+
+  // Also modify the event listener for visibility changes to ensure it always saves
+  window.addEventListener("visibilitychange", () => {
+    if (document.hidden && playerRef.current && playerReady) {
+      // When tab is hidden (user switched away), save current position
+      playerRef.current.getCurrentTime((seconds) => {
+        if (typeof seconds === "number") {
+          console.log("Tab visibility changed, saving position:", seconds);
+          savePlaybackTime(seconds);
+        }
+      });
+    }
+  });
+
+  // Return a formatter function for displaying time
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return "00:00";
+
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
+  };
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -212,6 +633,10 @@ const WatchPage = () => {
       <Link
         to={isAuthenticated ? "/subscription-plans" : "/login"}
         className="text-[#FF009F] hover:text-[#D1007F] mt-2 inline-block"
+        aria-label={
+          isAuthenticated ? "Upgrade your membership" : "Login to your account"
+        }
+        tabIndex="0"
       >
         {isAuthenticated ? "Upgrade Now" : "Login Now"}
       </Link>
@@ -282,6 +707,15 @@ const WatchPage = () => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
         stopViewCount();
+
+        // Also save current playback time when tab is hidden
+        if (playerRef.current && playerReady) {
+          playerRef.current.getCurrentTime((seconds) => {
+            if (seconds > 0) {
+              savePlaybackTime(seconds);
+            }
+          });
+        }
       }
     };
 
@@ -292,7 +726,7 @@ const WatchPage = () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopViewCount();
     };
-  }, [movie, isViewCounted, showTrailer]);
+  }, [movie, isViewCounted, showTrailer, playerReady]);
 
   // Modified fetchAdMedia function to handle CENTER ad type
   const fetchAdMedia = async (role) => {
@@ -481,12 +915,6 @@ const WatchPage = () => {
               />
             </a>
 
-            {centerAd.content && (
-              <div className="text-white text-base mt-3 text-center">
-                {centerAd.content}
-              </div>
-            )}
-
             {/* Show instruction if not interacted yet */}
             {!hasInteracted && (
               <div className="mt-4 text-center">
@@ -495,6 +923,215 @@ const WatchPage = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Custom video progress bar component
+  const VideoProgressBar = () => {
+    if (!playerReady || duration === 0) return null;
+
+    const progress = (currentTime / duration) * 100;
+
+    const handleProgressClick = (e) => {
+      if (!playerRef.current) return;
+
+      // Calculate the position based on click position
+      const progressBar = e.currentTarget;
+      const rect = progressBar.getBoundingClientRect();
+      const clickPosition = (e.clientX - rect.left) / rect.width;
+      const seekTime = duration * clickPosition;
+
+      // Set the current time in the player
+      playerRef.current.setCurrentTime(seekTime);
+
+      // Update our state
+      setCurrentTime(seekTime);
+    };
+
+    // Format current time and duration
+    const formattedCurrentTime = formatTime(currentTime);
+    const formattedDuration = formatTime(duration);
+
+    return (
+      <div
+        className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 ${
+          showControls ? "opacity-100" : "opacity-0"
+        } pointer-events-auto z-30`}
+        onMouseEnter={() => setShowControls(true)}
+        onMouseLeave={() => setTimeout(() => setShowControls(false), 2000)}
+      >
+        <div className="flex flex-col space-y-2 max-w-4xl mx-auto">
+          {/* Progress bar */}
+          <div
+            className="h-2 bg-white/20 rounded-full overflow-hidden cursor-pointer relative"
+            onClick={handleProgressClick}
+          >
+            <div
+              className="absolute top-0 left-0 h-full bg-[#FF009F] rounded-full"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          {/* Time display and controls */}
+          <div className="flex justify-between items-center">
+            <div className="text-white text-sm">
+              {formattedCurrentTime} / {formattedDuration}
+            </div>
+
+            <div className="flex items-center space-x-4">
+              {/* Play/Pause button */}
+              <button
+                onClick={() => {
+                  if (playerRef.current) {
+                    if (isPlaying) {
+                      playerRef.current.pause();
+                    } else {
+                      playerRef.current.play();
+                    }
+                  }
+                }}
+                className="text-white hover:text-[#FF009F] transition-colors"
+                aria-label={isPlaying ? "Pause video" : "Play video"}
+                tabIndex="0"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (playerRef.current) {
+                      if (isPlaying) {
+                        playerRef.current.pause();
+                      } else {
+                        playerRef.current.play();
+                      }
+                    }
+                  }
+                }}
+              >
+                {isPlaying ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 9v6m4-6v6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
+              </button>
+
+              {/* Skip forward/backward buttons */}
+              <button
+                onClick={() => {
+                  if (playerRef.current) {
+                    const newTime = Math.max(0, currentTime - 10);
+                    playerRef.current.setCurrentTime(newTime);
+                  }
+                }}
+                className="text-white hover:text-[#FF009F] transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"
+                  />
+                </svg>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (playerRef.current) {
+                    const newTime = Math.min(duration, currentTime + 10);
+                    playerRef.current.setCurrentTime(newTime);
+                  }
+                }}
+                className="text-white hover:text-[#FF009F] transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"
+                  />
+                </svg>
+              </button>
+
+              {/* Toggle fullscreen button */}
+              <button
+                onClick={() => {
+                  if (playerRef.current) {
+                    playerRef.current.getFullscreen((isFullscreen) => {
+                      if (isFullscreen) {
+                        playerRef.current.exitFullscreen();
+                      } else {
+                        playerRef.current.requestFullscreen();
+                      }
+                    });
+                  }
+                }}
+                className="text-white hover:text-[#FF009F] transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -563,6 +1200,29 @@ const WatchPage = () => {
     <>
       <Helmet>
         <title>{`Watch ${movie?.title} - Eigakan`}</title>
+        {/* Load Player.js in the head to ensure it's available */}
+        <script
+          type="text/javascript"
+          src="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js"
+        ></script>
+
+        {/* Fallback script to ensure Player.js library is loaded */}
+        <script type="text/javascript">
+          {`
+            // Check if Player.js is loaded after a short delay
+            setTimeout(function() {
+              if (typeof window.playerjs === "undefined") {
+                console.log("Fallback: Loading Player.js from CDN...");
+                var script = document.createElement('script');
+                script.src = 'https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js';
+                script.async = false;
+                document.head.appendChild(script);
+              } else {
+                console.log("Player.js already available in window");
+              }
+            }, 500);
+          `}
+        </script>
       </Helmet>
 
       <div className="fixed inset-0 bg-black">
@@ -614,14 +1274,41 @@ const WatchPage = () => {
 
           {/* Video container */}
           <div style={getVideoContainerStyle()} className="relative">
+            {/* Only render iframe after Player.js is loaded to avoid race conditions */}
             <iframe
               ref={iframeRef}
+              id="bunny-stream-embed"
               src={showTrailer ? directTrailerUrl : directMovieUrl}
               className="absolute inset-0 w-full h-full"
               allowFullScreen
               allow="autoplay; fullscreen"
               frameBorder="0"
             />
+
+            {/* Resume playback dialog */}
+            {showResumeDialog && getSavedPlaybackTime() > 0 && (
+              <div className="absolute bottom-16 left-0 right-0 flex justify-center z-30 pointer-events-auto">
+                <div className="bg-black/80 text-white px-6 py-4 rounded-lg shadow-lg flex flex-col items-center">
+                  <p className="mb-3 text-center">
+                    Resume from {formatTime(getSavedPlaybackTime())}?
+                  </p>
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={() => handleResumePlayback(true)}
+                      className="px-4 py-2 bg-[#FF009F] text-white rounded hover:bg-[#D1007F] transition-colors"
+                    >
+                      Resume
+                    </button>
+                    <button
+                      onClick={() => handleResumePlayback(false)}
+                      className="px-4 py-2 bg-white/20 text-white rounded hover:bg-white/30 transition-colors"
+                    >
+                      Start Over
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* CENTER Ad */}
@@ -663,7 +1350,7 @@ const WatchPage = () => {
           )}
         </div>
 
-        {/* Footer Ad - Điều chỉnh vị trí và thêm pointer-events-none */}
+        {/* Footer Ad */}
         {footerAd && (
           <div className="absolute bottom-[60px] left-0 right-0 z-10 flex justify-center pointer-events-auto">
             <AdDisplay ad={footerAd} className="max-w-[728px] max-h-[100px]" />
