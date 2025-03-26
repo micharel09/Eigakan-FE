@@ -22,6 +22,7 @@ const HomeScreen = () => {
       {/* Content section với hiệu ứng padding-top âm để tạo overlap */}
       <div className="relative z-20 py-8 px-2 -mt-16">
         <div className="container mx-auto">
+          {/* AI Recommendations được hiển thị thông qua nút trong Navbar */}
           <MovieList title="All Movies" genreName="" showAll={true} />
           <MovieList title="New Movies" genreName="" />
           <MovieList title="Action Movies" genreName="Action" />

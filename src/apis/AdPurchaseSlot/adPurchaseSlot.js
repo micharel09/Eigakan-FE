@@ -57,6 +57,39 @@ const adPurchaseSlotService = {
         { headers }
       );
       return response.data;
+    }),
+
+  getAdPurchaseTransactions: (page = 1, pageSize = 5) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${API_URLS.AD_PURCHASE_TRANSACTION}/AdPurchaseTransactionByUser`,
+        {
+          params: { page, pageSize },
+          headers
+        }
+      );
+      return response.data;
+    }),
+    
+  getAllAdPurchaseTransactions: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${API_URLS.AD_PURCHASE_TRANSACTION}/AdPurchaseTransactionByUser`,
+        {
+          params: { page: 1, pageSize: 1000 },
+          headers
+        }
+      );
+      return response.data;
+    }),
+
+  getAdPurchaseTransactionById: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${API_URLS.AD_PURCHASE_TRANSACTION}/${id}`,
+        { headers }
+      );
+      return response.data;
     })
 };
 

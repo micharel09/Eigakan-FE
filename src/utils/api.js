@@ -47,6 +47,7 @@ export const API_URLS = {
   RATING: "https://eigakan2222-001-site1.jtempurl.com/api/MovieRating",
   COMMENT: "https://eigakan2222-001-site1.jtempurl.com/api/Comment",
   GENRE: "https://eigakan2222-001-site1.jtempurl.com/api/Genre",
+  PERSON: "https://eigakan2222-001-site1.jtempurl.com/api/Person",
   // Ad related endpoints
   AD_MEDIA: "https://eigakan2222-001-site1.jtempurl.com/api/AdMedia",
   AD_PURCHASE_SLOT: "https://eigakan2222-001-site1.jtempurl.com/api/AdPurchaseSlot",
