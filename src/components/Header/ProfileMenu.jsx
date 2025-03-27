@@ -129,8 +129,8 @@ function ProfileMenu({
         <div className={`relative ${isVipMember ? "animate-pulse" : ""}`}>
           {/* VIP Crown Icon */}
           {isVipMember && (
-            <div className="absolute -top-3 -right-2 z-10">
-              <CrownOutlined className="text-yellow-400 text-lg" />
+            <div className="absolute -top-2 -right-1 sm:-top-3 sm:-right-2 z-10">
+              <CrownOutlined className="text-yellow-400 text-base sm:text-lg" />
             </div>
           )}
 
@@ -138,14 +138,14 @@ function ProfileMenu({
           <div
             className={`relative rounded-full ${
               isVipMember
-                ? "ring-2 ring-[#FF009F] ring-offset-2 ring-offset-gray-800"
+                ? "ring-1 sm:ring-2 ring-[#FF009F] ring-offset-1 sm:ring-offset-2 ring-offset-gray-800"
                 : ""
             }`}
           >
             <img
               src={user.picture || "/avatar2.jpg"}
               alt="Profile"
-              className={`w-10 h-10 rounded-full object-cover ${
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ${
                 isVipMember
                   ? "border-2 border-[#FF009F]"
                   : "border border-gray-600"
@@ -162,11 +162,11 @@ function ProfileMenu({
           </div>
         </div>
 
-        <span className="text-white text-sm hidden sm:block flex items-center">
+        <span className="text-white text-xs sm:text-sm hidden sm:block flex items-center">
           {user.fullName}
           {isVipMember && (
             <span
-              className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              className="ml-2 inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium
               bg-gradient-to-r from-[#FF009F] to-[#FF4D4D] 
               shadow-lg shadow-[#FF009F]/30
               border border-[#FF009F]/20
@@ -182,7 +182,7 @@ function ProfileMenu({
       <AnimatePresence>
         {showProfileMenu && (
           <motion.div
-            className="absolute right-0 mt-3 w-56 perspective-1000"
+            className="absolute right-0 mt-2 sm:mt-3 w-48 sm:w-56 perspective-1000"
             onClick={(e) => e.stopPropagation()}
             variants={dropdownVariants}
             initial="hidden"
@@ -191,7 +191,7 @@ function ProfileMenu({
           >
             <div className="relative">
               <div
-                className="absolute -top-1 right-7 w-3 h-3 bg-black/40 
+                className="absolute -top-1 right-4 sm:right-7 w-3 h-3 bg-black/40 
                 backdrop-blur-lg rotate-45 transform origin-center 
                 border-t border-l border-white/10"
               />
@@ -200,22 +200,24 @@ function ProfileMenu({
                 className="relative bg-black/40 backdrop-blur-md rounded-xl 
                 shadow-2xl border border-white/10 overflow-hidden"
               >
-                <div className="px-4 py-3 border-b border-white/10">
-                  <p className="text-sm font-medium text-white/90">
+                <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-white/10">
+                  <p className="text-xs sm:text-sm font-medium text-white/90">
                     {user.fullName}
                   </p>
-                  <p className="text-xs text-white/60 mt-0.5">{user.email}</p>
+                  <p className="text-[10px] sm:text-xs text-white/60 mt-0.5">
+                    {user.email}
+                  </p>
                 </div>
 
-                <div className="py-2">
+                <div className="py-1 sm:py-2">
                   {shouldShowDashboardButton && (
                     <Link
                       to={getDashboardPath()}
-                      className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                      className="flex items-center px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-white/80 
                         hover:bg-white/10 hover:text-white transition-all duration-200 group"
                     >
                       <LayoutDashboard
-                        className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
+                        className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-white/60 group-hover:text-white 
                           transition-colors"
                       />
                       Dashboard
@@ -225,10 +227,13 @@ function ProfileMenu({
                     <Link
                       key={item.to}
                       to={item.to}
-                      className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                      className="flex items-center px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-white/80 
                         hover:bg-white/10 hover:text-white transition-all duration-200 group"
                     >
-                      {item.icon}
+                      {React.cloneElement(item.icon, {
+                        className:
+                          "w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-white/60 group-hover:text-white transition-colors",
+                      })}
                       {item.label}
                     </Link>
                   ))}
@@ -237,11 +242,11 @@ function ProfileMenu({
 
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center px-4 py-2.5 text-sm text-white/80 
+                    className="w-full flex items-center px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-white/80 
                       hover:bg-white/10 hover:text-white transition-all duration-200 group"
                   >
                     <LogOut
-                      className="w-5 h-5 mr-3 text-white/60 group-hover:text-white 
+                      className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-white/60 group-hover:text-white 
                       transition-colors"
                     />
                     Sign Out

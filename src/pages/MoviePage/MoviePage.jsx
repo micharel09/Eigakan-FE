@@ -1,8 +1,32 @@
-import React, { useEffect, useState, Suspense, memo } from "react";
+import React, { useEffect, useState, Suspense, memo, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { PlayCircle, Clock, Calendar, Star, Users } from "lucide-react";
-import { Modal, Input, notification, Button } from "antd";
+import {
+  PlayCircle,
+  Clock,
+  Calendar,
+  Star,
+  Users,
+  Award,
+  Globe,
+  ChevronRight,
+  Heart,
+  Share2,
+} from "lucide-react";
+import {
+  Modal,
+  Input,
+  notification,
+  Button,
+  Tooltip,
+  Rate,
+  Progress,
+  Tag,
+  Skeleton,
+  Tabs,
+  Spin,
+} from "antd";
+import { motion, AnimatePresence } from "framer-motion";
 import Loading from "../../components/Loading/Loading";
 import movieService from "../../apis/Movie/movie";
 import roomService from "../../apis/Room/room";
@@ -12,15 +36,296 @@ import {
   YoutubeOutlined,
   TeamOutlined,
   UsergroupAddOutlined,
+  HeartOutlined,
+  ShareAltOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 
-// Lazy load các components không cần thiết ngay lập tức
+// Lazy load components for better performance
 const SimilarMovies = React.lazy(() =>
   import("../../components/Movies/SimilarMovies")
 );
 const CastAndCrew = React.lazy(() =>
   import("../../components/Movies/CastAndCrew")
 );
+
+// Helper utility functions
+const getYoutubeEmbedUrl = (url) => {
+  if (!url) return null;
+  // Handle youtu.be URLs
+  if (url.includes("youtu.be")) {
+    const videoId = url.split("/").pop();
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  // Handle youtube.com URLs
+  if (url.includes("youtube.com/watch")) {
+    const videoId = new URLSearchParams(url.split("?")[1]).get("v");
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  // Return original URL if not a YouTube URL
+  return url;
+};
+
+const getBunnyStreamEmbedUrl = (url) => {
+  if (!url) return null;
+
+  // If URL is already in iframe format, use it directly
+  if (url.includes("iframe.mediadelivery.net")) {
+    return url;
+  }
+
+  // Convert video play URL to embed URL if needed
+  if (
+    url.includes("dash.bunny.net/stream") ||
+    url.includes("bunny.net/stream")
+  ) {
+    const regex = /\/stream\/(\d+)\//;
+    const match = url.match(regex);
+    if (match && match[1]) {
+      return `https://iframe.mediadelivery.net/play/${match[1]}`;
+    }
+  }
+
+  return url;
+};
+
+// Movie stats badge component for cleaner UI
+const StatBadge = memo(({ icon, value, label, color = "white" }) => (
+  <div className="flex flex-col items-center px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 bg-white/5 backdrop-blur-sm rounded-lg">
+    <div className="flex items-center gap-1 sm:gap-1.5">
+      {icon}
+      <span
+        className={`text-${color} font-bold text-sm sm:text-base md:text-lg`}
+      >
+        {value}
+      </span>
+    </div>
+    <span className="text-gray-400 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
+      {label}
+    </span>
+  </div>
+));
+
+// Genre badge with hover effect
+const GenreBadge = memo(({ name }) => (
+  <motion.span
+    whileHover={{ scale: 1.05 }}
+    className="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 bg-gradient-to-r from-[#FF009F]/20 to-[#FF009F]/10 backdrop-blur-sm border border-[#FF009F]/20 rounded-full text-[10px] sm:text-xs md:text-sm text-white cursor-pointer transition-all"
+  >
+    {name}
+  </motion.span>
+));
+
+// Action button component for consistent styling
+const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
+  <motion.button
+    whileTap={{ scale: 0.97 }}
+    whileHover={{ scale: 1.03 }}
+    onClick={onClick}
+    className={`min-w-[100px] sm:min-w-[120px] md:min-w-[130px] h-10 sm:h-11 md:h-12 flex items-center justify-center gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm md:text-base ${
+      primary
+        ? "bg-gradient-to-r from-[#FF009F] to-[#FF0055] text-white"
+        : "bg-white/10 hover:bg-white/15 text-white"
+    } shadow-lg transition-all duration-300`}
+  >
+    {icon}
+    <span>{children}</span>
+  </motion.button>
+));
+
+// Trailer component with enhanced UI
+const TrailerSection = memo(({ trailerUrl, title }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    id="trailer"
+    className="w-full mt-4 sm:mt-6"
+  >
+    <div className="flex items-center justify-between mb-2 sm:mb-4">
+      <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+        <PlayCircle className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF009F]" />
+        Official Trailer
+      </h2>
+      <div className="flex gap-2">
+        <Tooltip title="Share trailer">
+          <Button
+            type="text"
+            shape="circle"
+            icon={<ShareAltOutlined />}
+            className="text-gray-400 hover:text-white"
+          />
+        </Tooltip>
+      </div>
+    </div>
+    <div className="rounded-lg sm:rounded-2xl overflow-hidden shadow-xl shadow-black/30 border border-gray-800/80">
+      <div className="aspect-video relative w-full">
+        <iframe
+          src={getBunnyStreamEmbedUrl(trailerUrl)}
+          title={`${title} - Official Trailer`}
+          className="absolute top-0 left-0 w-full h-full"
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        />
+      </div>
+    </div>
+  </motion.div>
+));
+
+// Movie facts panel with enhanced design
+const MovieFacts = memo(({ movie }) => {
+  // Convert genreNames string to array if genres array is not available
+  const genresArray =
+    movie.genres ||
+    (movie.genreNames
+      ? movie.genreNames.split(",").map((name) => ({
+          id: name.trim(),
+          name: name.trim(),
+        }))
+      : []);
+
+  return (
+    <div className="w-full lg:w-1/3 space-y-4 sm:space-y-6">
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="bg-gray-900/80 backdrop-blur-sm border border-gray-800/60 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-xl"
+      >
+        <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 md:mb-5 text-white flex items-center gap-2">
+          <InfoCircleOutlined className="text-[#FF009F]" />
+          Movie Details
+        </h2>
+        <div className="space-y-2 sm:space-y-3 md:space-y-4">
+          {[
+            {
+              label: "Director",
+              value: movie.director,
+              icon: <Award className="w-4 h-4 text-[#FF009F] opacity-80" />,
+            },
+            {
+              label: "Release Year",
+              value: movie.releaseYear,
+              icon: <Calendar className="w-4 h-4 text-[#FF009F] opacity-80" />,
+            },
+            {
+              label: "Duration",
+              value: `${movie.duration} minutes`,
+              icon: <Clock className="w-4 h-4 text-[#FF009F] opacity-80" />,
+            },
+            {
+              label: "Nation",
+              value: movie.nation,
+              icon: <Globe className="w-4 h-4 text-[#FF009F] opacity-80" />,
+            },
+          ].map(({ label, value, icon }) => (
+            <div
+              key={label}
+              className="flex items-center pb-2 sm:pb-3 border-b border-gray-800/70"
+            >
+              <div className="flex items-center gap-2 text-gray-300 w-20 sm:w-24 md:w-32 text-xs sm:text-sm md:text-base">
+                {icon}
+                <span>{label}</span>
+              </div>
+              <span className="text-white font-medium ml-2 text-xs sm:text-sm md:text-base">
+                {value}
+              </span>
+            </div>
+          ))}
+
+          {/* Genres display */}
+          <div className="pt-2">
+            <div className="flex items-center gap-2 text-gray-300 mb-1 sm:mb-2 md:mb-3">
+              <Tag className="rounded-full border-none bg-[#FF009F]/20 text-[#FF009F] text-xs sm:text-sm">
+                Genres
+              </Tag>
+            </div>
+            <div className="flex flex-wrap gap-1 sm:gap-2">
+              {genresArray && genresArray.length > 0 ? (
+                genresArray.map((genre) => (
+                  <GenreBadge key={genre.id || genre.name} name={genre.name} />
+                ))
+              ) : (
+                <span className="text-gray-400 text-xs sm:text-sm">
+                  No genres available
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Rating Section */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="bg-gray-900/60 backdrop-blur-sm border border-gray-800/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-xl"
+      >
+        <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 md:mb-5 text-white flex items-center gap-2">
+          <Star className="w-5 h-5 text-yellow-500" />
+          Ratings
+        </h2>
+
+        <div className="space-y-3 sm:space-y-4 md:space-y-6">
+          {/* IMDB Rating */}
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300 text-xs sm:text-sm md:text-base">
+                IMDB Rating
+              </span>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <span className="text-yellow-500 font-bold text-sm sm:text-base md:text-lg">
+                  {movie.rating}
+                </span>
+                <span className="text-gray-400 text-xs sm:text-sm">/10</span>
+              </div>
+            </div>
+            <Progress
+              percent={movie.rating * 10}
+              showInfo={false}
+              strokeColor={{
+                "0%": "#FFD700",
+                "100%": "#FF9900",
+              }}
+              trailColor="#1c1c1c"
+              size="small"
+            />
+          </div>
+
+          {/* User Rating */}
+          <div className="space-y-1 sm:space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-300 text-xs sm:text-sm md:text-base">
+                User Rating
+              </span>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <span className="text-[#FF009F] font-bold text-sm sm:text-base md:text-lg">
+                  {movie.userRating}
+                </span>
+                <span className="text-gray-400 text-xs sm:text-sm">/5</span>
+              </div>
+            </div>
+            <Rate
+              disabled
+              value={movie.userRating}
+              allowHalf
+              className="text-[#FF009F] text-xs sm:text-sm md:text-base"
+            />
+          </div>
+
+          {/* Rate this movie - Interactive element */}
+          <div className="pt-2 sm:pt-3 md:pt-4 border-t border-gray-800/70">
+            <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">
+              Rate this movie
+            </p>
+            <Rate className="text-[#FF009F] text-xs sm:text-sm md:text-base" />
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+});
 
 // Tách MovieHero thành component riêng để tránh re-render không cần thiết
 const MovieHero = memo(
@@ -29,104 +334,207 @@ const MovieHero = memo(
     const poster = movie.medias?.find((m) => m.type === "POSTER");
     const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
+    // Create genres array from either the genres object or genreNames string
+    const genresArray =
+      movie.genres ||
+      (movie.genreNames
+        ? movie.genreNames.split(",").map((name) => ({
+            id: name.trim(),
+            name: name.trim(),
+          }))
+        : []);
+
+    // Calculate badges for key movie stats
+    const movieStats = [
+      {
+        icon: <Calendar className="w-4 h-4 text-[#FF009F]" />,
+        value: movie.releaseYear,
+        label: "Year",
+      },
+      {
+        icon: <Clock className="w-4 h-4 text-[#FF009F]" />,
+        value: `${movie.duration}m`,
+        label: "Duration",
+      },
+      {
+        icon: <Star className="w-4 h-4 text-yellow-500" />,
+        value: movie.rating,
+        label: "Rating",
+        color: "yellow-500",
+      },
+      {
+        icon: <Globe className="w-4 h-4 text-[#FF009F]" />,
+        value: movie.nation,
+        label: "Country",
+      },
+    ];
+
     return (
-      <div className="relative w-full h-[70vh] overflow-hidden -mt-16 pt-16">
-        {/* Background Banner */}
-        <div className="absolute inset-0">
-          <img
-            src={banner?.url || poster?.url || "/placeholder.jpg"}
-            alt={movie.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80" />
+      <div className="relative w-full overflow-hidden -mt-20 pt-20 min-h-[80vh] sm:min-h-[75vh] pb-0">
+        {/* Background Banner with parallax effect */}
+        <div className="absolute inset-0 -top-1">
+          <motion.div
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+            className="w-full h-full"
+          >
+            <img
+              src={banner?.url || poster?.url || "/placeholder.jpg"}
+              alt={movie.title}
+              className="w-full h-full object-cover -mt-1"
+            />
+          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 to-transparent" />
         </div>
 
-        {/* Movie Info Container */}
-        <div className="absolute inset-0 flex items-end">
-          <div className="container mx-auto px-4 pb-16 md:pb-24">
-            <div className="flex flex-col md:flex-row items-start gap-8">
-              {/* Poster */}
-              <div className="w-64 flex-shrink-0 rounded-lg overflow-hidden shadow-2xl">
-                <img
-                  src={poster?.url || "/placeholder.jpg"}
-                  alt={movie.title}
-                  className="w-full h-auto"
-                />
-              </div>
+        {/* Movie Info Container with staggered animations */}
+        <div className="absolute inset-0 flex items-start md:items-center overflow-y-auto">
+          <div className="container mx-auto px-4 py-4 sm:py-0">
+            <div className="flex flex-col md:flex-row items-start gap-6 md:gap-8 pt-4 md:pt-16">
+              {/* Poster with subtle hover effect */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="w-36 sm:w-48 md:w-64 lg:w-80 mx-auto md:mx-0 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mt-2 sm:mt-0"
+              >
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <img
+                    src={poster?.url || "/placeholder.jpg"}
+                    alt={movie.title}
+                    className="w-full h-auto object-cover"
+                    loading="eager"
+                  />
+                </motion.div>
+              </motion.div>
 
-              {/* Movie Info */}
-              <div className="flex-1">
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                  {movie.title}
-                </h1>
+              {/* Movie Info with staggered animations */}
+              <div className="flex-1 mt-4 md:mt-0 text-center md:text-left">
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
+                >
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
+                    {movie.title}
+                  </h1>
+                </motion.div>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm mb-6 text-white">
-                  <div className="flex items-center text-white">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {movie.releaseYear}
-                  </div>
-                  <div className="flex items-center text-white">
-                    <Clock className="w-4 h-4 mr-2" />
-                    {movie.duration}m
-                  </div>
-                  <div className="flex items-center text-white">
-                    <Star className="w-4 h-4 mr-2 text-yellow-500" />
-                    {movie.rating}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {movie.genres?.map((genre) => (
-                    <span
-                      key={genre.id}
-                      className="px-3 py-1 bg-white/10 rounded-full text-sm hover:bg-white/20 transition text-white"
-                    >
-                      {genre.name}
-                    </span>
+                {/* Movie stats badges */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.7, delay: 0.3 }}
+                  className="flex flex-wrap justify-center md:justify-start gap-2 sm:gap-3 mb-6 mt-4 sm:mt-6"
+                >
+                  {movieStats.map((stat, index) => (
+                    <StatBadge
+                      key={index}
+                      icon={stat.icon}
+                      value={stat.value}
+                      label={stat.label}
+                      color={stat.color}
+                    />
                   ))}
-                </div>
+                </motion.div>
 
-                <p className="text-gray-300 text-lg leading-relaxed mb-8 line-clamp-3">
+                {/* Genres */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.7, delay: 0.4 }}
+                  className="flex flex-wrap justify-center md:justify-start gap-2 mb-6"
+                >
+                  {genresArray && genresArray.length > 0 ? (
+                    genresArray.map((genre) => (
+                      <GenreBadge
+                        key={genre.id || genre.name}
+                        name={genre.name}
+                      />
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-sm px-3 py-1 bg-white/5 rounded-full">
+                      No genres
+                    </span>
+                  )}
+                </motion.div>
+
+                {/* Description with line clamp */}
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.7, delay: 0.5 }}
+                  className="text-gray-300 text-sm sm:text-base md:text-lg leading-relaxed mb-6 sm:mb-8 line-clamp-3 max-w-3xl mx-auto md:mx-0"
+                >
                   {movie.description}
-                </p>
+                </motion.p>
 
-                <div className="flex gap-3">
-                  <Button
-                    type="primary"
-                    icon={<PlayCircleOutlined />}
-                    size="large"
+                {/* Action buttons with animations */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.6 }}
+                  className="flex flex-wrap justify-center md:justify-start gap-2 sm:gap-4"
+                >
+                  <ActionButton
+                    icon={<PlayCircleOutlined className="text-lg sm:text-xl" />}
+                    primary={true}
                     onClick={onWatchNow}
-                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-[#FF009F] hover:bg-[#D1007F] border-none text-white hover:text-white shadow-lg hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
                   >
                     Watch Now
-                  </Button>
+                  </ActionButton>
+
                   {trailer && (
-                    <Button
-                      icon={<YoutubeOutlined />}
-                      size="large"
+                    <ActionButton
+                      icon={<YoutubeOutlined className="text-lg sm:text-xl" />}
                       onClick={onTrailerClick}
-                      className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none hover:text-white"
                     >
                       Watch Trailer
-                    </Button>
+                    </ActionButton>
                   )}
-                  <Button
-                    icon={<TeamOutlined />}
-                    size="large"
+
+                  <ActionButton
+                    icon={<TeamOutlined className="text-lg sm:text-xl" />}
                     onClick={onCreateRoom}
-                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none hover:text-white"
                   >
                     Create Room
-                  </Button>
-                  <Button
-                    icon={<UsergroupAddOutlined />}
-                    size="large"
+                  </ActionButton>
+
+                  <ActionButton
+                    icon={
+                      <UsergroupAddOutlined className="text-lg sm:text-xl" />
+                    }
                     onClick={onJoinRoom}
-                    className="min-w-[120px] h-10 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white border-none hover:text-white"
                   >
                     Join Room
-                  </Button>
-                </div>
+                  </ActionButton>
+                </motion.div>
+
+                {/* Social action buttons */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.7, delay: 0.7 }}
+                  className="flex justify-center md:justify-start gap-4 mt-6 sm:mt-8"
+                >
+                  <Tooltip title="Add to Favorites">
+                    <Button
+                      icon={<HeartOutlined />}
+                      className="rounded-full bg-white/10 hover:bg-[#FF009F]/20 hover:border-[#FF009F]/30 border-white/20 text-white"
+                    />
+                  </Tooltip>
+                  <Tooltip title="Share Movie">
+                    <Button
+                      icon={<ShareAltOutlined />}
+                      className="rounded-full bg-white/10 hover:bg-[#FF009F]/20 hover:border-[#FF009F]/30 border-white/20 text-white"
+                    />
+                  </Tooltip>
+                </motion.div>
               </div>
             </div>
           </div>
@@ -136,101 +544,20 @@ const MovieHero = memo(
   }
 );
 
-// Tách MovieFacts thành component riêng
-const MovieFacts = memo(({ movie }) => {
-  return (
-    <div className="lg:w-1/3 space-y-6">
-      <div className="bg-gray-800 rounded-xl p-6 mt-14">
-        <h2 className="text-xl font-bold mb-4 text-white">Movie Facts</h2>
-        <div className="space-y-4">
-          {[
-            { label: "Director", value: movie.director },
-            { label: "Release Year", value: movie.releaseYear },
-            { label: "Duration", value: `${movie.duration} minutes` },
-            { label: "Nation", value: movie.nation },
-            { label: "Genre", value: movie.genreNames },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex justify-between">
-              <span className="text-gray-400">{label}</span>
-              <span className="text-white font-medium">{value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Rating Section */}
-      <div className="bg-gray-800/50 rounded-xl p-6">
-        <h2 className="text-xl font-bold mb-4 text-white">Ratings</h2>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">IMDB Rating</span>
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-500 font-bold">{movie.rating}</span>
-              <span className="text-gray-400">/10</span>
-            </div>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">User Rating</span>
-            <div className="flex items-center gap-2">
-              <span className="text-[#FF009F] font-bold">
-                {movie.userRating}
-              </span>
-              <span className="text-gray-400">/5</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-// Hàm helper để chuyển đổi YouTube URL thành embed URL
-const getYoutubeEmbedUrl = (url) => {
-  if (!url) return null;
-  // Xử lý youtu.be URL
-  if (url.includes("youtu.be")) {
-    const videoId = url.split("/").pop();
-    return `https://www.youtube.com/embed/${videoId}`;
-  }
-  // Xử lý youtube.com URL
-  if (url.includes("youtube.com/watch")) {
-    const videoId = new URLSearchParams(url.split("?")[1]).get("v");
-    return `https://www.youtube.com/embed/${videoId}`;
-  }
-  // Trả về URL gốc nếu không phải YouTube URL
-  return url;
-};
-
-// Tách URL trực tiếp thành iframe embed URL nếu cần
-const getBunnyStreamEmbedUrl = (url) => {
-  if (!url) return null;
-
-  // Nếu URL đã có dạng iframe, sử dụng nó trực tiếp
-  if (url.includes("iframe.mediadelivery.net")) {
-    return url;
-  }
-
-  // Nếu URL là dạng video play URL, chuyển đổi sang URL embed nếu cần
-  if (
-    url.includes("dash.bunny.net/stream") ||
-    url.includes("bunny.net/stream")
-  ) {
-    // Trích xuất video ID từ URL
-    const regex = /\/stream\/(\d+)\//;
-    const match = url.match(regex);
-    if (match && match[1]) {
-      return `https://iframe.mediadelivery.net/play/${match[1]}`;
-    }
-  }
-
-  // Trả về URL gốc nếu không khớp với các pattern trên
-  return url;
-};
-
+/**
+ * MoviePage Component
+ *
+ * Displays a detailed view of a movie with:
+ * - Hero section with movie poster, title, and key actions
+ * - Tabbed interface for Overview and Similar movies
+ * - Interactive elements for watching, creating or joining watch rooms
+ * - Responsive design with animations for improved user experience
+ */
 const MoviePage = () => {
   const { movieId } = useParams();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [isCreateRoomModalVisible, setIsCreateRoomModalVisible] =
     useState(false);
@@ -240,19 +567,21 @@ const MoviePage = () => {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const [isJoining, setIsJoining] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchMovieData = async () => {
       try {
+        setLoading(true);
         const response = await movieService.getMovieById(movieId);
         if (response.success) {
-          console.log("Movie data:", response.data);
-          console.log("Movie medias:", response.data.medias);
           setMovie(response.data);
         } else {
           notification.error({
             message: "Failed to load movie",
             description: response.message || "Could not load movie details",
+            placement: "bottomRight",
           });
         }
       } catch (error) {
@@ -260,6 +589,7 @@ const MoviePage = () => {
         notification.error({
           message: "Failed to load movie",
           description: error.message || "Could not load movie details",
+          placement: "bottomRight",
         });
       } finally {
         setLoading(false);
@@ -271,9 +601,10 @@ const MoviePage = () => {
 
   useEffect(() => {
     const fetchHostedRooms = async () => {
+      if (!user || !movieId) return;
+
       try {
         const response = await roomService.getHostRoom();
-        console.log("Host room response:", response);
 
         if (response.success) {
           // Ensure response.data is an array
@@ -292,7 +623,6 @@ const MoviePage = () => {
           );
 
           if (activeRoom) {
-            console.log("Found active room:", activeRoom);
             setRoomId(activeRoom.id);
           }
         }
@@ -302,22 +632,36 @@ const MoviePage = () => {
       }
     };
 
-    if (user && movieId) {
-      fetchHostedRooms();
-    }
+    fetchHostedRooms();
   }, [user, movieId]);
 
-  const handleCreateRoom = async () => {
-    if (isCreatingRoom) return;
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    return () => {
+      // Clean up any event listeners or timers if needed
+    };
+  }, []);
+
+  const handleCreateRoom = useCallback(async () => {
+    if (isCreatingRoom || !isAuthenticated) {
+      if (!isAuthenticated) {
+        notification.error({
+          message: "Authentication required",
+          description: "Please login to create a watch room",
+          placement: "bottomRight",
+        });
+      }
+      return;
+    }
 
     try {
       setIsCreatingRoom(true);
-      const token = localStorage.getItem("token");
 
-      if (!token) {
+      if (!user || !user.userId) {
         notification.error({
-          message: "Please login to create a room",
-          description: "You need to be logged in to create a watch room",
+          message: "User data missing",
+          description: "Cannot create room without user ID",
+          placement: "bottomRight",
         });
         return;
       }
@@ -331,25 +675,19 @@ const MoviePage = () => {
         );
       });
 
-      if (!user || !user.userId) {
-        console.error("User data is missing:", user);
-        notification.error({
-          message: "User data missing",
-          description: "Cannot create room without user ID",
-        });
-        return;
-      }
-
       const roomData = {
         hostId: user.userId.replace(/^userid:\s*/i, ""),
         movieID: movieId,
         fileUrl: filmMedia?.url,
       };
 
-      console.log("Creating room with data:", roomData);
-
       const response = await roomService.createRoom(roomData);
       if (response.success) {
+        notification.success({
+          message: "Room created successfully",
+          description: "Redirecting to watch room...",
+          placement: "bottomRight",
+        });
         setIsCreateRoomModalVisible(false);
         navigate(`/watch-together/${movieId}?roomId=${response.data.id}`);
       }
@@ -361,32 +699,33 @@ const MoviePage = () => {
           error.response?.data?.message ||
           error.message ||
           "Could not create room",
+        placement: "bottomRight",
       });
     } finally {
       setIsCreatingRoom(false);
     }
-  };
+  }, [isCreatingRoom, isAuthenticated, user, movie, movieId, navigate]);
 
-  const [isJoining, setIsJoining] = useState(false);
-
-  const handleJoinRoom = async () => {
-    if (isJoining) return;
-    setIsJoining(true);
+  const handleJoinRoom = useCallback(async () => {
+    if (isJoining || !isAuthenticated) {
+      if (!isAuthenticated) {
+        notification.error({
+          message: "Authentication required",
+          description: "Please login to join a watch room",
+          placement: "bottomRight",
+        });
+      }
+      return;
+    }
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        notification.error({
-          message: "Please login to join a room",
-          description: "You need to be logged in to join a watch room",
-        });
-        return;
-      }
+      setIsJoining(true);
 
       if (!roomId.trim()) {
         notification.error({
           message: "Room ID required",
           description: "Please enter a room ID",
+          placement: "bottomRight",
         });
         return;
       }
@@ -409,40 +748,30 @@ const MoviePage = () => {
           message: "User data missing",
           description:
             "Cannot join room without user data. Please try logging in again.",
+          placement: "bottomRight",
         });
         return;
       }
 
       const userId = userData.userId.replace(/^userid:\s*/i, "");
-      console.log("Joining room with userId:", userId);
 
-      // Luôn kiểm tra thông tin phòng trước để kiểm tra movie ID
+      // Verify room matches current movie
       try {
-        console.log("Fetching room details for room ID:", roomId.trim());
         const roomDetails = await roomService.getRoomDetails(roomId.trim());
-        console.log("Room details response:", roomDetails);
 
         if (roomDetails.success && roomDetails.data) {
           const roomMovieId = roomDetails.data.movieID;
-          console.log("Room movieId:", roomMovieId);
-          console.log("Current page movieId:", movieId);
 
-          // Kiểm tra nếu movie ID của phòng khác với movie hiện tại
           if (roomMovieId && roomMovieId !== movieId) {
             notification.error({
               message: "Movie ID mismatch",
               description:
                 "You cannot join this room from this movie page. Please go to the correct movie page to join this room.",
+              placement: "bottomRight",
             });
             setIsJoining(false);
             return;
           }
-        } else {
-          notification.warning({
-            message: "Room information unavailable",
-            description:
-              "Could not verify if this room matches the current movie. Proceeding anyway.",
-          });
         }
       } catch (detailsError) {
         console.error("Error fetching room details:", detailsError);
@@ -450,20 +779,22 @@ const MoviePage = () => {
           message: "Failed to check room details",
           description:
             "Could not verify if this room matches the current movie. Proceeding anyway.",
+          placement: "bottomRight",
         });
       }
 
-      // Nếu đã qua được kiểm tra, thực hiện join phòng
+      // Join the room
       const response = await roomService.joinRoom({
         roomId: roomId.trim(),
         userId: userId,
-        movieId: movieId, // Vẫn gửi movieId trong body request
+        movieId: movieId,
       });
 
-      console.log("API Response:", response);
-
       if (response.success) {
-        notification.success({ message: "Joined room successfully!" });
+        notification.success({
+          message: "Joined room successfully!",
+          placement: "bottomRight",
+        });
         setIsJoinRoomModalVisible(false);
         navigate(
           `/watch-together/${movieId}?roomId=${roomId}&movieId=${movieId}`
@@ -477,20 +808,59 @@ const MoviePage = () => {
           error.response?.data?.message ||
           error.message ||
           "Could not join room",
+        placement: "bottomRight",
       });
     } finally {
       setIsJoining(false);
     }
-  };
+  }, [isJoining, isAuthenticated, roomId, user, movieId, navigate]);
 
-  if (loading) return <Loading />;
-  if (!movie) return <div>Movie not found</div>;
+  // Loading states
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <Loading className="scale-75 sm:scale-100" />
+      </div>
+    );
+  }
+
+  if (!movie)
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-4">
+        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">
+          Movie Not Found
+        </h2>
+        <p className="text-gray-400 mb-5 sm:mb-6 text-center text-sm sm:text-base">
+          The movie you're looking for doesn't exist or has been removed.
+        </p>
+        <Button
+          type="primary"
+          onClick={() => navigate("/")}
+          className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
+        >
+          Back to Home
+        </Button>
+      </div>
+    );
+
+  // Find media elements
+  const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
   return (
     <>
       <Helmet>
         <title>{movie.title} - Eigakan</title>
-        <meta name="description" content={movie.description} />
+        <meta name="description" content={movie.description?.slice(0, 160)} />
+        <meta property="og:title" content={`${movie.title} - Eigakan`} />
+        <meta
+          property="og:description"
+          content={movie.description?.slice(0, 160)}
+        />
+        <meta
+          property="og:image"
+          content={movie.medias?.find((m) => m.type === "POSTER")?.url}
+        />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <MovieHero
@@ -498,138 +868,245 @@ const MoviePage = () => {
         onTrailerClick={() =>
           document
             .getElementById("trailer")
-            ?.scrollIntoView({ behavior: "smooth" })
+            ?.scrollIntoView({ behavior: "smooth", block: "center" })
         }
         onCreateRoom={() => setIsCreateRoomModalVisible(true)}
         onJoinRoom={() => setIsJoinRoomModalVisible(true)}
         onWatchNow={() => navigate(`/watch/${movieId}`)}
       />
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="flex flex-col lg:flex-row gap-8 mb-12">
-          <div className="lg:w-2/3">
-            {movie.medias?.find((m) => m.type === "TRAILER") && (
-              <div id="trailer">
-                <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
-                  <PlayCircle className="w-6 h-6" />
-                  Official Trailer
-                </h2>
-                <div
-                  className="aspect-video rounded-lg overflow-hidden shadow-lg"
-                  style={{
-                    backgroundColor: "#0f172a",
-                    position: "relative",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "relative",
-                      width: "100%",
-                      height: "100%",
-                      paddingTop: "56.25%",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <iframe
-                      src={getBunnyStreamEmbedUrl(
-                        movie.medias.find((m) => m.type === "TRAILER")?.url
+      <div className="bg-black min-h-screen">
+        {/* Seamless transition from hero to content */}
+        <div className="h-4 bg-gradient-to-b from-transparent to-black -mt-4"></div>
+
+        <div className="container mx-auto px-4 py-0 sm:py-4">
+          {/* Content Tabs */}
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            size="middle"
+            className="mb-2 sm:mb-4 lg:mb-6 text-white [&_.ant-tabs-tab]:text-gray-400 [&_.ant-tabs-tab.ant-tabs-tab-active]:text-[#FF009F] [&_.ant-tabs-ink-bar]:bg-[#FF009F]"
+            items={[
+              {
+                label: "Overview",
+                key: "overview",
+                children: (
+                  <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="w-full lg:w-2/3">
+                      {/* Movie description with "read more" */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="mb-2 sm:mb-4 md:mb-6"
+                      >
+                        <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 text-white">
+                          Storyline
+                        </h2>
+                        <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
+                          {movie.description}
+                        </p>
+                      </motion.div>
+
+                      {/* Trailer section */}
+                      {trailer && (
+                        <TrailerSection
+                          trailerUrl={trailer.url}
+                          title={movie.title}
+                        />
                       )}
-                      title="Movie Trailer"
-                      style={{
-                        position: "absolute",
-                        top: "0%",
-                        left: "0%",
-                        width: "100%",
-                        height: "100%",
-                        border: "none",
-                        padding: 0,
-                        margin: 0,
-                      }}
-                      allowFullScreen
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    />
+
+                      {/* Cast and Crew */}
+                      <Suspense
+                        fallback={
+                          <div className="mt-4 sm:mt-6 space-y-4">
+                            <Skeleton.Input
+                              active
+                              style={{ width: 200, height: 32 }}
+                            />
+                            <div className="flex gap-4 mt-4 overflow-x-auto pb-2">
+                              {[1, 2, 3, 4].map((i) => (
+                                <Skeleton.Avatar
+                                  key={i}
+                                  active
+                                  size={80}
+                                  shape="square"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        }
+                      >
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.2 }}
+                          className="mt-4 sm:mt-6"
+                        >
+                          <CastAndCrew persons={movie.person} />
+                        </motion.div>
+                      </Suspense>
+                    </div>
+
+                    <MovieFacts movie={movie} />
                   </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <MovieFacts movie={movie} />
+                ),
+              },
+              {
+                label: "Similar Movies",
+                key: "similar",
+                children: (
+                  <Suspense
+                    fallback={
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                          <div
+                            key={i}
+                            className="aspect-[2/3] bg-gray-800 rounded-lg relative overflow-hidden"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-shimmer"></div>
+                          </div>
+                        ))}
+                      </div>
+                    }
+                  >
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <SimilarMovies />
+                    </motion.div>
+                  </Suspense>
+                ),
+              },
+            ]}
+          />
         </div>
-
-        <Suspense
-          fallback={
-            <div className="h-96 bg-gray-800 rounded-lg animate-pulse" />
-          }
-        >
-          <CastAndCrew persons={movie.person} />
-        </Suspense>
-
-        <Suspense
-          fallback={
-            <div className="h-64 bg-gray-800 rounded-lg animate-pulse mt-16" />
-          }
-        >
-          <div className="mt-16">
-            <SimilarMovies />
-          </div>
-        </Suspense>
       </div>
 
       {/* Create Room Modal */}
       <Modal
-        title="Create Watch Room"
+        title={
+          <div className="flex items-center gap-2">
+            <TeamOutlined className="text-[#FF009F]" /> Create Watch Room
+          </div>
+        }
         open={isCreateRoomModalVisible}
         onOk={handleCreateRoom}
         onCancel={() => setIsCreateRoomModalVisible(false)}
-        okText="Create"
+        okText="Create Room"
         cancelText="Cancel"
         okButtonProps={{
           loading: isCreatingRoom,
           className:
-            "bg-[#FF009F] hover:bg-[#D1007F] border-none text-white hover:text-white shadow-lg hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]",
+            "bg-gradient-to-r from-[#FF009F] to-[#FF0055] hover:from-[#FF00AA] hover:to-[#FF0066] border-none text-white hover:text-white shadow-lg",
         }}
         cancelButtonProps={{
           disabled: isCreatingRoom,
           className: "hover:text-[#FF009F] hover:border-[#FF009F]",
         }}
-        className="text-white [&_.ant-modal-title]:text-white [&_.ant-modal-content]:bg-gray-800 [&_.ant-modal-content]:text-white [&_.ant-modal-header]:bg-gray-800 [&_.ant-modal-header]:border-b-gray-700 [&_.ant-modal-close-x]:text-white"
+        className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
+        width={320}
+        centered
       >
-        <p className="text-white">
-          Create a new room to watch this movie with friends?
-        </p>
+        <div className="py-4">
+          <div className="bg-gray-800/50 p-3 sm:p-4 rounded-lg mb-4 flex gap-3 sm:gap-4 items-center">
+            <img
+              src={
+                movie.medias?.find((m) => m.type === "POSTER")?.url ||
+                "/placeholder.jpg"
+              }
+              alt={movie.title}
+              className="w-10 sm:w-12 h-14 sm:h-16 object-cover rounded-md"
+            />
+            <div>
+              <h3 className="font-medium text-white text-sm sm:text-base">
+                {movie.title}
+              </h3>
+              <p className="text-gray-400 text-xs sm:text-sm">
+                {movie.releaseYear} • {movie.duration}m
+              </p>
+            </div>
+          </div>
+
+          <p className="text-gray-300 mb-4 text-xs sm:text-sm">
+            Create a new room to watch "{movie.title}" with friends in
+            real-time.
+          </p>
+
+          <div className="bg-[#FF009F]/10 border border-[#FF009F]/20 p-2 sm:p-3 rounded-lg">
+            <p className="text-xs sm:text-sm text-white">
+              <InfoCircleOutlined className="mr-2 text-[#FF009F]" />
+              You'll be the host of this room and can control the playback for
+              all viewers.
+            </p>
+          </div>
+        </div>
       </Modal>
 
       {/* Join Room Modal */}
       <Modal
-        title="Join Watch Room"
+        title={
+          <div className="flex items-center gap-2">
+            <UsergroupAddOutlined className="text-[#FF009F]" /> Join Watch Room
+          </div>
+        }
         open={isJoinRoomModalVisible}
         onOk={handleJoinRoom}
         onCancel={() => {
           setRoomId("");
           setIsJoinRoomModalVisible(false);
         }}
-        okText="Join"
+        okText="Join Room"
         cancelText="Cancel"
         okButtonProps={{
           loading: isJoining,
           disabled: isJoining || !roomId.trim(),
           className:
-            "bg-[#FF009F] hover:bg-[#D1007F] border-none text-white hover:text-white shadow-lg hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]",
+            "bg-gradient-to-r from-[#FF009F] to-[#FF0055] hover:from-[#FF00AA] hover:to-[#FF0066] border-none text-white hover:text-white shadow-lg",
         }}
         cancelButtonProps={{
           disabled: isJoining,
           className: "hover:text-[#FF009F] hover:border-[#FF009F]",
         }}
-        className="text-white [&_.ant-modal-title]:text-white [&_.ant-modal-content]:bg-gray-800 [&_.ant-modal-content]:text-white [&_.ant-modal-header]:bg-gray-800 [&_.ant-modal-header]:border-b-gray-700 [&_.ant-modal-close-x]:text-white"
+        className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
+        width={320}
+        centered
       >
-        <div className="mt-4">
+        <div className="py-4">
+          <div className="bg-gray-800/50 p-3 sm:p-4 rounded-lg mb-4 flex gap-3 sm:gap-4 items-center">
+            <img
+              src={
+                movie.medias?.find((m) => m.type === "POSTER")?.url ||
+                "/placeholder.jpg"
+              }
+              alt={movie.title}
+              className="w-10 sm:w-12 h-14 sm:h-16 object-cover rounded-md"
+            />
+            <div>
+              <h3 className="font-medium text-white text-sm sm:text-base">
+                {movie.title}
+              </h3>
+              <p className="text-gray-400 text-xs sm:text-sm">
+                {movie.releaseYear} • {movie.duration}m
+              </p>
+            </div>
+          </div>
+
+          <p className="text-gray-300 mb-4 text-xs sm:text-sm">
+            Enter a room ID to join a watch party for "{movie.title}".
+          </p>
+
           {hostedRooms.length > 0 &&
             hostedRooms.some(
               (room) => room?.movieID === movieId && room?.status === "Active"
             ) && (
-              <div className="mb-4">
-                <p className="text-sm text-white mb-2">Your active room:</p>
+              <div className="mb-4 bg-gray-800 p-3 sm:p-4 rounded-lg">
+                <p className="text-xs sm:text-sm text-white mb-2 flex items-center">
+                  <TeamOutlined className="mr-2 text-[#FF009F]" />
+                  Your active rooms:
+                </p>
                 {hostedRooms.map(
                   (room) =>
                     room &&
@@ -637,16 +1114,20 @@ const MoviePage = () => {
                     room.status === "Active" && (
                       <div
                         key={room.id}
-                        className="flex items-center justify-between bg-gray-800 p-2 rounded"
+                        className="flex items-center justify-between bg-gray-700/50 p-2 sm:p-3 rounded mt-2 border border-gray-700"
                       >
-                        <span className="font-medium text-white">
-                          {room.id}
-                        </span>
+                        <div className="max-w-[60%]">
+                          <span className="font-medium text-white text-xs sm:text-sm truncate block">
+                            {room.id}
+                          </span>
+                          <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
+                            Host: You
+                          </p>
+                        </div>
                         <Button
                           size="small"
-                          type="link"
                           onClick={() => setRoomId(room.id)}
-                          className="text-[#FF009F] hover:text-[#D1007F]"
+                          className="bg-[#FF009F]/20 hover:bg-[#FF009F]/40 text-[#FF009F] border border-[#FF009F]/30 hover:border-[#FF009F] text-xs sm:text-sm"
                         >
                           Use this room
                         </Button>
@@ -655,17 +1136,26 @@ const MoviePage = () => {
                 )}
               </div>
             )}
+
           <Input
             placeholder="Enter Room ID"
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             disabled={isJoining}
-            className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F] bg-gray-800 text-white"
+            className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F] bg-gray-800 text-white text-sm"
+            prefix={<TeamOutlined className="text-gray-500" />}
           />
+
+          <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg mt-4">
+            <p className="text-xs sm:text-sm text-gray-300">
+              <InfoCircleOutlined className="mr-2 text-gray-400" />
+              The host will control playback for everyone in the room.
+            </p>
+          </div>
         </div>
       </Modal>
     </>
   );
 };
 
-export default MoviePage;
+export default memo(MoviePage);
