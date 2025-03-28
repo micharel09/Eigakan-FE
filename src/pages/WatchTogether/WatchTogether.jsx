@@ -75,16 +75,24 @@ const WatchTogetherContent = () => {
             muted: t.muted,
             readyState: t.readyState,
             label: t.label,
+            id: t.id,
+            settings: t.getSettings ? t.getSettings() : "N/A",
           }))
         );
 
-        // Mặc định TẮT audio tracks khi mới kết nối
-        // Nhưng KHÔNG thay đổi trạng thái của tracks, chỉ đặt muted=true trong state
+        // Đảm bảo audio tracks được bật mặc định
+        audioTracks.forEach((track) => {
+          track.enabled = true;
+          console.log(
+            `Ensuring incoming audio track is enabled: ${track.enabled}`
+          );
+        });
+
         setPlayers((prev) => ({
           ...prev,
           [newUser]: {
             url: incomingStream,
-            muted: true, // Mặc định mute người dùng khác
+            muted: false, // Mặc định KHÔNG mute người dùng khác
             playing: true,
           },
         }));

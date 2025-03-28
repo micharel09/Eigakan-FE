@@ -12,13 +12,18 @@ const useMediaStream = () => {
         console.log("Requesting media permissions...");
         isStreamSet.current = true;
 
-        // Yêu cầu quyền truy cập camera và microphone
+        // Yêu cầu quyền truy cập camera và microphone với cấu hình chi tiết hơn
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            // Thêm các tùy chọn để đảm bảo micro hoạt động
+            channelCount: 2,
+            sampleRate: 48000,
+            sampleSize: 16,
+            volume: 1.0,
           },
         });
 
@@ -26,11 +31,26 @@ const useMediaStream = () => {
         console.log("Video tracks:", mediaStream.getVideoTracks().length);
         console.log("Audio tracks:", mediaStream.getAudioTracks().length);
 
-        // Mặc định tắt audio track khi mới khởi tạo
+        // Log chi tiết về audio tracks
         const audioTracks = mediaStream.getAudioTracks();
+        console.log(
+          "Audio track details:",
+          audioTracks.map((t) => ({
+            label: t.label,
+            enabled: t.enabled,
+            muted: t.muted,
+            readyState: t.readyState,
+            id: t.id,
+            settings: t.getSettings ? t.getSettings() : "N/A",
+          }))
+        );
+
+        // Đảm bảo audio tracks được bật
         audioTracks.forEach((track) => {
-          // Không tắt track, chỉ đặt muted=true trong state
-          console.log(`Audio track initial state: ${track.enabled}`);
+          track.enabled = true;
+          console.log(
+            `Ensuring initial audio track is enabled: ${track.enabled}`
+          );
         });
 
         setStream(mediaStream);

@@ -73,7 +73,7 @@ const Player = ({
       url
     );
 
-    // Debug audio tracks
+    // Debug audio tracks chi tiết hơn
     if (url && url.getAudioTracks) {
       const audioTracks = url.getAudioTracks();
       console.log(
@@ -83,22 +83,22 @@ const Player = ({
           muted: t.muted,
           readyState: t.readyState,
           label: t.label,
+          id: t.id,
+          kind: t.kind,
+          constraints: t.getConstraints ? t.getConstraints() : "N/A",
+          settings: t.getSettings ? t.getSettings() : "N/A",
         }))
       );
 
       // Đảm bảo audio tracks được bật/tắt theo trạng thái muted
       audioTracks.forEach((track) => {
-        // Nếu là video của người khác, trạng thái enabled phụ thuộc vào muted
-        if (!isMe) {
-          track.enabled = !muted;
-          console.log(
-            `Setting remote audio track enabled to: ${track.enabled}`
-          );
-        }
-        // Nếu là video của mình, trạng thái enabled phụ thuộc vào muted
-        else {
-          track.enabled = !muted;
-          console.log(`Setting my audio track enabled to: ${track.enabled}`);
+        // Đảm bảo track luôn được bật nếu không bị mute
+        if (!muted) {
+          track.enabled = true;
+          console.log(`Forcing audio track to be enabled: ${track.enabled}`);
+        } else {
+          track.enabled = false;
+          console.log(`Forcing audio track to be disabled: ${track.enabled}`);
         }
       });
     }
