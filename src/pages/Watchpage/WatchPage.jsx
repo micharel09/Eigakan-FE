@@ -1491,7 +1491,9 @@ const WatchPage = () => {
                               <div className="flex-1">
                                 <div className="flex items-baseline gap-1">
                                   <span className="text-2xl font-bold text-[#F6C700]">
-                                    {movie.rating}
+                                    {movie.imdbRating?.toFixed(1) ||
+                                      movie.rating?.toFixed(1) ||
+                                      "0"}
                                   </span>
                                   <span className="text-[#F6C700]/70 text-sm">
                                     /10
@@ -1499,6 +1501,14 @@ const WatchPage = () => {
                                 </div>
                                 <div className="text-xs text-white/60">
                                   Internet Movie Database
+                                  {movie.imdbVotes > 0 && (
+                                    <span className="block mt-0.5">
+                                      {new Intl.NumberFormat().format(
+                                        movie.imdbVotes
+                                      )}{" "}
+                                      votes
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1739,7 +1749,7 @@ const WatchPage = () => {
                               <line x1="16" y1="17" x2="8" y2="17"></line>
                               <polyline points="10 9 9 9 8 9"></polyline>
                             </svg>
-                            Synopsis
+                            Description
                           </h3>
 
                           <p className="text-white/90 leading-relaxed text-base">

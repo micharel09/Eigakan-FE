@@ -71,6 +71,7 @@ const Navbar = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const isMoviePage = location.pathname.includes("/movie/");
 
   const role = user?.roleName || localStorage.getItem("role");
   const token = localStorage.getItem("token");
@@ -228,41 +229,43 @@ const Navbar = () => {
   const closeRecommendationsModal = () => setShowRecommendationsModal(false);
 
   return (
-    <div className="relative m-0 p-0 border-0 shadow-none navbar-clean">
-      {/* Background gradient that fades to transparent */}
-      <div className="fixed top-0 left-0 right-0 z-40 pointer-events-none">
-        <div className="h-20 w-full">
-          <div
-            className={`absolute inset-0 bg-gradient-to-b from-black via-black/70 to-transparent transition-opacity duration-300 border-0 outline-none shadow-none ${
-              isScrolled ? "opacity-90" : "opacity-85"
-            }`}
-          ></div>
+    <div
+      className={`relative ${
+        isMoviePage ? "m-0 p-0 border-0 shadow-none navbar-clean" : ""
+      }`}
+    >
+      {/* Background gradient that fades to transparent - only shown on non-movie pages */}
+      {!isMoviePage && (
+        <div className="fixed top-0 left-0 right-0 z-40 pointer-events-none">
+          <div className="h-20 w-full">
+            <div
+              className={`absolute inset-0 bg-gradient-to-b from-black via-black/70 to-transparent transition-opacity duration-300 border-0 outline-none shadow-none ${
+                isScrolled ? "opacity-90" : "opacity-85"
+              }`}
+            ></div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Actual navbar container - transparent background */}
-      <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-0 shadow-none bg-transparent">
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          isMoviePage ? "border-0 shadow-none bg-transparent" : ""
+        }`}
+      >
         <div className="container mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Logo */}
+            {/* Logo - Simple with gradient color effect but no hover/transition animations */}
             <Link
               to="/homepage"
-              className="flex items-center group"
+              className="flex items-center"
               aria-label="Home"
-              tabIndex="0"
             >
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="text-[#FF009F] font-bold text-2xl md:text-3xl tracking-wider relative"
-                whileHover={{ scale: 1.05 }}
-              >
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] eigakan-gradient relative z-10">
+              <div className="navbar-logo text-[#FF009F] font-bold text-2xl md:text-3xl tracking-wider">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] eigakan-gradient">
                   EIGAKAN
                 </span>
-                <div className="absolute inset-0 bg-[#FF009F] blur-[20px] opacity-20 group-hover:opacity-30 transition-opacity duration-300 z-0"></div>
-              </motion.div>
+              </div>
             </Link>
 
             {/* Desktop Navigation */}

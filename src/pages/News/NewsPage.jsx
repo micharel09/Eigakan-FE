@@ -6,6 +6,7 @@ import { Spin } from "antd";
 import NewsApi from "../../apis/News/news";
 import { notification } from "antd";
 
+// Using Tailwind classes instead of CSS overrides
 const NewsPage = () => {
   const [news, setNews] = useState([]);
   const [filteredNews, setFilteredNews] = useState([]);
@@ -134,7 +135,7 @@ const NewsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="bg-black ">
       <HeroSection
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -168,8 +169,7 @@ const NewsPage = () => {
 };
 
 const HeroSection = ({ searchQuery, setSearchQuery, onSearch }) => (
-  <div className="relative py-16 px-4 overflow-hidden">
-    <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-5" />
+  <div className="relative px-4 overflow-hidden pt-1 pb-4 bg-black">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}

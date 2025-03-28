@@ -91,16 +91,14 @@ const getBunnyStreamEmbedUrl = (url) => {
 
 // Movie stats badge component for cleaner UI
 const StatBadge = memo(({ icon, value, label, color = "white" }) => (
-  <div className="flex flex-col items-center px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-3 bg-white/5 backdrop-blur-sm rounded-lg">
+  <div className="flex flex-col items-center px-2 sm:px-2.5 md:px-4 py-1 sm:py-2 md:py-3 bg-white/5 backdrop-blur-sm rounded-lg">
     <div className="flex items-center gap-1 sm:gap-1.5">
       {icon}
-      <span
-        className={`text-${color} font-bold text-sm sm:text-base md:text-lg`}
-      >
+      <span className={`text-${color} font-bold text-xs sm:text-sm md:text-lg`}>
         {value}
       </span>
     </div>
-    <span className="text-gray-400 text-[10px] sm:text-xs mt-0.5 sm:mt-1">
+    <span className="text-gray-400 text-[8px] sm:text-xs mt-0.5 sm:mt-1">
       {label}
     </span>
   </div>
@@ -122,7 +120,7 @@ const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
     whileTap={{ scale: 0.97 }}
     whileHover={{ scale: 1.03 }}
     onClick={onClick}
-    className={`min-w-[100px] sm:min-w-[120px] md:min-w-[130px] h-10 sm:h-11 md:h-12 flex items-center justify-center gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm md:text-base ${
+    className={`min-w-[85px] sm:min-w-[110px] md:min-w-[130px] h-9 sm:h-10 md:h-12 flex items-center justify-center gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm md:text-base ${
       primary
         ? "bg-gradient-to-r from-[#FF009F] to-[#FF0055] text-white"
         : "bg-white/10 hover:bg-white/15 text-white"
@@ -276,13 +274,15 @@ const MovieFacts = memo(({ movie }) => {
               </span>
               <div className="flex items-center gap-1 sm:gap-2">
                 <span className="text-yellow-500 font-bold text-sm sm:text-base md:text-lg">
-                  {movie.rating}
+                  {movie.imdbRating?.toFixed(1) ||
+                    movie.rating?.toFixed(1) ||
+                    "N/A"}
                 </span>
                 <span className="text-gray-400 text-xs sm:text-sm">/10</span>
               </div>
             </div>
             <Progress
-              percent={movie.rating * 10}
+              percent={(movie.imdbRating || movie.rating || 0) * 10}
               showInfo={false}
               strokeColor={{
                 "0%": "#FFD700",
@@ -291,6 +291,11 @@ const MovieFacts = memo(({ movie }) => {
               trailColor="#1c1c1c"
               size="small"
             />
+            {movie.imdbVotes > 0 && (
+              <div className="text-right text-xs text-gray-400">
+                Based on {new Intl.NumberFormat().format(movie.imdbVotes)} votes
+              </div>
+            )}
           </div>
 
           {/* User Rating */}
@@ -312,14 +317,6 @@ const MovieFacts = memo(({ movie }) => {
               allowHalf
               className="text-[#FF009F] text-xs sm:text-sm md:text-base"
             />
-          </div>
-
-          {/* Rate this movie - Interactive element */}
-          <div className="pt-2 sm:pt-3 md:pt-4 border-t border-gray-800/70">
-            <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">
-              Rate this movie
-            </p>
-            <Rate className="text-[#FF009F] text-xs sm:text-sm md:text-base" />
           </div>
         </div>
       </motion.div>
@@ -358,8 +355,9 @@ const MovieHero = memo(
       },
       {
         icon: <Star className="w-4 h-4 text-yellow-500" />,
-        value: movie.rating,
-        label: "Rating",
+        value:
+          movie.imdbRating?.toFixed(1) || movie.rating?.toFixed(1) || "N/A",
+        label: movie.imdbRating ? "IMDB" : "Rating",
         color: "yellow-500",
       },
       {
@@ -370,7 +368,7 @@ const MovieHero = memo(
     ];
 
     return (
-      <div className="relative w-full overflow-hidden -mt-20 pt-20 min-h-[80vh] sm:min-h-[75vh] pb-0">
+      <div className="relative w-full overflow-hidden -mt-16 pt-16 min-h-[85vh] sm:min-h-[75vh] pb-8 sm:pb-0">
         {/* Background Banner with parallax effect */}
         <div className="absolute inset-0 -top-1">
           <motion.div
@@ -390,15 +388,15 @@ const MovieHero = memo(
         </div>
 
         {/* Movie Info Container with staggered animations */}
-        <div className="absolute inset-0 flex items-start md:items-center overflow-y-auto">
-          <div className="container mx-auto px-4 py-4 sm:py-0">
-            <div className="flex flex-col md:flex-row items-start gap-6 md:gap-8 pt-4 md:pt-16">
+        <div className="absolute inset-0 flex items-center justify-center overflow-y-auto pt-16 sm:pt-0">
+          <div className="container mx-auto px-4 py-0 w-full">
+            <div className="flex flex-col items-center sm:items-center md:flex-row md:items-start gap-5 sm:gap-6 md:gap-8 pt-2 sm:pt-4 md:pt-16">
               {/* Poster with subtle hover effect */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="w-36 sm:w-48 md:w-64 lg:w-80 mx-auto md:mx-0 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mt-2 sm:mt-0"
+                className="w-40 sm:w-48 md:w-56 lg:w-72 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mt-0 sm:mt-0 z-10"
               >
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -414,13 +412,13 @@ const MovieHero = memo(
               </motion.div>
 
               {/* Movie Info with staggered animations */}
-              <div className="flex-1 mt-4 md:mt-0 text-center md:text-left">
+              <div className="flex-1 mt-4 sm:mt-5 md:mt-0 text-center sm:text-center md:text-left">
                 <motion.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.2 }}
                 >
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">
                     {movie.title}
                   </h1>
                 </motion.div>
@@ -430,7 +428,7 @@ const MovieHero = memo(
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.3 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-2 sm:gap-3 mb-6 mt-4 sm:mt-6"
+                  className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2.5 mb-3 sm:mb-4 mt-2 sm:mt-3"
                 >
                   {movieStats.map((stat, index) => (
                     <StatBadge
@@ -448,7 +446,7 @@ const MovieHero = memo(
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.4 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-2 mb-6"
+                  className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2 mb-3 sm:mb-4"
                 >
                   {genresArray && genresArray.length > 0 ? (
                     genresArray.map((genre) => (
@@ -469,7 +467,7 @@ const MovieHero = memo(
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.5 }}
-                  className="text-gray-300 text-sm sm:text-base md:text-lg leading-relaxed mb-6 sm:mb-8 line-clamp-3 max-w-3xl mx-auto md:mx-0"
+                  className="text-gray-300 text-xs sm:text-sm md:text-base leading-relaxed mb-3 sm:mb-5 line-clamp-3 max-w-3xl mx-auto md:mx-0"
                 >
                   {movie.description}
                 </motion.p>
@@ -479,10 +477,12 @@ const MovieHero = memo(
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.6 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-2 sm:gap-4"
+                  className="flex flex-wrap justify-center md:justify-start gap-2 sm:gap-3"
                 >
                   <ActionButton
-                    icon={<PlayCircleOutlined className="text-lg sm:text-xl" />}
+                    icon={
+                      <PlayCircleOutlined className="text-base sm:text-lg" />
+                    }
                     primary={true}
                     onClick={onWatchNow}
                   >
@@ -491,7 +491,9 @@ const MovieHero = memo(
 
                   {trailer && (
                     <ActionButton
-                      icon={<YoutubeOutlined className="text-lg sm:text-xl" />}
+                      icon={
+                        <YoutubeOutlined className="text-base sm:text-lg" />
+                      }
                       onClick={onTrailerClick}
                     >
                       Watch Trailer
@@ -499,7 +501,7 @@ const MovieHero = memo(
                   )}
 
                   <ActionButton
-                    icon={<TeamOutlined className="text-lg sm:text-xl" />}
+                    icon={<TeamOutlined className="text-base sm:text-lg" />}
                     onClick={onCreateRoom}
                   >
                     Create Room
@@ -507,7 +509,7 @@ const MovieHero = memo(
 
                   <ActionButton
                     icon={
-                      <UsergroupAddOutlined className="text-lg sm:text-xl" />
+                      <UsergroupAddOutlined className="text-base sm:text-lg" />
                     }
                     onClick={onJoinRoom}
                   >
@@ -520,9 +522,9 @@ const MovieHero = memo(
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.7 }}
-                  className="flex justify-center md:justify-start gap-4 mt-6 sm:mt-8"
+                  className="flex justify-center md:justify-start gap-3 mt-4 sm:mt-5"
                 >
-                  <Tooltip title="Add to Favorites">
+                  {/* <Tooltip title="Add to Favorites">
                     <Button
                       icon={<HeartOutlined />}
                       className="rounded-full bg-white/10 hover:bg-[#FF009F]/20 hover:border-[#FF009F]/30 border-white/20 text-white"
@@ -533,7 +535,7 @@ const MovieHero = memo(
                       icon={<ShareAltOutlined />}
                       className="rounded-full bg-white/10 hover:bg-[#FF009F]/20 hover:border-[#FF009F]/30 border-white/20 text-white"
                     />
-                  </Tooltip>
+                  </Tooltip> */}
                 </motion.div>
               </div>
             </div>
@@ -879,7 +881,7 @@ const MoviePage = () => {
         {/* Seamless transition from hero to content */}
         <div className="h-4 bg-gradient-to-b from-transparent to-black -mt-4"></div>
 
-        <div className="container mx-auto px-4 py-0 sm:py-4">
+        <div className="container mx-auto px-3 sm:px-4 py-0 sm:py-4">
           {/* Content Tabs */}
           <Tabs
             activeKey={activeTab}
@@ -903,7 +905,7 @@ const MoviePage = () => {
                         <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 text-white">
                           Storyline
                         </h2>
-                        <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
+                        <p className="text-gray-300 text-xs sm:text-sm md:text-base leading-relaxed">
                           {movie.description}
                         </p>
                       </motion.div>
@@ -958,7 +960,7 @@ const MoviePage = () => {
                 children: (
                   <Suspense
                     fallback={
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-6">
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
                           <div
                             key={i}
@@ -1010,34 +1012,34 @@ const MoviePage = () => {
         width={320}
         centered
       >
-        <div className="py-4">
-          <div className="bg-gray-800/50 p-3 sm:p-4 rounded-lg mb-4 flex gap-3 sm:gap-4 items-center">
+        <div className="py-3 sm:py-4">
+          <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
             <img
               src={
                 movie.medias?.find((m) => m.type === "POSTER")?.url ||
                 "/placeholder.jpg"
               }
               alt={movie.title}
-              className="w-10 sm:w-12 h-14 sm:h-16 object-cover rounded-md"
+              className="w-8 sm:w-10 md:w-12 h-12 sm:h-14 md:h-16 object-cover rounded-md"
             />
             <div>
-              <h3 className="font-medium text-white text-sm sm:text-base">
+              <h3 className="font-medium text-white text-xs sm:text-sm md:text-base">
                 {movie.title}
               </h3>
-              <p className="text-gray-400 text-xs sm:text-sm">
+              <p className="text-gray-400 text-[10px] sm:text-xs">
                 {movie.releaseYear} • {movie.duration}m
               </p>
             </div>
           </div>
 
-          <p className="text-gray-300 mb-4 text-xs sm:text-sm">
+          <p className="text-gray-300 mb-3 sm:mb-4 text-[10px] sm:text-xs md:text-sm">
             Create a new room to watch "{movie.title}" with friends in
             real-time.
           </p>
 
           <div className="bg-[#FF009F]/10 border border-[#FF009F]/20 p-2 sm:p-3 rounded-lg">
-            <p className="text-xs sm:text-sm text-white">
-              <InfoCircleOutlined className="mr-2 text-[#FF009F]" />
+            <p className="text-[10px] sm:text-xs md:text-sm text-white">
+              <InfoCircleOutlined className="mr-1 sm:mr-2 text-[#FF009F]" />
               You'll be the host of this room and can control the playback for
               all viewers.
             </p>
@@ -1074,27 +1076,27 @@ const MoviePage = () => {
         width={320}
         centered
       >
-        <div className="py-4">
-          <div className="bg-gray-800/50 p-3 sm:p-4 rounded-lg mb-4 flex gap-3 sm:gap-4 items-center">
+        <div className="py-3 sm:py-4">
+          <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
             <img
               src={
                 movie.medias?.find((m) => m.type === "POSTER")?.url ||
                 "/placeholder.jpg"
               }
               alt={movie.title}
-              className="w-10 sm:w-12 h-14 sm:h-16 object-cover rounded-md"
+              className="w-8 sm:w-10 md:w-12 h-12 sm:h-14 md:h-16 object-cover rounded-md"
             />
             <div>
-              <h3 className="font-medium text-white text-sm sm:text-base">
+              <h3 className="font-medium text-white text-xs sm:text-sm md:text-base">
                 {movie.title}
               </h3>
-              <p className="text-gray-400 text-xs sm:text-sm">
+              <p className="text-gray-400 text-[10px] sm:text-xs">
                 {movie.releaseYear} • {movie.duration}m
               </p>
             </div>
           </div>
 
-          <p className="text-gray-300 mb-4 text-xs sm:text-sm">
+          <p className="text-gray-300 mb-3 sm:mb-4 text-[10px] sm:text-xs md:text-sm">
             Enter a room ID to join a watch party for "{movie.title}".
           </p>
 
@@ -1102,9 +1104,9 @@ const MoviePage = () => {
             hostedRooms.some(
               (room) => room?.movieID === movieId && room?.status === "Active"
             ) && (
-              <div className="mb-4 bg-gray-800 p-3 sm:p-4 rounded-lg">
-                <p className="text-xs sm:text-sm text-white mb-2 flex items-center">
-                  <TeamOutlined className="mr-2 text-[#FF009F]" />
+              <div className="mb-3 sm:mb-4 bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg">
+                <p className="text-[10px] sm:text-xs md:text-sm text-white mb-2 flex items-center">
+                  <TeamOutlined className="mr-1 sm:mr-2 text-[#FF009F]" />
                   Your active rooms:
                 </p>
                 {hostedRooms.map(
@@ -1117,17 +1119,17 @@ const MoviePage = () => {
                         className="flex items-center justify-between bg-gray-700/50 p-2 sm:p-3 rounded mt-2 border border-gray-700"
                       >
                         <div className="max-w-[60%]">
-                          <span className="font-medium text-white text-xs sm:text-sm truncate block">
+                          <span className="font-medium text-white text-[10px] sm:text-xs truncate block">
                             {room.id}
                           </span>
-                          <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
+                          <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 mt-1">
                             Host: You
                           </p>
                         </div>
                         <Button
                           size="small"
                           onClick={() => setRoomId(room.id)}
-                          className="bg-[#FF009F]/20 hover:bg-[#FF009F]/40 text-[#FF009F] border border-[#FF009F]/30 hover:border-[#FF009F] text-xs sm:text-sm"
+                          className="bg-[#FF009F]/20 hover:bg-[#FF009F]/40 text-[#FF009F] border border-[#FF009F]/30 hover:border-[#FF009F] text-[10px] sm:text-xs md:text-sm"
                         >
                           Use this room
                         </Button>
@@ -1142,13 +1144,13 @@ const MoviePage = () => {
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             disabled={isJoining}
-            className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F] bg-gray-800 text-white text-sm"
+            className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F] bg-gray-800 text-white text-xs sm:text-sm"
             prefix={<TeamOutlined className="text-gray-500" />}
           />
 
-          <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg mt-4">
-            <p className="text-xs sm:text-sm text-gray-300">
-              <InfoCircleOutlined className="mr-2 text-gray-400" />
+          <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg mt-3 sm:mt-4">
+            <p className="text-[10px] sm:text-xs md:text-sm text-gray-300">
+              <InfoCircleOutlined className="mr-1 sm:mr-2 text-gray-400" />
               The host will control playback for everyone in the room.
             </p>
           </div>

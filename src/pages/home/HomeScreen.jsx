@@ -2,7 +2,6 @@ import React, { Suspense } from "react";
 import { Helmet } from "react-helmet";
 import Slider from "../../components/Homepage/Slider";
 import MovieList from "../../components/Homepage/MovieList";
-import Navbar from "../../components/Header/Navbar";
 
 const HomeScreen = () => {
   return (
@@ -48,7 +47,7 @@ const HomeScreen = () => {
           </div>
         }
       >
-        <Navbar />
+        {/* Navbar is already included in the PersistentLayout */}
       </Suspense>
     </div>
   );
