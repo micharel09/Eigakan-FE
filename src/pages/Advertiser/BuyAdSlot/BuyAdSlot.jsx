@@ -36,7 +36,7 @@ const BuyAdSlot = () => {
   const [adSlots, setAdSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlots, setSelectedSlots] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedPackageId, setSelectedPackageId] = useState(null);
@@ -88,43 +88,57 @@ const BuyAdSlot = () => {
     }
   };
 
-  const handlePurchase = async (adSlotTimeId) => {
-    if (purchasing) return;
+  const toggleSlotSelection = (slotId) => {
+    setSelectedSlots((prevSelected) => {
+      // If already selected, remove it from selection
+      if (prevSelected.includes(slotId)) {
+        return prevSelected.filter((id) => id !== slotId);
+      }
+      // If not selected and fewer than 2 slots are selected, add it
+      else if (prevSelected.length < 2) {
+        return [...prevSelected, slotId];
+      }
+      // If already 2 slots selected, show notification and don't change
+      else {
+        notification.info({
+          message: "Selection Limit",
+          description: "You can select up to 2 ad slots at a time.",
+        });
+        return prevSelected;
+      }
+    });
+  };
+
+  const handlePurchase = async () => {
+    if (purchasing || selectedSlots.length === 0) return;
 
     try {
       setPurchasing(true);
-      setSelectedSlot(adSlotTimeId);
 
-      // Chuẩn bị dữ liệu cho API request
+      // Prepare data for API request with multiple slots
       const requestData = {
-        orders: [
-          {
-            adSlotTimeId: adSlotTimeId,
-            adPackageId: selectedPackageId,
-            startDate: new Date().toISOString(),
-          },
-        ],
+        orders: selectedSlots.map((slotId) => ({
+          adSlotTimeId: slotId,
+          adPackageId: selectedPackageId,
+          startDate: new Date().toISOString(),
+        })),
         redirectUrl: `${window.location.origin}/payment-success-adslot`,
       };
 
-      // Gọi API để mua AdSlot
+      // Call API to purchase AdSlots
       const response = await adSlotService.createAdPurchaseTransaction(
         requestData
       );
 
       if (response.success) {
-        // Kiểm tra nếu có paymentUrl trong response
+        // Handle success scenarios as before
         if (response.paymentUrl) {
           window.location.href = response.paymentUrl;
           return;
-        }
-        // Nếu không có paymentUrl nhưng có message chứa URL
-        else if (response.message && response.message.startsWith("http")) {
+        } else if (response.message && response.message.startsWith("http")) {
           window.location.href = response.message;
           return;
-        }
-        // Nếu không có URL nào, hiển thị thông báo thành công
-        else {
+        } else {
           notification.success({
             message: "Success",
             description: "Ad purchase request has been sent",
@@ -138,6 +152,8 @@ const BuyAdSlot = () => {
       }
 
       await fetchAdSlotTimes();
+      // Clear selections after purchase
+      setSelectedSlots([]);
     } catch (error) {
       notification.error({
         message: "Error",
@@ -145,7 +161,6 @@ const BuyAdSlot = () => {
       });
     } finally {
       setPurchasing(false);
-      setSelectedSlot(null);
     }
   };
 
@@ -226,6 +241,50 @@ const BuyAdSlot = () => {
           </div>
         </div>
 
+        {selectedSlots.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="fixed bottom-6 right-6 left-6 z-50 flex justify-center"
+          >
+            <div className="bg-gray-800 rounded-lg shadow-xl p-4 flex items-center justify-between max-w-2xl w-full border border-[#FF009F]/30">
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-[#FF009F]/20 flex items-center justify-center mr-3">
+                  <ShoppingCartOutlined className="text-[#FF009F] text-lg" />
+                </div>
+                <div>
+                  <span className="text-white font-medium">
+                    {selectedSlots.length}{" "}
+                    {selectedSlots.length === 1 ? "slot" : "slots"} selected
+                  </span>
+                  <p className="text-gray-400 text-sm">
+                    {selectedSlots.length < 2
+                      ? "You can select up to 2 slots"
+                      : "Maximum selection reached"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handlePurchase}
+                disabled={purchasing || selectedSlots.length === 0}
+                className="bg-[#FF009F] hover:bg-[#D1007F] text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all"
+              >
+                {purchasing ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </div>
+                ) : (
+                  <>
+                    <ShoppingCartOutlined />
+                    Checkout ({selectedSlots.length})
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         <div className="mb-12">
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
             <h2 className="text-3xl font-bold text-white">
@@ -269,7 +328,14 @@ const BuyAdSlot = () => {
                   .map((adSlot) => (
                     <div
                       key={adSlot.id}
-                      className="group h-full transform transition-all duration-200 hover:translate-y-[-8px] hover:scale-[1.01] hover:z-10 relative"
+                      className={`
+                        group h-full transform transition-all duration-200 hover:translate-y-[-8px] hover:scale-[1.01] hover:z-10 relative
+                        ${
+                          selectedSlots.includes(adSlot.id)
+                            ? "ring-2 ring-[#FF009F] ring-offset-2 ring-offset-gray-900"
+                            : ""
+                        }
+                      `}
                     >
                       <div
                         className={`
@@ -278,6 +344,11 @@ const BuyAdSlot = () => {
                             adSlot.recommended
                               ? "bg-gradient-to-r from-[#FF009F]/20 to-[#FF6B9F]/20 blur-xl"
                               : "bg-[#FF009F]/10 blur-xl"
+                          }
+                          ${
+                            selectedSlots.includes(adSlot.id)
+                              ? "opacity-100 !blur-md"
+                              : ""
                           }
                         `}
                       ></div>
@@ -290,9 +361,20 @@ const BuyAdSlot = () => {
                               ? "bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 group-hover:shadow-[0_10px_40px_-15px_rgba(255,0,159,0.3)]"
                               : "bg-gray-800 group-hover:shadow-[0_10px_30px_-15px_rgba(255,0,159,0.2)]"
                           }
+                          ${
+                            selectedSlots.includes(adSlot.id)
+                              ? "shadow-[0_0_15px_rgba(255,0,159,0.4)]"
+                              : ""
+                          }
                         `}
                         bodyStyle={{ padding: 0 }}
                       >
+                        {selectedSlots.includes(adSlot.id) && (
+                          <div className="absolute top-0 left-0 bg-[#FF009F] text-white px-4 py-1 rounded-br-lg font-medium text-sm z-10">
+                            SELECTED
+                          </div>
+                        )}
+
                         {adSlot.recommended && (
                           <div className="absolute top-0 right-0 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white px-4 py-1 rounded-bl-lg font-medium text-sm z-10">
                             RECOMMENDED
@@ -400,31 +482,30 @@ const BuyAdSlot = () => {
                             </div>
 
                             <button
-                              disabled={
-                                purchasing && selectedSlot === adSlot.id
-                              }
-                              onClick={() => handlePurchase(adSlot.id)}
+                              onClick={() => toggleSlotSelection(adSlot.id)}
                               className={`
                                 w-full h-12 flex items-center justify-center gap-2 text-base font-semibold rounded-lg
                                 transition-all duration-200 ease-out transform
                                 disabled:opacity-50 disabled:cursor-not-allowed
                                 ${
-                                  adSlot.recommended
-                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
-                                    : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)]"
+                                  selectedSlots.includes(adSlot.id)
+                                    ? "bg-gray-700 text-white border-2 border-[#FF009F] hover:bg-gray-600"
+                                    : adSlot.recommended
+                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)] text-white border-0"
+                                    : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)] text-white border-0"
                                 }
-                                group-hover:translate-y-[-2px] text-white border-0
+                                group-hover:translate-y-[-2px]
                               `}
                             >
-                              {purchasing && selectedSlot === adSlot.id ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                  Processing...
-                                </div>
+                              {selectedSlots.includes(adSlot.id) ? (
+                                <>
+                                  <CheckCircleOutlined className="text-lg" />
+                                  Selected
+                                </>
                               ) : (
                                 <>
                                   <ShoppingCartOutlined className="text-lg" />
-                                  Purchase Now
+                                  Select Slot
                                 </>
                               )}
                             </button>
@@ -456,7 +537,14 @@ const BuyAdSlot = () => {
                   .map((adSlot) => (
                     <div
                       key={adSlot.id}
-                      className="group h-full transform transition-all duration-200 hover:translate-y-[-8px] hover:scale-[1.01] hover:z-10 relative"
+                      className={`
+                        group h-full transform transition-all duration-200 hover:translate-y-[-8px] hover:scale-[1.01] hover:z-10 relative
+                        ${
+                          selectedSlots.includes(adSlot.id)
+                            ? "ring-2 ring-[#FF009F] ring-offset-2 ring-offset-gray-900"
+                            : ""
+                        }
+                      `}
                     >
                       <div
                         className={`
@@ -465,6 +553,11 @@ const BuyAdSlot = () => {
                             adSlot.recommended
                               ? "bg-gradient-to-r from-[#FF009F]/20 to-[#FF6B9F]/20 blur-xl"
                               : "bg-[#FF009F]/10 blur-xl"
+                          }
+                          ${
+                            selectedSlots.includes(adSlot.id)
+                              ? "opacity-100 !blur-md"
+                              : ""
                           }
                         `}
                       ></div>
@@ -477,9 +570,20 @@ const BuyAdSlot = () => {
                               ? "bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 group-hover:shadow-[0_10px_40px_-15px_rgba(255,0,159,0.3)]"
                               : "bg-gray-800 group-hover:shadow-[0_10px_30px_-15px_rgba(255,0,159,0.2)]"
                           }
+                          ${
+                            selectedSlots.includes(adSlot.id)
+                              ? "shadow-[0_0_15px_rgba(255,0,159,0.4)]"
+                              : ""
+                          }
                         `}
                         bodyStyle={{ padding: 0 }}
                       >
+                        {selectedSlots.includes(adSlot.id) && (
+                          <div className="absolute top-0 left-0 bg-[#FF009F] text-white px-4 py-1 rounded-br-lg font-medium text-sm z-10">
+                            SELECTED
+                          </div>
+                        )}
+
                         {adSlot.recommended && (
                           <div className="absolute top-0 right-0 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white px-4 py-1 rounded-bl-lg font-medium text-sm z-10">
                             RECOMMENDED
@@ -587,31 +691,30 @@ const BuyAdSlot = () => {
                             </div>
 
                             <button
-                              disabled={
-                                purchasing && selectedSlot === adSlot.id
-                              }
-                              onClick={() => handlePurchase(adSlot.id)}
+                              onClick={() => toggleSlotSelection(adSlot.id)}
                               className={`
                                 w-full h-12 flex items-center justify-center gap-2 text-base font-semibold rounded-lg
                                 transition-all duration-200 ease-out transform
                                 disabled:opacity-50 disabled:cursor-not-allowed
                                 ${
-                                  adSlot.recommended
-                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
-                                    : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)]"
+                                  selectedSlots.includes(adSlot.id)
+                                    ? "bg-gray-700 text-white border-2 border-[#FF009F] hover:bg-gray-600"
+                                    : adSlot.recommended
+                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)] text-white border-0"
+                                    : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)] text-white border-0"
                                 }
-                                group-hover:translate-y-[-2px] text-white border-0
+                                group-hover:translate-y-[-2px]
                               `}
                             >
-                              {purchasing && selectedSlot === adSlot.id ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                  Processing...
-                                </div>
+                              {selectedSlots.includes(adSlot.id) ? (
+                                <>
+                                  <CheckCircleOutlined className="text-lg" />
+                                  Selected
+                                </>
                               ) : (
                                 <>
                                   <ShoppingCartOutlined className="text-lg" />
-                                  Purchase Now
+                                  Select Slot
                                 </>
                               )}
                             </button>
@@ -649,7 +752,14 @@ const BuyAdSlot = () => {
                   .map((adSlot) => (
                     <div
                       key={adSlot.id}
-                      className="group h-full transform transition-all duration-200 hover:translate-y-[-8px] hover:scale-[1.01] hover:z-10 relative"
+                      className={`
+                        group h-full transform transition-all duration-200 hover:translate-y-[-8px] hover:scale-[1.01] hover:z-10 relative
+                        ${
+                          selectedSlots.includes(adSlot.id)
+                            ? "ring-2 ring-[#FF009F] ring-offset-2 ring-offset-gray-900"
+                            : ""
+                        }
+                      `}
                     >
                       <div
                         className={`
@@ -658,6 +768,11 @@ const BuyAdSlot = () => {
                             adSlot.recommended
                               ? "bg-gradient-to-r from-[#FF009F]/20 to-[#FF6B9F]/20 blur-xl"
                               : "bg-[#FF009F]/10 blur-xl"
+                          }
+                          ${
+                            selectedSlots.includes(adSlot.id)
+                              ? "opacity-100 !blur-md"
+                              : ""
                           }
                         `}
                       ></div>
@@ -670,9 +785,20 @@ const BuyAdSlot = () => {
                               ? "bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 group-hover:shadow-[0_10px_40px_-15px_rgba(255,0,159,0.3)]"
                               : "bg-gray-800 group-hover:shadow-[0_10px_30px_-15px_rgba(255,0,159,0.2)]"
                           }
+                          ${
+                            selectedSlots.includes(adSlot.id)
+                              ? "shadow-[0_0_15px_rgba(255,0,159,0.4)]"
+                              : ""
+                          }
                         `}
                         bodyStyle={{ padding: 0 }}
                       >
+                        {selectedSlots.includes(adSlot.id) && (
+                          <div className="absolute top-0 left-0 bg-[#FF009F] text-white px-4 py-1 rounded-br-lg font-medium text-sm z-10">
+                            SELECTED
+                          </div>
+                        )}
+
                         {adSlot.recommended && (
                           <div className="absolute top-0 right-0 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white px-4 py-1 rounded-bl-lg font-medium text-sm z-10">
                             RECOMMENDED
@@ -780,31 +906,30 @@ const BuyAdSlot = () => {
                             </div>
 
                             <button
-                              disabled={
-                                purchasing && selectedSlot === adSlot.id
-                              }
-                              onClick={() => handlePurchase(adSlot.id)}
+                              onClick={() => toggleSlotSelection(adSlot.id)}
                               className={`
                                 w-full h-12 flex items-center justify-center gap-2 text-base font-semibold rounded-lg
                                 transition-all duration-200 ease-out transform
                                 disabled:opacity-50 disabled:cursor-not-allowed
                                 ${
-                                  adSlot.recommended
-                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
-                                    : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)]"
+                                  selectedSlots.includes(adSlot.id)
+                                    ? "bg-gray-700 text-white border-2 border-[#FF009F] hover:bg-gray-600"
+                                    : adSlot.recommended
+                                    ? "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)] text-white border-0"
+                                    : "bg-[#FF009F] hover:bg-[#D1007F] group-hover:shadow-[0_5px_15px_rgba(255,0,159,0.3)] text-white border-0"
                                 }
-                                group-hover:translate-y-[-2px] text-white border-0
+                                group-hover:translate-y-[-2px]
                               `}
                             >
-                              {purchasing && selectedSlot === adSlot.id ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                  Processing...
-                                </div>
+                              {selectedSlots.includes(adSlot.id) ? (
+                                <>
+                                  <CheckCircleOutlined className="text-lg" />
+                                  Selected
+                                </>
                               ) : (
                                 <>
                                   <ShoppingCartOutlined className="text-lg" />
-                                  Purchase Now
+                                  Select Slot
                                 </>
                               )}
                             </button>

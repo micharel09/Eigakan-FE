@@ -107,7 +107,10 @@ const PaymentSuccessAdSlot = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Payment Details */}
           <div className="bg-[#1f2937] rounded-xl p-4">
-            <div className="flex items-center mb-4 text-[#FF009F]">
+            <div
+              className="flex items-center mb-4"
+              style={{ color: "var(--eigakan-primary)" }}
+            >
               <DollarOutlined className="mr-2" />
               <Text className="!text-white font-medium">Payment Details</Text>
             </div>
@@ -141,14 +144,20 @@ const PaymentSuccessAdSlot = () => {
 
           {/* Package Details */}
           <div className="bg-[#1f2937] rounded-xl p-4">
-            <div className="flex items-center mb-4 text-[#FF009F]">
+            <div
+              className="flex items-center mb-4"
+              style={{ color: "var(--eigakan-primary)" }}
+            >
               <GiftOutlined className="mr-2" />
               <Text className="!text-white font-medium">Package Details</Text>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <Text className="!text-gray-400">Package Name</Text>
-                <Text className="!text-white bg-[#FF009F] px-2 py-0.5 rounded text-sm">
+                <Text
+                  className="!text-white px-2 py-0.5 rounded text-sm"
+                  style={{ backgroundColor: "var(--eigakan-primary)" }}
+                >
                   {adPackage.packageName}
                 </Text>
               </div>
@@ -163,7 +172,10 @@ const PaymentSuccessAdSlot = () => {
 
           {/* Ad Slot Details */}
           <div className="bg-[#1f2937] rounded-xl p-4">
-            <div className="flex items-center mb-4 text-[#FF009F]">
+            <div
+              className="flex items-center mb-4"
+              style={{ color: "var(--eigakan-primary)" }}
+            >
               <CalendarOutlined className="mr-2" />
               <Text className="!text-white font-medium">Ad Slot Details</Text>
             </div>
@@ -195,19 +207,22 @@ const PaymentSuccessAdSlot = () => {
           <Button
             type="primary"
             size="large"
-            icon={<DashboardOutlined />}
             onClick={handleNavigateToDashboard}
-            className="bg-[#FF009F] hover:bg-[#D1007F] border-none text-white hover:text-white shadow-lg hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
+            style={{
+              backgroundColor: "var(--eigakan-primary)",
+              borderColor: "var(--eigakan-primary)",
+              boxShadow: "0 4px 6px var(--ant-primary-color-outline)",
+            }}
+            className="text-white hover:text-white border-none hover:shadow-lg"
           >
-            Go to Dashboard
+            <DashboardOutlined /> Go to Dashboard
           </Button>
           <Button
             size="large"
-            icon={<HomeOutlined />}
             onClick={handleNavigateToHome}
             className="bg-[#374151] text-white border-none hover:bg-[#374151]/90 hover:text-white"
           >
-            Return to Home
+            <HomeOutlined /> Return to Home
           </Button>
         </div>
       </div>
@@ -233,7 +248,12 @@ const PaymentSuccessAdSlot = () => {
             type="primary"
             size="large"
             onClick={handleNavigateToPackages}
-            className="bg-[#FF009F] hover:bg-[#D1007F] border-none text-white hover:text-white shadow-lg hover:shadow-[0_5px_15px_rgba(255,0,159,0.4)]"
+            style={{
+              backgroundColor: "var(--eigakan-primary)",
+              borderColor: "var(--eigakan-primary)",
+              boxShadow: "0 4px 6px var(--ant-primary-color-outline)",
+            }}
+            className="text-white hover:text-white border-none hover:shadow-lg"
           >
             Try Again
           </Button>

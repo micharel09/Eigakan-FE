@@ -1,22 +1,5 @@
 import axios from "axios";
-
-const BASE_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Person";
-
-/**
- * Helper function to make API requests with common headers
- * @param {Function} apiCall - The API call function to execute
- * @returns {Promise} - The API response
- */
-const makeRequest = async (apiCall) => {
-  try {
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-    return await apiCall(headers);
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
-};
+import { makePublicRequest, API_URLS } from "../../utils/api";
 
 /**
  * Helper function to get pagination parameters
@@ -39,15 +22,13 @@ const actorService = {
    * @returns {Promise<Object>} Paginated list of actors
    */
   getActors: (pageNumber = 1, pageSize = 10) =>
-    makeRequest(async (headers) => {
-      const response = await axios.get(
-        BASE_URL,
+    makePublicRequest(async () => {
+      return axios.get(
+        `${API_URLS.BASE}/Person`,
         {
           ...getPaginationParams(pageNumber, pageSize),
-          headers
         }
       );
-      return response.data;
     }),
 
   /**
@@ -56,9 +37,8 @@ const actorService = {
    * @returns {Promise<Object>} Actor details
    */
   getActorById: (id) =>
-    makeRequest(async (headers) => {
-      const response = await axios.get(`${BASE_URL}/${id}`, { headers });
-      return response.data;
+    makePublicRequest(async () => {
+      return axios.get(`${API_URLS.BASE}/Person/${id}`);
     }),
 
   /**
@@ -69,15 +49,13 @@ const actorService = {
    * @returns {Promise<Object>} Paginated list of actor's movies
    */
   getActorMovies: (actorId, pageNumber = 1, pageSize = 10) =>
-    makeRequest(async (headers) => {
-      const response = await axios.get(
-        `${BASE_URL}/${actorId}/movies`,
+    makePublicRequest(async () => {
+      return axios.get(
+        `${API_URLS.BASE}/Person/${actorId}/movies`,
         {
           ...getPaginationParams(pageNumber, pageSize),
-          headers
         }
       );
-      return response.data;
     })
 };
 
