@@ -13,15 +13,18 @@ export const WatchTogetherSocketProvider = ({ children }) => {
 
   useEffect(() => {
     // Khởi tạo socket
-    const newSocket = io("http://localhost:5000", {
-      transports: ["websocket", "polling"],
-      auth: {
-        token: localStorage.getItem("token") || "",
-      },
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    const newSocket = io(
+      "https://socketserver-production-b2c5.up.railway.app/",
+      {
+        transports: ["websocket", "polling"],
+        auth: {
+          token: localStorage.getItem("token") || "",
+        },
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      }
+    );
 
     // Xử lý các sự kiện socket
     newSocket.on("connect", () => {
