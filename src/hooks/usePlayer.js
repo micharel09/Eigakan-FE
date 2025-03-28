@@ -35,60 +35,99 @@ const usePlayer = (myId, roomId, peer) => {
   const toggleAudio = useCallback(() => {
     if (!socket || !isConnected) return;
 
+    console.log("Toggling audio for user", myId);
+
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
+        // Đảo ngược trạng thái muted
         copy[myId].muted = !copy[myId].muted;
 
-        // Actually toggle the audio tracks in the stream
+        // Thực sự bật/tắt audio tracks
         if (copy[myId].url) {
           const audioTracks = copy[myId].url.getAudioTracks();
-          console.log("Audio tracks before toggle:", audioTracks);
+          console.log("Audio tracks found:", audioTracks.length);
 
           if (audioTracks.length > 0) {
             audioTracks.forEach((track) => {
+              // Quan trọng: enabled = !muted (nếu muted = true thì enabled = false)
               track.enabled = !copy[myId].muted;
-              console.log(`Audio track enabled: ${track.enabled}`);
+              console.log(
+                `Set audio track ${track.label} enabled:`,
+                track.enabled
+              );
+
+              // Thêm log để kiểm tra trạng thái sau khi thay đổi
+              setTimeout(() => {
+                console.log(`Audio track ${track.label} status after toggle:`, {
+                  enabled: track.enabled,
+                  muted: track.muted,
+                  readyState: track.readyState,
+                });
+              }, 500);
             });
           } else {
-            console.warn("No audio tracks found to toggle");
+            console.warn(
+              "No audio tracks found in stream! Trying to add audio..."
+            );
+            // Thử thêm audio track nếu không có
+            navigator.mediaDevices
+              .getUserMedia({ audio: true })
+              .then((audioStream) => {
+                const audioTrack = audioStream.getAudioTracks()[0];
+                if (audioTrack) {
+                  copy[myId].url.addTrack(audioTrack);
+                  console.log("Added new audio track to stream");
+                }
+              })
+              .catch((err) => console.error("Failed to add audio track:", err));
           }
+        } else {
+          console.warn("No stream found for toggling audio");
         }
       }
       return copy;
     });
 
+    // Thông báo cho người dùng khác
     socket.emit("user-toggle-audio", { userId: myId, roomId });
+    console.log("Emitted user-toggle-audio event");
   }, [socket, myId, roomId, isConnected]);
 
   // Toggle video
   const toggleVideo = useCallback(() => {
     if (!socket || !isConnected) return;
 
+    console.log("Toggling video for user", myId);
+
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
+        // Đảo ngược trạng thái playing
         copy[myId].playing = !copy[myId].playing;
 
-        // Actually toggle the video tracks in the stream
+        // Thực sự bật/tắt video tracks
         if (copy[myId].url) {
           const videoTracks = copy[myId].url.getVideoTracks();
-          console.log("Video tracks before toggle:", videoTracks);
+          console.log("Video tracks found:", videoTracks.length);
 
-          if (videoTracks.length > 0) {
-            videoTracks.forEach((track) => {
-              track.enabled = copy[myId].playing;
-              console.log(`Video track enabled: ${track.enabled}`);
-            });
-          } else {
-            console.warn("No video tracks found to toggle");
-          }
+          videoTracks.forEach((track) => {
+            track.enabled = copy[myId].playing;
+            console.log(
+              `Set video track ${track.label} enabled:`,
+              track.enabled
+            );
+          });
+        } else {
+          console.warn("No stream found for toggling video");
         }
       }
       return copy;
     });
 
+    // Thông báo cho người dùng khác
     socket.emit("user-toggle-video", { userId: myId, roomId });
+    console.log("Emitted user-toggle-video event");
   }, [socket, myId, roomId, isConnected]);
 
   return {

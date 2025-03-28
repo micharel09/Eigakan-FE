@@ -76,6 +76,26 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
     if (videoRef.current && !isMe) {
       videoRef.current.muted = muted;
       console.log(`Updated muted state for video to: ${muted}`);
+
+      // Thêm log để kiểm tra audio context
+      try {
+        const audioContext = new (window.AudioContext ||
+          window.webkitAudioContext)();
+        console.log("Audio context state:", audioContext.state);
+
+        // Thử phát một âm thanh ngắn để kích hoạt audio context
+        if (audioContext.state === "suspended") {
+          const oscillator = audioContext.createOscillator();
+          oscillator.type = "sine";
+          oscillator.frequency.value = 0; // 0Hz - không nghe thấy
+          oscillator.connect(audioContext.destination);
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.001);
+          console.log("Attempted to resume audio context");
+        }
+      } catch (e) {
+        console.error("Error checking audio context:", e);
+      }
     }
   }, [muted, isMe]);
 

@@ -71,7 +71,33 @@ const WatchTogetherContent = () => {
             : false,
       });
 
-      const call = peer.call(newUser, stream);
+      // Đảm bảo audio track được bật trước khi gọi
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks.forEach((track) => {
+          // Đảm bảo audio track được bật
+          track.enabled = true;
+          console.log(
+            `Ensuring audio track ${track.label} is enabled before call`
+          );
+        });
+      }
+
+      // Tạo options cho cuộc gọi
+      const callOptions = {
+        metadata: {
+          userId: myId,
+          roomId: roomId,
+        },
+        sdpTransform: (sdp) => {
+          // Đảm bảo SDP có audio
+          console.log("Original SDP:", sdp);
+          // Không thay đổi SDP, chỉ log để debug
+          return sdp;
+        },
+      };
+
+      const call = peer.call(newUser, stream, callOptions);
       console.log("Calling user with my stream:", call);
 
       call.on("stream", (incomingStream) => {
@@ -115,7 +141,7 @@ const WatchTogetherContent = () => {
     return () => {
       socket.off("user-connected", handleUserConnected);
     };
-  }, [peer, setPlayers, socket, stream]);
+  }, [peer, setPlayers, socket, stream, myId, roomId]);
 
   useEffect(() => {
     if (!socket) return;

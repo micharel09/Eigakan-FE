@@ -11,66 +11,85 @@ const useMediaStream = () => {
       try {
         console.log("Requesting media permissions...");
 
-        // Thử với audio trước, sau đó thêm video nếu có thể
-        const audioStream = await navigator.mediaDevices.getUserMedia({
+        // Yêu cầu quyền truy cập audio với các tùy chọn cụ thể
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            // Thêm các tùy chọn để đảm bảo audio hoạt động
+            channelCount: 2,
+            sampleRate: 48000,
+            sampleSize: 16,
           },
-          video: false,
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { max: 30 },
+          },
         });
 
-        console.log("Audio stream initialized successfully");
-        console.log("Audio tracks:", audioStream.getAudioTracks().length);
+        console.log("Media stream initialized successfully");
 
-        // Log chi tiết về audio tracks
-        const audioTracks = audioStream.getAudioTracks();
-        audioTracks.forEach((track) => {
-          console.log("Audio track:", {
-            label: track.label,
-            enabled: track.enabled,
-            muted: track.muted,
-            readyState: track.readyState,
-            constraints: track.getConstraints(),
+        // Đảm bảo audio track được bật
+        const audioTracks = mediaStream.getAudioTracks();
+        console.log("Audio tracks:", audioTracks.length);
+
+        if (audioTracks.length > 0) {
+          // Đảm bảo tất cả audio tracks đều được bật
+          audioTracks.forEach((track) => {
+            track.enabled = true;
+            console.log("Audio track enabled:", {
+              label: track.label,
+              enabled: track.enabled,
+              muted: track.muted,
+              readyState: track.readyState,
+              constraints: track.getConstraints(),
+            });
           });
-        });
-
-        try {
-          // Thử thêm video nếu có thể
-          const videoStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 640 },
-              height: { ideal: 480 },
-              frameRate: { max: 30 },
-            },
-          });
-
-          // Kết hợp audio và video streams
-          const combinedStream = new MediaStream();
-
-          // Thêm audio tracks
-          audioStream.getAudioTracks().forEach((track) => {
-            combinedStream.addTrack(track);
-          });
-
-          // Thêm video tracks
-          videoStream.getVideoTracks().forEach((track) => {
-            combinedStream.addTrack(track);
-          });
-
-          console.log("Combined stream created with audio and video");
-          setStream(combinedStream);
-        } catch (videoErr) {
-          console.log("Could not get video, using audio only:", videoErr);
-          // Nếu không thể lấy video, chỉ sử dụng audio
-          setStream(audioStream);
+        } else {
+          console.warn("No audio tracks found in the stream!");
         }
 
+        setStream(mediaStream);
         isStreamSet.current = true;
       } catch (err) {
         console.error("Error accessing media devices:", err);
         isStreamSet.current = false;
+
+        // Thử lại với chỉ audio nếu video thất bại
+        try {
+          console.log("Trying audio only...");
+          const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              // Thêm các tùy chọn để đảm bảo audio hoạt động
+              channelCount: 2,
+              sampleRate: 48000,
+              sampleSize: 16,
+            },
+            video: false,
+          });
+
+          // Đảm bảo audio track được bật
+          const audioTracks = audioOnlyStream.getAudioTracks();
+          audioTracks.forEach((track) => {
+            track.enabled = true;
+            console.log("Audio-only track enabled:", {
+              label: track.label,
+              enabled: track.enabled,
+              muted: track.muted,
+            });
+          });
+
+          console.log("Audio-only stream initialized");
+          setStream(audioOnlyStream);
+          isStreamSet.current = true;
+        } catch (audioErr) {
+          console.error("Failed to get even audio stream:", audioErr);
+        }
       }
     };
 
@@ -85,7 +104,7 @@ const useMediaStream = () => {
         });
       }
     };
-  }, [stream]);
+  }, []);
 
   return {
     stream,
