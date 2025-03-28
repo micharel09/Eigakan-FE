@@ -30,15 +30,11 @@ const uploadFileApi = {
       const formData = new FormData();
       formData.append("formFiles", file);
 
-
-      // Gửi request mà không cần set Content-Type
       const res = await axios.post(`${API_URL}/UploadFileContractTemp`, formData);
 
-      console.log("Response từ server:", res.data); // Log kết quả từ server
-
-      return res.data; // Trả về kết quả sau khi upload thành công
+      return res.data; 
     } catch (err) {
-      console.error("Lỗi upload:", err); // Log lỗi chi tiết
+      console.error("Lỗi upload:", err); 
       throw err.response?.data || { message: "Upload failed" };
     }
   },
