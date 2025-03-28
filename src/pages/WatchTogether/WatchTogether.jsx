@@ -65,11 +65,30 @@ const WatchTogetherContent = () => {
 
       call.on("stream", (incomingStream) => {
         console.log(`incoming stream from ${newUser}`);
+
+        // Kiểm tra audio tracks
+        const audioTracks = incomingStream.getAudioTracks();
+        console.log(
+          `Received audio tracks:`,
+          audioTracks.map((t) => ({
+            enabled: t.enabled,
+            muted: t.muted,
+            readyState: t.readyState,
+            label: t.label,
+          }))
+        );
+
+        // Đảm bảo audio tracks được bật
+        audioTracks.forEach((track) => {
+          track.enabled = true;
+          console.log(`Enabling audio track: ${track.enabled}`);
+        });
+
         setPlayers((prev) => ({
           ...prev,
           [newUser]: {
             url: incomingStream,
-            muted: true,
+            muted: false, // Mặc định không mute người dùng khác
             playing: true,
           },
         }));
@@ -138,11 +157,30 @@ const WatchTogetherContent = () => {
 
       call.on("stream", (incomingStream) => {
         console.log(`incoming stream from ${callerId}`);
+
+        // Kiểm tra audio tracks
+        const audioTracks = incomingStream.getAudioTracks();
+        console.log(
+          `Received audio tracks from call:`,
+          audioTracks.map((t) => ({
+            enabled: t.enabled,
+            muted: t.muted,
+            readyState: t.readyState,
+            label: t.label,
+          }))
+        );
+
+        // Đảm bảo audio tracks được bật
+        audioTracks.forEach((track) => {
+          track.enabled = true;
+          console.log(`Enabling audio track from call: ${track.enabled}`);
+        });
+
         setPlayers((prev) => ({
           ...prev,
           [callerId]: {
             url: incomingStream,
-            muted: true,
+            muted: false, // Mặc định không mute người dùng khác
             playing: true,
           },
         }));
