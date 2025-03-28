@@ -14,8 +14,8 @@ const usePeer = (roomId) => {
     // Dynamically import PeerJS
     import("peerjs")
       .then(({ default: Peer }) => {
-        // Tạo peer với cấu hình tối ưu cho audio
-        const myPeer = new Peer(undefined, {
+        // Thêm cấu hình để ưu tiên audio
+        const peerConfig = {
           host: "0.peerjs.com",
           port: 443,
           secure: true,
@@ -52,10 +52,30 @@ const usePeer = (roomId) => {
           },
           // Thêm cấu hình media để ưu tiên audio
           constraints: {
-            audio: true,
+            audio: {
+              mandatory: {
+                echoCancellation: true,
+                googEchoCancellation: true,
+                googAutoGainControl: true,
+                googNoiseSuppression: true,
+                googHighpassFilter: true,
+                googTypingNoiseDetection: true,
+                googAudioMirroring: false,
+              },
+            },
             video: true,
           },
-        });
+          // Thêm cấu hình để ưu tiên audio trong kết nối
+          sdpTransform: (sdp) => {
+            // Tăng ưu tiên cho audio trong SDP
+            return sdp.replace(
+              "a=group:BUNDLE audio video",
+              "a=group:BUNDLE video audio"
+            );
+          },
+        };
+
+        const myPeer = new Peer(undefined, peerConfig);
 
         setPeer(myPeer);
 
