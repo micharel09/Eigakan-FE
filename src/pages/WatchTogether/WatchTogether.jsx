@@ -181,6 +181,7 @@ const WatchTogetherContent = () => {
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
         if (copy[userId]) {
+          // Đảo ngược trạng thái muted
           copy[userId].muted = !copy[userId].muted;
 
           // Không cần thay đổi trạng thái audio track của người khác
@@ -188,6 +189,20 @@ const WatchTogetherContent = () => {
           console.log(
             `Updated muted state for user ${userId} to ${copy[userId].muted}`
           );
+
+          // Quan trọng: Nếu stream có sẵn, cập nhật trạng thái của video element
+          if (copy[userId].url) {
+            // Tìm video element hiển thị stream này
+            const videoElements = document.querySelectorAll("video");
+            videoElements.forEach((video) => {
+              if (video.srcObject === copy[userId].url) {
+                video.muted = copy[userId].muted;
+                console.log(
+                  `Updated video element muted state to ${video.muted}`
+                );
+              }
+            });
+          }
         }
         return { ...copy };
       });
@@ -335,8 +350,51 @@ const WatchTogetherContent = () => {
     }
   };
 
+  // Thêm state để theo dõi trạng thái audio context
+  const [audioActivated, setAudioActivated] = useState(false);
+
+  // Thêm hàm để kích hoạt audio
+  const activateAudio = () => {
+    try {
+      // Tạo và kích hoạt audio context
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      audioContext.resume().then(() => {
+        console.log("Audio context activated by user");
+        setAudioActivated(true);
+
+        // Phát âm thanh test
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = "sine";
+        oscillator.frequency.value = 440;
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1);
+
+        // Đảm bảo tất cả video elements đều được unmute nếu cần
+        document.querySelectorAll("video").forEach((video) => {
+          if (!video.muted && video.paused) {
+            video.play().catch((e) => console.error("Error playing video:", e));
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Error activating audio:", e);
+    }
+  };
+
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
+      {/* Nút kích hoạt âm thanh */}
+      {!audioActivated && (
+        <button
+          onClick={activateAudio}
+          className="absolute top-4 left-4 z-50 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+        >
+          Kích hoạt âm thanh
+        </button>
+      )}
+
       {/* Right panel - other participants' videos */}
       {Object.keys(otherPlayers).length > 0 && (
         <div className="absolute flex flex-col overflow-y-auto z-20 space-y-3 w-[220px] h-[calc(100vh-40px-80px)] right-5 top-5">

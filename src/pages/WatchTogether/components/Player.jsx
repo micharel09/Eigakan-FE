@@ -106,6 +106,12 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
             const destination = audioContext.createMediaStreamDestination();
             source.connect(destination);
             console.log("Connected stream to audio context");
+
+            // Đảm bảo audio tracks được bật
+            url.getAudioTracks().forEach((track) => {
+              track.enabled = !muted;
+              console.log(`Set incoming audio track enabled: ${track.enabled}`);
+            });
           } catch (e) {
             console.error("Error connecting stream to audio context:", e);
           }
@@ -122,6 +128,54 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
       }
     }
   }, [muted, isMe, url]);
+
+  // Thêm một useEffect mới để xử lý khi component mount
+  useEffect(() => {
+    // Thêm sự kiện click để kích hoạt audio context
+    const handleUserInteraction = () => {
+      if (videoRef.current && !isMe) {
+        try {
+          // Kích hoạt audio context
+          const audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          if (audioContext.state === "suspended") {
+            audioContext.resume();
+          }
+
+          // Phát video
+          if (videoRef.current.paused) {
+            videoRef.current
+              .play()
+              .catch((e) => console.log("Error playing video:", e));
+          }
+
+          // Đảm bảo muted state được áp dụng
+          videoRef.current.muted = muted;
+
+          // Đảm bảo audio tracks được bật nếu không muted
+          if (url && !muted && !isMe) {
+            url.getAudioTracks().forEach((track) => {
+              track.enabled = true;
+            });
+          }
+
+          console.log("User interaction handled, audio context activated");
+
+          // Xóa sự kiện sau khi đã xử lý
+          document.removeEventListener("click", handleUserInteraction);
+        } catch (e) {
+          console.error("Error handling user interaction:", e);
+        }
+      }
+    };
+
+    // Thêm sự kiện click vào document
+    document.addEventListener("click", handleUserInteraction);
+
+    return () => {
+      document.removeEventListener("click", handleUserInteraction);
+    };
+  }, [isMe, muted, url]);
 
   return (
     <div

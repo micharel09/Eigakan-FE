@@ -72,10 +72,18 @@ const usePlayer = (myId, roomId, peer) => {
             );
             // Thử thêm audio track nếu không có
             navigator.mediaDevices
-              .getUserMedia({ audio: true })
+              .getUserMedia({
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true,
+                },
+              })
               .then((audioStream) => {
                 const audioTrack = audioStream.getAudioTracks()[0];
                 if (audioTrack) {
+                  // Đảm bảo track được bật
+                  audioTrack.enabled = !copy[myId].muted;
                   copy[myId].url.addTrack(audioTrack);
                   console.log("Added new audio track to stream");
                 }
