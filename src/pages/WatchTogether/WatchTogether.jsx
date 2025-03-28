@@ -119,9 +119,46 @@ const WatchTogetherContent = () => {
           // Log SDP để debug
           console.log("Original SDP:", sdp);
 
-          // Đảm bảo audio được ưu tiên trong SDP
-          // Không thay đổi SDP, chỉ log để debug
-          return sdp;
+          // Tăng ưu tiên cho audio trong SDP
+          let modifiedSdp = sdp;
+
+          // Tăng băng thông cho audio
+          modifiedSdp = modifiedSdp.replace(
+            /a=mid:audio\r\n/g,
+            "a=mid:audio\r\nb=AS:128\r\n"
+          );
+
+          // Đảm bảo audio được ưu tiên trong bundle
+          modifiedSdp = modifiedSdp.replace(
+            "a=group:BUNDLE audio video",
+            "a=group:BUNDLE audio video"
+          );
+
+          // Đảm bảo opus codec được sử dụng cho audio với chất lượng cao
+          if (modifiedSdp.indexOf("opus/48000/2") !== -1) {
+            // Tìm dòng opus và thêm các tham số để cải thiện chất lượng
+            const opusLine = modifiedSdp.match(/a=rtpmap:(\d+) opus\/48000\/2/);
+            if (opusLine && opusLine[1]) {
+              const opusPayloadType = opusLine[1];
+              const fmtpLine = `a=fmtp:${opusPayloadType} minptime=10;useinbandfec=1;stereo=1;maxaveragebitrate=128000`;
+
+              // Thêm hoặc thay thế dòng fmtp cho opus
+              if (modifiedSdp.indexOf(`a=fmtp:${opusPayloadType}`) !== -1) {
+                modifiedSdp = modifiedSdp.replace(
+                  new RegExp(`a=fmtp:${opusPayloadType}.*\r\n`),
+                  `${fmtpLine}\r\n`
+                );
+              } else {
+                modifiedSdp = modifiedSdp.replace(
+                  new RegExp(`a=rtpmap:${opusPayloadType} opus/48000/2\r\n`),
+                  `a=rtpmap:${opusPayloadType} opus/48000/2\r\nb=AS:128\r\n${fmtpLine}\r\n`
+                );
+              }
+            }
+          }
+
+          console.log("Modified SDP:", modifiedSdp);
+          return modifiedSdp;
         },
       };
 
@@ -472,6 +509,89 @@ const WatchTogetherContent = () => {
     </button>
   );
 
+  // Thêm hàm để khởi động lại kết nối âm thanh
+  const restartAudioConnection = useCallback(() => {
+    console.log("Restarting audio connection for all users");
+
+    // Đóng tất cả kết nối hiện tại
+    Object.values(users).forEach((call) => {
+      if (call && typeof call.close === "function") {
+        call.close();
+      }
+    });
+
+    // Xóa tất cả người dùng khác
+    const myPlayerData = players[myId];
+    setPlayers({
+      [myId]: myPlayerData,
+    });
+    setUsers({});
+
+    // Đảm bảo audio track của mình được bật
+    if (stream) {
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+        console.log("Enabled my audio track for restart");
+      });
+    }
+
+    // Thông báo cho server để tất cả người dùng khác kết nối lại
+    socket.emit("restart-connections", { roomId });
+
+    // Hiển thị thông báo
+    alert("Đang khởi động lại kết nối âm thanh. Vui lòng đợi trong giây lát.");
+  }, [myId, players, setPlayers, socket, stream, users, roomId]);
+
+  // Thêm xử lý sự kiện restart-connections
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRestartConnections = () => {
+      console.log("Received restart-connections event");
+
+      // Đóng tất cả kết nối hiện tại
+      Object.values(users).forEach((call) => {
+        if (call && typeof call.close === "function") {
+          call.close();
+        }
+      });
+
+      // Xóa tất cả người dùng khác
+      const myPlayerData = players[myId];
+      setPlayers({
+        [myId]: myPlayerData,
+      });
+      setUsers({});
+
+      // Đảm bảo audio track của mình được bật
+      if (stream) {
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = true;
+          console.log("Enabled my audio track for restart");
+        });
+      }
+
+      // Kết nối lại với phòng
+      socket.emit("join-room", { roomId, userId: myId });
+    };
+
+    socket.on("restart-connections", handleRestartConnections);
+
+    return () => {
+      socket.off("restart-connections", handleRestartConnections);
+    };
+  }, [socket, users, players, myId, setPlayers, stream, roomId]);
+
+  // Thêm nút khởi động lại kết nối âm thanh
+  const restartButton = (
+    <button
+      onClick={restartAudioConnection}
+      className="absolute top-16 right-4 z-50 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
+    >
+      Khởi động lại kết nối âm thanh
+    </button>
+  );
+
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
       {/* Nút kích hoạt âm thanh */}
@@ -486,6 +606,9 @@ const WatchTogetherContent = () => {
 
       {/* Nút đồng bộ âm thanh */}
       {syncButton}
+
+      {/* Nút khởi động lại kết nối âm thanh */}
+      {restartButton}
 
       {/* Right panel - other participants' videos */}
       {Object.keys(otherPlayers).length > 0 && (
