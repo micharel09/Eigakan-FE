@@ -91,14 +91,18 @@ const getBunnyStreamEmbedUrl = (url) => {
 
 // Movie stats badge component for cleaner UI
 const StatBadge = memo(({ icon, value, label, color = "white" }) => (
-  <div className="flex flex-col items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-white/5 backdrop-blur-sm rounded-lg">
-    <div className="flex items-center gap-0.5 sm:gap-1">
+  <div className="flex flex-col items-center px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 md:py-2 bg-white/5 backdrop-blur-sm rounded-lg">
+    <div className="flex items-center gap-1 sm:gap-1.5">
       {icon}
-      <span className={`text-${color} font-bold text-[10px] sm:text-xs`}>
+      <span
+        className={`text-${color} font-bold text-[11px] sm:text-sm md:text-base`}
+      >
         {value}
       </span>
     </div>
-    <span className="text-gray-400 text-[7px] sm:text-[10px]">{label}</span>
+    <span className="text-gray-400 text-[8px] sm:text-[10px] md:text-xs">
+      {label}
+    </span>
   </div>
 ));
 
@@ -106,7 +110,7 @@ const StatBadge = memo(({ icon, value, label, color = "white" }) => (
 const GenreBadge = memo(({ name }) => (
   <motion.span
     whileHover={{ scale: 1.05 }}
-    className="px-1 sm:px-1.5 py-0.5 bg-gradient-to-r from-[#FF009F]/20 to-[#FF009F]/10 backdrop-blur-sm border border-[#FF009F]/20 rounded-full text-[9px] sm:text-[10px] text-white cursor-pointer transition-all"
+    className="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 md:py-1 bg-gradient-to-r from-[#FF009F]/20 to-[#FF009F]/10 backdrop-blur-sm border border-[#FF009F]/20 rounded-full text-[9px] sm:text-xs md:text-sm text-white cursor-pointer transition-all"
   >
     {name}
   </motion.span>
@@ -115,14 +119,17 @@ const GenreBadge = memo(({ name }) => (
 // Action button component for consistent styling
 const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
   <motion.button
-    whileTap={{ scale: 0.97 }}
-    whileHover={{ scale: 1.03 }}
+    whileTap={{ scale: 0.95 }}
+    whileHover={{ scale: 1.02 }}
     onClick={onClick}
-    className={`min-w-[70px] sm:min-w-[90px] md:min-w-[110px] h-7 sm:h-8 md:h-9 flex items-center justify-center gap-1 rounded-lg font-medium text-[10px] sm:text-xs ${
+    className={`w-full rounded-lg font-medium transition-all duration-200 
+    ${
       primary
-        ? "bg-gradient-to-r from-[#FF009F] to-[#FF0055] text-white"
-        : "bg-white/10 hover:bg-white/15 text-white"
-    } shadow-lg transition-all duration-300`}
+        ? "bg-gradient-to-r from-[#FF009F] to-[#FF0055] text-white hover:shadow-lg hover:shadow-[#FF009F]/20"
+        : "bg-white/10 hover:bg-white/15 text-white border border-white/5 hover:border-white/10"
+    }
+    text-[10px] h-9 sm:text-xs md:text-sm md:h-10 
+    flex items-center justify-center gap-1.5`}
   >
     {icon}
     <span>{children}</span>
@@ -180,6 +187,30 @@ const MovieFacts = memo(({ movie }) => {
         }))
       : []);
 
+  // Define movieStats for this component
+  const movieStats = [
+    {
+      label: "Director",
+      value: movie.director,
+      icon: <Award className="w-4 h-4 text-[#FF009F] opacity-80" />,
+    },
+    {
+      label: "Release Year",
+      value: movie.releaseYear,
+      icon: <Calendar className="w-4 h-4 text-[#FF009F] opacity-80" />,
+    },
+    {
+      label: "Duration",
+      value: `${movie.duration} minutes`,
+      icon: <Clock className="w-4 h-4 text-[#FF009F] opacity-80" />,
+    },
+    {
+      label: "Nation",
+      value: movie.nation,
+      icon: <Globe className="w-4 h-4 text-[#FF009F] opacity-80" />,
+    },
+  ];
+
   return (
     <div className="w-full lg:w-1/3 space-y-4 sm:space-y-6">
       <motion.div
@@ -192,58 +223,40 @@ const MovieFacts = memo(({ movie }) => {
           <InfoCircleOutlined className="text-[#FF009F]" />
           Movie Details
         </h2>
-        <div className="space-y-2 sm:space-y-3 md:space-y-4">
-          {[
-            {
-              label: "Director",
-              value: movie.director,
-              icon: <Award className="w-4 h-4 text-[#FF009F] opacity-80" />,
-            },
-            {
-              label: "Release Year",
-              value: movie.releaseYear,
-              icon: <Calendar className="w-4 h-4 text-[#FF009F] opacity-80" />,
-            },
-            {
-              label: "Duration",
-              value: `${movie.duration} minutes`,
-              icon: <Clock className="w-4 h-4 text-[#FF009F] opacity-80" />,
-            },
-            {
-              label: "Nation",
-              value: movie.nation,
-              icon: <Globe className="w-4 h-4 text-[#FF009F] opacity-80" />,
-            },
-          ].map(({ label, value, icon }) => (
-            <div
-              key={label}
-              className="flex items-center pb-2 sm:pb-3 border-b border-gray-800/70"
-            >
-              <div className="flex items-center gap-2 text-gray-300 w-20 sm:w-24 md:w-32 text-xs sm:text-sm md:text-base">
-                {icon}
-                <span>{label}</span>
+        <div className="space-y-4 sm:space-y-5">
+          {/* Movie details section */}
+          <div className="space-y-2 sm:space-y-3">
+            {movieStats.map(({ label, value, icon }) => (
+              <div
+                key={label}
+                className="flex items-center pb-2 sm:pb-3 border-b border-gray-800/70"
+              >
+                <div className="flex items-center gap-2 text-gray-300 w-20 sm:w-24 md:w-32 text-xs sm:text-sm md:text-base">
+                  {icon}
+                  <span>{label}</span>
+                </div>
+                <span className="text-white font-medium ml-2 text-xs sm:text-sm md:text-base">
+                  {value}
+                </span>
               </div>
-              <span className="text-white font-medium ml-2 text-xs sm:text-sm md:text-base">
-                {value}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
 
-          {/* Genres display */}
+          {/* Genres section */}
           <div className="pt-2">
-            <div className="flex items-center gap-2 text-gray-300 mb-1 sm:mb-2 md:mb-3">
-              <Tag className="rounded-full border-none bg-[#FF009F]/20 text-[#FF009F] text-xs sm:text-sm">
+            <h3 className="text-base font-medium text-white mb-2 sm:mb-3 flex items-center gap-2">
+              <Tag className="rounded-full border-none bg-[#FF009F]/20 text-[#FF009F] text-xs">
                 Genres
               </Tag>
-            </div>
-            <div className="flex flex-wrap gap-1 sm:gap-2">
+            </h3>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 md:gap-3">
               {genresArray && genresArray.length > 0 ? (
                 genresArray.map((genre) => (
                   <GenreBadge key={genre.id || genre.name} name={genre.name} />
                 ))
               ) : (
-                <span className="text-gray-400 text-xs sm:text-sm">
-                  No genres available
+                <span className="text-gray-400 text-xs md:text-sm px-2 md:px-3 py-0.5 md:py-1 bg-white/5 rounded-full">
+                  No genres
                 </span>
               )}
             </div>
@@ -342,33 +355,41 @@ const MovieHero = memo(
     // Calculate badges for key movie stats
     const movieStats = [
       {
-        icon: <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />,
+        icon: (
+          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-[#FF009F]" />
+        ),
         value: movie.releaseYear,
         label: "Year",
       },
       {
-        icon: <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />,
+        icon: (
+          <Clock className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-[#FF009F]" />
+        ),
         value: `${movie.duration}m`,
         label: "Duration",
       },
       {
-        icon: <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />,
+        icon: (
+          <Star className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-yellow-500" />
+        ),
         value:
           movie.imdbRating?.toFixed(1) || movie.rating?.toFixed(1) || "N/A",
         label: movie.imdbRating ? "IMDB" : "Rating",
         color: "yellow-500",
       },
       {
-        icon: <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />,
+        icon: (
+          <Globe className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-[#FF009F]" />
+        ),
         value: movie.nation,
         label: "Country",
       },
     ];
 
     return (
-      <div className="relative w-full overflow-hidden -mt-16 pt-16 min-h-[85vh] sm:min-h-[75vh] pb-4 sm:pb-8">
+      <div className="relative w-full overflow-hidden pt-12 sm:pt-16 md:pt-20 min-h-[85vh] sm:min-h-[75vh] md:min-h-[60vh] lg:min-h-[65vh] xl:min-h-[60vh] pb-4 sm:pb-6 md:pb-0">
         {/* Background Banner with parallax effect */}
-        <div className="absolute inset-0 -top-1">
+        <div className="absolute inset-0 top-0">
           <motion.div
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
@@ -378,7 +399,7 @@ const MovieHero = memo(
             <img
               src={banner?.url || poster?.url || "/placeholder.jpg"}
               alt={movie.title}
-              className="w-full h-full object-cover -mt-1"
+              className="w-full h-full object-cover"
             />
           </motion.div>
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent" />
@@ -386,15 +407,15 @@ const MovieHero = memo(
         </div>
 
         {/* Movie Info Container with staggered animations */}
-        <div className="absolute inset-0 flex items-center justify-center overflow-y-auto">
-          <div className="container mx-auto px-3 sm:px-4 w-full mt-12 sm:mt-0">
-            <div className="w-full flex flex-col md:flex-row items-center md:items-start gap-4 sm:gap-6 md:gap-8 pt-4 sm:pt-6 md:pt-8">
+        <div className="absolute inset-0 top-0 flex items-center justify-center">
+          <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 w-full mt-28 sm:mt-20 md:mt-16 lg:mt-12">
+            <div className="w-full flex flex-col md:flex-row items-center md:items-start lg:items-center gap-5 sm:gap-6 md:gap-8 lg:gap-10 pt-14 sm:pt-8 md:pt-0">
               {/* Poster with subtle hover effect */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="w-36 sm:w-44 md:w-52 lg:w-64 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 z-10"
+                className="w-40 sm:w-48 md:w-56 lg:w-64 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 z-10"
               >
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -410,110 +431,133 @@ const MovieHero = memo(
               </motion.div>
 
               {/* Movie Info with staggered animations */}
-              <div className="flex-1 mt-4 sm:mt-5 md:mt-0 text-center sm:text-center md:text-left">
+              <div className="flex-1 mt-5 sm:mt-6 md:mt-0 text-center sm:text-center md:text-left max-w-full md:max-w-3xl">
                 <motion.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.2 }}
+                  className="md:pr-4"
                 >
-                  <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 leading-tight">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 sm:mb-4 leading-tight">
                     {movie.title}
                   </h1>
                 </motion.div>
 
-                {/* Movie stats badges */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: 0.3 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-1 sm:gap-2 mb-2 sm:mb-3"
-                >
-                  {movieStats.map((stat, index) => (
-                    <StatBadge
-                      key={index}
-                      icon={stat.icon}
-                      value={stat.value}
-                      label={stat.label}
-                      color={stat.color}
-                    />
-                  ))}
-                </motion.div>
-
-                {/* Genres */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: 0.4 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-1 sm:gap-2 mb-2 sm:mb-3"
-                >
-                  {genresArray && genresArray.length > 0 ? (
-                    genresArray.map((genre) => (
-                      <GenreBadge
-                        key={genre.id || genre.name}
-                        name={genre.name}
-                      />
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-xs px-2 py-0.5 bg-white/5 rounded-full">
-                      No genres
-                    </span>
-                  )}
-                </motion.div>
-
-                {/* Description with line clamp */}
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: 0.5 }}
-                  className="text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3 max-w-3xl mx-auto md:mx-0"
-                >
-                  {movie.description}
-                </motion.p>
-
-                {/* Action buttons with animations */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, delay: 0.6 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2"
-                >
-                  <ActionButton
-                    icon={
-                      <PlayCircleOutlined className="text-sm sm:text-base" />
-                    }
-                    primary={true}
-                    onClick={onWatchNow}
-                  >
-                    Watch Now
-                  </ActionButton>
-
-                  {trailer && (
-                    <ActionButton
-                      icon={
-                        <YoutubeOutlined className="text-sm sm:text-base" />
-                      }
-                      onClick={onTrailerClick}
+                <div className="md:flex md:flex-wrap md:items-start md:justify-between md:gap-4">
+                  <div className="md:flex-1 md:pr-8">
+                    {/* Movie stats badges */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.7, delay: 0.3 }}
+                      className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2 md:gap-3 mb-3 sm:mb-4"
                     >
-                      Watch Trailer
-                    </ActionButton>
-                  )}
+                      {movieStats.map((stat, index) => (
+                        <StatBadge
+                          key={index}
+                          icon={stat.icon}
+                          value={stat.value}
+                          label={stat.label}
+                          color={stat.color}
+                        />
+                      ))}
+                    </motion.div>
 
-                  <ActionButton
-                    icon={<TeamOutlined className="text-sm sm:text-base" />}
-                    onClick={onCreateRoom}
-                  >
-                    Create Room
-                  </ActionButton>
+                    {/* Genres */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.7, delay: 0.4 }}
+                      className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2 md:gap-3 mb-4 sm:mb-5"
+                    >
+                      {genresArray && genresArray.length > 0 ? (
+                        genresArray.map((genre) => (
+                          <GenreBadge
+                            key={genre.id || genre.name}
+                            name={genre.name}
+                          />
+                        ))
+                      ) : (
+                        <span className="text-gray-400 text-xs md:text-sm px-2 md:px-3 py-0.5 md:py-1 bg-white/5 rounded-full">
+                          No genres
+                        </span>
+                      )}
+                    </motion.div>
 
-                  <ActionButton
-                    icon={
-                      <UsergroupAddOutlined className="text-sm sm:text-base" />
-                    }
-                    onClick={onJoinRoom}
+                    {/* Short description preview on desktop only */}
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.7, delay: 0.5 }}
+                      className="hidden md:block text-gray-300 text-sm lg:text-base leading-relaxed line-clamp-3 max-w-2xl mb-6"
+                    >
+                      {movie.description}
+                    </motion.p>
+
+                    {/* Mobile description - above buttons on small screens */}
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.7, delay: 0.5 }}
+                      className="block md:hidden text-gray-300 text-xs sm:text-sm leading-relaxed line-clamp-3 max-w-2xl mb-4 px-3 sm:px-4"
+                    >
+                      {movie.description}
+                    </motion.p>
+                  </div>
+
+                  {/* Action buttons with animations - moved to right side on desktop */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7, delay: 0.5 }}
+                    className="flex flex-wrap justify-center md:justify-end gap-3 sm:gap-4 md:gap-0 w-full md:w-auto md:min-w-[180px] lg:min-w-[200px] mx-auto md:mx-0 md:self-start md:mt-0 lg:self-center"
                   >
-                    Join Room
-                  </ActionButton>
-                </motion.div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-1 gap-2.5 sm:gap-3 w-full max-w-3xl sm:max-w-none mx-auto">
+                      <ActionButton
+                        icon={
+                          <PlayCircleOutlined className="text-sm sm:text-base md:text-lg" />
+                        }
+                        primary={true}
+                        onClick={onWatchNow}
+                      >
+                        <span className="block sm:hidden">Watch</span>
+                        <span className="hidden sm:block">Watch Now</span>
+                      </ActionButton>
+
+                      {trailer && (
+                        <ActionButton
+                          icon={
+                            <YoutubeOutlined className="text-sm sm:text-base md:text-lg" />
+                          }
+                          onClick={onTrailerClick}
+                        >
+                          <span className="block sm:hidden">Trailer</span>
+                          <span className="hidden sm:block">Watch Trailer</span>
+                        </ActionButton>
+                      )}
+
+                      <ActionButton
+                        icon={
+                          <TeamOutlined className="text-sm sm:text-base md:text-lg" />
+                        }
+                        onClick={onCreateRoom}
+                      >
+                        <span className="block sm:hidden">Create</span>
+                        <span className="hidden sm:block">Create Room</span>
+                      </ActionButton>
+
+                      <ActionButton
+                        icon={
+                          <UsergroupAddOutlined className="text-sm sm:text-base md:text-lg" />
+                        }
+                        onClick={onJoinRoom}
+                      >
+                        <span className="block sm:hidden">Join</span>
+                        <span className="hidden sm:block">Join Room</span>
+                      </ActionButton>
+                    </div>
+                  </motion.div>
+                </div>
               </div>
             </div>
           </div>
@@ -842,17 +886,19 @@ const MoviePage = () => {
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
-      <MovieHero
-        movie={movie}
-        onTrailerClick={() =>
-          document
-            .getElementById("trailer")
-            ?.scrollIntoView({ behavior: "smooth", block: "center" })
-        }
-        onCreateRoom={() => setIsCreateRoomModalVisible(true)}
-        onJoinRoom={() => setIsJoinRoomModalVisible(true)}
-        onWatchNow={() => navigate(`/watch/${movieId}`)}
-      />
+      <div className="bg-transparent">
+        <MovieHero
+          movie={movie}
+          onTrailerClick={() =>
+            document
+              .getElementById("trailer")
+              ?.scrollIntoView({ behavior: "smooth", block: "center" })
+          }
+          onCreateRoom={() => setIsCreateRoomModalVisible(true)}
+          onJoinRoom={() => setIsJoinRoomModalVisible(true)}
+          onWatchNow={() => navigate(`/watch/${movieId}`)}
+        />
+      </div>
 
       <div className="bg-black min-h-screen">
         {/* Seamless transition from hero to content */}
@@ -872,21 +918,6 @@ const MoviePage = () => {
                 children: (
                   <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mb-6 sm:mb-8">
                     <div className="w-full lg:w-2/3">
-                      {/* Movie description with "read more" */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="mb-2 sm:mb-4 md:mb-6"
-                      >
-                        <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 text-white">
-                          Storyline
-                        </h2>
-                        <p className="text-gray-300 text-xs sm:text-sm md:text-base leading-relaxed">
-                          {movie.description}
-                        </p>
-                      </motion.div>
-
                       {/* Trailer section */}
                       {trailer && (
                         <TrailerSection
