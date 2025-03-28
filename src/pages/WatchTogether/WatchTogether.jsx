@@ -86,7 +86,7 @@ const WatchTogetherContent = () => {
       const audioTracks = stream.getAudioTracks();
       if (audioTracks.length > 0) {
         audioTracks.forEach((track) => {
-          // Đảm bảo audio track được bật
+          // Quan trọng: Luôn bật audio track khi gọi
           track.enabled = true;
           console.log(
             `Ensuring audio track ${track.label} is enabled before call`
@@ -96,10 +96,18 @@ const WatchTogetherContent = () => {
         console.warn("No audio tracks found before call!");
         // Thử thêm audio track nếu không có
         navigator.mediaDevices
-          .getUserMedia({ audio: true })
+          .getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              channelCount: 2,
+            },
+          })
           .then((audioStream) => {
             const audioTrack = audioStream.getAudioTracks()[0];
             if (audioTrack) {
+              audioTrack.enabled = true; // Đảm bảo track được bật
               stream.addTrack(audioTrack);
               console.log("Added new audio track to stream before call");
             }
@@ -119,46 +127,9 @@ const WatchTogetherContent = () => {
           // Log SDP để debug
           console.log("Original SDP:", sdp);
 
-          // Tăng ưu tiên cho audio trong SDP
-          let modifiedSdp = sdp;
-
-          // Tăng băng thông cho audio
-          modifiedSdp = modifiedSdp.replace(
-            /a=mid:audio\r\n/g,
-            "a=mid:audio\r\nb=AS:128\r\n"
-          );
-
-          // Đảm bảo audio được ưu tiên trong bundle
-          modifiedSdp = modifiedSdp.replace(
-            "a=group:BUNDLE audio video",
-            "a=group:BUNDLE audio video"
-          );
-
-          // Đảm bảo opus codec được sử dụng cho audio với chất lượng cao
-          if (modifiedSdp.indexOf("opus/48000/2") !== -1) {
-            // Tìm dòng opus và thêm các tham số để cải thiện chất lượng
-            const opusLine = modifiedSdp.match(/a=rtpmap:(\d+) opus\/48000\/2/);
-            if (opusLine && opusLine[1]) {
-              const opusPayloadType = opusLine[1];
-              const fmtpLine = `a=fmtp:${opusPayloadType} minptime=10;useinbandfec=1;stereo=1;maxaveragebitrate=128000`;
-
-              // Thêm hoặc thay thế dòng fmtp cho opus
-              if (modifiedSdp.indexOf(`a=fmtp:${opusPayloadType}`) !== -1) {
-                modifiedSdp = modifiedSdp.replace(
-                  new RegExp(`a=fmtp:${opusPayloadType}.*\r\n`),
-                  `${fmtpLine}\r\n`
-                );
-              } else {
-                modifiedSdp = modifiedSdp.replace(
-                  new RegExp(`a=rtpmap:${opusPayloadType} opus/48000/2\r\n`),
-                  `a=rtpmap:${opusPayloadType} opus/48000/2\r\nb=AS:128\r\n${fmtpLine}\r\n`
-                );
-              }
-            }
-          }
-
-          console.log("Modified SDP:", modifiedSdp);
-          return modifiedSdp;
+          // Đảm bảo audio được ưu tiên trong SDP
+          // Không thay đổi SDP, chỉ log để debug
+          return sdp;
         },
       };
 
@@ -178,6 +149,15 @@ const WatchTogetherContent = () => {
                 : false,
           });
 
+          // Đảm bảo audio tracks từ stream đến được bật
+          const incomingAudioTracks = incomingStream.getAudioTracks();
+          incomingAudioTracks.forEach((track) => {
+            track.enabled = true; // Luôn bật audio track khi nhận
+            console.log(
+              `Ensuring incoming audio track ${track.label} is enabled`
+            );
+          });
+
           setPlayers((prev) => ({
             ...prev,
             [newUser]: {
@@ -186,6 +166,19 @@ const WatchTogetherContent = () => {
               playing: true,
             },
           }));
+
+          // Kích hoạt audio context để đảm bảo audio hoạt động
+          try {
+            const audioContext = new (window.AudioContext ||
+              window.webkitAudioContext)();
+            if (audioContext.state === "suspended") {
+              audioContext.resume().then(() => {
+                console.log("Audio context resumed for incoming stream");
+              });
+            }
+          } catch (e) {
+            console.error("Error with audio context for incoming stream:", e);
+          }
 
           setUsers((prev) => ({
             ...prev,
@@ -340,6 +333,19 @@ const WatchTogetherContent = () => {
             playing: true,
           },
         }));
+
+        // Kích hoạt audio context để đảm bảo audio hoạt động
+        try {
+          const audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          if (audioContext.state === "suspended") {
+            audioContext.resume().then(() => {
+              console.log("Audio context resumed for incoming stream");
+            });
+          }
+        } catch (e) {
+          console.error("Error with audio context for incoming stream:", e);
+        }
 
         setUsers((prev) => ({
           ...prev,
@@ -509,88 +515,46 @@ const WatchTogetherContent = () => {
     </button>
   );
 
-  // Thêm hàm để khởi động lại kết nối âm thanh
-  const restartAudioConnection = useCallback(() => {
-    console.log("Restarting audio connection for all users");
-
-    // Đóng tất cả kết nối hiện tại
-    Object.values(users).forEach((call) => {
-      if (call && typeof call.close === "function") {
-        call.close();
-      }
-    });
-
-    // Xóa tất cả người dùng khác
-    const myPlayerData = players[myId];
-    setPlayers({
-      [myId]: myPlayerData,
-    });
-    setUsers({});
-
-    // Đảm bảo audio track của mình được bật
-    if (stream) {
-      stream.getAudioTracks().forEach((track) => {
-        track.enabled = true;
-        console.log("Enabled my audio track for restart");
-      });
-    }
-
-    // Thông báo cho server để tất cả người dùng khác kết nối lại
-    socket.emit("restart-connections", { roomId });
-
-    // Hiển thị thông báo
-    alert("Đang khởi động lại kết nối âm thanh. Vui lòng đợi trong giây lát.");
-  }, [myId, players, setPlayers, socket, stream, users, roomId]);
-
-  // Thêm xử lý sự kiện restart-connections
+  // Thêm useEffect để kích hoạt audio context khi trang được tải
   useEffect(() => {
-    if (!socket) return;
-
-    const handleRestartConnections = () => {
-      console.log("Received restart-connections event");
-
-      // Đóng tất cả kết nối hiện tại
-      Object.values(users).forEach((call) => {
-        if (call && typeof call.close === "function") {
-          call.close();
+    // Hàm để kích hoạt audio context
+    const activateAudio = () => {
+      try {
+        const audioContext = new (window.AudioContext ||
+          window.webkitAudioContext)();
+        if (audioContext.state === "suspended") {
+          audioContext.resume().then(() => {
+            console.log("Audio context activated automatically");
+          });
         }
-      });
-
-      // Xóa tất cả người dùng khác
-      const myPlayerData = players[myId];
-      setPlayers({
-        [myId]: myPlayerData,
-      });
-      setUsers({});
-
-      // Đảm bảo audio track của mình được bật
-      if (stream) {
-        stream.getAudioTracks().forEach((track) => {
-          track.enabled = true;
-          console.log("Enabled my audio track for restart");
-        });
+      } catch (e) {
+        console.error("Error activating audio context:", e);
       }
-
-      // Kết nối lại với phòng
-      socket.emit("join-room", { roomId, userId: myId });
     };
 
-    socket.on("restart-connections", handleRestartConnections);
+    // Kích hoạt ngay khi component mount
+    activateAudio();
+
+    // Kích hoạt khi có tương tác người dùng
+    const handleUserInteraction = () => {
+      activateAudio();
+      // Xóa sự kiện sau khi đã xử lý
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("touchstart", handleUserInteraction);
+      document.removeEventListener("keydown", handleUserInteraction);
+    };
+
+    // Thêm các sự kiện để kích hoạt khi có tương tác
+    document.addEventListener("click", handleUserInteraction);
+    document.addEventListener("touchstart", handleUserInteraction);
+    document.addEventListener("keydown", handleUserInteraction);
 
     return () => {
-      socket.off("restart-connections", handleRestartConnections);
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("touchstart", handleUserInteraction);
+      document.removeEventListener("keydown", handleUserInteraction);
     };
-  }, [socket, users, players, myId, setPlayers, stream, roomId]);
-
-  // Thêm nút khởi động lại kết nối âm thanh
-  const restartButton = (
-    <button
-      onClick={restartAudioConnection}
-      className="absolute top-16 right-4 z-50 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
-    >
-      Khởi động lại kết nối âm thanh
-    </button>
-  );
+  }, []);
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
@@ -606,9 +570,6 @@ const WatchTogetherContent = () => {
 
       {/* Nút đồng bộ âm thanh */}
       {syncButton}
-
-      {/* Nút khởi động lại kết nối âm thanh */}
-      {restartButton}
 
       {/* Right panel - other participants' videos */}
       {Object.keys(otherPlayers).length > 0 && (

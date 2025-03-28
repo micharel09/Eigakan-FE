@@ -45,68 +45,24 @@ const usePlayer = (myId, roomId, peer) => {
       `Changing muted state from ${currentMutedState} to ${newMutedState}`
     );
 
+    // Quan trọng: Cập nhật trạng thái audio track trước khi cập nhật UI
+    if (players[myId]?.url) {
+      const audioTracks = players[myId].url.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks.forEach((track) => {
+          // Quan trọng: enabled = !muted
+          const shouldEnable = !newMutedState;
+          track.enabled = shouldEnable;
+          console.log(`Set audio track ${track.label} enabled:`, shouldEnable);
+        });
+      }
+    }
+
+    // Cập nhật UI sau khi đã cập nhật audio track
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
-        // Đảo ngược trạng thái muted
         copy[myId].muted = newMutedState;
-
-        // Thực sự bật/tắt audio tracks
-        if (copy[myId].url) {
-          const audioTracks = copy[myId].url.getAudioTracks();
-          console.log("Audio tracks found:", audioTracks.length);
-
-          if (audioTracks.length > 0) {
-            audioTracks.forEach((track) => {
-              // QUAN TRỌNG: Đảo ngược logic - enabled = !muted
-              // Nếu muted = true thì enabled = false và ngược lại
-              const shouldEnable = !newMutedState;
-              track.enabled = shouldEnable;
-
-              console.log(
-                `Set audio track ${track.label} enabled:`,
-                shouldEnable
-              );
-
-              // Thêm log để kiểm tra trạng thái sau khi thay đổi
-              setTimeout(() => {
-                console.log(`Audio track ${track.label} status after toggle:`, {
-                  enabled: track.enabled,
-                  muted: track.muted,
-                  readyState: track.readyState,
-                });
-              }, 500);
-            });
-          } else {
-            console.warn(
-              "No audio tracks found in stream! Trying to add audio..."
-            );
-            // Thử thêm audio track nếu không có
-            navigator.mediaDevices
-              .getUserMedia({
-                audio: {
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true,
-                },
-              })
-              .then((audioStream) => {
-                const audioTrack = audioStream.getAudioTracks()[0];
-                if (audioTrack) {
-                  // Đảm bảo track được bật đúng trạng thái
-                  audioTrack.enabled = !newMutedState;
-                  copy[myId].url.addTrack(audioTrack);
-                  console.log(
-                    "Added new audio track to stream with enabled:",
-                    !newMutedState
-                  );
-                }
-              })
-              .catch((err) => console.error("Failed to add audio track:", err));
-          }
-        } else {
-          console.warn("No stream found for toggling audio");
-        }
       }
       return copy;
     });

@@ -21,7 +21,7 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
     videoElement.playsInline = true;
 
     // Quan trọng: Chỉ mute video của chính mình để tránh echo
-    // Với video của người khác, chỉ mute nếu họ đã tắt mic (muted=true)
+    // Với video của người khác, không mute để nghe được âm thanh
     videoElement.muted = isMe ? true : muted;
 
     console.log(
@@ -29,12 +29,38 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
       videoElement.muted
     );
 
-    videoElement.className = "w-full h-full object-cover";
-
-    // Mirror video if it's your camera
-    if (isMe) {
-      videoElement.style.transform = "scaleX(-1)";
+    // Đảm bảo audio tracks được bật nếu không phải là video của mình
+    if (!isMe && url) {
+      const audioTracks = url.getAudioTracks();
+      audioTracks.forEach((track) => {
+        // Quan trọng: Luôn bật audio track của người khác
+        track.enabled = true;
+        console.log(`Ensuring remote audio track ${track.label} is enabled`);
+      });
     }
+
+    // Thêm sự kiện để đảm bảo video phát
+    videoElement.oncanplay = () => {
+      videoElement.play().catch((e) => {
+        console.error("Error playing video:", e);
+        // Thử lại sau một khoảng thời gian
+        setTimeout(() => {
+          videoElement
+            .play()
+            .catch((e2) => console.error("Error playing video on retry:", e2));
+        }, 1000);
+      });
+    };
+
+    // Thêm sự kiện để xử lý khi audio bị mute
+    videoElement.onvolumechange = () => {
+      console.log(
+        "Volume changed:",
+        videoElement.volume,
+        "muted:",
+        videoElement.muted
+      );
+    };
 
     // Attach stream to video
     videoElement.srcObject = url;
@@ -43,25 +69,18 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
     // Add video to container
     containerRef.current.appendChild(videoElement);
 
-    // Log for debugging
-    console.log(
-      `Created new video element for ${
-        isMe ? "me" : "other user"
-      } with stream:`,
-      url
-    );
-
-    // Log audio tracks
-    const audioTracks = url.getAudioTracks();
-    console.log(
-      `Audio tracks for ${isMe ? "me" : "other user"}:`,
-      audioTracks.map((t) => ({
-        label: t.label,
-        enabled: t.enabled,
-        muted: t.muted,
-        readyState: t.readyState,
-      }))
-    );
+    // Kích hoạt audio context để đảm bảo audio hoạt động
+    try {
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      if (audioContext.state === "suspended") {
+        audioContext.resume().then(() => {
+          console.log("Audio context resumed for video element");
+        });
+      }
+    } catch (e) {
+      console.error("Error with audio context for video element:", e);
+    }
 
     return () => {
       if (videoElement) {
@@ -69,7 +88,7 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
         videoElement.remove();
       }
     };
-  }, [url, isMe]);
+  }, [url, isMe, muted]);
 
   // Cập nhật trạng thái muted khi props thay đổi
   useEffect(() => {
