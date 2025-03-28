@@ -31,6 +31,7 @@ import Loading from "../../components/Loading/Loading";
 import movieService from "../../apis/Movie/movie";
 import roomService from "../../apis/Room/room";
 import { useSelector } from "react-redux";
+import { useScrollEffect } from "../../hooks";
 import {
   PlayCircleOutlined,
   YoutubeOutlined,
@@ -387,9 +388,9 @@ const MovieHero = memo(
     ];
 
     return (
-      <div className="relative w-full overflow-hidden pt-12 sm:pt-16 md:pt-20 min-h-[85vh] sm:min-h-[75vh] md:min-h-[60vh] lg:min-h-[65vh] xl:min-h-[60vh] pb-4 sm:pb-6 md:pb-0">
+      <div className="relative w-full overflow-hidden pt-12 sm:pt-16 md:pt-20 pb-8 sm:pb-10 md:pb-12 flex flex-col">
         {/* Background Banner with parallax effect */}
-        <div className="absolute inset-0 top-0">
+        <div className="absolute inset-0 top-0 h-full">
           <motion.div
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
@@ -399,7 +400,7 @@ const MovieHero = memo(
             <img
               src={banner?.url || poster?.url || "/placeholder.jpg"}
               alt={movie.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-center"
             />
           </motion.div>
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent" />
@@ -407,9 +408,9 @@ const MovieHero = memo(
         </div>
 
         {/* Movie Info Container with staggered animations */}
-        <div className="absolute inset-0 top-0 flex items-center justify-center">
-          <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 w-full mt-28 sm:mt-20 md:mt-16 lg:mt-12">
-            <div className="w-full flex flex-col md:flex-row items-center md:items-start lg:items-center gap-5 sm:gap-6 md:gap-8 lg:gap-10 pt-14 sm:pt-8 md:pt-0">
+        <div className="relative flex-1 flex items-start justify-center mt-10 sm:mt-12 md:mt-14 lg:mt-16">
+          <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 w-full pt-4 sm:pt-6 md:pt-8">
+            <div className="w-full flex flex-col md:flex-row items-center md:items-start lg:items-center gap-5 sm:gap-6 md:gap-8 lg:gap-10">
               {/* Poster with subtle hover effect */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -444,7 +445,7 @@ const MovieHero = memo(
                 </motion.div>
 
                 <div className="md:flex md:flex-wrap md:items-start md:justify-between md:gap-4">
-                  <div className="md:flex-1 md:pr-8">
+                  <div className="md:flex-1 md:pr-8 mb-6 md:mb-0">
                     {/* Movie stats badges */}
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -489,7 +490,7 @@ const MovieHero = memo(
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.7, delay: 0.5 }}
-                      className="hidden md:block text-gray-300 text-sm lg:text-base leading-relaxed line-clamp-3 max-w-2xl mb-6"
+                      className="hidden md:block text-gray-300 text-sm lg:text-base leading-relaxed max-h-24 md:max-h-none overflow-y-auto md:overflow-visible line-clamp-3 max-w-2xl mb-4 md:mb-6"
                     >
                       {movie.description}
                     </motion.p>
@@ -499,7 +500,7 @@ const MovieHero = memo(
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.7, delay: 0.5 }}
-                      className="block md:hidden text-gray-300 text-xs sm:text-sm leading-relaxed line-clamp-3 max-w-2xl mb-4 px-3 sm:px-4"
+                      className="block md:hidden text-gray-300 text-xs sm:text-sm leading-relaxed max-h-28 overflow-y-auto mb-4 px-3 sm:px-4"
                     >
                       {movie.description}
                     </motion.p>
@@ -510,7 +511,7 @@ const MovieHero = memo(
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7, delay: 0.5 }}
-                    className="flex flex-wrap justify-center md:justify-end gap-3 sm:gap-4 md:gap-0 w-full md:w-auto md:min-w-[180px] lg:min-w-[200px] mx-auto md:mx-0 md:self-start md:mt-0 lg:self-center"
+                    className="flex flex-wrap justify-center md:justify-end gap-3 sm:gap-4 md:gap-0 w-full md:w-auto md:min-w-[180px] lg:min-w-[200px] mx-auto md:mx-0 md:self-start md:mt-2 lg:mt-0 lg:self-center mt-2 sm:mt-3 mb-2 sm:mb-3 md:mb-0"
                   >
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-1 gap-2.5 sm:gap-3 w-full max-w-3xl sm:max-w-none mx-auto">
                       <ActionButton
@@ -592,6 +593,31 @@ const MoviePage = () => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState(null);
+
+  // Use scroll effect hook for enhanced scroll animations
+  const { isScrolled, scrollY } = useScrollEffect(
+    150,
+    (hasScrolled, position) => {
+      // Optional callback that can be used for scroll-triggered animations
+      // For example, you could update UI elements based on scroll position
+      if (hasScrolled && !loading && movie) {
+        // You can implement special effects that trigger on scroll
+      }
+    }
+  );
+
+  // Fade in effect for section elements
+  const sectionVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: [0.25, 0.1, 0.25, 1.0],
+      },
+    },
+  };
 
   useEffect(() => {
     const fetchMovieData = async () => {
@@ -838,6 +864,55 @@ const MoviePage = () => {
     }
   }, [isJoining, isAuthenticated, roomId, user, movieId, navigate]);
 
+  // Render header with enhanced scroll behavior
+  const renderHeader = () => (
+    <div
+      className={`movie-header transition-all duration-300 ${
+        isScrolled ? "header-scrolled shadow-lg" : ""
+      }`}
+    >
+      {/* Header content here */}
+    </div>
+  );
+
+  // Render hero section with parallax effect based on scroll position
+  const renderHeroSection = () => {
+    if (!movie) return null;
+
+    const parallaxOffset = Math.max(0, scrollY * 0.4); // Parallax effect for background
+
+    return (
+      <div className="hero-section relative">
+        {/* Apply parallax effect to backdrop image */}
+        <div
+          className="backdrop-image absolute inset-0 z-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${movie.backdropUrl || movie.thumbnailUrl})`,
+            transform: `translateY(${parallaxOffset}px)`,
+            opacity: isScrolled ? 0.6 : 0.8,
+            transition: "opacity 300ms ease-out",
+          }}
+        >
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
+        </div>
+
+        {/* Hero content remains the same */}
+        <MovieHero
+          movie={movie}
+          onTrailerClick={() =>
+            document
+              .getElementById("trailer")
+              ?.scrollIntoView({ behavior: "smooth", block: "center" })
+          }
+          onCreateRoom={() => setIsCreateRoomModalVisible(true)}
+          onJoinRoom={() => setIsJoinRoomModalVisible(true)}
+          onWatchNow={() => navigate(`/watch/${movieId}`)}
+        />
+      </div>
+    );
+  };
+
   // Loading states
   if (loading) {
     return (
@@ -870,302 +945,305 @@ const MoviePage = () => {
   const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
   return (
-    <>
+    <div className="movie-page">
       <Helmet>
-        <title>{movie.title} - Eigakan</title>
-        <meta name="description" content={movie.description?.slice(0, 160)} />
-        <meta property="og:title" content={`${movie.title} - Eigakan`} />
+        <title>{movie ? `${movie.title} | Eigakan` : "Loading Movie..."}</title>
         <meta
-          property="og:description"
-          content={movie.description?.slice(0, 160)}
+          name="description"
+          content={movie ? movie.description : "Movie details"}
         />
-        <meta
-          property="og:image"
-          content={movie.medias?.find((m) => m.type === "POSTER")?.url}
-        />
-        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
-      <div className="bg-transparent">
-        <MovieHero
-          movie={movie}
-          onTrailerClick={() =>
-            document
-              .getElementById("trailer")
-              ?.scrollIntoView({ behavior: "smooth", block: "center" })
-          }
-          onCreateRoom={() => setIsCreateRoomModalVisible(true)}
-          onJoinRoom={() => setIsJoinRoomModalVisible(true)}
-          onWatchNow={() => navigate(`/watch/${movieId}`)}
-        />
-      </div>
+      {loading ? (
+        <Loading />
+      ) : movie ? (
+        <div className="flex flex-col min-h-screen bg-black">
+          {/* Use enhanced header with scroll effects */}
+          {renderHeader()}
 
-      <div className="bg-black min-h-screen">
-        {/* Seamless transition from hero to content */}
-        <div className="h-4 bg-gradient-to-b from-transparent to-black -mt-4"></div>
+          {/* Hero section with parallax */}
+          {renderHeroSection()}
 
-        <div className="container mx-auto px-3 sm:px-4 py-0 sm:py-4">
-          {/* Content Tabs */}
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            size="middle"
-            className="mb-2 sm:mb-4 lg:mb-6 text-white [&_.ant-tabs-tab]:text-gray-400 [&_.ant-tabs-tab.ant-tabs-tab-active]:text-[#FF009F] [&_.ant-tabs-ink-bar]:bg-[#FF009F]"
-            items={[
-              {
-                label: "Overview",
-                key: "overview",
-                children: (
-                  <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mb-6 sm:mb-8">
-                    <div className="w-full lg:w-2/3">
-                      {/* Trailer section */}
-                      {trailer && (
-                        <TrailerSection
-                          trailerUrl={trailer.url}
-                          title={movie.title}
-                        />
-                      )}
+          {/* Main content with animation */}
+          <motion.div
+            className="movie-content container mx-auto px-4 py-2 sm:py-3 md:py-4"
+            initial="hidden"
+            animate="visible"
+            variants={sectionVariants}
+          >
+            {/* Content Tabs */}
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              size="middle"
+              className="mb-2 sm:mb-3 lg:mb-4 text-white [&_.ant-tabs-tab]:text-gray-400 [&_.ant-tabs-tab.ant-tabs-tab-active]:text-[#FF009F] [&_.ant-tabs-ink-bar]:bg-[#FF009F]"
+              items={[
+                {
+                  label: "Overview",
+                  key: "overview",
+                  children: (
+                    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mb-6 sm:mb-8">
+                      <div className="w-full lg:w-2/3">
+                        {/* Trailer section */}
+                        {trailer && (
+                          <TrailerSection
+                            trailerUrl={trailer.url}
+                            title={movie.title}
+                          />
+                        )}
 
-                      {/* Cast and Crew */}
-                      <Suspense
-                        fallback={
-                          <div className="mt-4 sm:mt-6 space-y-4">
-                            <Skeleton.Input
-                              active
-                              style={{ width: 200, height: 32 }}
-                            />
-                            <div className="flex gap-4 mt-4 overflow-x-auto pb-2">
-                              {[1, 2, 3, 4].map((i) => (
-                                <Skeleton.Avatar
-                                  key={i}
-                                  active
-                                  size={80}
-                                  shape="square"
-                                />
-                              ))}
+                        {/* Cast and Crew */}
+                        <Suspense
+                          fallback={
+                            <div className="mt-4 sm:mt-6 space-y-4">
+                              <Skeleton.Input
+                                active
+                                style={{ width: 200, height: 32 }}
+                              />
+                              <div className="flex gap-4 mt-4 overflow-x-auto pb-2">
+                                {[1, 2, 3, 4].map((i) => (
+                                  <Skeleton.Avatar
+                                    key={i}
+                                    active
+                                    size={80}
+                                    shape="square"
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        }
-                      >
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.5, delay: 0.2 }}
-                          className="mt-4 sm:mt-6"
+                          }
                         >
-                          <CastAndCrew persons={movie.person} />
-                        </motion.div>
-                      </Suspense>
-                    </div>
-
-                    <MovieFacts movie={movie} />
-                  </div>
-                ),
-              },
-              {
-                label: "Similar Movies",
-                key: "similar",
-                children: (
-                  <Suspense
-                    fallback={
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-6">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                          <div
-                            key={i}
-                            className="aspect-[2/3] bg-gray-800 rounded-lg relative overflow-hidden"
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                            className="mt-4 sm:mt-6"
                           >
-                            <div className="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-shimmer"></div>
-                          </div>
-                        ))}
+                            <CastAndCrew persons={movie.person} />
+                          </motion.div>
+                        </Suspense>
                       </div>
-                    }
-                  >
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <SimilarMovies />
-                    </motion.div>
-                  </Suspense>
-                ),
-              },
-            ]}
-          />
-        </div>
-      </div>
 
-      {/* Create Room Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <TeamOutlined className="text-[#FF009F]" /> Create Watch Room
-          </div>
-        }
-        open={isCreateRoomModalVisible}
-        onOk={handleCreateRoom}
-        onCancel={() => setIsCreateRoomModalVisible(false)}
-        okText="Create Room"
-        cancelText="Cancel"
-        okButtonProps={{
-          loading: isCreatingRoom,
-          className:
-            "bg-gradient-to-r from-[#FF009F] to-[#FF0055] hover:from-[#FF00AA] hover:to-[#FF0066] border-none text-white hover:text-white shadow-lg",
-        }}
-        cancelButtonProps={{
-          disabled: isCreatingRoom,
-          className: "hover:text-[#FF009F] hover:border-[#FF009F]",
-        }}
-        className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
-        width={320}
-        centered
-      >
-        <div className="py-3 sm:py-4">
-          <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
-            <img
-              src={
-                movie.medias?.find((m) => m.type === "POSTER")?.url ||
-                "/placeholder.jpg"
-              }
-              alt={movie.title}
-              className="w-8 sm:w-10 md:w-12 h-12 sm:h-14 md:h-16 object-cover rounded-md"
-            />
-            <div>
-              <h3 className="font-medium text-white text-xs sm:text-sm md:text-base">
-                {movie.title}
-              </h3>
-              <p className="text-gray-400 text-[10px] sm:text-xs">
-                {movie.releaseYear} • {movie.duration}m
-              </p>
-            </div>
-          </div>
-
-          <p className="text-gray-300 mb-3 sm:mb-4 text-[10px] sm:text-xs md:text-sm">
-            Create a new room to watch "{movie.title}" with friends in
-            real-time.
-          </p>
-
-          <div className="bg-[#FF009F]/10 border border-[#FF009F]/20 p-2 sm:p-3 rounded-lg">
-            <p className="text-[10px] sm:text-xs md:text-sm text-white">
-              <InfoCircleOutlined className="mr-1 sm:mr-2 text-[#FF009F]" />
-              You'll be the host of this room and can control the playback for
-              all viewers.
-            </p>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Join Room Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <UsergroupAddOutlined className="text-[#FF009F]" /> Join Watch Room
-          </div>
-        }
-        open={isJoinRoomModalVisible}
-        onOk={handleJoinRoom}
-        onCancel={() => {
-          setRoomId("");
-          setIsJoinRoomModalVisible(false);
-        }}
-        okText="Join Room"
-        cancelText="Cancel"
-        okButtonProps={{
-          loading: isJoining,
-          disabled: isJoining || !roomId.trim(),
-          className:
-            "bg-gradient-to-r from-[#FF009F] to-[#FF0055] hover:from-[#FF00AA] hover:to-[#FF0066] border-none text-white hover:text-white shadow-lg",
-        }}
-        cancelButtonProps={{
-          disabled: isJoining,
-          className: "hover:text-[#FF009F] hover:border-[#FF009F]",
-        }}
-        className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
-        width={320}
-        centered
-      >
-        <div className="py-3 sm:py-4">
-          <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
-            <img
-              src={
-                movie.medias?.find((m) => m.type === "POSTER")?.url ||
-                "/placeholder.jpg"
-              }
-              alt={movie.title}
-              className="w-8 sm:w-10 md:w-12 h-12 sm:h-14 md:h-16 object-cover rounded-md"
-            />
-            <div>
-              <h3 className="font-medium text-white text-xs sm:text-sm md:text-base">
-                {movie.title}
-              </h3>
-              <p className="text-gray-400 text-[10px] sm:text-xs">
-                {movie.releaseYear} • {movie.duration}m
-              </p>
-            </div>
-          </div>
-
-          <p className="text-gray-300 mb-3 sm:mb-4 text-[10px] sm:text-xs md:text-sm">
-            Enter a room ID to join a watch party for "{movie.title}".
-          </p>
-
-          {hostedRooms.length > 0 &&
-            hostedRooms.some(
-              (room) => room?.movieID === movieId && room?.status === "Active"
-            ) && (
-              <div className="mb-3 sm:mb-4 bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg">
-                <p className="text-[10px] sm:text-xs md:text-sm text-white mb-2 flex items-center">
-                  <TeamOutlined className="mr-1 sm:mr-2 text-[#FF009F]" />
-                  Your active rooms:
-                </p>
-                {hostedRooms.map(
-                  (room) =>
-                    room &&
-                    room.movieID === movieId &&
-                    room.status === "Active" && (
-                      <div
-                        key={room.id}
-                        className="flex items-center justify-between bg-gray-700/50 p-2 sm:p-3 rounded mt-2 border border-gray-700"
-                      >
-                        <div className="max-w-[60%]">
-                          <span className="font-medium text-white text-[10px] sm:text-xs truncate block">
-                            {room.id}
-                          </span>
-                          <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 mt-1">
-                            Host: You
-                          </p>
+                      <MovieFacts movie={movie} />
+                    </div>
+                  ),
+                },
+                {
+                  label: "Similar Movies",
+                  key: "similar",
+                  children: (
+                    <Suspense
+                      fallback={
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-6">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                            <div
+                              key={i}
+                              className="aspect-[2/3] bg-gray-800 rounded-lg relative overflow-hidden"
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-shimmer"></div>
+                            </div>
+                          ))}
                         </div>
-                        <Button
-                          size="small"
-                          onClick={() => setRoomId(room.id)}
-                          className="bg-[#FF009F]/20 hover:bg-[#FF009F]/40 text-[#FF009F] border border-[#FF009F]/30 hover:border-[#FF009F] text-[10px] sm:text-xs md:text-sm"
-                        >
-                          Use this room
-                        </Button>
-                      </div>
-                    )
-                )}
+                      }
+                    >
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <SimilarMovies />
+                      </motion.div>
+                    </Suspense>
+                  ),
+                },
+              ]}
+            />
+          </motion.div>
+
+          {/* Additional components like modals */}
+          <Modal
+            title={
+              <div className="flex items-center gap-2">
+                <TeamOutlined className="text-[#FF009F]" /> Create Watch Room
               </div>
-            )}
+            }
+            open={isCreateRoomModalVisible}
+            onOk={handleCreateRoom}
+            onCancel={() => setIsCreateRoomModalVisible(false)}
+            okText="Create Room"
+            cancelText="Cancel"
+            okButtonProps={{
+              loading: isCreatingRoom,
+              className:
+                "bg-gradient-to-r from-[#FF009F] to-[#FF0055] hover:from-[#FF00AA] hover:to-[#FF0066] border-none text-white hover:text-white shadow-lg",
+            }}
+            cancelButtonProps={{
+              disabled: isCreatingRoom,
+              className: "hover:text-[#FF009F] hover:border-[#FF009F]",
+            }}
+            className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
+            width={320}
+            centered
+          >
+            <div className="py-3 sm:py-4">
+              <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
+                <img
+                  src={
+                    movie.medias?.find((m) => m.type === "POSTER")?.url ||
+                    "/placeholder.jpg"
+                  }
+                  alt={movie.title}
+                  className="w-8 sm:w-10 md:w-12 h-12 sm:h-14 md:h-16 object-cover rounded-md"
+                />
+                <div>
+                  <h3 className="font-medium text-white text-xs sm:text-sm md:text-base">
+                    {movie.title}
+                  </h3>
+                  <p className="text-gray-400 text-[10px] sm:text-xs">
+                    {movie.releaseYear} • {movie.duration}m
+                  </p>
+                </div>
+              </div>
 
-          <Input
-            placeholder="Enter Room ID"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value)}
-            disabled={isJoining}
-            className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F] bg-gray-800 text-white text-xs sm:text-sm"
-            prefix={<TeamOutlined className="text-gray-500" />}
-          />
+              <p className="text-gray-300 mb-3 sm:mb-4 text-[10px] sm:text-xs md:text-sm">
+                Create a new room to watch "{movie.title}" with friends in
+                real-time.
+              </p>
 
-          <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg mt-3 sm:mt-4">
-            <p className="text-[10px] sm:text-xs md:text-sm text-gray-300">
-              <InfoCircleOutlined className="mr-1 sm:mr-2 text-gray-400" />
-              The host will control playback for everyone in the room.
-            </p>
-          </div>
+              <div className="bg-[#FF009F]/10 border border-[#FF009F]/20 p-2 sm:p-3 rounded-lg">
+                <p className="text-[10px] sm:text-xs md:text-sm text-white">
+                  <InfoCircleOutlined className="mr-1 sm:mr-2 text-[#FF009F]" />
+                  You'll be the host of this room and can control the playback
+                  for all viewers.
+                </p>
+              </div>
+            </div>
+          </Modal>
+
+          <Modal
+            title={
+              <div className="flex items-center gap-2">
+                <UsergroupAddOutlined className="text-[#FF009F]" /> Join Watch
+                Room
+              </div>
+            }
+            open={isJoinRoomModalVisible}
+            onOk={handleJoinRoom}
+            onCancel={() => {
+              setRoomId("");
+              setIsJoinRoomModalVisible(false);
+            }}
+            okText="Join Room"
+            cancelText="Cancel"
+            okButtonProps={{
+              loading: isJoining,
+              disabled: isJoining || !roomId.trim(),
+              className:
+                "bg-gradient-to-r from-[#FF009F] to-[#FF0055] hover:from-[#FF00AA] hover:to-[#FF0066] border-none text-white hover:text-white shadow-lg",
+            }}
+            cancelButtonProps={{
+              disabled: isJoining,
+              className: "hover:text-[#FF009F] hover:border-[#FF009F]",
+            }}
+            className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
+            width={320}
+            centered
+          >
+            <div className="py-3 sm:py-4">
+              <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
+                <img
+                  src={
+                    movie.medias?.find((m) => m.type === "POSTER")?.url ||
+                    "/placeholder.jpg"
+                  }
+                  alt={movie.title}
+                  className="w-8 sm:w-10 md:w-12 h-12 sm:h-14 md:h-16 object-cover rounded-md"
+                />
+                <div>
+                  <h3 className="font-medium text-white text-xs sm:text-sm md:text-base">
+                    {movie.title}
+                  </h3>
+                  <p className="text-gray-400 text-[10px] sm:text-xs">
+                    {movie.releaseYear} • {movie.duration}m
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-gray-300 mb-3 sm:mb-4 text-[10px] sm:text-xs md:text-sm">
+                Enter a room ID to join a watch party for "{movie.title}".
+              </p>
+
+              {hostedRooms.length > 0 &&
+                hostedRooms.some(
+                  (room) =>
+                    room?.movieID === movieId && room?.status === "Active"
+                ) && (
+                  <div className="mb-3 sm:mb-4 bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg">
+                    <p className="text-[10px] sm:text-xs md:text-sm text-white mb-2 flex items-center">
+                      <TeamOutlined className="mr-1 sm:mr-2 text-[#FF009F]" />
+                      Your active rooms:
+                    </p>
+                    {hostedRooms.map(
+                      (room) =>
+                        room &&
+                        room.movieID === movieId &&
+                        room.status === "Active" && (
+                          <div
+                            key={room.id}
+                            className="flex items-center justify-between bg-gray-700/50 p-2 sm:p-3 rounded mt-2 border border-gray-700"
+                          >
+                            <div className="max-w-[60%]">
+                              <span className="font-medium text-white text-[10px] sm:text-xs truncate block">
+                                {room.id}
+                              </span>
+                              <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 mt-1">
+                                Host: You
+                              </p>
+                            </div>
+                            <Button
+                              size="small"
+                              onClick={() => setRoomId(room.id)}
+                              className="bg-[#FF009F]/20 hover:bg-[#FF009F]/40 text-[#FF009F] border border-[#FF009F]/30 hover:border-[#FF009F] text-[10px] sm:text-xs md:text-sm"
+                            >
+                              Use this room
+                            </Button>
+                          </div>
+                        )
+                    )}
+                  </div>
+                )}
+
+              <Input
+                placeholder="Enter Room ID"
+                value={roomId}
+                onChange={(e) => setRoomId(e.target.value)}
+                disabled={isJoining}
+                className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F] bg-gray-800 text-white text-xs sm:text-sm"
+                prefix={<TeamOutlined className="text-gray-500" />}
+              />
+
+              <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg mt-3 sm:mt-4">
+                <p className="text-[10px] sm:text-xs md:text-sm text-gray-300">
+                  <InfoCircleOutlined className="mr-1 sm:mr-2 text-gray-400" />
+                  The host will control playback for everyone in the room.
+                </p>
+              </div>
+            </div>
+          </Modal>
         </div>
-      </Modal>
-    </>
+      ) : (
+        <div className="flex flex-col items-center justify-center min-h-screen">
+          <h2 className="text-2xl text-white mb-4">Movie not found</h2>
+          <Link
+            to="/homescreen"
+            className="px-4 py-2 bg-[#FF009F] text-white rounded-lg"
+          >
+            Return to Home
+          </Link>
+        </div>
+      )}
+    </div>
   );
 };
 
-export default memo(MoviePage);
+export default MoviePage;

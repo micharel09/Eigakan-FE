@@ -23,12 +23,24 @@ import {
   ChevronRight,
 } from "lucide-react";
 import recommendationService from "../../apis/Recommendation/recommendation";
+import { useModal } from "../../hooks";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/navigation";
 import "swiper/css/keyboard";
 
-const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
+const RecommendedMovies = ({
+  showModal: propShowModal,
+  setShowModal: propSetShowModal,
+  isModal = false,
+}) => {
+  // Use our custom modal hook if this component is used as a modal
+  const { isVisible, close: closeModalHook } = useModal(
+    propShowModal || false,
+    () => propSetShowModal && propSetShowModal(false)
+  );
+
+  // Internal state
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
@@ -75,7 +87,7 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
   // Keyboard event listener for arrow key navigation when not focusing on swiper
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
-      if (showModal) {
+      if (isVisible) {
         if (e.key === "ArrowLeft") {
           goPrev();
         } else if (e.key === "ArrowRight") {
@@ -88,7 +100,7 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
     return () => {
       document.removeEventListener("keydown", handleGlobalKeyDown);
     };
-  }, [showModal]);
+  }, [isVisible]);
 
   const fetchRecommendations = async () => {
     setLoading(true);
@@ -106,9 +118,13 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
     }
   };
 
+  // For compatibility with existing code
   const closeModal = () => {
-    if (setShowModal) {
-      setShowModal(false);
+    if (isModal) {
+      closeModalHook();
+      if (propSetShowModal) {
+        propSetShowModal(false);
+      }
     }
   };
 
@@ -118,40 +134,10 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
 
   // Initial fetch of recommendations when component mounts or modal opens
   useEffect(() => {
-    if (showModal || !isModal) {
+    if ((propShowModal && isModal) || !isModal) {
       fetchRecommendations();
     }
-  }, [showModal, isModal]);
-
-  // Handle escape key to close modal
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape") {
-        closeModal();
-      }
-    };
-
-    if (showModal) {
-      document.addEventListener("keydown", handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [showModal]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (showModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "auto";
-    }
-
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [showModal]);
+  }, [propShowModal, isModal]);
 
   // If it's not a modal and there are no recommendations, don't render anything
   if (
@@ -166,7 +152,7 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
   if (isModal) {
     return (
       <AnimatePresence>
-        {showModal && (
+        {isVisible && (
           <motion.div
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center"
             initial={{ opacity: 0 }}
@@ -717,7 +703,7 @@ const RecommendedMovies = ({ showModal, setShowModal, isModal = false }) => {
     );
   }
 
-  // For non-modal usage in the future, if needed
+  // Render for non-modal usage
   return null;
 };
 
