@@ -204,12 +204,17 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
           {isMe ? "You" : "Other user"}
         </span>
 
-        {!isMe &&
-          (muted ? (
-            <MicOff className="text-white" size={16} />
-          ) : (
-            <Mic className="text-white" size={16} />
-          ))}
+        {/* Hiển thị icon mic dựa trên trạng thái muted */}
+        {!isMe && (
+          <div className="flex items-center">
+            {muted ? (
+              <MicOff className="text-red-500" size={16} />
+            ) : (
+              <Mic className="text-green-500" size={16} />
+            )}
+            <span className="text-xs ml-1">{muted ? "Muted" : "Unmuted"}</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { cloneDeep } from "lodash";
 
@@ -178,17 +178,20 @@ const WatchTogetherContent = () => {
     if (!socket) return;
     const handleToggleAudio = (userId) => {
       console.log(`user with id ${userId} toggled audio`);
+
+      // Lấy trạng thái hiện tại
+      const currentMutedState = players[userId]?.muted;
+      const newMutedState = !currentMutedState;
+
+      console.log(
+        `Remote user ${userId} changing muted from ${currentMutedState} to ${newMutedState}`
+      );
+
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
         if (copy[userId]) {
           // Đảo ngược trạng thái muted
-          copy[userId].muted = !copy[userId].muted;
-
-          // Không cần thay đổi trạng thái audio track của người khác
-          // Chỉ cập nhật UI
-          console.log(
-            `Updated muted state for user ${userId} to ${copy[userId].muted}`
-          );
+          copy[userId].muted = newMutedState;
 
           // Quan trọng: Nếu stream có sẵn, cập nhật trạng thái của video element
           if (copy[userId].url) {
@@ -196,10 +199,24 @@ const WatchTogetherContent = () => {
             const videoElements = document.querySelectorAll("video");
             videoElements.forEach((video) => {
               if (video.srcObject === copy[userId].url) {
-                video.muted = copy[userId].muted;
+                video.muted = newMutedState;
                 console.log(
                   `Updated video element muted state to ${video.muted}`
                 );
+
+                // Đảm bảo audio tracks cũng được cập nhật
+                const audioTracks = copy[userId].url.getAudioTracks();
+                if (audioTracks.length > 0) {
+                  audioTracks.forEach((track) => {
+                    // Quan trọng: enabled = !muted
+                    track.enabled = !newMutedState;
+                    console.log(
+                      `Remote audio track ${
+                        track.label
+                      } enabled set to ${!newMutedState}`
+                    );
+                  });
+                }
               }
             });
           }
@@ -306,17 +323,24 @@ const WatchTogetherContent = () => {
   }, [peer, setPlayers, stream]);
 
   useEffect(() => {
-    if (!stream || !myId) return;
-    console.log(`setting my stream ${myId}`);
-    setPlayers((prev) => ({
-      ...prev,
-      [myId]: {
-        url: stream,
-        muted: true,
-        playing: true,
-      },
-    }));
-  }, [myId, setPlayers, stream]);
+    if (stream && myId && !players[myId]) {
+      console.log("Setting up my stream in players");
+      setPlayers((prev) => ({
+        ...prev,
+        [myId]: {
+          url: stream,
+          muted: false, // Mặc định không mute
+          playing: true,
+        },
+      }));
+
+      // Đảm bảo audio tracks được bật
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+        console.log("My audio track enabled:", track.enabled);
+      });
+    }
+  }, [stream, myId, players, setPlayers]);
 
   const toggleMyVideoVisibility = () => {
     setShowMyVideo(!showMyVideo);
@@ -383,6 +407,71 @@ const WatchTogetherContent = () => {
     }
   };
 
+  // Thêm một hàm để kiểm tra và đồng bộ trạng thái audio
+  const syncAudioState = useCallback(() => {
+    console.log("Syncing audio state for all players");
+
+    // Đồng bộ trạng thái audio của bản thân
+    if (players[myId] && players[myId].url) {
+      const myAudioTracks = players[myId].url.getAudioTracks();
+      const shouldBeEnabled = !players[myId].muted;
+
+      myAudioTracks.forEach((track) => {
+        if (track.enabled !== shouldBeEnabled) {
+          track.enabled = shouldBeEnabled;
+          console.log(
+            `Fixed my audio track enabled state to ${shouldBeEnabled}`
+          );
+        }
+      });
+    }
+
+    // Đồng bộ trạng thái audio của người khác
+    Object.keys(players).forEach((userId) => {
+      if (userId !== myId && players[userId] && players[userId].url) {
+        const audioTracks = players[userId].url.getAudioTracks();
+        const shouldBeEnabled = !players[userId].muted;
+
+        audioTracks.forEach((track) => {
+          if (track.enabled !== shouldBeEnabled) {
+            track.enabled = shouldBeEnabled;
+            console.log(
+              `Fixed remote audio track for ${userId} enabled state to ${shouldBeEnabled}`
+            );
+          }
+        });
+
+        // Đồng bộ trạng thái muted của video elements
+        document.querySelectorAll("video").forEach((video) => {
+          if (video.srcObject === players[userId].url) {
+            if (video.muted !== players[userId].muted) {
+              video.muted = players[userId].muted;
+              console.log(
+                `Fixed video muted state for ${userId} to ${players[userId].muted}`
+              );
+            }
+          }
+        });
+      }
+    });
+  }, [players, myId]);
+
+  // Gọi hàm này định kỳ để đảm bảo trạng thái luôn đồng bộ
+  useEffect(() => {
+    const interval = setInterval(syncAudioState, 5000);
+    return () => clearInterval(interval);
+  }, [syncAudioState]);
+
+  // Thêm nút để người dùng có thể đồng bộ thủ công
+  const syncButton = (
+    <button
+      onClick={syncAudioState}
+      className="absolute top-4 right-4 z-50 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
+    >
+      Đồng bộ âm thanh
+    </button>
+  );
+
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
       {/* Nút kích hoạt âm thanh */}
@@ -394,6 +483,9 @@ const WatchTogetherContent = () => {
           Kích hoạt âm thanh
         </button>
       )}
+
+      {/* Nút đồng bộ âm thanh */}
+      {syncButton}
 
       {/* Right panel - other participants' videos */}
       {Object.keys(otherPlayers).length > 0 && (

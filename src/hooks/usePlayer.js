@@ -37,11 +37,19 @@ const usePlayer = (myId, roomId, peer) => {
 
     console.log("Toggling audio for user", myId);
 
+    // Lấy trạng thái hiện tại trước khi thay đổi
+    const currentMutedState = players[myId]?.muted;
+    const newMutedState = !currentMutedState;
+
+    console.log(
+      `Changing muted state from ${currentMutedState} to ${newMutedState}`
+    );
+
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
         // Đảo ngược trạng thái muted
-        copy[myId].muted = !copy[myId].muted;
+        copy[myId].muted = newMutedState;
 
         // Thực sự bật/tắt audio tracks
         if (copy[myId].url) {
@@ -50,11 +58,14 @@ const usePlayer = (myId, roomId, peer) => {
 
           if (audioTracks.length > 0) {
             audioTracks.forEach((track) => {
-              // Quan trọng: enabled = !muted (nếu muted = true thì enabled = false)
-              track.enabled = !copy[myId].muted;
+              // QUAN TRỌNG: Đảo ngược logic - enabled = !muted
+              // Nếu muted = true thì enabled = false và ngược lại
+              const shouldEnable = !newMutedState;
+              track.enabled = shouldEnable;
+
               console.log(
                 `Set audio track ${track.label} enabled:`,
-                track.enabled
+                shouldEnable
               );
 
               // Thêm log để kiểm tra trạng thái sau khi thay đổi
@@ -82,10 +93,13 @@ const usePlayer = (myId, roomId, peer) => {
               .then((audioStream) => {
                 const audioTrack = audioStream.getAudioTracks()[0];
                 if (audioTrack) {
-                  // Đảm bảo track được bật
-                  audioTrack.enabled = !copy[myId].muted;
+                  // Đảm bảo track được bật đúng trạng thái
+                  audioTrack.enabled = !newMutedState;
                   copy[myId].url.addTrack(audioTrack);
-                  console.log("Added new audio track to stream");
+                  console.log(
+                    "Added new audio track to stream with enabled:",
+                    !newMutedState
+                  );
                 }
               })
               .catch((err) => console.error("Failed to add audio track:", err));
@@ -100,7 +114,7 @@ const usePlayer = (myId, roomId, peer) => {
     // Thông báo cho người dùng khác
     socket.emit("user-toggle-audio", { userId: myId, roomId });
     console.log("Emitted user-toggle-audio event");
-  }, [socket, myId, roomId, isConnected]);
+  }, [socket, myId, roomId, isConnected, players]);
 
   // Toggle video
   const toggleVideo = useCallback(() => {
