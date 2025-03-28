@@ -91,16 +91,14 @@ const getBunnyStreamEmbedUrl = (url) => {
 
 // Movie stats badge component for cleaner UI
 const StatBadge = memo(({ icon, value, label, color = "white" }) => (
-  <div className="flex flex-col items-center px-2 sm:px-2.5 md:px-4 py-1 sm:py-2 md:py-3 bg-white/5 backdrop-blur-sm rounded-lg">
-    <div className="flex items-center gap-1 sm:gap-1.5">
+  <div className="flex flex-col items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-white/5 backdrop-blur-sm rounded-lg">
+    <div className="flex items-center gap-0.5 sm:gap-1">
       {icon}
-      <span className={`text-${color} font-bold text-xs sm:text-sm md:text-lg`}>
+      <span className={`text-${color} font-bold text-[10px] sm:text-xs`}>
         {value}
       </span>
     </div>
-    <span className="text-gray-400 text-[8px] sm:text-xs mt-0.5 sm:mt-1">
-      {label}
-    </span>
+    <span className="text-gray-400 text-[7px] sm:text-[10px]">{label}</span>
   </div>
 ));
 
@@ -108,7 +106,7 @@ const StatBadge = memo(({ icon, value, label, color = "white" }) => (
 const GenreBadge = memo(({ name }) => (
   <motion.span
     whileHover={{ scale: 1.05 }}
-    className="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 bg-gradient-to-r from-[#FF009F]/20 to-[#FF009F]/10 backdrop-blur-sm border border-[#FF009F]/20 rounded-full text-[10px] sm:text-xs md:text-sm text-white cursor-pointer transition-all"
+    className="px-1 sm:px-1.5 py-0.5 bg-gradient-to-r from-[#FF009F]/20 to-[#FF009F]/10 backdrop-blur-sm border border-[#FF009F]/20 rounded-full text-[9px] sm:text-[10px] text-white cursor-pointer transition-all"
   >
     {name}
   </motion.span>
@@ -120,7 +118,7 @@ const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
     whileTap={{ scale: 0.97 }}
     whileHover={{ scale: 1.03 }}
     onClick={onClick}
-    className={`min-w-[85px] sm:min-w-[110px] md:min-w-[130px] h-9 sm:h-10 md:h-12 flex items-center justify-center gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm md:text-base ${
+    className={`min-w-[70px] sm:min-w-[90px] md:min-w-[110px] h-7 sm:h-8 md:h-9 flex items-center justify-center gap-1 rounded-lg font-medium text-[10px] sm:text-xs ${
       primary
         ? "bg-gradient-to-r from-[#FF009F] to-[#FF0055] text-white"
         : "bg-white/10 hover:bg-white/15 text-white"
@@ -344,31 +342,31 @@ const MovieHero = memo(
     // Calculate badges for key movie stats
     const movieStats = [
       {
-        icon: <Calendar className="w-4 h-4 text-[#FF009F]" />,
+        icon: <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />,
         value: movie.releaseYear,
         label: "Year",
       },
       {
-        icon: <Clock className="w-4 h-4 text-[#FF009F]" />,
+        icon: <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />,
         value: `${movie.duration}m`,
         label: "Duration",
       },
       {
-        icon: <Star className="w-4 h-4 text-yellow-500" />,
+        icon: <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />,
         value:
           movie.imdbRating?.toFixed(1) || movie.rating?.toFixed(1) || "N/A",
         label: movie.imdbRating ? "IMDB" : "Rating",
         color: "yellow-500",
       },
       {
-        icon: <Globe className="w-4 h-4 text-[#FF009F]" />,
+        icon: <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />,
         value: movie.nation,
         label: "Country",
       },
     ];
 
     return (
-      <div className="relative w-full overflow-hidden -mt-16 pt-16 min-h-[85vh] sm:min-h-[75vh] pb-8 sm:pb-0">
+      <div className="relative w-full overflow-hidden -mt-16 pt-16 min-h-[85vh] sm:min-h-[75vh] pb-4 sm:pb-8">
         {/* Background Banner with parallax effect */}
         <div className="absolute inset-0 -top-1">
           <motion.div
@@ -388,15 +386,15 @@ const MovieHero = memo(
         </div>
 
         {/* Movie Info Container with staggered animations */}
-        <div className="absolute inset-0 flex items-center justify-center overflow-y-auto pt-16 sm:pt-0">
-          <div className="container mx-auto px-4 py-0 w-full">
-            <div className="flex flex-col items-center sm:items-center md:flex-row md:items-start gap-5 sm:gap-6 md:gap-8 pt-2 sm:pt-4 md:pt-16">
+        <div className="absolute inset-0 flex items-center justify-center overflow-y-auto">
+          <div className="container mx-auto px-3 sm:px-4 w-full mt-12 sm:mt-0">
+            <div className="w-full flex flex-col md:flex-row items-center md:items-start gap-4 sm:gap-6 md:gap-8 pt-4 sm:pt-6 md:pt-8">
               {/* Poster with subtle hover effect */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="w-40 sm:w-48 md:w-56 lg:w-72 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mt-0 sm:mt-0 z-10"
+                className="w-36 sm:w-44 md:w-52 lg:w-64 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 z-10"
               >
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -418,7 +416,7 @@ const MovieHero = memo(
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.2 }}
                 >
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">
+                  <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 leading-tight">
                     {movie.title}
                   </h1>
                 </motion.div>
@@ -428,7 +426,7 @@ const MovieHero = memo(
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.3 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2.5 mb-3 sm:mb-4 mt-2 sm:mt-3"
+                  className="flex flex-wrap justify-center md:justify-start gap-1 sm:gap-2 mb-2 sm:mb-3"
                 >
                   {movieStats.map((stat, index) => (
                     <StatBadge
@@ -446,7 +444,7 @@ const MovieHero = memo(
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.4 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2 mb-3 sm:mb-4"
+                  className="flex flex-wrap justify-center md:justify-start gap-1 sm:gap-2 mb-2 sm:mb-3"
                 >
                   {genresArray && genresArray.length > 0 ? (
                     genresArray.map((genre) => (
@@ -456,7 +454,7 @@ const MovieHero = memo(
                       />
                     ))
                   ) : (
-                    <span className="text-gray-400 text-sm px-3 py-1 bg-white/5 rounded-full">
+                    <span className="text-gray-400 text-xs px-2 py-0.5 bg-white/5 rounded-full">
                       No genres
                     </span>
                   )}
@@ -467,7 +465,7 @@ const MovieHero = memo(
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.7, delay: 0.5 }}
-                  className="text-gray-300 text-xs sm:text-sm md:text-base leading-relaxed mb-3 sm:mb-5 line-clamp-3 max-w-3xl mx-auto md:mx-0"
+                  className="text-gray-300 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3 max-w-3xl mx-auto md:mx-0"
                 >
                   {movie.description}
                 </motion.p>
@@ -477,11 +475,11 @@ const MovieHero = memo(
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.6 }}
-                  className="flex flex-wrap justify-center md:justify-start gap-2 sm:gap-3"
+                  className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2"
                 >
                   <ActionButton
                     icon={
-                      <PlayCircleOutlined className="text-base sm:text-lg" />
+                      <PlayCircleOutlined className="text-sm sm:text-base" />
                     }
                     primary={true}
                     onClick={onWatchNow}
@@ -492,7 +490,7 @@ const MovieHero = memo(
                   {trailer && (
                     <ActionButton
                       icon={
-                        <YoutubeOutlined className="text-base sm:text-lg" />
+                        <YoutubeOutlined className="text-sm sm:text-base" />
                       }
                       onClick={onTrailerClick}
                     >
@@ -501,7 +499,7 @@ const MovieHero = memo(
                   )}
 
                   <ActionButton
-                    icon={<TeamOutlined className="text-base sm:text-lg" />}
+                    icon={<TeamOutlined className="text-sm sm:text-base" />}
                     onClick={onCreateRoom}
                   >
                     Create Room
@@ -509,33 +507,12 @@ const MovieHero = memo(
 
                   <ActionButton
                     icon={
-                      <UsergroupAddOutlined className="text-base sm:text-lg" />
+                      <UsergroupAddOutlined className="text-sm sm:text-base" />
                     }
                     onClick={onJoinRoom}
                   >
                     Join Room
                   </ActionButton>
-                </motion.div>
-
-                {/* Social action buttons */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: 0.7 }}
-                  className="flex justify-center md:justify-start gap-3 mt-4 sm:mt-5"
-                >
-                  {/* <Tooltip title="Add to Favorites">
-                    <Button
-                      icon={<HeartOutlined />}
-                      className="rounded-full bg-white/10 hover:bg-[#FF009F]/20 hover:border-[#FF009F]/30 border-white/20 text-white"
-                    />
-                  </Tooltip>
-                  <Tooltip title="Share Movie">
-                    <Button
-                      icon={<ShareAltOutlined />}
-                      className="rounded-full bg-white/10 hover:bg-[#FF009F]/20 hover:border-[#FF009F]/30 border-white/20 text-white"
-                    />
-                  </Tooltip> */}
                 </motion.div>
               </div>
             </div>
