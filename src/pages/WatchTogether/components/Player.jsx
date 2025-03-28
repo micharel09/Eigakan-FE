@@ -25,14 +25,14 @@ const Player = ({
     videoElement.autoplay = true;
     videoElement.playsInline = true;
 
-    // Quan trọng: Chỉ mute video của chính mình, KHÔNG mute video của người khác
-    // trừ khi họ đã tắt mic (muted=true)
-    videoElement.muted = isMe || muted;
+    // QUAN TRỌNG: Chỉ mute ELEMENT của chính mình, không mute element của người khác
+    // Điều này khác với việc bật/tắt audio track
+    videoElement.muted = isMe; // Chỉ mute element của mình để tránh echo
 
     console.log(
-      `Creating video element for ${isMe ? "me" : "other user"}, muted: ${
-        videoElement.muted
-      }`
+      `Creating video element for ${
+        isMe ? "me" : "other user"
+      }, element muted: ${videoElement.muted}, track muted state: ${muted}`
     );
 
     videoElement.className = "w-full h-full object-cover";
@@ -91,12 +91,15 @@ const Player = ({
         // Nếu là video của người khác, trạng thái enabled phụ thuộc vào muted
         if (!isMe) {
           track.enabled = !muted;
+          console.log(
+            `Setting remote audio track enabled to: ${track.enabled}`
+          );
         }
-        // Nếu là video của mình, luôn tắt audio để tránh echo
+        // Nếu là video của mình, trạng thái enabled phụ thuộc vào muted
         else {
-          track.enabled = false;
+          track.enabled = !muted;
+          console.log(`Setting my audio track enabled to: ${track.enabled}`);
         }
-        console.log(`Setting audio track enabled to: ${track.enabled}`);
       });
     }
 

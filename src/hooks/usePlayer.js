@@ -53,7 +53,7 @@ const usePlayer = (myId, roomId, peer) => {
           const audioTracks = copy[myId].url.getAudioTracks();
           audioTracks.forEach((track) => {
             track.enabled = !newMutedState; // Bật nếu không mute, tắt nếu mute
-            console.log(`Audio track enabled set to: ${track.enabled}`);
+            console.log(`My audio track enabled set to: ${track.enabled}`);
           });
         }
       }

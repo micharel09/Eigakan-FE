@@ -15,7 +15,11 @@ const useMediaStream = () => {
         // Yêu cầu quyền truy cập camera và microphone
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         });
 
         console.log("Media stream initialized successfully");
@@ -25,8 +29,8 @@ const useMediaStream = () => {
         // Mặc định tắt audio track khi mới khởi tạo
         const audioTracks = mediaStream.getAudioTracks();
         audioTracks.forEach((track) => {
-          track.enabled = false; // Mặc định tắt micro
-          console.log(`Initial audio track enabled set to: ${track.enabled}`);
+          // Không tắt track, chỉ đặt muted=true trong state
+          console.log(`Audio track initial state: ${track.enabled}`);
         });
 
         setStream(mediaStream);
@@ -38,7 +42,11 @@ const useMediaStream = () => {
         try {
           console.log("Trying audio only...");
           const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
             video: false,
           });
           console.log("Audio-only stream initialized");

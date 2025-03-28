@@ -79,13 +79,7 @@ const WatchTogetherContent = () => {
         );
 
         // Mặc định TẮT audio tracks khi mới kết nối
-        audioTracks.forEach((track) => {
-          track.enabled = false; // Mặc định tắt micro
-          console.log(
-            `Setting audio track to disabled by default: ${track.enabled}`
-          );
-        });
-
+        // Nhưng KHÔNG thay đổi trạng thái của tracks, chỉ đặt muted=true trong state
         setPlayers((prev) => ({
           ...prev,
           [newUser]: {
