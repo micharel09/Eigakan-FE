@@ -1,7 +1,13 @@
 import React, { useRef, useEffect } from "react";
 import { VideoOff, Mic, MicOff } from "lucide-react";
 
-const Player = ({ url, muted, playing, isActive, isMe = false }) => {
+const Player = ({
+  url,
+  muted = false,
+  playing = false,
+  isActive = false,
+  isMe = false,
+}) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -50,16 +56,18 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
     );
 
     // Debug audio tracks
-    const audioTracks = url.getAudioTracks();
-    console.log(
-      `Audio tracks for ${isMe ? "me" : "other user"}:`,
-      audioTracks.map((t) => ({
-        enabled: t.enabled,
-        muted: t.muted,
-        readyState: t.readyState,
-        label: t.label,
-      }))
-    );
+    if (url && url.getAudioTracks) {
+      const audioTracks = url.getAudioTracks();
+      console.log(
+        `Audio tracks for ${isMe ? "me" : "other user"}:`,
+        audioTracks.map((t) => ({
+          enabled: t.enabled,
+          muted: t.muted,
+          readyState: t.readyState,
+          label: t.label,
+        }))
+      );
+    }
 
     return () => {
       if (videoElement) {
