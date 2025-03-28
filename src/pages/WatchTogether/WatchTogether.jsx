@@ -61,15 +61,35 @@ const WatchTogetherContent = () => {
     const handleUserConnected = (newUser) => {
       console.log(`user connected in room with userId ${newUser}`);
 
+      // Log thông tin về stream hiện tại trước khi gọi
+      console.log("My stream before calling:", {
+        audioTracks: stream.getAudioTracks().length,
+        videoTracks: stream.getVideoTracks().length,
+        audioEnabled:
+          stream.getAudioTracks().length > 0
+            ? stream.getAudioTracks()[0].enabled
+            : false,
+      });
+
       const call = peer.call(newUser, stream);
+      console.log("Calling user with my stream:", call);
 
       call.on("stream", (incomingStream) => {
         console.log(`incoming stream from ${newUser}`);
+        console.log("Incoming stream details:", {
+          audioTracks: incomingStream.getAudioTracks().length,
+          videoTracks: incomingStream.getVideoTracks().length,
+          audioEnabled:
+            incomingStream.getAudioTracks().length > 0
+              ? incomingStream.getAudioTracks()[0].enabled
+              : false,
+        });
+
         setPlayers((prev) => ({
           ...prev,
           [newUser]: {
             url: incomingStream,
-            muted: true,
+            muted: false, // Mặc định không mute
             playing: true,
           },
         }));
@@ -78,6 +98,16 @@ const WatchTogetherContent = () => {
           ...prev,
           [newUser]: call,
         }));
+      });
+
+      // Thêm xử lý lỗi
+      call.on("error", (err) => {
+        console.error("Error in call with user", newUser, err);
+      });
+
+      // Thêm xử lý đóng kết nối
+      call.on("close", () => {
+        console.log("Call with user", newUser, "was closed");
       });
     };
     socket.on("user-connected", handleUserConnected);
@@ -93,7 +123,15 @@ const WatchTogetherContent = () => {
       console.log(`user with id ${userId} toggled audio`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
-        copy[userId].muted = !copy[userId].muted;
+        if (copy[userId]) {
+          copy[userId].muted = !copy[userId].muted;
+
+          // Không cần thay đổi trạng thái audio track của người khác
+          // Chỉ cập nhật UI
+          console.log(
+            `Updated muted state for user ${userId} to ${copy[userId].muted}`
+          );
+        }
         return { ...copy };
       });
     };
@@ -132,11 +170,22 @@ const WatchTogetherContent = () => {
 
       call.on("stream", (incomingStream) => {
         console.log(`incoming stream from ${callerId}`);
+
+        // Log thông tin về stream nhận được
+        console.log(
+          "Incoming stream audio tracks:",
+          incomingStream.getAudioTracks().map((t) => ({
+            label: t.label,
+            enabled: t.enabled,
+            muted: t.muted,
+          }))
+        );
+
         setPlayers((prev) => ({
           ...prev,
           [callerId]: {
             url: incomingStream,
-            muted: true,
+            muted: false, // Mặc định KHÔNG mute người dùng mới
             playing: true,
           },
         }));

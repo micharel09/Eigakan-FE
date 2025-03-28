@@ -27,32 +27,32 @@ const usePlayer = (myId, roomId, peer) => {
     console.log("Leaving room:", roomId);
     socket.emit("user-leave", { userId: myId, roomId });
 
-    // Close peer connection
-    if (peer) {
-      peer.disconnect();
-    }
-
-    // Navigate back to home
+    // Navigate to home page
     navigate("/");
-  }, [socket, myId, roomId, peer, navigate, isConnected]);
+  }, [socket, myId, roomId, isConnected, navigate]);
 
   // Toggle audio
   const toggleAudio = useCallback(() => {
     if (!socket || !isConnected) return;
 
-    console.log("Toggling audio");
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
         copy[myId].muted = !copy[myId].muted;
 
-        // Cập nhật trạng thái thực tế của audio tracks
+        // Actually toggle the audio tracks in the stream
         if (copy[myId].url) {
           const audioTracks = copy[myId].url.getAudioTracks();
-          audioTracks.forEach((track) => {
-            track.enabled = !copy[myId].muted;
-            console.log(`Audio track enabled: ${track.enabled}`);
-          });
+          console.log("Audio tracks before toggle:", audioTracks);
+
+          if (audioTracks.length > 0) {
+            audioTracks.forEach((track) => {
+              track.enabled = !copy[myId].muted;
+              console.log(`Audio track enabled: ${track.enabled}`);
+            });
+          } else {
+            console.warn("No audio tracks found to toggle");
+          }
         }
       }
       return copy;
@@ -65,16 +65,16 @@ const usePlayer = (myId, roomId, peer) => {
   const toggleVideo = useCallback(() => {
     if (!socket || !isConnected) return;
 
-    console.log("Toggling video");
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
-        // Đảo ngược trạng thái playing
         copy[myId].playing = !copy[myId].playing;
 
-        // Cập nhật trạng thái thực tế của video tracks
+        // Actually toggle the video tracks in the stream
         if (copy[myId].url) {
           const videoTracks = copy[myId].url.getVideoTracks();
+          console.log("Video tracks before toggle:", videoTracks);
+
           if (videoTracks.length > 0) {
             videoTracks.forEach((track) => {
               track.enabled = copy[myId].playing;

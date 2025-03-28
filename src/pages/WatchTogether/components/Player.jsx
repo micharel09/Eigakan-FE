@@ -3,9 +3,10 @@ import { VideoOff, Mic, MicOff } from "lucide-react";
 
 const Player = ({ url, muted, playing, isActive, isMe = false }) => {
   const containerRef = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
-    if (!containerRef.current || !url || !playing) return;
+    if (!containerRef.current || !url) return;
 
     // Remove old video if exists
     const oldVideo = containerRef.current.querySelector("video");
@@ -18,7 +19,16 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
     const videoElement = document.createElement("video");
     videoElement.autoplay = true;
     videoElement.playsInline = true;
-    videoElement.muted = true; // Always mute your own video to prevent echo
+
+    // Quan trọng: Chỉ mute video của chính mình để tránh echo
+    // Với video của người khác, chỉ mute nếu họ đã tắt mic (muted=true)
+    videoElement.muted = isMe ? true : muted;
+
+    console.log(
+      `Creating video for ${isMe ? "me" : "other user"}, muted:`,
+      videoElement.muted
+    );
+
     videoElement.className = "w-full h-full object-cover";
 
     // Mirror video if it's your camera
@@ -28,6 +38,7 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
 
     // Attach stream to video
     videoElement.srcObject = url;
+    videoRef.current = videoElement;
 
     // Add video to container
     containerRef.current.appendChild(videoElement);
@@ -40,13 +51,33 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
       url
     );
 
+    // Log audio tracks
+    const audioTracks = url.getAudioTracks();
+    console.log(
+      `Audio tracks for ${isMe ? "me" : "other user"}:`,
+      audioTracks.map((t) => ({
+        label: t.label,
+        enabled: t.enabled,
+        muted: t.muted,
+        readyState: t.readyState,
+      }))
+    );
+
     return () => {
       if (videoElement) {
         videoElement.srcObject = null;
         videoElement.remove();
       }
     };
-  }, [url, playing, muted, isMe]);
+  }, [url, isMe]);
+
+  // Cập nhật trạng thái muted khi props thay đổi
+  useEffect(() => {
+    if (videoRef.current && !isMe) {
+      videoRef.current.muted = muted;
+      console.log(`Updated muted state for video to: ${muted}`);
+    }
+  }, [muted, isMe]);
 
   return (
     <div
@@ -61,7 +92,7 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
       <div
         ref={containerRef}
         className="w-full h-full"
-        style={{ display: playing && url ? "block" : "none" }}
+        style={{ display: url ? "block" : "none" }}
       />
 
       {(!playing || !url) && (
