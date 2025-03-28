@@ -3,7 +3,6 @@ import { Helmet } from "react-helmet";
 import { motion } from "framer-motion";
 import { Film, ChevronRight } from "lucide-react";
 import GenreList from "../../components/Genre/GenreList";
-import Navbar from "../../components/Header/Navbar";
 import genreService from "../../apis/Genre/genre";
 import { useState, useEffect } from "react";
 import { Spin } from "antd";
@@ -42,7 +41,7 @@ export default function GenresPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#181818] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <Spin size="large" />
       </div>
     );
@@ -50,14 +49,14 @@ export default function GenresPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#181818] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-red-500">Error: {error}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#181818]">
+    <div className="min-h-screen bg-black">
       <Helmet>
         <title>Movie Genres - Eigakan</title>
         <meta
@@ -66,14 +65,15 @@ export default function GenresPage() {
         />
       </Helmet>
 
-      <div className="pt-24 pb-16 px-4 md:px-8">
+      {/* Smaller gradient transition from navbar that won't interfere with movie pages */}
+      <div className="w-full h-16 bg-gradient-to-b from-black via-black/90 to-black/70"></div>
+
+      <div className="px-4 md:px-8 pb-16">
         <div className="max-w-7xl mx-auto">
           <PageHeader />
           <GenreList genres={genres} />
         </div>
       </div>
-
-      <Navbar />
     </div>
   );
 }

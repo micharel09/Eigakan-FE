@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchOutlined } from "@ant-design/icons";
@@ -6,6 +6,7 @@ import { Spin } from "antd";
 import NewsApi from "../../apis/News/news";
 import { notification } from "antd";
 
+// Using Tailwind classes instead of CSS overrides
 const NewsPage = () => {
   const [news, setNews] = useState([]);
   const [filteredNews, setFilteredNews] = useState([]);
@@ -14,6 +15,7 @@ const NewsPage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const isMounted = useRef(false);
   const pageSize = 6;
 
   const fetchNews = async () => {
@@ -72,20 +74,40 @@ const NewsPage = () => {
     );
   };
 
+  // Initial data fetch on component mount
   useEffect(() => {
-    // Only refetch all data when searchQuery is empty
-    // Otherwise, let the handleSearch function handle filtering
-    if (!searchQuery) {
-      fetchNews();
-    } else if (searchQuery && page > 1) {
-      // If we're on a page > 1 with a search query, just update the pagination
+    fetchNews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle pagination and search
+  useEffect(() => {
+    // Skip on initial render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
+    if (searchQuery === "") {
+      // When search is cleared, update pagination with all news
+      if (allNews.length > 0) {
+        const startIndex = 0;
+        const endIndex = page * pageSize;
+        const paginatedNews = allNews.slice(startIndex, endIndex);
+
+        setFilteredNews(allNews);
+        setNews(paginatedNews);
+        setHasMore(endIndex < allNews.length);
+      }
+    } else if (page > 1) {
+      // Only handle pagination for search results when page changes
       const startIndex = 0;
       const endIndex = page * pageSize;
       const paginatedNews = filteredNews.slice(startIndex, endIndex);
       setNews(paginatedNews);
       setHasMore(endIndex < filteredNews.length);
     }
-  }, [page, searchQuery, pageSize, filteredNews]);
+  }, [page, searchQuery, allNews, pageSize]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -112,22 +134,8 @@ const NewsPage = () => {
     }
   };
 
-  // Handle empty search query
-  useEffect(() => {
-    if (searchQuery === "" && allNews.length > 0) {
-      // Reset to showing all news when search query is cleared
-      const startIndex = 0;
-      const endIndex = page * pageSize;
-      const paginatedNews = allNews.slice(startIndex, endIndex);
-
-      setFilteredNews(allNews);
-      setNews(paginatedNews);
-      setHasMore(endIndex < allNews.length);
-    }
-  }, [searchQuery, allNews, page, pageSize]);
-
   return (
-    <div className="min-h-screen bg-black">
+    <div className="bg-black ">
       <HeroSection
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -161,8 +169,7 @@ const NewsPage = () => {
 };
 
 const HeroSection = ({ searchQuery, setSearchQuery, onSearch }) => (
-  <div className="relative py-16 px-4 overflow-hidden">
-    <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-5" />
+  <div className="relative px-4 overflow-hidden pt-1 pb-4 bg-black">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}

@@ -28,11 +28,15 @@ function PopularPeople() {
   if (loading) return <Loading />;
 
   return (
-    <div className="min-h-screen bg-[#161515] pt-24 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-black">
       <Helmet>
         <title>Popular People - Eigakan</title>
       </Helmet>
-      <div className="max-w-7xl mx-auto">
+
+      {/* Smaller gradient transition from navbar that won't interfere with movie pages */}
+      <div className="w-full h-16 bg-gradient-to-b from-black via-black/90 to-black/70"></div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-white mb-8">Popular People</h1>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {actors.map((actor) => (

@@ -54,20 +54,12 @@
   --eigakan-bg-disabled: #f5f5f5;
 }
 
-@keyframes ken-burns {
-  0% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1.15);
-  }
-}
-
+/* Note: Ken-burns animation is now managed in tailwind.config.js */
 .animate-ken-burns {
-  animation: ken-burns 20s ease-out forwards;
+  animation: slowZoom 20s ease-out forwards;
 }
 
-/* Add these styles */
+/* Similar Movies Swiper Navigation Styles */
 .similar-movies-swiper .swiper-button-next,
 .similar-movies-swiper .swiper-button-prev {
   color: white;
@@ -114,15 +106,6 @@
 
 .eigakan-glow:hover {
   text-shadow: 0 0 10px #facc15, 0 0 20px #facc15, 0 0 40px #facc15;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: 200px 0;
-  }
 }
 
 @keyframes gradientText {
@@ -183,63 +166,7 @@
   cursor: not-allowed;
 }
 
-/* Movie card animations */
-@keyframes fadeSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.movie-card-enter {
-  animation: fadeSlideUp 0.5s ease forwards;
-}
-
-/* Movie card hover effects */
-.movie-card {
-  @apply relative overflow-hidden rounded-lg;
-  @apply transform transition-all duration-500;
-  @apply hover:z-10;
-}
-
-.movie-card:hover {
-  @apply scale-105;
-  @apply shadow-xl shadow-black/50;
-}
-
-.movie-card-content {
-  @apply absolute inset-0;
-  @apply bg-gradient-to-t from-black/90 via-black/50 to-transparent;
-  @apply opacity-0 transition-opacity duration-300;
-  @apply flex flex-col justify-between p-4;
-  @apply hover:opacity-100;
-}
-
-/* Backdrop blur effects */
-.backdrop-blur-card {
-  @apply backdrop-blur-sm bg-black/30;
-  @apply rounded-md border border-white/10;
-  @apply transition-colors duration-300;
-}
-
-.backdrop-blur-card:hover {
-  @apply bg-[#FF009F]/20 border-[#FF009F]/30;
-}
-
-/* Loading animation */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
+/* Loading animation - shimmer effect is defined in tailwind.config.js */
 .loading-shimmer {
   background: linear-gradient(
     90deg,
@@ -334,6 +261,8 @@ body,
   padding: 0;
   overflow-x: hidden;
   background-color: black;
+  width: 100vw !important;
+  max-width: 100vw !important;
 }
 
 /* Loại bỏ mọi outline và border bởi User Agent stylesheet */
@@ -490,4 +419,41 @@ header,
 /* For any remaining blue focus rings */
 *:focus {
   outline-color: var(--eigakan-primary) !important;
+}
+
+/* Thêm style cho logo để đảm bảo không bị animation */
+.navbar-logo {
+  /* Giữ nguyên animation gradient cho text, nhưng vô hiệu hóa các animation khác */
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Hide scrollbar but maintain functionality */
+.no-scrollbar {
+  /* Hide scrollbars across browsers while keeping scroll functionality */
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  overflow-y: auto !important;
+}
+
+/* Hide scrollbar for Webkit browsers (Chrome, Safari, Opera) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+
+/* Apply to html and body too */
+html.no-scrollbar,
+body.no-scrollbar {
+  overflow: hidden auto !important;
+  margin-right: 0 !important;
+  /* Prevent content shifting when scrollbar is hidden */
+  padding-right: 0 !important;
+  width: 100% !important;
+}
+
+/* Prevent any shift in the body width */
+body.no-scrollbar {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
 }

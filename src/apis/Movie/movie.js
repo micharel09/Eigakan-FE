@@ -1,4 +1,5 @@
 import axios from "axios";
+import ratingService from "./rating";
 
 const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Movie";
 
@@ -21,10 +22,13 @@ const movieService = {
         }
       });
       
-      // API trả về trực tiếp {total, movies}
+      // Add IMDB ratings to movies
+      let movies = response.data.movies || [];
+      movies = await ratingService.enrichMoviesWithImdbRatings(movies);
+      
       return {
         success: true,
-        movies: response.data.movies || [], // Trả về movies trực tiếp không qua data
+        movies: movies,
         total: response.data.total || 0
       };
 
@@ -51,6 +55,12 @@ const movieService = {
           pageSize
         }
       });
+      
+      // Add IMDB ratings to movies
+      if (response.data && response.data.movies) {
+        response.data.movies = await ratingService.enrichMoviesWithImdbRatings(response.data.movies);
+      }
+      
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -60,6 +70,12 @@ const movieService = {
   async getMovieById(id) {
     try {
       const response = await axios.get(`${API_URL}/GetMovieById/${id}`);
+      
+      // Add IMDB rating to the movie
+      if (response.data && response.data.data) {
+        response.data.data = await ratingService.enrichMoviesWithImdbRatings(response.data.data);
+      }
+      
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -78,6 +94,12 @@ const movieService = {
           pageSize
         }
       });
+      
+      // Add IMDB ratings to movies
+      if (response.data && response.data.movies) {
+        response.data.movies = await ratingService.enrichMoviesWithImdbRatings(response.data.movies);
+      }
+      
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

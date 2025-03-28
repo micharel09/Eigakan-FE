@@ -12,6 +12,7 @@ export default {
         'slow-zoom': 'slowZoom 20s linear infinite',
         'fade-up': 'fadeUp 0.5s ease-out forwards',
         'gradient-x': 'gradient-x 3s ease-in-out infinite',
+        'shimmer': 'shimmer 2.5s infinite linear',
       },
       keyframes: {
         slowZoom: {
@@ -32,7 +33,14 @@ export default {
             'background-position': 'right center'
           },
         },
-      }
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+      },
+      backdropFilter: {
+        'blur-navbar': 'blur(10px)',
+      },
     },
   },
   plugins: [tailwindScrollbarHide],

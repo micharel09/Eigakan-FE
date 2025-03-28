@@ -49,7 +49,7 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen mt-0 pt-0 bg-black text-white">
       <Helmet>
         <title>Eigakan - Premium Movie Streaming Platform</title>
         <meta
@@ -59,7 +59,7 @@ const HomePage = () => {
       </Helmet>
 
       {/* Hero Section - Đẩy lên trên cùng, không có padding-top */}
-      <div className="relative h-screen w-full -mt-16 pt-16">
+      <div className="relative h-screen w-full top-0">
         {/* Background với overlay gradient */}
         <div className="absolute inset-0 z-0">
           <img

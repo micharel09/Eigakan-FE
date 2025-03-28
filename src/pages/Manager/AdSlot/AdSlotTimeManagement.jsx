@@ -1155,28 +1155,6 @@ const AdSlotTimeManagement = () => {
               Manage all advertising slot times
             </Text>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              if (activeTab === "1") {
-                handleOpenModal();
-              } else if (activeTab === "2") {
-                handleOpenRangeModal();
-              } else if (activeTab === "3") {
-                handleOpenSlotModal();
-              }
-            }}
-            className="bg-pink-500 hover:bg-pink-600"
-          >
-            {activeTab === "1"
-              ? "Add Slot Time"
-              : activeTab === "2"
-              ? "Add Time Range"
-              : activeTab === "3"
-              ? "Add Slot Location"
-              : "Ad Media Approval"}
-          </Button>
         </div>
       </Card>
 

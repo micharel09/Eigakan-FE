@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Clock, Film, User } from "lucide-react";
+import { Search, X, Clock, Film, User, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import movieService from "../../apis/Movie/movie.js";
 
@@ -200,10 +200,20 @@ const SearchBar = ({ onClose }) => {
                       </div>
                     )}
 
-                    {movie.rating > 0 && (
+                    {(movie.imdbRating > 0 || movie.rating > 0) && (
                       <div className="mt-2">
-                        <span className="text-sm bg-[#FF009F]/20 text-[#FF009F] px-2 py-0.5 rounded-md">
-                          {movie.rating.toFixed(1)}
+                        <span
+                          className={`text-sm px-2 py-0.5 rounded-md flex items-center w-fit gap-1 ${
+                            movie.imdbRating
+                              ? "bg-[#F5C518]/20 text-[#F5C518]"
+                              : "bg-[#FF009F]/20 text-[#FF009F]"
+                          }`}
+                          title={
+                            movie.imdbRating ? "IMDB Rating" : "Internal Rating"
+                          }
+                        >
+                          <Star className="w-3 h-3" fill="currentColor" />
+                          {(movie.imdbRating || movie.rating).toFixed(1)}
                         </span>
                       </div>
                     )}
