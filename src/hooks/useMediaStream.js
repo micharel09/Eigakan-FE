@@ -7,24 +7,27 @@ const useMediaStream = () => {
   useEffect(() => {
     if (isStreamSet.current) return;
 
-    const initStream = async () => {
+    const getMedia = async () => {
       try {
         console.log("Requesting media permissions...");
         isStreamSet.current = true;
 
         // Yêu cầu quyền truy cập camera và microphone
         const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
           audio: true,
-          video: {
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-            frameRate: { max: 30 },
-          },
         });
 
         console.log("Media stream initialized successfully");
         console.log("Video tracks:", mediaStream.getVideoTracks().length);
         console.log("Audio tracks:", mediaStream.getAudioTracks().length);
+
+        // Mặc định tắt audio track khi mới khởi tạo
+        const audioTracks = mediaStream.getAudioTracks();
+        audioTracks.forEach((track) => {
+          track.enabled = false; // Mặc định tắt micro
+          console.log(`Initial audio track enabled set to: ${track.enabled}`);
+        });
 
         setStream(mediaStream);
       } catch (err) {
@@ -46,7 +49,7 @@ const useMediaStream = () => {
       }
     };
 
-    initStream();
+    getMedia();
 
     // Cleanup function
     return () => {

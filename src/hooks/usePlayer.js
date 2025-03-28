@@ -44,14 +44,16 @@ const usePlayer = (myId, roomId, peer) => {
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
+        // Đảo ngược trạng thái muted
         copy[myId].muted = !copy[myId].muted;
+        const newMutedState = copy[myId].muted;
 
         // Cập nhật trạng thái thực tế của audio tracks
         if (copy[myId].url) {
           const audioTracks = copy[myId].url.getAudioTracks();
           audioTracks.forEach((track) => {
-            track.enabled = !copy[myId].muted;
-            console.log(`Audio track enabled: ${track.enabled}`);
+            track.enabled = !newMutedState; // Bật nếu không mute, tắt nếu mute
+            console.log(`Audio track enabled set to: ${track.enabled}`);
           });
         }
       }

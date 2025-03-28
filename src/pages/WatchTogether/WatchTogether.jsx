@@ -78,17 +78,19 @@ const WatchTogetherContent = () => {
           }))
         );
 
-        // Đảm bảo audio tracks được bật
+        // Mặc định TẮT audio tracks khi mới kết nối
         audioTracks.forEach((track) => {
-          track.enabled = true;
-          console.log(`Enabling audio track: ${track.enabled}`);
+          track.enabled = false; // Mặc định tắt micro
+          console.log(
+            `Setting audio track to disabled by default: ${track.enabled}`
+          );
         });
 
         setPlayers((prev) => ({
           ...prev,
           [newUser]: {
             url: incomingStream,
-            muted: false, // Mặc định không mute người dùng khác
+            muted: true, // Mặc định mute người dùng khác
             playing: true,
           },
         }));
@@ -113,7 +115,20 @@ const WatchTogetherContent = () => {
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
         if (copy[userId]) {
+          // Đảo ngược trạng thái muted
           copy[userId].muted = !copy[userId].muted;
+          const newMutedState = copy[userId].muted;
+
+          // Cập nhật trạng thái thực tế của audio tracks
+          if (copy[userId].url && copy[userId].url.getAudioTracks) {
+            const audioTracks = copy[userId].url.getAudioTracks();
+            audioTracks.forEach((track) => {
+              track.enabled = !newMutedState; // Bật nếu không mute, tắt nếu mute
+              console.log(
+                `Remote audio track enabled set to: ${track.enabled}`
+              );
+            });
+          }
         }
         return { ...copy };
       });
@@ -170,17 +185,19 @@ const WatchTogetherContent = () => {
           }))
         );
 
-        // Đảm bảo audio tracks được bật
+        // Mặc định TẮT audio tracks khi mới kết nối
         audioTracks.forEach((track) => {
-          track.enabled = true;
-          console.log(`Enabling audio track from call: ${track.enabled}`);
+          track.enabled = false; // Mặc định tắt micro
+          console.log(
+            `Setting audio track from call to disabled by default: ${track.enabled}`
+          );
         });
 
         setPlayers((prev) => ({
           ...prev,
           [callerId]: {
             url: incomingStream,
-            muted: false, // Mặc định không mute người dùng khác
+            muted: true, // Mặc định mute người dùng khác
             playing: true,
           },
         }));

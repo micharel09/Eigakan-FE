@@ -86,13 +86,18 @@ const Player = ({
         }))
       );
 
-      // Đảm bảo audio tracks được bật nếu không phải là muted
-      if (!isMe && !muted) {
-        audioTracks.forEach((track) => {
-          track.enabled = true;
-          console.log(`Ensuring audio track is enabled: ${track.enabled}`);
-        });
-      }
+      // Đảm bảo audio tracks được bật/tắt theo trạng thái muted
+      audioTracks.forEach((track) => {
+        // Nếu là video của người khác, trạng thái enabled phụ thuộc vào muted
+        if (!isMe) {
+          track.enabled = !muted;
+        }
+        // Nếu là video của mình, luôn tắt audio để tránh echo
+        else {
+          track.enabled = false;
+        }
+        console.log(`Setting audio track enabled to: ${track.enabled}`);
+      });
     }
 
     // Hiển thị video ngay cả khi playing=false
