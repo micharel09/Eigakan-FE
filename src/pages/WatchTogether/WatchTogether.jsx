@@ -61,6 +61,17 @@ const WatchTogetherContent = () => {
     const handleUserConnected = (newUser) => {
       console.log(`user connected in room with userId ${newUser}`);
 
+      // Thiết lập kết nối dữ liệu trước
+      const dataConnection = peer.connect(newUser, {
+        reliable: true,
+        serialization: "json",
+      });
+
+      dataConnection.on("open", () => {
+        console.log("Data connection opened with:", newUser);
+        dataConnection.send({ type: "greeting", from: myId });
+      });
+
       // Log thông tin về stream hiện tại trước khi gọi
       console.log("My stream before calling:", {
         audioTracks: stream.getAudioTracks().length,
@@ -81,60 +92,80 @@ const WatchTogetherContent = () => {
             `Ensuring audio track ${track.label} is enabled before call`
           );
         });
+      } else {
+        console.warn("No audio tracks found before call!");
+        // Thử thêm audio track nếu không có
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((audioStream) => {
+            const audioTrack = audioStream.getAudioTracks()[0];
+            if (audioTrack) {
+              stream.addTrack(audioTrack);
+              console.log("Added new audio track to stream before call");
+            }
+          })
+          .catch((err) =>
+            console.error("Failed to add audio track before call:", err)
+          );
       }
 
-      // Tạo options cho cuộc gọi
+      // Tạo options cho cuộc gọi với cấu hình tối ưu cho audio
       const callOptions = {
         metadata: {
           userId: myId,
           roomId: roomId,
         },
         sdpTransform: (sdp) => {
-          // Đảm bảo SDP có audio
+          // Log SDP để debug
           console.log("Original SDP:", sdp);
+
+          // Đảm bảo audio được ưu tiên trong SDP
           // Không thay đổi SDP, chỉ log để debug
           return sdp;
         },
       };
 
-      const call = peer.call(newUser, stream, callOptions);
-      console.log("Calling user with my stream:", call);
+      // Đợi một chút để đảm bảo kết nối dữ liệu được thiết lập
+      setTimeout(() => {
+        const call = peer.call(newUser, stream, callOptions);
+        console.log("Calling user with my stream:", call);
 
-      call.on("stream", (incomingStream) => {
-        console.log(`incoming stream from ${newUser}`);
-        console.log("Incoming stream details:", {
-          audioTracks: incomingStream.getAudioTracks().length,
-          videoTracks: incomingStream.getVideoTracks().length,
-          audioEnabled:
-            incomingStream.getAudioTracks().length > 0
-              ? incomingStream.getAudioTracks()[0].enabled
-              : false,
+        call.on("stream", (incomingStream) => {
+          console.log(`incoming stream from ${newUser}`);
+          console.log("Incoming stream details:", {
+            audioTracks: incomingStream.getAudioTracks().length,
+            videoTracks: incomingStream.getVideoTracks().length,
+            audioEnabled:
+              incomingStream.getAudioTracks().length > 0
+                ? incomingStream.getAudioTracks()[0].enabled
+                : false,
+          });
+
+          setPlayers((prev) => ({
+            ...prev,
+            [newUser]: {
+              url: incomingStream,
+              muted: false, // Mặc định không mute
+              playing: true,
+            },
+          }));
+
+          setUsers((prev) => ({
+            ...prev,
+            [newUser]: call,
+          }));
         });
 
-        setPlayers((prev) => ({
-          ...prev,
-          [newUser]: {
-            url: incomingStream,
-            muted: false, // Mặc định không mute
-            playing: true,
-          },
-        }));
+        // Thêm xử lý lỗi
+        call.on("error", (err) => {
+          console.error("Error in call with user", newUser, err);
+        });
 
-        setUsers((prev) => ({
-          ...prev,
-          [newUser]: call,
-        }));
-      });
-
-      // Thêm xử lý lỗi
-      call.on("error", (err) => {
-        console.error("Error in call with user", newUser, err);
-      });
-
-      // Thêm xử lý đóng kết nối
-      call.on("close", () => {
-        console.log("Call with user", newUser, "was closed");
-      });
+        // Thêm xử lý đóng kết nối
+        call.on("close", () => {
+          console.log("Call with user", newUser, "was closed");
+        });
+      }, 1000);
     };
     socket.on("user-connected", handleUserConnected);
 
@@ -190,9 +221,25 @@ const WatchTogetherContent = () => {
 
   useEffect(() => {
     if (!peer || !stream) return;
-    peer.on("call", (call) => {
+
+    const handleIncomingCall = (call) => {
       const { peer: callerId } = call;
+      console.log("Incoming call from:", callerId);
+
+      // Đảm bảo audio track được bật trước khi trả lời
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks.forEach((track) => {
+          track.enabled = true;
+          console.log(
+            `Ensuring audio track ${track.label} is enabled before answering`
+          );
+        });
+      }
+
+      // Trả lời cuộc gọi với stream của mình
       call.answer(stream);
+      console.log("Answered call with my stream");
 
       call.on("stream", (incomingStream) => {
         console.log(`incoming stream from ${callerId}`);
@@ -206,6 +253,15 @@ const WatchTogetherContent = () => {
             muted: t.muted,
           }))
         );
+
+        // Đảm bảo audio tracks từ stream đến được bật
+        const incomingAudioTracks = incomingStream.getAudioTracks();
+        incomingAudioTracks.forEach((track) => {
+          track.enabled = true;
+          console.log(
+            `Ensuring incoming audio track ${track.label} is enabled`
+          );
+        });
 
         setPlayers((prev) => ({
           ...prev,
@@ -221,7 +277,17 @@ const WatchTogetherContent = () => {
           [callerId]: call,
         }));
       });
-    });
+
+      call.on("error", (err) => {
+        console.error("Error in incoming call:", err);
+      });
+    };
+
+    peer.on("call", handleIncomingCall);
+
+    return () => {
+      peer.off("call", handleIncomingCall);
+    };
   }, [peer, setPlayers, stream]);
 
   useEffect(() => {

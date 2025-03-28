@@ -83,21 +83,45 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
           window.webkitAudioContext)();
         console.log("Audio context state:", audioContext.state);
 
-        // Thử phát một âm thanh ngắn để kích hoạt audio context
+        // Đảm bảo audio context được kích hoạt
         if (audioContext.state === "suspended") {
+          audioContext.resume().then(() => {
+            console.log("AudioContext resumed successfully");
+          });
+
+          // Thử phát một âm thanh ngắn để kích hoạt audio context
           const oscillator = audioContext.createOscillator();
           oscillator.type = "sine";
-          oscillator.frequency.value = 0; // 0Hz - không nghe thấy
+          oscillator.frequency.value = 440; // 440Hz - âm thanh A4
           oscillator.connect(audioContext.destination);
           oscillator.start();
-          oscillator.stop(audioContext.currentTime + 0.001);
-          console.log("Attempted to resume audio context");
+          oscillator.stop(audioContext.currentTime + 0.1);
+          console.log("Played test tone to activate audio");
+        }
+
+        // Thử kết nối stream với audio context để đảm bảo nó hoạt động
+        if (url && url.getAudioTracks().length > 0 && !muted) {
+          try {
+            const source = audioContext.createMediaStreamSource(url);
+            const destination = audioContext.createMediaStreamDestination();
+            source.connect(destination);
+            console.log("Connected stream to audio context");
+          } catch (e) {
+            console.error("Error connecting stream to audio context:", e);
+          }
         }
       } catch (e) {
-        console.error("Error checking audio context:", e);
+        console.error("Error with audio context:", e);
+      }
+
+      // Thử phát video lại để kích hoạt audio
+      if (videoRef.current.paused) {
+        videoRef.current
+          .play()
+          .catch((e) => console.error("Error playing video:", e));
       }
     }
-  }, [muted, isMe]);
+  }, [muted, isMe, url]);
 
   return (
     <div

@@ -14,6 +14,7 @@ const usePeer = (roomId) => {
     // Dynamically import PeerJS
     import("peerjs")
       .then(({ default: Peer }) => {
+        // Tạo peer với cấu hình tối ưu cho audio
         const myPeer = new Peer(undefined, {
           host: "0.peerjs.com",
           port: 443,
@@ -49,6 +50,11 @@ const usePeer = (roomId) => {
               },
             ],
           },
+          // Thêm cấu hình media để ưu tiên audio
+          constraints: {
+            audio: true,
+            video: true,
+          },
         });
 
         setPeer(myPeer);
@@ -57,6 +63,25 @@ const usePeer = (roomId) => {
           console.log(`Your peer ID is ${id}`);
           setMyId(id);
           socket.emit("join-room", { roomId, userId: id });
+        });
+
+        // Xử lý sự kiện kết nối
+        myPeer.on("connection", (conn) => {
+          console.log("New data connection established:", conn.peer);
+
+          conn.on("open", () => {
+            console.log("Data connection opened with:", conn.peer);
+            // Gửi thông báo để kiểm tra kết nối
+            conn.send({ type: "connection-test", message: "Hello from peer" });
+          });
+
+          conn.on("data", (data) => {
+            console.log("Received data from peer:", data);
+          });
+
+          conn.on("error", (err) => {
+            console.error("Data connection error:", err);
+          });
         });
 
         myPeer.on("error", (err) => {
