@@ -1,11 +1,17 @@
 import React, { useRef, useEffect } from "react";
 import { VideoOff, Mic, MicOff } from "lucide-react";
 
-const Player = ({ url, muted, playing, isActive, isMe = false }) => {
+const Player = ({
+  url,
+  muted = false,
+  playing = false,
+  isActive = false,
+  isMe = false,
+}) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    if (!containerRef.current || !url || !playing) return;
+    if (!containerRef.current || !url) return;
 
     // Remove old video if exists
     const oldVideo = containerRef.current.querySelector("video");
@@ -18,7 +24,16 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
     const videoElement = document.createElement("video");
     videoElement.autoplay = true;
     videoElement.playsInline = true;
-    videoElement.muted = true; // Always mute your own video to prevent echo
+
+    // Chỉ mute video của chính mình hoặc nếu người dùng đã tắt mic
+    videoElement.muted = isMe || muted;
+
+    console.log(
+      `Creating video element for ${isMe ? "me" : "other user"}, muted: ${
+        videoElement.muted
+      }`
+    );
+
     videoElement.className = "w-full h-full object-cover";
 
     // Mirror video if it's your camera
@@ -40,13 +55,27 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
       url
     );
 
+    // Debug audio tracks
+    if (url && url.getAudioTracks) {
+      const audioTracks = url.getAudioTracks();
+      console.log(
+        `Audio tracks for ${isMe ? "me" : "other user"}:`,
+        audioTracks.map((t) => ({
+          enabled: t.enabled,
+          muted: t.muted,
+          readyState: t.readyState,
+          label: t.label,
+        }))
+      );
+    }
+
     return () => {
       if (videoElement) {
         videoElement.srcObject = null;
         videoElement.remove();
       }
     };
-  }, [url, playing, muted, isMe]);
+  }, [url, muted, isMe]);
 
   return (
     <div
@@ -61,7 +90,7 @@ const Player = ({ url, muted, playing, isActive, isMe = false }) => {
       <div
         ref={containerRef}
         className="w-full h-full"
-        style={{ display: playing && url ? "block" : "none" }}
+        style={{ display: url ? "block" : "none" }}
       />
 
       {(!playing || !url) && (

@@ -14,8 +14,6 @@ import roomService from "../../apis/Room/room";
 import Player from "./components/Player";
 import Bottom from "./components/Bottom";
 
-import "./WatchTogether.css";
-
 const WatchTogetherContent = () => {
   const { movieId } = useParams();
   const [searchParams] = useSearchParams();
@@ -95,7 +93,9 @@ const WatchTogetherContent = () => {
       console.log(`user with id ${userId} toggled audio`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
-        copy[userId].muted = !copy[userId].muted;
+        if (copy[userId]) {
+          copy[userId].muted = !copy[userId].muted;
+        }
         return { ...copy };
       });
     };
@@ -104,7 +104,9 @@ const WatchTogetherContent = () => {
       console.log(`user with id ${userId} toggled video`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
-        copy[userId].playing = !copy[userId].playing;
+        if (copy[userId]) {
+          copy[userId].playing = !copy[userId].playing;
+        }
         return { ...copy };
       });
     };
@@ -113,7 +115,9 @@ const WatchTogetherContent = () => {
       console.log(`user ${userId} is leaving the room`);
       users[userId]?.close();
       const playersCopy = cloneDeep(players);
-      delete playersCopy[userId];
+      if (playersCopy[userId]) {
+        delete playersCopy[userId];
+      }
       setPlayers(playersCopy);
     };
     socket.on("user-toggle-audio", handleToggleAudio);
@@ -196,19 +200,25 @@ const WatchTogetherContent = () => {
     }
   };
 
+  // Thêm kiểm tra null/undefined cho myPlayer
+  const isMuted = myPlayer?.muted || false;
+  const isPlaying = myPlayer?.playing || false;
+
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
       {/* Right panel - other participants' videos */}
       {Object.keys(otherPlayers).length > 0 && (
-        <div className="otherPlayersContainer">
+        <div className="absolute flex flex-col overflow-y-auto z-20 space-y-3 w-[220px] h-[calc(100vh-40px-80px)] right-5 top-5">
           {Object.keys(otherPlayers).map((playerId) => {
+            if (!otherPlayers[playerId]) return null;
+
             const { url, muted, playing } = otherPlayers[playerId];
             return (
               <Player
                 key={playerId}
                 url={url}
-                muted={muted}
-                playing={playing}
+                muted={muted || false}
+                playing={playing || false}
                 isActive={false}
               />
             );
@@ -218,11 +228,11 @@ const WatchTogetherContent = () => {
 
       {/* Your video - bottom left corner */}
       {myPlayer && showMyVideo && (
-        <div className="myVideoContainer">
+        <div className="absolute left-5 bottom-20 z-30 rounded-lg overflow-hidden shadow-lg w-[180px] h-[135px] border-2 border-white/20">
           <Player
             url={myPlayer.url}
-            muted={myPlayer.muted}
-            playing={myPlayer.playing}
+            muted={myPlayer.muted || false}
+            playing={myPlayer.playing || false}
             isActive={false}
             isMe={true}
           />
@@ -249,10 +259,10 @@ const WatchTogetherContent = () => {
       )}
 
       {/* Controls */}
-      <div className="controls-container">
+      <div className="absolute bottom-0 left-0 right-0 z-30 py-3">
         <Bottom
-          muted={myPlayer?.muted}
-          playing={myPlayer?.playing}
+          muted={isMuted}
+          playing={isPlaying}
           toggleAudio={toggleAudio}
           toggleVideo={toggleVideo}
           leaveRoom={handleLeaveRoom}
