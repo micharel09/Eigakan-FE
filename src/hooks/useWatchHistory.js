@@ -1,99 +1,104 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import useAuth from "./useAuth";
-import movieCountService from "../apis/MovieCount/MovieCount";
+import { useState, useEffect, useCallback } from "react";
 import movieHistoryService from "../apis/MovieHistory/MovieHistory";
 
 /**
- * Custom hook for managing movie watch history and view counts
- * 
- * @param {string} movieId - ID of the movie being watched
- * @returns {Object} - Watch history functions and state
+ * Custom hook to handle movie watch history
+ * @param {Object} options - Configuration options
+ * @param {boolean} options.isAuthenticated - Whether the user is authenticated
+ * @returns {Object} Watch history state and control functions
  */
-export const useWatchHistory = (movieId) => {
-  const { user, isAuthenticated } = useAuth();
-  const [isViewCounted, setIsViewCounted] = useState(false);
-  const viewTimeoutRef = useRef(null);
-  const [isVisible, setIsVisible] = useState(!document.hidden);
+export const useWatchHistory = ({ 
+  isAuthenticated = false 
+}) => {
+  const [watchHistory, setWatchHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Increase the view count for the movie
-  const increaseViewCount = useCallback(async () => {
-    if (!movieId || isViewCounted) return;
-    try {
-      await movieCountService.increaseCount(movieId);
-      setIsViewCounted(true);
-      console.log("View count increased for movie:", movieId);
-    } catch (error) {
-      console.error("Error increasing view count:", error);
-    }
-  }, [movieId, isViewCounted]);
-
-  // Create movie history entry for the user
-  const createMovieHistory = useCallback(async () => {
-    if (!isAuthenticated || !user || !movieId) return;
+  /**
+   * Fetch user's watch history
+   */
+  const fetchWatchHistory = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    setLoadingHistory(true);
     
     try {
-      await movieHistoryService.createMovieHistory(movieId);
-      console.log("Movie history created for movie:", movieId);
-    } catch (error) {
-      console.error("Error creating movie history:", error);
-    }
-  }, [movieId, isAuthenticated, user]);
-
-  // Start the view count process 
-  // (only counts if user watches at least 10 seconds)
-  const startViewCount = useCallback(() => {
-    if (viewTimeoutRef.current || isViewCounted) return;
-    
-    viewTimeoutRef.current = setTimeout(() => {
-      increaseViewCount();
-      createMovieHistory();
-    }, 10000); // 10 seconds
-    
-    console.log("View count timer started");
-  }, [increaseViewCount, createMovieHistory, isViewCounted]);
-
-  // Stop the view count process
-  const stopViewCount = useCallback(() => {
-    if (viewTimeoutRef.current) {
-      clearTimeout(viewTimeoutRef.current);
-      viewTimeoutRef.current = null;
-      console.log("View count timer stopped");
-    }
-  }, []);
-
-  // Handle page visibility changes (pause count when tab is inactive)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setIsVisible(false);
-        stopViewCount();
-      } else {
-        setIsVisible(true);
-        if (!isViewCounted) {
-          startViewCount();
-        }
+      const response = await movieHistoryService.GetMovieHistory();
+      
+      if (response.success && response.data) {
+        setWatchHistory(response.data);
       }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    
-    // Initial start
-    if (!document.hidden && !isViewCounted) {
-      startViewCount();
+    } catch (error) {
+      console.error("Failed to fetch watch history:", error);
+    } finally {
+      setLoadingHistory(false);
     }
+  }, [isAuthenticated]);
 
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      stopViewCount();
-    };
-  }, [isViewCounted, startViewCount, stopViewCount]);
+  /**
+   * Add a movie to watch history
+   */
+  const addToHistory = useCallback(async (movieId) => {
+    if (!isAuthenticated || !movieId) return;
+    
+    try {
+      await movieHistoryService.CreateMovieHistory({ movieId });
+      fetchWatchHistory();
+    } catch (error) {
+      console.error("Failed to add to watch history:", error);
+    }
+  }, [isAuthenticated, fetchWatchHistory]);
+
+  /**
+   * Remove a movie from watch history
+   */
+  const removeFromHistory = useCallback(async (movieId) => {
+    if (!isAuthenticated || !movieId) return;
+    
+    try {
+      await movieHistoryService.DeleteMovieHistory(movieId);
+      fetchWatchHistory();
+    } catch (error) {
+      console.error("Failed to remove from watch history:", error);
+    }
+  }, [isAuthenticated, fetchWatchHistory]);
+
+  /**
+   * Clear entire watch history
+   */
+  const clearHistory = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      await movieHistoryService.DeleteAllMovieHistory();
+      setWatchHistory([]);
+    } catch (error) {
+      console.error("Failed to clear watch history:", error);
+    }
+  }, [isAuthenticated]);
+
+  /**
+   * Check if a movie is in watch history
+   */
+  const isInHistory = useCallback((movieId) => {
+    return watchHistory.some(item => item.movieId === movieId);
+  }, [watchHistory]);
+
+  /**
+   * Load watch history on component mount
+   */
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchWatchHistory();
+    }
+  }, [isAuthenticated, fetchWatchHistory]);
 
   return {
-    isViewCounted,
-    isVisible,
-    startViewCount,
-    stopViewCount,
-    increaseViewCount,
-    createMovieHistory
+    watchHistory,
+    loadingHistory,
+    fetchWatchHistory,
+    addToHistory,
+    removeFromHistory,
+    clearHistory,
+    isInHistory,
   };
 }; 
