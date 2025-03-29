@@ -61,6 +61,29 @@ const contractApi = {
         }
     },
 
+    async getAllContractByUserId(userId, page, pageSize) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_URL}/GetAllContractByUserId`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          params: {
+            userId,
+            page,
+            pageSize
+          }
+        });
+        
+        console.log("Contracts by userId Response:", response);
+        
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching contracts by userId:", error);
+        return { success: false, data: { contracts: [], total: 0 } };
+      }
+    },
+
     async getContractById(id) {
       try {
         const token = localStorage.getItem('token');
