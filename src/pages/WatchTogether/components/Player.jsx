@@ -11,7 +11,7 @@ const Player = ({
   const containerRef = useRef(null);
 
   useEffect(() => {
-    if (!containerRef.current || !url || !playing) return;
+    if (!containerRef.current || !url) return;
 
     // Remove old video if exists
     const oldVideo = containerRef.current.querySelector("video");
@@ -75,7 +75,7 @@ const Player = ({
         videoElement.remove();
       }
     };
-  }, [url, playing, muted, isMe]);
+  }, [url, muted, isMe]);
 
   return (
     <div
@@ -90,7 +90,7 @@ const Player = ({
       <div
         ref={containerRef}
         className="w-full h-full"
-        style={{ display: playing && url ? "block" : "none" }}
+        style={{ display: url ? "block" : "none" }}
       />
 
       {(!playing || !url) && (

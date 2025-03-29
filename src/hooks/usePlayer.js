@@ -83,6 +83,14 @@ const usePlayer = (myId, roomId, peer) => {
           } else {
             console.warn("No video tracks found to toggle");
           }
+
+          // QUAN TRỌNG: Đảm bảo audio tracks vẫn giữ nguyên trạng thái
+          const audioTracks = copy[myId].url.getAudioTracks();
+          audioTracks.forEach((track) => {
+            // Giữ nguyên trạng thái audio dựa trên muted
+            track.enabled = !copy[myId].muted;
+            console.log(`Preserving audio track state: ${track.enabled}`);
+          });
         }
       }
       return copy;
