@@ -61,7 +61,74 @@ const WatchTogetherContent = () => {
     const handleUserConnected = (newUser) => {
       console.log(`user connected in room with userId ${newUser}`);
 
-      const call = peer.call(newUser, stream);
+      // Thiết lập kết nối dữ liệu trước
+      const dataConnection = peer.connect(newUser, {
+        reliable: true,
+        serialization: "json",
+      });
+
+      dataConnection.on("open", () => {
+        console.log("Data connection opened with:", newUser);
+        dataConnection.send({ type: "greeting", from: myId });
+      });
+
+      // Log thông tin về stream hiện tại trước khi gọi
+      console.log("My stream before calling:", {
+        audioTracks: stream.getAudioTracks().length,
+        videoTracks: stream.getVideoTracks().length,
+        audioEnabled:
+          stream.getAudioTracks().length > 0
+            ? stream.getAudioTracks()[0].enabled
+            : false,
+      });
+
+      // Đảm bảo audio track được bật trước khi gọi
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks.forEach((track) => {
+          // Đảm bảo audio track được bật
+          track.enabled = true;
+          console.log(
+            `Ensuring audio track ${track.label} is enabled before call`
+          );
+        });
+      } else {
+        console.warn("No audio tracks found before call!");
+        // Thử thêm audio track nếu không có
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((audioStream) => {
+            const audioTrack = audioStream.getAudioTracks()[0];
+            if (audioTrack) {
+              stream.addTrack(audioTrack);
+              console.log("Added new audio track to stream before call");
+            }
+          })
+          .catch((err) =>
+            console.error("Failed to add audio track before call:", err)
+          );
+      }
+
+      // Tạo options cho cuộc gọi với cấu hình tối ưu cho audio
+      const callOptions = {
+        metadata: {
+          userId: myId,
+          roomId: roomId,
+        },
+        sdpTransform: (sdp) => {
+          // Log SDP để debug
+          console.log("Original SDP:", sdp);
+
+          // Đảm bảo audio được ưu tiên trong SDP
+          // Không thay đổi SDP, chỉ log để debug
+          return sdp;
+        },
+      };
+
+      // Đợi một chút để đảm bảo kết nối dữ liệu được thiết lập
+      setTimeout(() => {
+        const call = peer.call(newUser, stream, callOptions);
+        console.log("Calling user with my stream:", call);
 
       call.on("stream", (incomingStream) => {
         console.log(`incoming stream from ${newUser}`);
@@ -200,12 +267,119 @@ const WatchTogetherContent = () => {
     }
   };
 
-  // Thêm kiểm tra null/undefined cho myPlayer
-  const isMuted = myPlayer?.muted || false;
-  const isPlaying = myPlayer?.playing || false;
+  // Thêm state để theo dõi trạng thái audio context
+  const [audioActivated, setAudioActivated] = useState(false);
+
+  // Thêm hàm để kích hoạt audio
+  const activateAudio = () => {
+    try {
+      // Tạo và kích hoạt audio context
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      audioContext.resume().then(() => {
+        console.log("Audio context activated by user");
+        setAudioActivated(true);
+
+        // Phát âm thanh test
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = "sine";
+        oscillator.frequency.value = 440;
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1);
+
+        // Đảm bảo tất cả video elements đều được unmute nếu cần
+        document.querySelectorAll("video").forEach((video) => {
+          if (!video.muted && video.paused) {
+            video.play().catch((e) => console.error("Error playing video:", e));
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Error activating audio:", e);
+    }
+  };
+
+  // Thêm một hàm để kiểm tra và đồng bộ trạng thái audio
+  const syncAudioState = useCallback(() => {
+    console.log("Syncing audio state for all players");
+
+    // Đồng bộ trạng thái audio của bản thân
+    if (players[myId] && players[myId].url) {
+      const myAudioTracks = players[myId].url.getAudioTracks();
+      const shouldBeEnabled = !players[myId].muted;
+
+      myAudioTracks.forEach((track) => {
+        if (track.enabled !== shouldBeEnabled) {
+          track.enabled = shouldBeEnabled;
+          console.log(
+            `Fixed my audio track enabled state to ${shouldBeEnabled}`
+          );
+        }
+      });
+    }
+
+    // Đồng bộ trạng thái audio của người khác
+    Object.keys(players).forEach((userId) => {
+      if (userId !== myId && players[userId] && players[userId].url) {
+        const audioTracks = players[userId].url.getAudioTracks();
+        const shouldBeEnabled = !players[userId].muted;
+
+        audioTracks.forEach((track) => {
+          if (track.enabled !== shouldBeEnabled) {
+            track.enabled = shouldBeEnabled;
+            console.log(
+              `Fixed remote audio track for ${userId} enabled state to ${shouldBeEnabled}`
+            );
+          }
+        });
+
+        // Đồng bộ trạng thái muted của video elements
+        document.querySelectorAll("video").forEach((video) => {
+          if (video.srcObject === players[userId].url) {
+            if (video.muted !== players[userId].muted) {
+              video.muted = players[userId].muted;
+              console.log(
+                `Fixed video muted state for ${userId} to ${players[userId].muted}`
+              );
+            }
+          }
+        });
+      }
+    });
+  }, [players, myId]);
+
+  // Gọi hàm này định kỳ để đảm bảo trạng thái luôn đồng bộ
+  useEffect(() => {
+    const interval = setInterval(syncAudioState, 5000);
+    return () => clearInterval(interval);
+  }, [syncAudioState]);
+
+  // Thêm nút để người dùng có thể đồng bộ thủ công
+  const syncButton = (
+    <button
+      onClick={syncAudioState}
+      className="absolute top-4 right-4 z-50 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md"
+    >
+      Đồng bộ âm thanh
+    </button>
+  );
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
+      {/* Nút kích hoạt âm thanh */}
+      {!audioActivated && (
+        <button
+          onClick={activateAudio}
+          className="absolute top-4 left-4 z-50 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+        >
+          Kích hoạt âm thanh
+        </button>
+      )}
+
+      {/* Nút đồng bộ âm thanh */}
+      {syncButton}
+
       {/* Right panel - other participants' videos */}
       {Object.keys(otherPlayers).length > 0 && (
         <div className="absolute flex flex-col overflow-y-auto z-20 space-y-3 w-[220px] h-[calc(100vh-40px-80px)] right-5 top-5">

@@ -27,68 +27,129 @@ const usePlayer = (myId, roomId, peer) => {
     console.log("Leaving room:", roomId);
     socket.emit("user-leave", { userId: myId, roomId });
 
-    // Close peer connection
-    if (peer) {
-      peer.disconnect();
-    }
-
-    // Navigate back to home
+    // Navigate to home page
     navigate("/");
-  }, [socket, myId, roomId, peer, navigate, isConnected]);
+  }, [socket, myId, roomId, isConnected, navigate]);
 
   // Toggle audio
   const toggleAudio = useCallback(() => {
     if (!socket || !isConnected) return;
 
-    console.log("Toggling audio");
+    console.log("Toggling audio for user", myId);
+
+    // Lấy trạng thái hiện tại trước khi thay đổi
+    const currentMutedState = players[myId]?.muted;
+    const newMutedState = !currentMutedState;
+
+    console.log(
+      `Changing muted state from ${currentMutedState} to ${newMutedState}`
+    );
+
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
-        copy[myId].muted = !copy[myId].muted;
+        // Đảo ngược trạng thái muted
+        copy[myId].muted = newMutedState;
 
-        // Cập nhật trạng thái thực tế của audio tracks
+        // Thực sự bật/tắt audio tracks
         if (copy[myId].url) {
           const audioTracks = copy[myId].url.getAudioTracks();
-          audioTracks.forEach((track) => {
-            track.enabled = !copy[myId].muted;
-            console.log(`Audio track enabled: ${track.enabled}`);
-          });
+          console.log("Audio tracks found:", audioTracks.length);
+
+          if (audioTracks.length > 0) {
+            audioTracks.forEach((track) => {
+              // QUAN TRỌNG: Đảo ngược logic - enabled = !muted
+              // Nếu muted = true thì enabled = false và ngược lại
+              const shouldEnable = !newMutedState;
+              track.enabled = shouldEnable;
+
+              console.log(
+                `Set audio track ${track.label} enabled:`,
+                shouldEnable
+              );
+
+              // Thêm log để kiểm tra trạng thái sau khi thay đổi
+              setTimeout(() => {
+                console.log(`Audio track ${track.label} status after toggle:`, {
+                  enabled: track.enabled,
+                  muted: track.muted,
+                  readyState: track.readyState,
+                });
+              }, 500);
+            });
+          } else {
+            console.warn(
+              "No audio tracks found in stream! Trying to add audio..."
+            );
+            // Thử thêm audio track nếu không có
+            navigator.mediaDevices
+              .getUserMedia({
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true,
+                },
+              })
+              .then((audioStream) => {
+                const audioTrack = audioStream.getAudioTracks()[0];
+                if (audioTrack) {
+                  // Đảm bảo track được bật đúng trạng thái
+                  audioTrack.enabled = !newMutedState;
+                  copy[myId].url.addTrack(audioTrack);
+                  console.log(
+                    "Added new audio track to stream with enabled:",
+                    !newMutedState
+                  );
+                }
+              })
+              .catch((err) => console.error("Failed to add audio track:", err));
+          }
+        } else {
+          console.warn("No stream found for toggling audio");
         }
       }
       return copy;
     });
 
+    // Thông báo cho người dùng khác
     socket.emit("user-toggle-audio", { userId: myId, roomId });
-  }, [socket, myId, roomId, isConnected]);
+    console.log("Emitted user-toggle-audio event");
+  }, [socket, myId, roomId, isConnected, players]);
 
   // Toggle video
   const toggleVideo = useCallback(() => {
     if (!socket || !isConnected) return;
 
-    console.log("Toggling video");
+    console.log("Toggling video for user", myId);
+
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
         // Đảo ngược trạng thái playing
         copy[myId].playing = !copy[myId].playing;
 
-        // Cập nhật trạng thái thực tế của video tracks
+        // Thực sự bật/tắt video tracks
         if (copy[myId].url) {
           const videoTracks = copy[myId].url.getVideoTracks();
-          if (videoTracks.length > 0) {
-            videoTracks.forEach((track) => {
-              track.enabled = copy[myId].playing;
-              console.log(`Video track enabled: ${track.enabled}`);
-            });
-          } else {
-            console.warn("No video tracks found to toggle");
-          }
+          console.log("Video tracks found:", videoTracks.length);
+
+          videoTracks.forEach((track) => {
+            track.enabled = copy[myId].playing;
+            console.log(
+              `Set video track ${track.label} enabled:`,
+              track.enabled
+            );
+          });
+        } else {
+          console.warn("No stream found for toggling video");
         }
       }
       return copy;
     });
 
+    // Thông báo cho người dùng khác
     socket.emit("user-toggle-video", { userId: myId, roomId });
+    console.log("Emitted user-toggle-video event");
   }, [socket, myId, roomId, isConnected]);
 
   return {
