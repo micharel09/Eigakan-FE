@@ -1,99 +1,142 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 const useMediaStream = () => {
   const [stream, setStream] = useState(null);
-  const isStreamSet = useRef(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isStreamSet.current) return;
+    let mounted = true;
 
-    const getMedia = async () => {
+    const initializeStream = async () => {
       try {
-        console.log("Requesting media permissions...");
-        isStreamSet.current = true;
+        console.log("Initializing media stream...");
 
-        // Yêu cầu quyền truy cập camera và microphone với cấu hình chi tiết hơn
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            // Thêm các tùy chọn để đảm bảo micro hoạt động
-            channelCount: 2,
-            sampleRate: 48000,
-            sampleSize: 16,
-            volume: 1.0,
-          },
+        // Kiểm tra xem trình duyệt có hỗ trợ getUserMedia không
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Your browser doesn't support media devices");
+        }
+
+        // Kiểm tra thiết bị có sẵn
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasAudio = devices.some((device) => device.kind === "audioinput");
+        const hasVideo = devices.some((device) => device.kind === "videoinput");
+
+        console.log("Available devices:", {
+          audio: hasAudio,
+          video: hasVideo,
+          devices: devices.map((d) => ({ kind: d.kind, label: d.label })),
         });
 
-        console.log("Media stream initialized successfully");
-        console.log("Video tracks:", mediaStream.getVideoTracks().length);
-        console.log("Audio tracks:", mediaStream.getAudioTracks().length);
+        // Cấu hình constraints dựa trên thiết bị có sẵn
+        const constraints = {
+          audio: hasAudio
+            ? {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              }
+            : false,
+          video: hasVideo
+            ? {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                frameRate: { max: 30 },
+              }
+            : false,
+        };
 
-        // Log chi tiết về audio tracks
+        console.log("Using constraints:", constraints);
+
+        // Yêu cầu quyền truy cập
+        const mediaStream = await navigator.mediaDevices.getUserMedia(
+          constraints
+        );
+
+        // Kiểm tra tracks
         const audioTracks = mediaStream.getAudioTracks();
-        console.log(
-          "Audio track details:",
-          audioTracks.map((t) => ({
+        const videoTracks = mediaStream.getVideoTracks();
+
+        console.log("Media stream initialized with:", {
+          audioTracks: audioTracks.length,
+          videoTracks: videoTracks.length,
+          audioDetails: audioTracks.map((t) => ({
             label: t.label,
             enabled: t.enabled,
             muted: t.muted,
             readyState: t.readyState,
-            id: t.id,
-            settings: t.getSettings ? t.getSettings() : "N/A",
-          }))
-        );
-
-        // Đảm bảo audio tracks được bật
-        audioTracks.forEach((track) => {
-          track.enabled = true;
-          console.log(
-            `Ensuring initial audio track is enabled: ${track.enabled}`
-          );
+          })),
+          videoDetails: videoTracks.map((t) => ({
+            label: t.label,
+            enabled: t.enabled,
+            muted: t.muted,
+            readyState: t.readyState,
+          })),
         });
 
-        setStream(mediaStream);
-      } catch (err) {
-        console.error("Error accessing media devices:", err);
-        isStreamSet.current = false;
+        // Đảm bảo các tracks được bật
+        audioTracks.forEach((track) => {
+          track.enabled = true;
+        });
 
-        // Thử lại với chỉ audio nếu video thất bại
-        try {
-          console.log("Trying audio only...");
-          const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
-            video: false,
-          });
-          console.log("Audio-only stream initialized");
-          setStream(audioOnlyStream);
-        } catch (audioErr) {
-          console.error("Failed to get even audio stream:", audioErr);
+        videoTracks.forEach((track) => {
+          track.enabled = true;
+        });
+
+        if (mounted) {
+          setStream(mediaStream);
+          setError(null);
+        }
+      } catch (err) {
+        console.error("Error initializing media stream:", err);
+
+        // Thử lại với chỉ audio nếu video gây lỗi
+        if (
+          err.name === "NotFoundError" ||
+          err.name === "DevicesNotFoundError" ||
+          err.name === "NotReadableError" ||
+          err.name === "TrackStartError"
+        ) {
+          try {
+            console.log("Trying audio only...");
+            const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              },
+              video: false,
+            });
+
+            if (mounted) {
+              setStream(audioOnlyStream);
+              setError(null);
+            }
+            return;
+          } catch (audioErr) {
+            console.error("Audio-only fallback also failed:", audioErr);
+          }
+        }
+
+        if (mounted) {
+          setError(err);
         }
       }
     };
 
-    getMedia();
+    initializeStream();
 
-    // Cleanup function
     return () => {
+      mounted = false;
       if (stream) {
         console.log("Cleaning up media stream");
         stream.getTracks().forEach((track) => {
           track.stop();
-          console.log(`Stopped ${track.kind} track`);
         });
       }
     };
   }, []);
 
-  return {
-    stream,
-  };
+  return { stream, error };
 };
 
 export default useMediaStream;

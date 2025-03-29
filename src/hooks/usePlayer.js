@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { cloneDeep } from "lodash";
 import { useWatchTogetherSocket } from "../pages/WatchTogether/providers/WatchTogetherSocketProvider";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,40 @@ const usePlayer = (myId, roomId, peer) => {
   const { socket, isConnected } = useWatchTogetherSocket();
   const [players, setPlayers] = useState({});
   const navigate = useNavigate();
+
+  // Theo dõi trạng thái audio/video của người dùng khác
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleUserToggleAudio = (userId) => {
+      console.log(`User ${userId} toggled audio`);
+      setPlayers((prev) => {
+        const copy = cloneDeep(prev);
+        if (copy[userId]) {
+          copy[userId].muted = !copy[userId].muted;
+
+          // Nếu stream có sẵn, cập nhật trạng thái thực tế của audio tracks
+          if (copy[userId].url && copy[userId].url.getAudioTracks) {
+            const audioTracks = copy[userId].url.getAudioTracks();
+            audioTracks.forEach((track) => {
+              // Không thay đổi enabled của remote tracks, chỉ cập nhật UI
+              console.log(`Remote audio track ${track.label} status:`, {
+                enabled: track.enabled,
+                muted: copy[userId].muted,
+              });
+            });
+          }
+        }
+        return copy;
+      });
+    };
+
+    socket.on("user-toggle-audio", handleUserToggleAudio);
+
+    return () => {
+      socket.off("user-toggle-audio", handleUserToggleAudio);
+    };
+  }, [socket]);
 
   // Get a copy of players without modifying the original
   const playersCopy = cloneDeep(players);
@@ -44,16 +78,14 @@ const usePlayer = (myId, roomId, peer) => {
     setPlayers((prev) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
-        // Đảo ngược trạng thái muted
         copy[myId].muted = !copy[myId].muted;
-        const newMutedState = copy[myId].muted;
 
         // Cập nhật trạng thái thực tế của audio tracks
         if (copy[myId].url) {
           const audioTracks = copy[myId].url.getAudioTracks();
           audioTracks.forEach((track) => {
-            track.enabled = !newMutedState; // Bật nếu không mute, tắt nếu mute
-            console.log(`My audio track enabled set to: ${track.enabled}`);
+            track.enabled = !copy[myId].muted;
+            console.log(`Audio track ${track.label} enabled:`, track.enabled);
           });
         }
       }
@@ -80,7 +112,7 @@ const usePlayer = (myId, roomId, peer) => {
           if (videoTracks.length > 0) {
             videoTracks.forEach((track) => {
               track.enabled = copy[myId].playing;
-              console.log(`Video track enabled: ${track.enabled}`);
+              console.log(`Video track ${track.label} enabled:`, track.enabled);
             });
           } else {
             console.warn("No video tracks found to toggle");

@@ -25,14 +25,13 @@ const Player = ({
     videoElement.autoplay = true;
     videoElement.playsInline = true;
 
-    // QUAN TRỌNG: Chỉ mute ELEMENT của chính mình, không mute element của người khác
-    // Điều này khác với việc bật/tắt audio track
-    videoElement.muted = isMe; // Chỉ mute element của mình để tránh echo
+    // Chỉ mute video của chính mình hoặc nếu người dùng đã tắt mic
+    videoElement.muted = isMe || muted;
 
     console.log(
-      `Creating video element for ${
-        isMe ? "me" : "other user"
-      }, element muted: ${videoElement.muted}, track muted state: ${muted}`
+      `Creating video element for ${isMe ? "me" : "other user"}, muted: ${
+        videoElement.muted
+      }`
     );
 
     videoElement.className = "w-full h-full object-cover";
@@ -45,23 +44,6 @@ const Player = ({
     // Attach stream to video
     videoElement.srcObject = url;
 
-    // Thêm xử lý sự kiện để đảm bảo audio hoạt động
-    videoElement.onloadedmetadata = () => {
-      videoElement.play().catch((err) => {
-        console.error("Error playing video:", err);
-        // Thử lại với user interaction
-        document.addEventListener(
-          "click",
-          () => {
-            videoElement
-              .play()
-              .catch((e) => console.error("Still can't play:", e));
-          },
-          { once: true }
-        );
-      });
-    };
-
     // Add video to container
     containerRef.current.appendChild(videoElement);
 
@@ -73,7 +55,7 @@ const Player = ({
       url
     );
 
-    // Debug audio tracks chi tiết hơn
+    // Debug audio tracks
     if (url && url.getAudioTracks) {
       const audioTracks = url.getAudioTracks();
       console.log(
@@ -83,30 +65,19 @@ const Player = ({
           muted: t.muted,
           readyState: t.readyState,
           label: t.label,
-          id: t.id,
-          kind: t.kind,
-          constraints: t.getConstraints ? t.getConstraints() : "N/A",
-          settings: t.getSettings ? t.getSettings() : "N/A",
         }))
       );
+    }
 
-      // Đảm bảo audio tracks được bật/tắt theo trạng thái muted
-      audioTracks.forEach((track) => {
-        // Đảm bảo track luôn được bật nếu không bị mute
-        if (!muted) {
-          track.enabled = true;
-          console.log(`Forcing audio track to be enabled: ${track.enabled}`);
-        } else {
-          track.enabled = false;
-          console.log(`Forcing audio track to be disabled: ${track.enabled}`);
-        }
+    // Thêm sự kiện để xử lý khi stream sẵn sàng
+    videoElement.onloadedmetadata = () => {
+      console.log(
+        `Video element loaded metadata for ${isMe ? "me" : "other user"}`
+      );
+      videoElement.play().catch((err) => {
+        console.error("Error playing video:", err);
       });
-    }
-
-    // Hiển thị video ngay cả khi playing=false
-    if (containerRef.current) {
-      containerRef.current.style.display = "block";
-    }
+    };
 
     return () => {
       if (videoElement) {
@@ -114,7 +85,10 @@ const Player = ({
         videoElement.remove();
       }
     };
-  }, [url, muted, isMe]); // Bỏ playing khỏi dependencies để tránh re-render không cần thiết
+  }, [url, muted, isMe]);
+
+  // Hiển thị video ngay cả khi playing=false, nhưng ẩn nếu không có url
+  const showVideo = url != null;
 
   return (
     <div
@@ -126,16 +100,14 @@ const Player = ({
           : "w-full h-40 rounded-md shadow-md"
       }`}
     >
-      <div ref={containerRef} className="w-full h-full" />
+      <div
+        ref={containerRef}
+        className="w-full h-full"
+        style={{ display: showVideo ? "block" : "none" }}
+      />
 
-      {!url && (
+      {!showVideo && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-          <VideoOff className="text-white" size={isActive ? 48 : 20} />
-        </div>
-      )}
-
-      {!playing && url && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-70">
           <VideoOff className="text-white" size={isActive ? 48 : 20} />
         </div>
       )}

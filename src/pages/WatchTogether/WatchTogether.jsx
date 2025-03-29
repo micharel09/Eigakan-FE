@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { cloneDeep } from "lodash";
 
@@ -20,10 +20,13 @@ const WatchTogetherContent = () => {
   const roomId = searchParams.get("roomId");
   const navigate = useNavigate();
   const [isLeaving, setIsLeaving] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 3;
 
   const { socket, isConnected } = useWatchTogetherSocket();
   const { peer, myId } = usePeer(roomId);
-  const { stream } = useMediaStream();
+  const { stream, error: streamError } = useMediaStream();
   const {
     players,
     setPlayers,
@@ -47,62 +50,84 @@ const WatchTogetherContent = () => {
           enabled: t.enabled,
           muted: t.muted,
           readyState: t.readyState,
+          label: t.label,
+        }))
+      );
+      console.log(
+        "Audio tracks:",
+        stream.getAudioTracks().map((t) => ({
+          enabled: t.enabled,
+          muted: t.muted,
+          readyState: t.readyState,
+          label: t.label,
         }))
       );
     }
   }, [stream]);
 
+  // Xử lý lỗi stream
+  useEffect(() => {
+    if (streamError) {
+      console.error("Media stream error:", streamError);
+    }
+  }, [streamError]);
+
   // Separate current user from other users
   const otherPlayers = { ...nonHighlightedPlayers };
   const myPlayer = players[myId];
 
+  // Xử lý kết nối người dùng mới
   useEffect(() => {
     if (!socket || !peer || !stream) return;
+
     const handleUserConnected = (newUser) => {
-      console.log(`user connected in room with userId ${newUser}`);
+      console.log(`User connected in room with userId ${newUser}`);
 
-      const call = peer.call(newUser, stream);
+      try {
+        const call = peer.call(newUser, stream);
 
-      call.on("stream", (incomingStream) => {
-        console.log(`incoming stream from ${newUser}`);
+        call.on("stream", (incomingStream) => {
+          console.log(`Incoming stream from ${newUser}`);
 
-        // Kiểm tra audio tracks
-        const audioTracks = incomingStream.getAudioTracks();
-        console.log(
-          `Received audio tracks:`,
-          audioTracks.map((t) => ({
-            enabled: t.enabled,
-            muted: t.muted,
-            readyState: t.readyState,
-            label: t.label,
-            id: t.id,
-            settings: t.getSettings ? t.getSettings() : "N/A",
-          }))
-        );
+          // Log incoming stream details
+          console.log("Incoming stream details:", {
+            audioTracks: incomingStream.getAudioTracks().length,
+            videoTracks: incomingStream.getVideoTracks().length,
+            audioEnabled: incomingStream
+              .getAudioTracks()
+              .some((t) => t.enabled),
+            videoEnabled: incomingStream
+              .getVideoTracks()
+              .some((t) => t.enabled),
+          });
 
-        // Đảm bảo audio tracks được bật mặc định
-        audioTracks.forEach((track) => {
-          track.enabled = true;
-          console.log(
-            `Ensuring incoming audio track is enabled: ${track.enabled}`
-          );
+          setPlayers((prev) => ({
+            ...prev,
+            [newUser]: {
+              url: incomingStream,
+              muted: false, // Mặc định không mute người dùng mới
+              playing: true,
+            },
+          }));
+
+          setUsers((prev) => ({
+            ...prev,
+            [newUser]: call,
+          }));
         });
 
-        setPlayers((prev) => ({
-          ...prev,
-          [newUser]: {
-            url: incomingStream,
-            muted: false, // Mặc định KHÔNG mute người dùng khác
-            playing: true,
-          },
-        }));
+        call.on("error", (err) => {
+          console.error(`Error in call with user ${newUser}:`, err);
+        });
 
-        setUsers((prev) => ({
-          ...prev,
-          [newUser]: call,
-        }));
-      });
+        call.on("close", () => {
+          console.log(`Call with user ${newUser} was closed`);
+        });
+      } catch (err) {
+        console.error(`Error calling user ${newUser}:`, err);
+      }
     };
+
     socket.on("user-connected", handleUserConnected);
 
     return () => {
@@ -110,34 +135,23 @@ const WatchTogetherContent = () => {
     };
   }, [peer, setPlayers, socket, stream]);
 
+  // Xử lý các sự kiện từ người dùng khác
   useEffect(() => {
     if (!socket) return;
+
     const handleToggleAudio = (userId) => {
-      console.log(`user with id ${userId} toggled audio`);
+      console.log(`User with id ${userId} toggled audio`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
         if (copy[userId]) {
-          // Đảo ngược trạng thái muted
           copy[userId].muted = !copy[userId].muted;
-          const newMutedState = copy[userId].muted;
-
-          // Cập nhật trạng thái thực tế của audio tracks
-          if (copy[userId].url && copy[userId].url.getAudioTracks) {
-            const audioTracks = copy[userId].url.getAudioTracks();
-            audioTracks.forEach((track) => {
-              track.enabled = !newMutedState; // Bật nếu không mute, tắt nếu mute
-              console.log(
-                `Remote audio track enabled set to: ${track.enabled}`
-              );
-            });
-          }
         }
         return { ...copy };
       });
     };
 
     const handleToggleVideo = (userId) => {
-      console.log(`user with id ${userId} toggled video`);
+      console.log(`User with id ${userId} toggled video`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
         if (copy[userId]) {
@@ -148,7 +162,7 @@ const WatchTogetherContent = () => {
     };
 
     const handleUserLeave = (userId) => {
-      console.log(`user ${userId} is leaving the room`);
+      console.log(`User ${userId} is leaving the room`);
       users[userId]?.close();
       const playersCopy = cloneDeep(players);
       if (playersCopy[userId]) {
@@ -156,9 +170,11 @@ const WatchTogetherContent = () => {
       }
       setPlayers(playersCopy);
     };
+
     socket.on("user-toggle-audio", handleToggleAudio);
     socket.on("user-toggle-video", handleToggleVideo);
     socket.on("user-leave", handleUserLeave);
+
     return () => {
       socket.off("user-toggle-audio", handleToggleAudio);
       socket.off("user-toggle-video", handleToggleVideo);
@@ -166,60 +182,86 @@ const WatchTogetherContent = () => {
     };
   }, [players, setPlayers, socket, users]);
 
+  // Xử lý cuộc gọi đến
   useEffect(() => {
     if (!peer || !stream) return;
-    peer.on("call", (call) => {
+
+    const handleIncomingCall = (call) => {
       const { peer: callerId } = call;
-      call.answer(stream);
+      console.log(`Incoming call from ${callerId}`);
 
-      call.on("stream", (incomingStream) => {
-        console.log(`incoming stream from ${callerId}`);
+      try {
+        call.answer(stream);
 
-        // Kiểm tra audio tracks
-        const audioTracks = incomingStream.getAudioTracks();
-        console.log(
-          `Received audio tracks from call:`,
-          audioTracks.map((t) => ({
-            enabled: t.enabled,
-            muted: t.muted,
-            readyState: t.readyState,
-            label: t.label,
-          }))
-        );
+        call.on("stream", (incomingStream) => {
+          console.log(`Incoming stream from ${callerId}`);
 
-        // Mặc định TẮT audio tracks khi mới kết nối
-        audioTracks.forEach((track) => {
-          track.enabled = false; // Mặc định tắt micro
-          console.log(
-            `Setting audio track from call to disabled by default: ${track.enabled}`
-          );
+          // Log incoming stream details
+          console.log("Incoming stream details:", {
+            audioTracks: incomingStream.getAudioTracks().length,
+            videoTracks: incomingStream.getVideoTracks().length,
+            audioEnabled: incomingStream
+              .getAudioTracks()
+              .some((t) => t.enabled),
+            videoEnabled: incomingStream
+              .getVideoTracks()
+              .some((t) => t.enabled),
+          });
+
+          setPlayers((prev) => ({
+            ...prev,
+            [callerId]: {
+              url: incomingStream,
+              muted: false, // Mặc định không mute người dùng mới
+              playing: true,
+            },
+          }));
+
+          setUsers((prev) => ({
+            ...prev,
+            [callerId]: call,
+          }));
         });
 
-        setPlayers((prev) => ({
-          ...prev,
-          [callerId]: {
-            url: incomingStream,
-            muted: true, // Mặc định mute người dùng khác
-            playing: true,
-          },
-        }));
+        call.on("error", (err) => {
+          console.error(`Error in call with user ${callerId}:`, err);
+        });
 
-        setUsers((prev) => ({
-          ...prev,
-          [callerId]: call,
-        }));
-      });
-    });
+        call.on("close", () => {
+          console.log(`Call with user ${callerId} was closed`);
+        });
+      } catch (err) {
+        console.error(`Error answering call from ${callerId}:`, err);
+      }
+    };
+
+    peer.on("call", handleIncomingCall);
+
+    return () => {
+      peer.off("call", handleIncomingCall);
+    };
   }, [peer, setPlayers, stream]);
 
+  // Thiết lập stream của bản thân
   useEffect(() => {
     if (!stream || !myId) return;
-    console.log(`setting my stream ${myId}`);
+    console.log(`Setting my stream ${myId}`);
+
+    // Đảm bảo tất cả tracks đều được bật
+    stream.getTracks().forEach((track) => {
+      if (track.kind === "audio") {
+        track.enabled = true; // Mặc định bật audio
+      }
+      if (track.kind === "video") {
+        track.enabled = true; // Mặc định bật video
+      }
+    });
+
     setPlayers((prev) => ({
       ...prev,
       [myId]: {
         url: stream,
-        muted: true,
+        muted: false, // Mặc định không mute bản thân
         playing: true,
       },
     }));
