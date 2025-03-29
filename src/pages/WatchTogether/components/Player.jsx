@@ -44,31 +44,6 @@ const Player = ({
     // Attach stream to video
     videoElement.srcObject = url;
 
-    // Add video to container
-    containerRef.current.appendChild(videoElement);
-
-    // Log for debugging
-    console.log(
-      `Created new video element for ${
-        isMe ? "me" : "other user"
-      } with stream:`,
-      url
-    );
-
-    // Debug audio tracks
-    if (url && url.getAudioTracks) {
-      const audioTracks = url.getAudioTracks();
-      console.log(
-        `Audio tracks for ${isMe ? "me" : "other user"}:`,
-        audioTracks.map((t) => ({
-          enabled: t.enabled,
-          muted: t.muted,
-          readyState: t.readyState,
-          label: t.label,
-        }))
-      );
-    }
-
     // Thêm sự kiện để xử lý khi stream sẵn sàng
     videoElement.onloadedmetadata = () => {
       console.log(
@@ -76,8 +51,55 @@ const Player = ({
       );
       videoElement.play().catch((err) => {
         console.error("Error playing video:", err);
+
+        // Thử lại phát video sau một khoảng thời gian
+        setTimeout(() => {
+          videoElement.play().catch((retryErr) => {
+            console.error("Retry playing video failed:", retryErr);
+          });
+        }, 1000);
       });
     };
+
+    // Thêm sự kiện để xử lý khi có lỗi
+    videoElement.onerror = (err) => {
+      console.error(
+        `Video element error for ${isMe ? "me" : "other user"}:`,
+        err
+      );
+    };
+
+    // Add video to container
+    containerRef.current.appendChild(videoElement);
+
+    // Debug stream tracks
+    if (url) {
+      if (url.getVideoTracks) {
+        const videoTracks = url.getVideoTracks();
+        console.log(
+          `Video tracks for ${isMe ? "me" : "other user"}:`,
+          videoTracks.map((t) => ({
+            enabled: t.enabled,
+            muted: t.muted,
+            readyState: t.readyState,
+            label: t.label,
+          }))
+        );
+      }
+
+      if (url.getAudioTracks) {
+        const audioTracks = url.getAudioTracks();
+        console.log(
+          `Audio tracks for ${isMe ? "me" : "other user"}:`,
+          audioTracks.map((t) => ({
+            enabled: t.enabled,
+            muted: t.muted,
+            readyState: t.readyState,
+            label: t.label,
+          }))
+        );
+      }
+    }
 
     return () => {
       if (videoElement) {

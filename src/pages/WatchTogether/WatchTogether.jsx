@@ -242,30 +242,53 @@ const WatchTogetherContent = () => {
     };
   }, [peer, setPlayers, stream]);
 
-  // Thiết lập stream của bản thân
+  // Thêm đoạn code này vào useEffect để xử lý khi stream thay đổi
   useEffect(() => {
     if (!stream || !myId) return;
-    console.log(`Setting my stream ${myId}`);
 
-    // Đảm bảo tất cả tracks đều được bật
-    stream.getTracks().forEach((track) => {
-      if (track.kind === "audio") {
-        track.enabled = true; // Mặc định bật audio
-      }
-      if (track.kind === "video") {
-        track.enabled = true; // Mặc định bật video
-      }
+    console.log("Setting up initial stream state");
+
+    // Đảm bảo tất cả tracks đều được bật khi khởi tạo
+    const videoTracks = stream.getVideoTracks();
+    const audioTracks = stream.getAudioTracks();
+
+    // Bật tất cả video tracks
+    videoTracks.forEach((track) => {
+      track.enabled = true;
+      console.log(
+        `Initial video track ${track.label} enabled: ${track.enabled}`
+      );
     });
 
+    // Bật tất cả audio tracks
+    audioTracks.forEach((track) => {
+      track.enabled = true;
+      console.log(
+        `Initial audio track ${track.label} enabled: ${track.enabled}`
+      );
+    });
+
+    // Cập nhật state players với trạng thái đúng
     setPlayers((prev) => ({
       ...prev,
       [myId]: {
         url: stream,
-        muted: false, // Mặc định không mute bản thân
+        muted: false,
         playing: true,
       },
     }));
-  }, [myId, setPlayers, stream]);
+
+    // Thông báo cho các người dùng khác về trạng thái video/audio của bạn
+    if (socket && isConnected) {
+      // Gửi trạng thái ban đầu
+      socket.emit("user-initial-media-state", {
+        userId: myId,
+        roomId,
+        videoEnabled: true,
+        audioEnabled: true,
+      });
+    }
+  }, [stream, myId, socket, isConnected, roomId]);
 
   const toggleMyVideoVisibility = () => {
     setShowMyVideo(!showMyVideo);

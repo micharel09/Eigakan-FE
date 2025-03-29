@@ -79,12 +79,13 @@ const usePlayer = (myId, roomId, peer) => {
       const copy = cloneDeep(prev);
       if (copy[myId]) {
         copy[myId].muted = !copy[myId].muted;
+        const newState = !copy[myId].muted;
 
         // Cập nhật trạng thái thực tế của audio tracks
         if (copy[myId].url) {
           const audioTracks = copy[myId].url.getAudioTracks();
           audioTracks.forEach((track) => {
-            track.enabled = !copy[myId].muted;
+            track.enabled = newState;
             console.log(`Audio track ${track.label} enabled:`, track.enabled);
           });
         }
@@ -92,8 +93,14 @@ const usePlayer = (myId, roomId, peer) => {
       return copy;
     });
 
-    socket.emit("user-toggle-audio", { userId: myId, roomId });
-  }, [socket, myId, roomId, isConnected]);
+    // Gửi trạng thái mới
+    const newAudioState = players[myId]?.muted ? false : true;
+    socket.emit("user-toggle-audio", {
+      userId: myId,
+      roomId,
+      enabled: newAudioState,
+    });
+  }, [socket, myId, roomId, isConnected, players]);
 
   // Toggle video
   const toggleVideo = useCallback(() => {
@@ -105,13 +112,14 @@ const usePlayer = (myId, roomId, peer) => {
       if (copy[myId]) {
         // Đảo ngược trạng thái playing
         copy[myId].playing = !copy[myId].playing;
+        const newState = copy[myId].playing;
 
         // Cập nhật trạng thái thực tế của video tracks
         if (copy[myId].url) {
           const videoTracks = copy[myId].url.getVideoTracks();
           if (videoTracks.length > 0) {
             videoTracks.forEach((track) => {
-              track.enabled = copy[myId].playing;
+              track.enabled = newState;
               console.log(`Video track ${track.label} enabled:`, track.enabled);
             });
           } else {
@@ -122,8 +130,14 @@ const usePlayer = (myId, roomId, peer) => {
       return copy;
     });
 
-    socket.emit("user-toggle-video", { userId: myId, roomId });
-  }, [socket, myId, roomId, isConnected]);
+    // Gửi trạng thái mới
+    const newVideoState = players[myId]?.playing ? false : true;
+    socket.emit("user-toggle-video", {
+      userId: myId,
+      roomId,
+      enabled: newVideoState,
+    });
+  }, [socket, myId, roomId, isConnected, players]);
 
   return {
     players,
