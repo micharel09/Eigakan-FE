@@ -11,7 +11,7 @@ const Player = ({
   const containerRef = useRef(null);
 
   useEffect(() => {
-    if (!containerRef.current || !url) return;
+    if (!containerRef.current || !url || !playing) return;
 
     // Remove old video if exists
     const oldVideo = containerRef.current.querySelector("video");
@@ -44,61 +44,29 @@ const Player = ({
     // Attach stream to video
     videoElement.srcObject = url;
 
-    // Thêm sự kiện để xử lý khi stream sẵn sàng
-    videoElement.onloadedmetadata = () => {
-      console.log(
-        `Video element loaded metadata for ${isMe ? "me" : "other user"}`
-      );
-      videoElement.play().catch((err) => {
-        console.error("Error playing video:", err);
-
-        // Thử lại phát video sau một khoảng thời gian
-        setTimeout(() => {
-          videoElement.play().catch((retryErr) => {
-            console.error("Retry playing video failed:", retryErr);
-          });
-        }, 1000);
-      });
-    };
-
-    // Thêm sự kiện để xử lý khi có lỗi
-    videoElement.onerror = (err) => {
-      console.error(
-        `Video element error for ${isMe ? "me" : "other user"}:`,
-        err
-      );
-    };
-
     // Add video to container
     containerRef.current.appendChild(videoElement);
 
-    // Debug stream tracks
-    if (url) {
-      if (url.getVideoTracks) {
-        const videoTracks = url.getVideoTracks();
-        console.log(
-          `Video tracks for ${isMe ? "me" : "other user"}:`,
-          videoTracks.map((t) => ({
-            enabled: t.enabled,
-            muted: t.muted,
-            readyState: t.readyState,
-            label: t.label,
-          }))
-        );
-      }
+    // Log for debugging
+    console.log(
+      `Created new video element for ${
+        isMe ? "me" : "other user"
+      } with stream:`,
+      url
+    );
 
-      if (url.getAudioTracks) {
-        const audioTracks = url.getAudioTracks();
-        console.log(
-          `Audio tracks for ${isMe ? "me" : "other user"}:`,
-          audioTracks.map((t) => ({
-            enabled: t.enabled,
-            muted: t.muted,
-            readyState: t.readyState,
-            label: t.label,
-          }))
-        );
-      }
+    // Debug audio tracks
+    if (url && url.getAudioTracks) {
+      const audioTracks = url.getAudioTracks();
+      console.log(
+        `Audio tracks for ${isMe ? "me" : "other user"}:`,
+        audioTracks.map((t) => ({
+          enabled: t.enabled,
+          muted: t.muted,
+          readyState: t.readyState,
+          label: t.label,
+        }))
+      );
     }
 
     return () => {
@@ -107,10 +75,7 @@ const Player = ({
         videoElement.remove();
       }
     };
-  }, [url, muted, isMe]);
-
-  // Hiển thị video ngay cả khi playing=false, nhưng ẩn nếu không có url
-  const showVideo = url != null;
+  }, [url, playing, muted, isMe]);
 
   return (
     <div
@@ -125,10 +90,10 @@ const Player = ({
       <div
         ref={containerRef}
         className="w-full h-full"
-        style={{ display: showVideo ? "block" : "none" }}
+        style={{ display: playing && url ? "block" : "none" }}
       />
 
-      {!showVideo && (
+      {(!playing || !url) && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
           <VideoOff className="text-white" size={isActive ? 48 : 20} />
         </div>

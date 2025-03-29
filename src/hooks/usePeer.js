@@ -14,7 +14,6 @@ const usePeer = (roomId) => {
     // Dynamically import PeerJS
     import("peerjs")
       .then(({ default: Peer }) => {
-        // Tạo peer với cấu hình tối ưu cho audio
         const myPeer = new Peer(undefined, {
           host: "0.peerjs.com",
           port: 443,
@@ -25,11 +24,6 @@ const usePeer = (roomId) => {
               { urls: "stun:stun.l.google.com:19302" },
               { urls: "stun:global.stun.twilio.com:3478" },
             ],
-          },
-          // Thêm cấu hình media để ưu tiên audio
-          constraints: {
-            audio: true,
-            video: true,
           },
         });
 

@@ -20,13 +20,10 @@ const WatchTogetherContent = () => {
   const roomId = searchParams.get("roomId");
   const navigate = useNavigate();
   const [isLeaving, setIsLeaving] = useState(false);
-  const [reconnecting, setReconnecting] = useState(false);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 3;
 
   const { socket, isConnected } = useWatchTogetherSocket();
   const { peer, myId } = usePeer(roomId);
-  const { stream, error: streamError } = useMediaStream();
+  const { stream } = useMediaStream();
   const {
     players,
     setPlayers,
@@ -50,84 +47,39 @@ const WatchTogetherContent = () => {
           enabled: t.enabled,
           muted: t.muted,
           readyState: t.readyState,
-          label: t.label,
-        }))
-      );
-      console.log(
-        "Audio tracks:",
-        stream.getAudioTracks().map((t) => ({
-          enabled: t.enabled,
-          muted: t.muted,
-          readyState: t.readyState,
-          label: t.label,
         }))
       );
     }
   }, [stream]);
 
-  // Xử lý lỗi stream
-  useEffect(() => {
-    if (streamError) {
-      console.error("Media stream error:", streamError);
-    }
-  }, [streamError]);
-
   // Separate current user from other users
   const otherPlayers = { ...nonHighlightedPlayers };
   const myPlayer = players[myId];
 
-  // Xử lý kết nối người dùng mới
   useEffect(() => {
     if (!socket || !peer || !stream) return;
-
     const handleUserConnected = (newUser) => {
-      console.log(`User connected in room with userId ${newUser}`);
+      console.log(`user connected in room with userId ${newUser}`);
 
-      try {
-        const call = peer.call(newUser, stream);
+      const call = peer.call(newUser, stream);
 
-        call.on("stream", (incomingStream) => {
-          console.log(`Incoming stream from ${newUser}`);
+      call.on("stream", (incomingStream) => {
+        console.log(`incoming stream from ${newUser}`);
+        setPlayers((prev) => ({
+          ...prev,
+          [newUser]: {
+            url: incomingStream,
+            muted: true,
+            playing: true,
+          },
+        }));
 
-          // Log incoming stream details
-          console.log("Incoming stream details:", {
-            audioTracks: incomingStream.getAudioTracks().length,
-            videoTracks: incomingStream.getVideoTracks().length,
-            audioEnabled: incomingStream
-              .getAudioTracks()
-              .some((t) => t.enabled),
-            videoEnabled: incomingStream
-              .getVideoTracks()
-              .some((t) => t.enabled),
-          });
-
-          setPlayers((prev) => ({
-            ...prev,
-            [newUser]: {
-              url: incomingStream,
-              muted: false, // Mặc định không mute người dùng mới
-              playing: true,
-            },
-          }));
-
-          setUsers((prev) => ({
-            ...prev,
-            [newUser]: call,
-          }));
-        });
-
-        call.on("error", (err) => {
-          console.error(`Error in call with user ${newUser}:`, err);
-        });
-
-        call.on("close", () => {
-          console.log(`Call with user ${newUser} was closed`);
-        });
-      } catch (err) {
-        console.error(`Error calling user ${newUser}:`, err);
-      }
+        setUsers((prev) => ({
+          ...prev,
+          [newUser]: call,
+        }));
+      });
     };
-
     socket.on("user-connected", handleUserConnected);
 
     return () => {
@@ -135,44 +87,21 @@ const WatchTogetherContent = () => {
     };
   }, [peer, setPlayers, socket, stream]);
 
-  // Xử lý các sự kiện từ người dùng khác
   useEffect(() => {
     if (!socket) return;
-
     const handleToggleAudio = (userId) => {
       console.log(`user with id ${userId} toggled audio`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
         if (copy[userId]) {
-          // Đảo ngược trạng thái muted
           copy[userId].muted = !copy[userId].muted;
-
-          // Không cần thay đổi trạng thái audio track của người khác
-          // Chỉ cập nhật UI
-          console.log(
-            `Updated muted state for user ${userId} to ${copy[userId].muted}`
-          );
-
-          // Quan trọng: Nếu stream có sẵn, cập nhật trạng thái của video element
-          if (copy[userId].url) {
-            // Tìm video element hiển thị stream này
-            const videoElements = document.querySelectorAll("video");
-            videoElements.forEach((video) => {
-              if (video.srcObject === copy[userId].url) {
-                video.muted = copy[userId].muted;
-                console.log(
-                  `Updated video element muted state to ${video.muted}`
-                );
-              }
-            });
-          }
         }
         return { ...copy };
       });
     };
 
     const handleToggleVideo = (userId) => {
-      console.log(`User with id ${userId} toggled video`);
+      console.log(`user with id ${userId} toggled video`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
         if (copy[userId]) {
@@ -183,7 +112,7 @@ const WatchTogetherContent = () => {
     };
 
     const handleUserLeave = (userId) => {
-      console.log(`User ${userId} is leaving the room`);
+      console.log(`user ${userId} is leaving the room`);
       users[userId]?.close();
       const playersCopy = cloneDeep(players);
       if (playersCopy[userId]) {
@@ -191,11 +120,9 @@ const WatchTogetherContent = () => {
       }
       setPlayers(playersCopy);
     };
-
     socket.on("user-toggle-audio", handleToggleAudio);
     socket.on("user-toggle-video", handleToggleVideo);
     socket.on("user-leave", handleUserLeave);
-
     return () => {
       socket.off("user-toggle-audio", handleToggleAudio);
       socket.off("user-toggle-video", handleToggleVideo);
@@ -203,67 +130,31 @@ const WatchTogetherContent = () => {
     };
   }, [players, setPlayers, socket, users]);
 
-  // Xử lý cuộc gọi đến
   useEffect(() => {
     if (!peer || !stream) return;
-
-    const handleIncomingCall = (call) => {
+    peer.on("call", (call) => {
       const { peer: callerId } = call;
-      console.log(`Incoming call from ${callerId}`);
+      call.answer(stream);
 
-      try {
-        call.answer(stream);
+      call.on("stream", (incomingStream) => {
+        console.log(`incoming stream from ${callerId}`);
+        setPlayers((prev) => ({
+          ...prev,
+          [callerId]: {
+            url: incomingStream,
+            muted: true,
+            playing: true,
+          },
+        }));
 
-        call.on("stream", (incomingStream) => {
-          console.log(`Incoming stream from ${callerId}`);
-
-          // Log incoming stream details
-          console.log("Incoming stream details:", {
-            audioTracks: incomingStream.getAudioTracks().length,
-            videoTracks: incomingStream.getVideoTracks().length,
-            audioEnabled: incomingStream
-              .getAudioTracks()
-              .some((t) => t.enabled),
-            videoEnabled: incomingStream
-              .getVideoTracks()
-              .some((t) => t.enabled),
-          });
-
-          setPlayers((prev) => ({
-            ...prev,
-            [callerId]: {
-              url: incomingStream,
-              muted: false, // Mặc định không mute người dùng mới
-              playing: true,
-            },
-          }));
-
-          setUsers((prev) => ({
-            ...prev,
-            [callerId]: call,
-          }));
-        });
-
-        call.on("error", (err) => {
-          console.error(`Error in call with user ${callerId}:`, err);
-        });
-
-        call.on("close", () => {
-          console.log(`Call with user ${callerId} was closed`);
-        });
-      } catch (err) {
-        console.error(`Error answering call from ${callerId}:`, err);
-      }
-    };
-
-    peer.on("call", handleIncomingCall);
-
-    return () => {
-      peer.off("call", handleIncomingCall);
-    };
+        setUsers((prev) => ({
+          ...prev,
+          [callerId]: call,
+        }));
+      });
+    });
   }, [peer, setPlayers, stream]);
 
-  // Thêm đoạn code này vào useEffect để xử lý khi stream thay đổi
   useEffect(() => {
     if (!stream || !myId) return;
     console.log(`setting my stream ${myId}`);
@@ -309,51 +200,12 @@ const WatchTogetherContent = () => {
     }
   };
 
-  // Thêm state để theo dõi trạng thái audio context
-  const [audioActivated, setAudioActivated] = useState(false);
-
-  // Thêm hàm để kích hoạt audio
-  const activateAudio = () => {
-    try {
-      // Tạo và kích hoạt audio context
-      const audioContext = new (window.AudioContext ||
-        window.webkitAudioContext)();
-      audioContext.resume().then(() => {
-        console.log("Audio context activated by user");
-        setAudioActivated(true);
-
-        // Phát âm thanh test
-        const oscillator = audioContext.createOscillator();
-        oscillator.type = "sine";
-        oscillator.frequency.value = 440;
-        oscillator.connect(audioContext.destination);
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.1);
-
-        // Đảm bảo tất cả video elements đều được unmute nếu cần
-        document.querySelectorAll("video").forEach((video) => {
-          if (!video.muted && video.paused) {
-            video.play().catch((e) => console.error("Error playing video:", e));
-          }
-        });
-      });
-    } catch (e) {
-      console.error("Error activating audio:", e);
-    }
-  };
+  // Thêm kiểm tra null/undefined cho myPlayer
+  const isMuted = myPlayer?.muted || false;
+  const isPlaying = myPlayer?.playing || false;
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
-      {/* Nút kích hoạt âm thanh */}
-      {!audioActivated && (
-        <button
-          onClick={activateAudio}
-          className="absolute top-4 left-4 z-50 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
-        >
-          Kích hoạt âm thanh
-        </button>
-      )}
-
       {/* Right panel - other participants' videos */}
       {Object.keys(otherPlayers).length > 0 && (
         <div className="absolute flex flex-col overflow-y-auto z-20 space-y-3 w-[220px] h-[calc(100vh-40px-80px)] right-5 top-5">
