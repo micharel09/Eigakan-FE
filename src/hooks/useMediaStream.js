@@ -10,18 +10,11 @@ const useMediaStream = () => {
     const initStream = async () => {
       try {
         console.log("Requesting media permissions...");
+        isStreamSet.current = true;
 
-        // Yêu cầu quyền truy cập audio với các tùy chọn cụ thể
+        // Yêu cầu quyền truy cập camera và microphone
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            // Thêm các tùy chọn để đảm bảo audio hoạt động
-            channelCount: 2,
-            sampleRate: 48000,
-            sampleSize: 16,
-          },
+          audio: true,
           video: {
             width: { ideal: 640 },
             height: { ideal: 480 },
@@ -30,26 +23,8 @@ const useMediaStream = () => {
         });
 
         console.log("Media stream initialized successfully");
-
-        // Đảm bảo audio track được bật
-        const audioTracks = mediaStream.getAudioTracks();
-        console.log("Audio tracks:", audioTracks.length);
-
-        if (audioTracks.length > 0) {
-          // Đảm bảo tất cả audio tracks đều được bật
-          audioTracks.forEach((track) => {
-            track.enabled = true;
-            console.log("Audio track enabled:", {
-              label: track.label,
-              enabled: track.enabled,
-              muted: track.muted,
-              readyState: track.readyState,
-              constraints: track.getConstraints(),
-            });
-          });
-        } else {
-          console.warn("No audio tracks found in the stream!");
-        }
+        console.log("Video tracks:", mediaStream.getVideoTracks().length);
+        console.log("Audio tracks:", mediaStream.getAudioTracks().length);
 
         setStream(mediaStream);
       } catch (err) {
@@ -60,15 +35,7 @@ const useMediaStream = () => {
         try {
           console.log("Trying audio only...");
           const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              // Thêm các tùy chọn để đảm bảo audio hoạt động
-              channelCount: 2,
-              sampleRate: 48000,
-              sampleSize: 16,
-            },
+            audio: true,
             video: false,
           });
           console.log("Audio-only stream initialized");
@@ -81,6 +48,7 @@ const useMediaStream = () => {
 
     initStream();
 
+    // Cleanup function
     return () => {
       if (stream) {
         console.log("Cleaning up media stream");
