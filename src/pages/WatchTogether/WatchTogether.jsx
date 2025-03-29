@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { cloneDeep } from "lodash";
 
@@ -140,11 +140,32 @@ const WatchTogetherContent = () => {
     if (!socket) return;
 
     const handleToggleAudio = (userId) => {
-      console.log(`User with id ${userId} toggled audio`);
+      console.log(`user with id ${userId} toggled audio`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
         if (copy[userId]) {
+          // Đảo ngược trạng thái muted
           copy[userId].muted = !copy[userId].muted;
+
+          // Không cần thay đổi trạng thái audio track của người khác
+          // Chỉ cập nhật UI
+          console.log(
+            `Updated muted state for user ${userId} to ${copy[userId].muted}`
+          );
+
+          // Quan trọng: Nếu stream có sẵn, cập nhật trạng thái của video element
+          if (copy[userId].url) {
+            // Tìm video element hiển thị stream này
+            const videoElements = document.querySelectorAll("video");
+            videoElements.forEach((video) => {
+              if (video.srcObject === copy[userId].url) {
+                video.muted = copy[userId].muted;
+                console.log(
+                  `Updated video element muted state to ${video.muted}`
+                );
+              }
+            });
+          }
         }
         return { ...copy };
       });
@@ -245,50 +266,16 @@ const WatchTogetherContent = () => {
   // Thêm đoạn code này vào useEffect để xử lý khi stream thay đổi
   useEffect(() => {
     if (!stream || !myId) return;
-
-    console.log("Setting up initial stream state");
-
-    // Đảm bảo tất cả tracks đều được bật khi khởi tạo
-    const videoTracks = stream.getVideoTracks();
-    const audioTracks = stream.getAudioTracks();
-
-    // Bật tất cả video tracks
-    videoTracks.forEach((track) => {
-      track.enabled = true;
-      console.log(
-        `Initial video track ${track.label} enabled: ${track.enabled}`
-      );
-    });
-
-    // Bật tất cả audio tracks
-    audioTracks.forEach((track) => {
-      track.enabled = true;
-      console.log(
-        `Initial audio track ${track.label} enabled: ${track.enabled}`
-      );
-    });
-
-    // Cập nhật state players với trạng thái đúng
+    console.log(`setting my stream ${myId}`);
     setPlayers((prev) => ({
       ...prev,
       [myId]: {
         url: stream,
-        muted: false,
+        muted: true,
         playing: true,
       },
     }));
-
-    // Thông báo cho các người dùng khác về trạng thái video/audio của bạn
-    if (socket && isConnected) {
-      // Gửi trạng thái ban đầu
-      socket.emit("user-initial-media-state", {
-        userId: myId,
-        roomId,
-        videoEnabled: true,
-        audioEnabled: true,
-      });
-    }
-  }, [stream, myId, socket, isConnected, roomId]);
+  }, [myId, setPlayers, stream]);
 
   const toggleMyVideoVisibility = () => {
     setShowMyVideo(!showMyVideo);
@@ -322,12 +309,51 @@ const WatchTogetherContent = () => {
     }
   };
 
-  // Thêm kiểm tra null/undefined cho myPlayer
-  const isMuted = myPlayer?.muted || false;
-  const isPlaying = myPlayer?.playing || false;
+  // Thêm state để theo dõi trạng thái audio context
+  const [audioActivated, setAudioActivated] = useState(false);
+
+  // Thêm hàm để kích hoạt audio
+  const activateAudio = () => {
+    try {
+      // Tạo và kích hoạt audio context
+      const audioContext = new (window.AudioContext ||
+        window.webkitAudioContext)();
+      audioContext.resume().then(() => {
+        console.log("Audio context activated by user");
+        setAudioActivated(true);
+
+        // Phát âm thanh test
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = "sine";
+        oscillator.frequency.value = 440;
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1);
+
+        // Đảm bảo tất cả video elements đều được unmute nếu cần
+        document.querySelectorAll("video").forEach((video) => {
+          if (!video.muted && video.paused) {
+            video.play().catch((e) => console.error("Error playing video:", e));
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Error activating audio:", e);
+    }
+  };
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
+      {/* Nút kích hoạt âm thanh */}
+      {!audioActivated && (
+        <button
+          onClick={activateAudio}
+          className="absolute top-4 left-4 z-50 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+        >
+          Kích hoạt âm thanh
+        </button>
+      )}
+
       {/* Right panel - other participants' videos */}
       {Object.keys(otherPlayers).length > 0 && (
         <div className="absolute flex flex-col overflow-y-auto z-20 space-y-3 w-[220px] h-[calc(100vh-40px-80px)] right-5 top-5">
