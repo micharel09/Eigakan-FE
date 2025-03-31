@@ -19,23 +19,15 @@ const usePeer = (roomId) => {
       config: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-          { urls: "stun:stun2.l.google.com:19302" },
-          // Thêm TURN server miễn phí
           {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject",
-          },
-          {
-            urls: "turn:openrelay.metered.ca:443",
-            username: "openrelayproject",
-            credential: "openrelayproject",
-          },
-          {
-            urls: "turn:openrelay.metered.ca:443?transport=tcp",
-            username: "openrelayproject",
-            credential: "openrelayproject",
+            urls: [
+              "turn:a.relay.metered.ca:80",
+              "turn:a.relay.metered.ca:80?transport=tcp",
+              "turn:a.relay.metered.ca:443",
+              "turn:a.relay.metered.ca:443?transport=tcp",
+            ],
+            username: "83eadcf5e4274d67a7a9dea4", // Thay bằng username của bạn
+            credential: "3CAmSuZ05JdI4Ztx", // Thay bằng credential của bạn
           },
         ],
         iceCandidatePoolSize: 10,
@@ -71,6 +63,35 @@ const usePeer = (roomId) => {
 
       newPeer.on("icecandidateerror", (error) => {
         console.error("ICE candidate error:", error);
+      });
+
+      newPeer.on("connection", (conn) => {
+        console.log("Peer connection established:", conn.peer);
+
+        conn.on("open", () => {
+          console.log("Peer data connection opened with:", conn.peer);
+        });
+
+        conn.on("error", (err) => {
+          console.error("Peer connection error:", err);
+        });
+      });
+
+      newPeer.on("iceconnectionstatechange", () => {
+        console.log(
+          "ICE connection state changed:",
+          newPeer.iceConnectionState
+        );
+
+        if (newPeer.iceConnectionState === "checking") {
+          console.log("Đang kiểm tra kết nối ICE...");
+        } else if (newPeer.iceConnectionState === "connected") {
+          console.log("Kết nối ICE thành công!");
+        } else if (newPeer.iceConnectionState === "failed") {
+          console.error(
+            "Kết nối ICE thất bại - có thể TURN server không hoạt động"
+          );
+        }
       });
 
       setPeer(newPeer);
