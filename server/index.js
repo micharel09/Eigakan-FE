@@ -2,7 +2,6 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const livekitRoutes = require("./routes/livekit");
 
 const app = express();
 app.use(cors());
@@ -114,9 +113,6 @@ io.on("connection", (socket) => {
     }
   });
 });
-
-// Thêm routes
-app.use("/api", livekitRoutes);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

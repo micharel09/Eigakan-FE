@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { cloneDeep } from "lodash";
+
 import {
   useWatchTogetherSocket,
   WatchTogetherSocketProvider,
 } from "./providers/WatchTogetherSocketProvider";
-import useLiveKit from "../../hooks/useLiveKit";
+import usePeer from "../../hooks/usePeer";
+import useMediaStream from "../../hooks/useMediaStream";
+import usePlayer from "../../hooks/usePlayer";
 import roomService from "../../apis/Room/room";
 
+import Player from "./components/Player";
 import Bottom from "./components/Bottom";
-import { VideoRenderer } from "./components/VideoRenderer";
 
 const WatchTogetherContent = () => {
   const { movieId } = useParams();
@@ -16,91 +20,295 @@ const WatchTogetherContent = () => {
   const roomId = searchParams.get("roomId");
   const navigate = useNavigate();
   const [isLeaving, setIsLeaving] = useState(false);
+
+  const { socket, isConnected } = useWatchTogetherSocket();
+  const { peer, myId } = usePeer(roomId);
+  const { stream } = useMediaStream();
+  const {
+    players,
+    setPlayers,
+    playerHighlighted,
+    nonHighlightedPlayers,
+    toggleAudio,
+    toggleVideo,
+    leaveRoom: disconnectFromRoom,
+  } = usePlayer(myId, roomId, peer);
+
+  const [users, setUsers] = useState({});
   const [showMyVideo, setShowMyVideo] = useState(true);
 
-  // Sử dụng LiveKit thay vì WebRTC trực tiếp
-  const {
-    room,
-    participants,
-    isConnected,
-    error,
-    toggleMicrophone,
-    toggleCamera,
-    leaveRoom,
-  } = useLiveKit(roomId, "user_" + Math.floor(Math.random() * 10000));
+  // Debug stream
+  useEffect(() => {
+    if (stream) {
+      console.log("Stream in WatchTogether:", stream);
+      console.log(
+        "Video tracks:",
+        stream.getVideoTracks().map((t) => ({
+          enabled: t.enabled,
+          muted: t.muted,
+          readyState: t.readyState,
+        }))
+      );
+    }
+  }, [stream]);
 
-  // Lấy người dùng hiện tại và người dùng khác
-  const localParticipant = participants.find((p) => p.isLocal);
-  const remoteParticipants = participants.filter((p) => !p.isLocal);
+  // Thêm xử lý lỗi chi tiết hơn
+  useEffect(() => {
+    if (!stream) {
+      console.warn("Không có stream camera/mic");
+      // Hiển thị thông báo cho người dùng
+      // Có thể thêm một thông báo UI ở đây
+    } else {
+      // Kiểm tra chi tiết về stream
+      const videoTracks = stream.getVideoTracks();
+      const audioTracks = stream.getAudioTracks();
 
-  // Xử lý rời phòng
+      console.log(
+        "Video tracks:",
+        videoTracks.length,
+        "Audio tracks:",
+        audioTracks.length
+      );
+
+      if (videoTracks.length === 0) {
+        console.warn("Không có video track trong stream");
+        // Hiển thị thông báo cho người dùng
+      }
+
+      // Kiểm tra trạng thái của các track
+      videoTracks.forEach((track) => {
+        console.log(
+          "Video track:",
+          track.label,
+          "enabled:",
+          track.enabled,
+          "readyState:",
+          track.readyState
+        );
+      });
+    }
+  }, [stream]);
+
+  // Separate current user from other users
+  const otherPlayers = { ...nonHighlightedPlayers };
+  const myPlayer = players[myId];
+
+  useEffect(() => {
+    if (!socket || !peer || !stream) return;
+    const handleUserConnected = (newUser) => {
+      console.log(`user connected in room with userId ${newUser}`);
+
+      const call = peer.call(newUser, stream);
+
+      call.on("stream", (incomingStream) => {
+        console.log(`incoming stream from ${newUser}`);
+        setPlayers((prev) => ({
+          ...prev,
+          [newUser]: {
+            url: incomingStream,
+            muted: true,
+            playing: true,
+          },
+        }));
+
+        setUsers((prev) => ({
+          ...prev,
+          [newUser]: call,
+        }));
+      });
+    };
+    socket.on("user-connected", handleUserConnected);
+
+    return () => {
+      socket.off("user-connected", handleUserConnected);
+    };
+  }, [peer, setPlayers, socket, stream]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleToggleAudio = (userId) => {
+      console.log(`user with id ${userId} toggled audio`);
+      setPlayers((prev) => {
+        const copy = cloneDeep(prev);
+        if (copy[userId]) {
+          copy[userId].muted = !copy[userId].muted;
+        }
+        return { ...copy };
+      });
+    };
+
+    const handleToggleVideo = (userId) => {
+      console.log(`user with id ${userId} toggled video`);
+      setPlayers((prev) => {
+        const copy = cloneDeep(prev);
+        if (copy[userId]) {
+          copy[userId].playing = !copy[userId].playing;
+        }
+        return { ...copy };
+      });
+    };
+
+    const handleUserLeave = (userId) => {
+      console.log(`user ${userId} is leaving the room`);
+      users[userId]?.close();
+      const playersCopy = cloneDeep(players);
+      if (playersCopy[userId]) {
+        delete playersCopy[userId];
+      }
+      setPlayers(playersCopy);
+    };
+    socket.on("user-toggle-audio", handleToggleAudio);
+    socket.on("user-toggle-video", handleToggleVideo);
+    socket.on("user-leave", handleUserLeave);
+    return () => {
+      socket.off("user-toggle-audio", handleToggleAudio);
+      socket.off("user-toggle-video", handleToggleVideo);
+      socket.off("user-leave", handleUserLeave);
+    };
+  }, [players, setPlayers, socket, users]);
+
+  useEffect(() => {
+    if (!peer || !stream) return;
+    peer.on("call", (call) => {
+      const { peer: callerId } = call;
+      call.answer(stream);
+
+      call.on("stream", (incomingStream) => {
+        console.log(`incoming stream from ${callerId}`);
+        setPlayers((prev) => ({
+          ...prev,
+          [callerId]: {
+            url: incomingStream,
+            muted: true,
+            playing: true,
+          },
+        }));
+
+        setUsers((prev) => ({
+          ...prev,
+          [callerId]: call,
+        }));
+      });
+    });
+  }, [peer, setPlayers, stream]);
+
+  useEffect(() => {
+    if (!stream || !myId) return;
+    console.log(`setting my stream ${myId}`);
+    setPlayers((prev) => ({
+      ...prev,
+      [myId]: {
+        url: stream,
+        muted: true,
+        playing: true,
+      },
+    }));
+  }, [myId, setPlayers, stream]);
+
+  const toggleMyVideoVisibility = () => {
+    setShowMyVideo(!showMyVideo);
+  };
+
+  // Handle leaving room with API call
   const handleLeaveRoom = async () => {
     if (isLeaving) return;
 
     try {
       setIsLeaving(true);
 
-      // Ngắt kết nối LiveKit
-      leaveRoom();
+      // First disconnect from WebRTC and socket
+      disconnectFromRoom();
 
-      // Gọi API để rời phòng
+      // Then call the API to leave the room
       if (roomId) {
         await roomService.leaveRoom(roomId);
         console.log("Successfully left room via API");
       }
 
-      // Chuyển hướng về trang chủ
+      // Navigate back to home page
       navigate("/");
     } catch (error) {
       console.error("Error leaving room:", error);
+
+      // Still navigate away even if API call fails
       navigate("/");
     } finally {
       setIsLeaving(false);
     }
   };
 
-  const toggleMyVideoVisibility = () => {
-    setShowMyVideo(!showMyVideo);
-  };
+  // Thêm kiểm tra null/undefined cho myPlayer
+  const isMuted = myPlayer?.muted || false;
+  const isPlaying = myPlayer?.playing || false;
 
-  // Trạng thái audio/video
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  // Thêm state để theo dõi trạng thái kết nối
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
 
-  // Xử lý toggle audio
-  const handleToggleAudio = () => {
-    const newMutedState = !isMuted;
-    setIsMuted(newMutedState);
-    toggleMicrophone(!newMutedState);
-  };
+  // Cập nhật useEffect để theo dõi trạng thái kết nối
+  useEffect(() => {
+    if (!peer) return;
 
-  // Xử lý toggle video
-  const handleToggleVideo = () => {
-    const newVideoState = !isVideoOff;
-    setIsVideoOff(newVideoState);
-    toggleCamera(!newVideoState);
-  };
+    const handleIceConnectionStateChange = () => {
+      console.log("ICE connection state:", peer.connectionState);
+
+      if (peer.connectionState === "connected") {
+        setConnectionStatus("connected");
+      } else if (
+        peer.connectionState === "disconnected" ||
+        peer.connectionState === "failed"
+      ) {
+        setConnectionStatus("failed");
+        console.error("Kết nối WebRTC bị ngắt hoặc thất bại");
+
+        // Hiển thị thông báo cho người dùng
+        alert(
+          "Kết nối video bị ngắt. Có thể do hai máy tính đang ở các mạng khác nhau. Đang thử kết nối lại..."
+        );
+
+        // Có thể thử kết nối lại ở đây
+        // ...
+      }
+    };
+
+    peer.on("iceconnectionstatechange", handleIceConnectionStateChange);
+
+    return () => {
+      peer.off("iceconnectionstatechange", handleIceConnectionStateChange);
+    };
+  }, [peer]);
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
-      {/* Hiển thị video của người dùng khác */}
-      {remoteParticipants.length > 0 && (
+      {/* Right panel - other participants' videos */}
+      {Object.keys(otherPlayers).length > 0 && (
         <div className="absolute flex flex-col overflow-y-auto z-20 space-y-3 w-[220px] h-[calc(100vh-40px-80px)] right-5 top-5">
-          {remoteParticipants.map((participant) => (
-            <div
-              key={participant.identity}
-              className="relative rounded-lg overflow-hidden bg-gray-800 aspect-video"
-            >
-              <VideoRenderer participant={participant} />
-            </div>
-          ))}
+          {Object.keys(otherPlayers).map((playerId) => {
+            if (!otherPlayers[playerId]) return null;
+
+            const { url, muted, playing } = otherPlayers[playerId];
+            return (
+              <Player
+                key={playerId}
+                url={url}
+                muted={muted || false}
+                playing={playing || false}
+                isActive={false}
+              />
+            );
+          })}
         </div>
       )}
 
-      {/* Hiển thị video của bản thân */}
-      {localParticipant && showMyVideo && (
+      {/* Your video - bottom left corner */}
+      {myPlayer && showMyVideo && (
         <div className="absolute left-5 bottom-20 z-30 rounded-lg overflow-hidden shadow-lg w-[180px] h-[135px] border-2 border-white/20">
-          <VideoRenderer participant={localParticipant} />
+          <Player
+            url={myPlayer.url}
+            muted={myPlayer.muted || false}
+            playing={myPlayer.playing || false}
+            isActive={false}
+            isMe={true}
+          />
           <button
             className="absolute top-1 right-1 bg-gray-800 bg-opacity-50 rounded-full p-1"
             onClick={toggleMyVideoVisibility}
@@ -127,9 +335,9 @@ const WatchTogetherContent = () => {
       <div className="absolute bottom-0 left-0 right-0 z-30 py-3">
         <Bottom
           muted={isMuted}
-          playing={!isVideoOff}
-          toggleAudio={handleToggleAudio}
-          toggleVideo={handleToggleVideo}
+          playing={isPlaying}
+          toggleAudio={toggleAudio}
+          toggleVideo={toggleVideo}
           leaveRoom={handleLeaveRoom}
           showMyVideo={showMyVideo}
           toggleMyVideoVisibility={toggleMyVideoVisibility}
@@ -137,17 +345,11 @@ const WatchTogetherContent = () => {
         />
       </div>
 
-      {/* Hiển thị thông báo lỗi */}
-      {error && (
+      {/* Hiển thị thông báo khi không thể kết nối */}
+      {connectionStatus === "failed" && (
         <div className="absolute top-5 left-0 right-0 mx-auto w-fit bg-red-500 text-white px-4 py-2 rounded-md">
-          Lỗi kết nối: {error.message || "Không thể kết nối đến phòng"}
-        </div>
-      )}
-
-      {/* Hiển thị thông báo đang kết nối */}
-      {!isConnected && !error && (
-        <div className="absolute top-5 left-0 right-0 mx-auto w-fit bg-blue-500 text-white px-4 py-2 rounded-md">
-          Đang kết nối đến phòng...
+          Không thể kết nối video. Vui lòng kiểm tra kết nối mạng hoặc thử lại
+          sau.
         </div>
       )}
     </div>
