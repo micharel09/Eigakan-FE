@@ -20,16 +20,11 @@ const usePeer = (roomId) => {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
           {
-            urls: [
-              "turn:global.turn.twilio.com:3478?transport=udp",
-              "turn:global.turn.twilio.com:3478?transport=tcp",
-              "turn:global.turn.twilio.com:443?transport=tls",
-            ],
-            username: "ACc4055aedb5e53b3da1f470b3d2708495", // Thay bằng Twilio Account SID
-            credential: "YOUR_AUTH_TOKEN", // Thay bằng Twilio Auth Token
+            urls: "turn:openrelay.metered.ca:80",
+            username: "openrelayproject",
+            credential: "openrelayproject",
           },
         ],
-        iceCandidatePoolSize: 10,
       },
     };
 
