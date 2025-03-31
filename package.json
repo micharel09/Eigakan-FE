@@ -25,6 +25,8 @@
     "canvas-confetti": "^1.9.3",
     "chart.js": "^4.4.8",
     "framer-motion": "^11.18.2",
+    "livekit-client": "^2.9.9",
+    "livekit-server-sdk": "^2.10.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.469.0",
     "moment": "^2.30.1",

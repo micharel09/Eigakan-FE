@@ -154,40 +154,6 @@ const WatchTogetherContent = () => {
   );
 };
 
-// Component để render video từ LiveKit
-const VideoRenderer = ({ participant }) => {
-  const [videoEl, setVideoEl] = useState(null);
-
-  useEffect(() => {
-    if (!videoEl || !participant) return;
-
-    // Tìm video track
-    const videoPublication = Array.from(
-      participant.trackPublications.values()
-    ).find((pub) => pub.kind === "video" && pub.isSubscribed);
-
-    if (videoPublication && videoPublication.track) {
-      videoPublication.track.attach(videoEl);
-    }
-
-    return () => {
-      if (videoPublication && videoPublication.track) {
-        videoPublication.track.detach(videoEl);
-      }
-    };
-  }, [participant, videoEl]);
-
-  return (
-    <video
-      ref={setVideoEl}
-      autoPlay
-      playsInline
-      muted={participant.isLocal}
-      className="w-full h-full object-cover"
-    />
-  );
-};
-
 const WatchTogether = () => {
   return (
     <WatchTogetherSocketProvider>
