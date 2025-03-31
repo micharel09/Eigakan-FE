@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { Calendar, Clock } from "lucide-react";
@@ -16,6 +16,462 @@ import {
   useAdDisplay,
 } from "../../hooks";
 
+// Extract AdDisplay as a memoized component
+const AdDisplay = memo(({ ad, className }) => {
+  if (!ad) return null;
+
+  // Check if it's a header ad or sidebar ad
+  const isHeaderAd = className && className.includes("max-h-[100px]");
+  const isSidebarAd = className && className.includes("max-h-none");
+
+  // For video ads in regular ad slots
+  const adVideoRef = useRef(null);
+  const playerInstanceRef = useRef(null);
+  const isInitializingRef = useRef(false);
+
+  // Initialize video player if this is a video ad
+  useEffect(() => {
+    if (!ad.video || !adVideoRef.current) return;
+
+    // Avoid multiple initialization attempts
+    if (isInitializingRef.current) return;
+    isInitializingRef.current = true;
+
+    let isComponentMounted = true;
+
+    const initAdVideoPlayer = async () => {
+      try {
+        // Check if PlayerJS is loaded
+        if (typeof window.playerjs === "undefined") {
+          // Load PlayerJS if not already loaded
+          const script = document.createElement("script");
+          script.src =
+            "https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js";
+          script.async = true;
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+
+        // Avoid creating a player if component unmounted during async operations
+        if (!isComponentMounted || !adVideoRef.current) return;
+
+        // Initialize player only if we don't already have an instance
+        if (!playerInstanceRef.current) {
+          console.log("Creating new ad player instance");
+          playerInstanceRef.current = new window.playerjs.Player(
+            adVideoRef.current
+          );
+
+          playerInstanceRef.current.on("ready", () => {
+            if (isComponentMounted) {
+              console.log("Ad player ready");
+              // Force autoplay with multiple attempts
+              try {
+                // Set video to muted first to allow autoplay and disable controls
+                playerInstanceRef.current.setMute(true);
+                playerInstanceRef.current.setVolume(0);
+                playerInstanceRef.current.setLoop(true);
+                playerInstanceRef.current.hideControls();
+                playerInstanceRef.current.play();
+
+                // Try again after a short delay
+                setTimeout(() => {
+                  if (isComponentMounted && playerInstanceRef.current) {
+                    playerInstanceRef.current.setMute(true);
+                    playerInstanceRef.current.hideControls();
+                    playerInstanceRef.current.play();
+
+                    // Gradually increase volume after playback starts but keep controls hidden
+                    setTimeout(() => {
+                      if (isComponentMounted && playerInstanceRef.current) {
+                        playerInstanceRef.current.setMute(false);
+                        playerInstanceRef.current.setVolume(50);
+                        playerInstanceRef.current.hideControls();
+                      }
+                    }, 1500);
+                  }
+                }, 100);
+              } catch (err) {
+                console.warn("Error in initial play attempt:", err);
+              }
+            }
+          });
+
+          // Force play on timeupdate as well
+          playerInstanceRef.current.on("timeupdate", () => {
+            // Do nothing, but this ensures the player is active
+          });
+
+          playerInstanceRef.current.on("error", (error) => {
+            console.error("Ad player error:", error);
+          });
+        }
+      } catch (error) {
+        console.error("Failed to initialize ad video player:", error);
+      } finally {
+        isInitializingRef.current = false;
+      }
+    };
+
+    initAdVideoPlayer();
+
+    // Clean up function
+    return () => {
+      isComponentMounted = false;
+      isInitializingRef.current = false;
+
+      if (playerInstanceRef.current) {
+        // Just disconnect events, don't destroy the player instance
+        try {
+          playerInstanceRef.current.off("ready");
+          playerInstanceRef.current.off("error");
+        } catch (err) {
+          console.warn("Error cleaning up player events:", err);
+        }
+      }
+    };
+  }, [ad.video]); // Simplify dependencies
+
+  // Clean up player on component unmount
+  useEffect(() => {
+    return () => {
+      if (playerInstanceRef.current) {
+        console.log("Final cleanup of ad player");
+        try {
+          // Try to pause the video before cleanup
+          playerInstanceRef.current.pause();
+        } catch (err) {}
+
+        playerInstanceRef.current = null;
+        isInitializingRef.current = false;
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      className={`p-2 bg-black/40 rounded border border-white/10 w-full h-auto flex flex-col items-center ${className}`}
+    >
+      <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
+        SPONSORED
+      </div>
+
+      {/* Display video if available */}
+      {ad.video ? (
+        <div
+          className={`relative w-full overflow-hidden rounded ${
+            isHeaderAd
+              ? "h-[60px]"
+              : isSidebarAd
+              ? "aspect-video max-h-[250px]"
+              : "aspect-video"
+          }`}
+        >
+          <iframe
+            ref={adVideoRef}
+            src={`${ad.video}${
+              ad.video.includes("?") ? "&" : "?"
+            }autoplay=1&muted=1&controls=0&playsinline=1&enablejsapi=1&loop=1&playlist=${ad.video
+              .split("/")
+              .pop()}`}
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            allowFullScreen
+            allow="autoplay; fullscreen; encrypted-media"
+            frameBorder="0"
+            autoPlay
+            muted
+            playsInline
+            loading="eager"
+          />
+        </div>
+      ) : (
+        // Display image if no video
+        <a
+          href={ad.url || "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full"
+        >
+          <img
+            src={ad.image}
+            alt="Advertisement"
+            className={`w-full object-contain hover:opacity-90 transition-opacity rounded ${
+              isHeaderAd
+                ? "max-h-[60px]"
+                : isSidebarAd
+                ? "max-h-[800px]" // Increased max height for sidebar ads
+                : "max-h-[400px]"
+            }`}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://placehold.co/200x400?text=Ad";
+            }}
+          />
+        </a>
+      )}
+
+      {/* Add visit button for video ads if URL is provided */}
+      {ad.video && ad.url && !isHeaderAd && (
+        <a
+          href={ad.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full mt-2 bg-white/10 text-white text-center py-1 text-sm rounded hover:bg-white/20 transition-colors"
+        >
+          Visit Site
+        </a>
+      )}
+
+      {ad.content && !isHeaderAd && (
+        <div className="text-white text-sm mt-2 text-center">{ad.content}</div>
+      )}
+    </div>
+  );
+});
+
+// Extract CenterAdDisplay as a memoized component
+const CenterAdDisplay = memo(({ centerAd, showCenterAd, setShowCenterAd }) => {
+  if (!centerAd || !showCenterAd) return null;
+
+  // Create a separate useVideo hook instance for the ad video
+  const adVideoRef = useRef(null);
+  const playerInstanceRef = useRef(null);
+  const isInitializingRef = useRef(false);
+
+  // Only initialize the player when the ad has a video and is visible
+  useEffect(() => {
+    if (!centerAd?.video || !showCenterAd || !adVideoRef.current) return;
+
+    // Avoid multiple initialization attempts
+    if (isInitializingRef.current) return;
+    isInitializingRef.current = true;
+
+    let isComponentMounted = true;
+
+    const initAdPlayer = async () => {
+      try {
+        // Check if PlayerJS is loaded
+        if (typeof window.playerjs === "undefined") {
+          // Load PlayerJS if not already loaded
+          const script = document.createElement("script");
+          script.src =
+            "https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js";
+          script.async = true;
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+
+        // Avoid creating a player if component unmounted during async operations
+        if (!isComponentMounted || !adVideoRef.current) return;
+
+        // Initialize player only if we don't already have one
+        if (!playerInstanceRef.current) {
+          console.log("Creating new center ad player instance");
+          playerInstanceRef.current = new window.playerjs.Player(
+            adVideoRef.current
+          );
+
+          playerInstanceRef.current.on("ready", () => {
+            if (isComponentMounted) {
+              console.log("Center ad player ready");
+              // Force autoplay with multiple attempts
+              try {
+                // Set video to muted first to allow autoplay and disable controls
+                playerInstanceRef.current.setMute(true);
+                playerInstanceRef.current.setVolume(0);
+                playerInstanceRef.current.setLoop(true);
+                playerInstanceRef.current.hideControls();
+                playerInstanceRef.current.play();
+
+                // Try again after a short delay
+                setTimeout(() => {
+                  if (isComponentMounted && playerInstanceRef.current) {
+                    playerInstanceRef.current.setMute(true);
+                    playerInstanceRef.current.hideControls();
+                    playerInstanceRef.current.play();
+                  }
+                }, 100);
+
+                // And one more time after a longer delay
+                setTimeout(() => {
+                  if (isComponentMounted && playerInstanceRef.current) {
+                    playerInstanceRef.current.hideControls();
+                    playerInstanceRef.current.play();
+
+                    // Gradually increase volume after playback starts but keep controls hidden
+                    setTimeout(() => {
+                      if (isComponentMounted && playerInstanceRef.current) {
+                        playerInstanceRef.current.setMute(false);
+                        playerInstanceRef.current.setVolume(50);
+                        playerInstanceRef.current.hideControls();
+                      }
+                    }, 1500);
+                  }
+                }, 1000);
+              } catch (err) {
+                console.warn("Error in initial play attempt:", err);
+              }
+            }
+          });
+
+          // Force play on timeupdate as well
+          playerInstanceRef.current.on("timeupdate", () => {
+            // Do nothing, but this ensures the player is active
+          });
+
+          playerInstanceRef.current.on("error", (error) => {
+            console.error("Center ad player error:", error);
+          });
+        }
+      } catch (error) {
+        console.error("Failed to initialize ad video player:", error);
+      } finally {
+        isInitializingRef.current = false;
+      }
+    };
+
+    initAdPlayer();
+
+    // Cleanup function - disconnect events but don't destroy player
+    return () => {
+      isComponentMounted = false;
+      isInitializingRef.current = false;
+
+      if (playerInstanceRef.current) {
+        try {
+          playerInstanceRef.current.off("ready");
+          playerInstanceRef.current.off("error");
+        } catch (err) {
+          console.warn("Error cleaning up center ad player events:", err);
+        }
+      }
+    };
+  }, [centerAd?.video, showCenterAd]); // Simplify dependencies
+
+  // Clean up player on component unmount or when ad is closed
+  useEffect(() => {
+    return () => {
+      if (playerInstanceRef.current) {
+        console.log("Final cleanup of center ad player");
+        try {
+          // Try to pause the video before cleanup
+          playerInstanceRef.current.pause();
+        } catch (err) {}
+
+        playerInstanceRef.current = null;
+        isInitializingRef.current = false;
+      }
+    };
+  }, []);
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/70">
+      <div className="relative max-w-3xl max-h-[80vh] w-full mx-auto p-4">
+        {/* Always show close button, no need for user interaction first */}
+        <button
+          onClick={() => setShowCenterAd(false)}
+          className="absolute -top-4 -right-4 w-12 h-12 rounded-full bg-[#FF009F] text-white flex items-center justify-center hover:bg-[#D1007F] transition-colors z-10 shadow-lg animate-pulse hover:animate-none"
+          aria-label="Close advertisement"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-7 w-7"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+
+        {/* Ad content container */}
+        <div className="bg-black/90 rounded-xl border border-[#FF009F]/30 p-4 shadow-xl relative">
+          <div className="text-[#FF009F] text-sm uppercase tracking-wider mb-3 text-center font-medium border-b border-[#FF009F]/20 pb-2">
+            SPONSORED ADVERTISEMENT
+          </div>
+
+          {/* Video ad content */}
+          {centerAd.video ? (
+            <div className="relative w-full aspect-video overflow-hidden rounded border border-white/10 mb-3">
+              <iframe
+                ref={adVideoRef}
+                src={`${centerAd.video}${
+                  centerAd.video.includes("?") ? "&" : "?"
+                }autoplay=1&muted=1&controls=0&playsinline=1&enablejsapi=1&loop=1&playlist=${centerAd.video
+                  .split("/")
+                  .pop()}`}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                allowFullScreen
+                allow="autoplay; fullscreen; encrypted-media"
+                frameBorder="0"
+                autoPlay
+                muted
+                playsInline
+                loading="eager"
+              />
+            </div>
+          ) : centerAd.image ? (
+            /* Image ad content */
+            <a
+              href={centerAd.url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full"
+            >
+              <img
+                src={centerAd.image}
+                alt="Advertisement"
+                className="w-full object-contain rounded max-h-[60vh] border border-white/10"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://placehold.co/800x600?text=Ad";
+                }}
+              />
+            </a>
+          ) : null}
+
+          {/* Ad content text if available */}
+          {centerAd.content && (
+            <div className="mt-3 text-white/90 text-center bg-white/5 py-2 px-3 rounded">
+              {centerAd.content}
+            </div>
+          )}
+
+          {/* URL button for video ads if URL is provided */}
+          {centerAd.video && centerAd.url && (
+            <a
+              href={centerAd.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full mt-3 bg-[#FF009F] text-white text-center py-2 rounded hover:bg-[#D1007F] transition-colors"
+            >
+              Visit Advertiser
+            </a>
+          )}
+
+          {/* Clear instruction on how to close */}
+          <div className="mt-4 text-center">
+            <p className="text-white text-sm bg-[#FF009F]/20 py-2 px-4 rounded-lg inline-block">
+              Click the X button in the top-right corner to close this ad
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 const WatchPage = () => {
   const { movieId } = useParams();
   const [movie, setMovie] = useState(null);
@@ -24,6 +480,10 @@ const WatchPage = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState(4);
+  const [adPlaybackAttempted, setAdPlaybackAttempted] = useState(false);
+
+  // Refs for ads management
+  const adPlayersRef = useRef([]);
 
   // Refs for timer management
   const hideTimeoutRef = useRef(null);
@@ -57,6 +517,68 @@ const WatchPage = () => {
     duration,
     playerReady,
   });
+
+  // Utility function to force play ads when user interacts with the page
+  const forcePlayAds = useCallback(() => {
+    if (adPlaybackAttempted) return;
+
+    setAdPlaybackAttempted(true);
+
+    // Find all iframes that are ad players and force play them
+    const iframes = document.querySelectorAll("iframe");
+    iframes.forEach((iframe) => {
+      if (iframe.src.includes("autoplay=1")) {
+        try {
+          // Try to create player instances for any ads that might not have been initialized
+          if (typeof window.playerjs !== "undefined") {
+            const player = new window.playerjs.Player(iframe);
+            player.on("ready", () => {
+              player.play();
+              adPlayersRef.current.push(player);
+            });
+          }
+
+          // Also try the native play() method on the content window
+          if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage(
+              '{"event":"command","func":"playVideo","args":""}',
+              "*"
+            );
+          }
+        } catch (err) {
+          console.warn("Error forcing ad playback:", err);
+        }
+      }
+    });
+  }, [adPlaybackAttempted]);
+
+  // Listen for user interaction to force play ads
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      forcePlayAds();
+    };
+
+    window.addEventListener("click", handleUserInteraction);
+    window.addEventListener("touchstart", handleUserInteraction);
+
+    return () => {
+      window.removeEventListener("click", handleUserInteraction);
+      window.removeEventListener("touchstart", handleUserInteraction);
+    };
+  }, [forcePlayAds]);
+
+  // Clean up ad players on unmount
+  useEffect(() => {
+    return () => {
+      adPlayersRef.current.forEach((player) => {
+        try {
+          player.off("ready");
+          player.off("error");
+        } catch (err) {}
+      });
+      adPlayersRef.current = [];
+    };
+  }, []);
 
   // Add useEffect to auto-hide resume dialog after 4 seconds
   useEffect(() => {
@@ -272,116 +794,6 @@ const WatchPage = () => {
     </div>
   );
 
-  const AdDisplay = ({ ad, className }) => {
-    if (!ad) return null;
-
-    // Check if it's a header ad or sidebar ad
-    const isHeaderAd = className && className.includes("max-h-[100px]");
-    const isSidebarAd = className && className.includes("max-h-none");
-
-    return (
-      <div
-        className={`p-2 bg-black/40 rounded border border-white/10 w-full h-auto flex flex-col items-center ${className}`}
-      >
-        <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
-          SPONSORED
-        </div>
-
-        <a
-          href={ad.url || "#"}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full"
-        >
-          <img
-            src={ad.image}
-            alt="Advertisement"
-            className={`w-full object-contain hover:opacity-90 transition-opacity rounded ${
-              isHeaderAd
-                ? "max-h-[60px]"
-                : isSidebarAd
-                ? "max-h-[800px]" // Increased max height for sidebar ads
-                : "max-h-[400px]"
-            }`}
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "https://placehold.co/200x400?text=Ad";
-            }}
-          />
-        </a>
-
-        {ad.content && !isHeaderAd && (
-          <div className="text-white text-sm mt-2 text-center">
-            {ad.content}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const CenterAdDisplay = () => {
-    if (!centerAd || !showCenterAd) return null;
-
-    return (
-      <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/70">
-        <div className="relative max-w-3xl max-h-[80vh] w-full mx-auto p-4">
-          {/* Always show close button, no need for user interaction first */}
-          <button
-            onClick={() => setShowCenterAd(false)}
-            className="absolute -top-4 -right-4 w-12 h-12 rounded-full bg-[#FF009F] text-white flex items-center justify-center hover:bg-[#D1007F] transition-colors z-10 shadow-lg animate-pulse hover:animate-none"
-            aria-label="Close advertisement"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-7 w-7"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-
-          {/* Ad content container */}
-          <div className="bg-black/90 rounded-xl border border-[#FF009F]/30 p-4 shadow-xl relative">
-            <div className="text-[#FF009F] text-sm uppercase tracking-wider mb-3 text-center font-medium border-b border-[#FF009F]/20 pb-2">
-              SPONSORED ADVERTISEMENT
-            </div>
-
-            <a
-              href={centerAd.url || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full"
-            >
-              <img
-                src={centerAd.image}
-                alt="Advertisement"
-                className="w-full object-contain rounded max-h-[60vh] border border-white/10"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://placehold.co/800x600?text=Ad";
-                }}
-              />
-            </a>
-
-            {/* Clear instruction on how to close */}
-            <div className="mt-4 text-center">
-              <p className="text-white text-sm bg-[#FF009F]/20 py-2 px-4 rounded-lg inline-block">
-                Click the X button in the top-right corner to close this ad
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // Helper function for video container styling
   const getVideoContainerStyle = () => {
     // VIP MEMBER has full-screen video
@@ -416,6 +828,34 @@ const WatchPage = () => {
   const directTrailerUrl =
     movie?.medias?.find((m) => m.type === "TRAILER")?.url || "";
 
+  // Thêm useEffect để gọi forcePlayAds sau khi trang load xong
+  useEffect(() => {
+    // Force play ads when component mounts and video URL is available
+    if (
+      movie &&
+      (centerAd?.video ||
+        leftSidebarAd?.video ||
+        sidebarAd?.video ||
+        headerAd?.video ||
+        footerAd?.video)
+    ) {
+      // Wait for a short time to ensure iframe has loaded
+      const timer = setTimeout(() => {
+        forcePlayAds();
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    movie,
+    centerAd,
+    leftSidebarAd,
+    sidebarAd,
+    headerAd,
+    footerAd,
+    forcePlayAds,
+  ]);
+
   if (loading) return <Loading />;
 
   if (!movie) {
@@ -438,7 +878,13 @@ const WatchPage = () => {
     <>
       <Helmet>
         <title>{`Watch ${movie?.title} - Eigakan`}</title>
+        <link
+          rel="preload"
+          href="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js"
+          as="script"
+        />
         <script
+          id="playerjs-script"
           type="text/javascript"
           src="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js"
         ></script>
@@ -459,35 +905,7 @@ const WatchPage = () => {
           {/* Left Sidebar Ad */}
           {leftSidebarAd && (
             <div className="absolute left-0 top-0 h-full w-[280px] flex flex-col items-start justify-start z-10 pt-20">
-              <div className="bg-black/40 p-2 rounded border border-white/10 w-full">
-                <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
-                  SPONSORED
-                </div>
-                <a
-                  href={leftSidebarAd.url || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full"
-                >
-                  <img
-                    src={leftSidebarAd.image}
-                    alt="Advertisement"
-                    className="w-full h-[700px] object-cover hover:opacity-90 transition-opacity rounded"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "https://placehold.co/280x600?text=Ad";
-                    }}
-                  />
-                </a>
-                {leftSidebarAd.content && (
-                  <div className="text-white text-sm mt-2 text-center">
-                    {leftSidebarAd.content}
-                  </div>
-                )}
-                <div className="text-white/50 text-xs text-center mt-2">
-                  LEFT
-                </div>
-              </div>
+              <AdDisplay ad={leftSidebarAd} className="max-h-none" />
             </div>
           )}
 
@@ -543,40 +961,16 @@ const WatchPage = () => {
           </div>
 
           {/* CENTER Ad */}
-          <CenterAdDisplay />
+          <CenterAdDisplay
+            centerAd={centerAd}
+            showCenterAd={showCenterAd}
+            setShowCenterAd={setShowCenterAd}
+          />
 
           {/* Right Sidebar Ad */}
           {sidebarAd && (
             <div className="absolute right-0 top-0 h-full w-[280px] flex flex-col items-start justify-start z-10 pt-20">
-              <div className="bg-black/40 p-2 rounded border border-white/10 w-full">
-                <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
-                  SPONSORED
-                </div>
-                <a
-                  href={sidebarAd.url || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full"
-                >
-                  <img
-                    src={sidebarAd.image}
-                    alt="Advertisement"
-                    className="w-full h-[700px] object-cover hover:opacity-90 transition-opacity rounded"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "https://placehold.co/280x600?text=Ad";
-                    }}
-                  />
-                </a>
-                {sidebarAd.content && (
-                  <div className="text-white/80 text-sm mt-2 text-center">
-                    {sidebarAd.content}
-                  </div>
-                )}
-                <div className="text-white/50 text-xs text-center mt-2">
-                  RIGHT
-                </div>
-              </div>
+              <AdDisplay ad={sidebarAd} className="max-h-none" />
             </div>
           )}
         </div>
