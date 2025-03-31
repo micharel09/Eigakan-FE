@@ -2,67 +2,58 @@ import { useState, useEffect, useRef } from "react";
 
 const useMediaStream = () => {
   const [stream, setStream] = useState(null);
-  const isStreamSet = useRef(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isStreamSet.current) return;
+    let mediaStream = null;
 
-    const initStream = async () => {
+    const getMediaStream = async () => {
       try {
+        // Thêm log để debug
         console.log("Requesting media permissions...");
-        isStreamSet.current = true;
 
-        // Yêu cầu quyền truy cập camera và microphone
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
+        // Thêm các ràng buộc rõ ràng cho video và audio
+        const constraints = {
           video: {
             width: { ideal: 640 },
             height: { ideal: 480 },
-            frameRate: { max: 30 },
+            frameRate: { ideal: 30 },
           },
-        });
+          audio: true,
+        };
 
-        console.log("Media stream initialized successfully");
-        console.log("Video tracks:", mediaStream.getVideoTracks().length);
-        console.log("Audio tracks:", mediaStream.getAudioTracks().length);
-
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("Media stream obtained successfully:", mediaStream);
         setStream(mediaStream);
       } catch (err) {
-        console.error("Error accessing media devices:", err);
-        isStreamSet.current = false;
+        console.error("Error getting media stream:", err);
+        setError(err);
 
-        // Thử lại với chỉ audio nếu video thất bại
+        // Thử lại chỉ với audio nếu video không khả dụng
         try {
-          console.log("Trying audio only...");
-          const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
+          console.log("Trying fallback to audio only...");
+          mediaStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
             video: false,
           });
-          console.log("Audio-only stream initialized");
-          setStream(audioOnlyStream);
+          console.log("Audio-only stream obtained");
+          setStream(mediaStream);
         } catch (audioErr) {
-          console.error("Failed to get even audio stream:", audioErr);
+          console.error("Could not get audio stream either:", audioErr);
         }
       }
     };
 
-    initStream();
+    getMediaStream();
 
-    // Cleanup function
     return () => {
-      if (stream) {
-        console.log("Cleaning up media stream");
-        stream.getTracks().forEach((track) => {
-          track.stop();
-          console.log(`Stopped ${track.kind} track`);
-        });
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
 
-  return {
-    stream,
-  };
+  return { stream, error };
 };
 
 export default useMediaStream;

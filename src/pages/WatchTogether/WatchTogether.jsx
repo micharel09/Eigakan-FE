@@ -52,6 +52,14 @@ const WatchTogetherContent = () => {
     }
   }, [stream]);
 
+  // Thêm xử lý lỗi và thông báo cho người dùng
+  useEffect(() => {
+    if (!stream) {
+      console.warn("Không có stream camera/mic");
+      // Hiển thị thông báo cho người dùng
+    }
+  }, [stream]);
+
   // Separate current user from other users
   const otherPlayers = { ...nonHighlightedPlayers };
   const myPlayer = players[myId];
@@ -203,6 +211,29 @@ const WatchTogetherContent = () => {
   // Thêm kiểm tra null/undefined cho myPlayer
   const isMuted = myPlayer?.muted || false;
   const isPlaying = myPlayer?.playing || false;
+
+  // Thêm kiểm tra trạng thái kết nối ICE
+  useEffect(() => {
+    if (!peer) return;
+
+    const handleIceConnectionStateChange = () => {
+      console.log("ICE connection state:", peer.connectionState);
+      // Hiển thị thông báo khi kết nối bị ngắt
+      if (
+        peer.connectionState === "disconnected" ||
+        peer.connectionState === "failed"
+      ) {
+        console.error("Kết nối WebRTC bị ngắt hoặc thất bại");
+        // Có thể thử kết nối lại ở đây
+      }
+    };
+
+    peer.on("iceconnectionstatechange", handleIceConnectionStateChange);
+
+    return () => {
+      peer.off("iceconnectionstatechange", handleIceConnectionStateChange);
+    };
+  }, [peer]);
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
