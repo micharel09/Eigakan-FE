@@ -15,19 +15,18 @@ const usePeer = (roomId) => {
 
     // Thêm cấu hình STUN/TURN server
     const peerConfig = {
-      debug: 3, // Mức độ log cao nhất để debug
+      debug: 3,
       config: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
           {
             urls: [
-              "turn:a.relay.metered.ca:80",
-              "turn:a.relay.metered.ca:80?transport=tcp",
-              "turn:a.relay.metered.ca:443",
-              "turn:a.relay.metered.ca:443?transport=tcp",
+              "turn:global.turn.twilio.com:3478?transport=udp",
+              "turn:global.turn.twilio.com:3478?transport=tcp",
+              "turn:global.turn.twilio.com:443?transport=tls",
             ],
-            username: "ACc4055aedb5e53b3da1f470b3d2708495", // Thay bằng username của bạn
-            credential: "667ec1bf6b781ee2079b1806894faf38", // Thay bằng credential của bạn
+            username: "ACc4055aedb5e53b3da1f470b3d2708495", // Thay bằng Twilio Account SID
+            credential: "YOUR_AUTH_TOKEN", // Thay bằng Twilio Auth Token
           },
         ],
         iceCandidatePoolSize: 10,
