@@ -241,19 +241,32 @@ const WatchTogetherContent = () => {
   const isMuted = myPlayer?.muted || false;
   const isPlaying = myPlayer?.playing || false;
 
-  // Thêm kiểm tra trạng thái kết nối ICE
+  // Thêm state để theo dõi trạng thái kết nối
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
+
+  // Cập nhật useEffect để theo dõi trạng thái kết nối
   useEffect(() => {
     if (!peer) return;
 
     const handleIceConnectionStateChange = () => {
       console.log("ICE connection state:", peer.connectionState);
-      // Hiển thị thông báo khi kết nối bị ngắt
-      if (
+
+      if (peer.connectionState === "connected") {
+        setConnectionStatus("connected");
+      } else if (
         peer.connectionState === "disconnected" ||
         peer.connectionState === "failed"
       ) {
+        setConnectionStatus("failed");
         console.error("Kết nối WebRTC bị ngắt hoặc thất bại");
+
+        // Hiển thị thông báo cho người dùng
+        alert(
+          "Kết nối video bị ngắt. Có thể do hai máy tính đang ở các mạng khác nhau. Đang thử kết nối lại..."
+        );
+
         // Có thể thử kết nối lại ở đây
+        // ...
       }
     };
 
@@ -331,6 +344,14 @@ const WatchTogetherContent = () => {
           isLeaving={isLeaving}
         />
       </div>
+
+      {/* Hiển thị thông báo khi không thể kết nối */}
+      {connectionStatus === "failed" && (
+        <div className="absolute top-5 left-0 right-0 mx-auto w-fit bg-red-500 text-white px-4 py-2 rounded-md">
+          Không thể kết nối video. Vui lòng kiểm tra kết nối mạng hoặc thử lại
+          sau.
+        </div>
+      )}
     </div>
   );
 };

@@ -21,12 +21,22 @@ const usePeer = (roomId) => {
           { urls: "stun:stun.l.google.com:19302" },
           { urls: "stun:stun1.l.google.com:19302" },
           { urls: "stun:stun2.l.google.com:19302" },
-          // Thêm TURN server nếu có
-          // {
-          //   urls: 'turn:your-turn-server.com:3478',
-          //   username: 'username',
-          //   credential: 'credential'
-          // }
+          // Thêm TURN server miễn phí
+          {
+            urls: "turn:openrelay.metered.ca:80",
+            username: "openrelayproject",
+            credential: "openrelayproject",
+          },
+          {
+            urls: "turn:openrelay.metered.ca:443",
+            username: "openrelayproject",
+            credential: "openrelayproject",
+          },
+          {
+            urls: "turn:openrelay.metered.ca:443?transport=tcp",
+            username: "openrelayproject",
+            credential: "openrelayproject",
+          },
         ],
         iceCandidatePoolSize: 10,
       },
@@ -51,6 +61,16 @@ const usePeer = (roomId) => {
             isPeerSet.current = false;
           }
         }, 5000);
+      });
+
+      newPeer.on("icecandidate", (event) => {
+        if (event.candidate) {
+          console.log("New ICE candidate:", event.candidate.candidate);
+        }
+      });
+
+      newPeer.on("icecandidateerror", (error) => {
+        console.error("ICE candidate error:", error);
       });
 
       setPeer(newPeer);
