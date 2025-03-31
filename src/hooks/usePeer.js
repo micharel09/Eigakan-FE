@@ -18,7 +18,8 @@ const usePeer = (roomId) => {
       debug: 3,
       config: {
         iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun.l.google.com:19302" }, // STUN Google
+          { urls: "stun:stun1.l.google.com:19302" }, // STUN Google dự phòng
           {
             urls: "turn:openrelay.metered.ca:80",
             username: "openrelayproject",
