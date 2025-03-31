@@ -26,7 +26,7 @@ const usePeer = (roomId) => {
               "turn:a.relay.metered.ca:443",
               "turn:a.relay.metered.ca:443?transport=tcp",
             ],
-            username: "AC4055aedb5e53b3da1f470b3d2708495", // Thay bằng username của bạn
+            username: "ACc4055aedb5e53b3da1f470b3d2708495", // Thay bằng username của bạn
             credential: "667ec1bf6b781ee2079b1806894faf38", // Thay bằng credential của bạn
           },
         ],
