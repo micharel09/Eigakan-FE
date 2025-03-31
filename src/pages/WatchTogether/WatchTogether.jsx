@@ -132,28 +132,77 @@ const WatchTogetherContent = () => {
 
   useEffect(() => {
     if (!peer || !stream) return;
-    peer.on("call", (call) => {
-      const { peer: callerId } = call;
-      call.answer(stream);
 
-      call.on("stream", (incomingStream) => {
-        console.log(`incoming stream from ${callerId}`);
-        setPlayers((prev) => ({
-          ...prev,
-          [callerId]: {
-            url: incomingStream,
-            muted: true,
-            playing: true,
-          },
-        }));
+    // Thêm debug cho các kết nối mới
+    const originalCall = peer.call;
+    peer.call = function (peerId, stream) {
+      console.log(`Calling peer ${peerId}...`);
+      const call = originalCall.call(this, peerId, stream);
 
-        setUsers((prev) => ({
-          ...prev,
-          [callerId]: call,
-        }));
-      });
-    });
-  }, [peer, setPlayers, stream]);
+      // Debug kết nối
+      if (call.peerConnection) {
+        call.peerConnection.addEventListener("iceconnectionstatechange", () => {
+          console.log(
+            `ICE connection state with ${peerId}: ${call.peerConnection.iceConnectionState}`
+          );
+        });
+
+        call.peerConnection.addEventListener("connectionstatechange", () => {
+          console.log(
+            `Connection state with ${peerId}: ${call.peerConnection.connectionState}`
+          );
+        });
+
+        call.peerConnection.addEventListener("icecandidateerror", (event) => {
+          console.error("ICE candidate error:", event);
+        });
+      }
+
+      return call;
+    };
+
+    // Debug cho các cuộc gọi đến
+    const originalOn = peer.on;
+    peer.on = function (event, callback) {
+      if (event === "call") {
+        return originalOn.call(this, event, (call) => {
+          console.log(`Received call from ${call.peer}`);
+
+          // Debug kết nối
+          if (call.peerConnection) {
+            call.peerConnection.addEventListener(
+              "iceconnectionstatechange",
+              () => {
+                console.log(
+                  `ICE connection state with ${call.peer}: ${call.peerConnection.iceConnectionState}`
+                );
+              }
+            );
+
+            call.peerConnection.addEventListener(
+              "connectionstatechange",
+              () => {
+                console.log(
+                  `Connection state with ${call.peer}: ${call.peerConnection.connectionState}`
+                );
+              }
+            );
+
+            call.peerConnection.addEventListener(
+              "icecandidateerror",
+              (event) => {
+                console.error("ICE candidate error:", event);
+              }
+            );
+          }
+
+          callback(call);
+        });
+      }
+
+      return originalOn.call(this, event, callback);
+    };
+  }, [peer, stream]);
 
   useEffect(() => {
     if (!stream || !myId) return;
@@ -167,45 +216,6 @@ const WatchTogetherContent = () => {
       },
     }));
   }, [myId, setPlayers, stream]);
-
-  // Thêm vào useEffect để debug kết nối
-  useEffect(() => {
-    if (!peer || !stream) return;
-
-    // Debug kết nối
-    peer.on("call", (call) => {
-      // Log trạng thái kết nối
-      if (call.peerConnection) {
-        call.peerConnection.addEventListener("iceconnectionstatechange", () => {
-          console.log(
-            `ICE connection state with ${call.peer}:`,
-            call.peerConnection.iceConnectionState
-          );
-        });
-
-        call.peerConnection.addEventListener("connectionstatechange", () => {
-          console.log(
-            `Connection state with ${call.peer}:`,
-            call.peerConnection.connectionState
-          );
-        });
-
-        call.peerConnection.addEventListener("icegatheringstatechange", () => {
-          console.log(
-            `ICE gathering state with ${call.peer}:`,
-            call.peerConnection.iceGatheringState
-          );
-        });
-
-        call.peerConnection.addEventListener("signalingstatechange", () => {
-          console.log(
-            `Signaling state with ${call.peer}:`,
-            call.peerConnection.signalingState
-          );
-        });
-      }
-    });
-  }, [peer, stream]);
 
   const toggleMyVideoVisibility = () => {
     setShowMyVideo(!showMyVideo);
@@ -242,57 +252,6 @@ const WatchTogetherContent = () => {
   // Thêm kiểm tra null/undefined cho myPlayer
   const isMuted = myPlayer?.muted || false;
   const isPlaying = myPlayer?.playing || false;
-
-  // Thêm state để theo dõi trạng thái quyền truy cập
-  const [permissionStatus, setPermissionStatus] = useState({
-    camera: "unknown",
-    microphone: "unknown",
-  });
-
-  // Kiểm tra quyền truy cập khi component mount
-  useEffect(() => {
-    const checkPermissions = async () => {
-      try {
-        // Kiểm tra quyền camera
-        const cameraResult = await navigator.permissions.query({
-          name: "camera",
-        });
-        setPermissionStatus((prev) => ({
-          ...prev,
-          camera: cameraResult.state,
-        }));
-
-        // Kiểm tra quyền microphone
-        const micResult = await navigator.permissions.query({
-          name: "microphone",
-        });
-        setPermissionStatus((prev) => ({
-          ...prev,
-          microphone: micResult.state,
-        }));
-
-        console.log("Permission status:", {
-          camera: cameraResult.state,
-          microphone: micResult.state,
-        });
-      } catch (err) {
-        console.error("Error checking permissions:", err);
-      }
-    };
-
-    checkPermissions();
-  }, []);
-
-  // Hiển thị thông báo nếu cần cấp quyền
-  {
-    (permissionStatus.camera !== "granted" ||
-      permissionStatus.microphone !== "granted") && (
-      <div className="absolute top-5 left-0 right-0 mx-auto w-max bg-red-500 text-white px-4 py-2 rounded-md">
-        Vui lòng cấp quyền truy cập camera và microphone để sử dụng tính năng
-        này
-      </div>
-    );
-  }
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
