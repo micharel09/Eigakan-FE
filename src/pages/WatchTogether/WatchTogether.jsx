@@ -132,77 +132,28 @@ const WatchTogetherContent = () => {
 
   useEffect(() => {
     if (!peer || !stream) return;
+    peer.on("call", (call) => {
+      const { peer: callerId } = call;
+      call.answer(stream);
 
-    // Thêm debug cho các kết nối mới
-    const originalCall = peer.call;
-    peer.call = function (peerId, stream) {
-      console.log(`Calling peer ${peerId}...`);
-      const call = originalCall.call(this, peerId, stream);
+      call.on("stream", (incomingStream) => {
+        console.log(`incoming stream from ${callerId}`);
+        setPlayers((prev) => ({
+          ...prev,
+          [callerId]: {
+            url: incomingStream,
+            muted: true,
+            playing: true,
+          },
+        }));
 
-      // Debug kết nối
-      if (call.peerConnection) {
-        call.peerConnection.addEventListener("iceconnectionstatechange", () => {
-          console.log(
-            `ICE connection state with ${peerId}: ${call.peerConnection.iceConnectionState}`
-          );
-        });
-
-        call.peerConnection.addEventListener("connectionstatechange", () => {
-          console.log(
-            `Connection state with ${peerId}: ${call.peerConnection.connectionState}`
-          );
-        });
-
-        call.peerConnection.addEventListener("icecandidateerror", (event) => {
-          console.error("ICE candidate error:", event);
-        });
-      }
-
-      return call;
-    };
-
-    // Debug cho các cuộc gọi đến
-    const originalOn = peer.on;
-    peer.on = function (event, callback) {
-      if (event === "call") {
-        return originalOn.call(this, event, (call) => {
-          console.log(`Received call from ${call.peer}`);
-
-          // Debug kết nối
-          if (call.peerConnection) {
-            call.peerConnection.addEventListener(
-              "iceconnectionstatechange",
-              () => {
-                console.log(
-                  `ICE connection state with ${call.peer}: ${call.peerConnection.iceConnectionState}`
-                );
-              }
-            );
-
-            call.peerConnection.addEventListener(
-              "connectionstatechange",
-              () => {
-                console.log(
-                  `Connection state with ${call.peer}: ${call.peerConnection.connectionState}`
-                );
-              }
-            );
-
-            call.peerConnection.addEventListener(
-              "icecandidateerror",
-              (event) => {
-                console.error("ICE candidate error:", event);
-              }
-            );
-          }
-
-          callback(call);
-        });
-      }
-
-      return originalOn.call(this, event, callback);
-    };
-  }, [peer, stream]);
+        setUsers((prev) => ({
+          ...prev,
+          [callerId]: call,
+        }));
+      });
+    });
+  }, [peer, setPlayers, stream]);
 
   useEffect(() => {
     if (!stream || !myId) return;
@@ -252,107 +203,6 @@ const WatchTogetherContent = () => {
   // Thêm kiểm tra null/undefined cho myPlayer
   const isMuted = myPlayer?.muted || false;
   const isPlaying = myPlayer?.playing || false;
-
-  // Thêm vào useEffect để xử lý lỗi ICE candidate
-  useEffect(() => {
-    if (!peer || !stream) return;
-
-    // Thêm xử lý lỗi ICE candidate
-    const handleIceError = (event) => {
-      console.warn("ICE candidate error:", event);
-
-      // Nếu lỗi liên quan đến TURN server, thử kết nối lại
-      if (event.url && event.url.includes("turn:")) {
-        console.log("TURN server connection failed, trying to reconnect...");
-
-        // Thử kết nối lại sau 2 giây
-        setTimeout(() => {
-          if (peer && peer.reconnect) {
-            console.log("Attempting to reconnect peer...");
-            peer.reconnect();
-          }
-        }, 2000);
-      }
-    };
-
-    // Thêm event listener cho tất cả các kết nối
-    if (peer._connections) {
-      Object.values(peer._connections).forEach((conn) => {
-        if (conn.peerConnection) {
-          conn.peerConnection.addEventListener(
-            "icecandidateerror",
-            handleIceError
-          );
-        }
-      });
-    }
-
-    return () => {
-      // Cleanup
-      if (peer._connections) {
-        Object.values(peer._connections).forEach((conn) => {
-          if (conn.peerConnection) {
-            conn.peerConnection.removeEventListener(
-              "icecandidateerror",
-              handleIceError
-            );
-          }
-        });
-      }
-    };
-  }, [peer, stream]);
-
-  // Thêm vào useEffect để kiểm tra trạng thái kết nối
-  useEffect(() => {
-    if (!peer || !users) return;
-
-    // Kiểm tra trạng thái kết nối mỗi 5 giây
-    const checkInterval = setInterval(() => {
-      Object.entries(users).forEach(([peerId, call]) => {
-        if (call && call.peerConnection) {
-          const state = call.peerConnection.iceConnectionState;
-          console.log(`ICE connection state with ${peerId}: ${state}`);
-
-          // Nếu kết nối bị ngắt hoặc thất bại, thử kết nối lại
-          if (state === "disconnected" || state === "failed") {
-            console.log(
-              `Connection to ${peerId} is ${state}, attempting to reconnect...`
-            );
-
-            // Đóng kết nối cũ
-            call.close();
-
-            // Tạo kết nối mới sau 1 giây
-            setTimeout(() => {
-              if (peer && stream) {
-                console.log(`Calling ${peerId} again...`);
-                const newCall = peer.call(peerId, stream);
-
-                newCall.on("stream", (incomingStream) => {
-                  console.log(`Reconnected to ${peerId}`);
-                  setPlayers((prev) => ({
-                    ...prev,
-                    [peerId]: {
-                      url: incomingStream,
-                      muted: true,
-                      playing: true,
-                    },
-                  }));
-
-                  setUsers((prev) => ({
-                    ...prev,
-                    [peerId]: newCall,
-                  }));
-                });
-              }
-            }, 1000);
-          }
-        }
-      });
-    }, 5000);
-
-    return () => clearInterval(checkInterval);
-  }, [peer, users, stream, setPlayers, setUsers]);
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">

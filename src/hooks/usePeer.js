@@ -1,20 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useWatchTogetherSocket } from "../pages/WatchTogether/providers/WatchTogetherSocketProvider";
-import useTurnCredentials from "./useTurnCredentials";
 
 const usePeer = (roomId) => {
   const { socket, isConnected } = useWatchTogetherSocket();
   const [peer, setPeer] = useState(null);
   const [myId, setMyId] = useState("");
   const isPeerSet = useRef(false);
-  const { iceServers, loading } = useTurnCredentials();
 
   useEffect(() => {
-    if (isPeerSet.current || !roomId || !socket || !isConnected || loading)
-      return;
+    if (isPeerSet.current || !roomId || !socket || !isConnected) return;
     isPeerSet.current = true;
-
-    console.log("Initializing PeerJS with ICE servers:", iceServers);
 
     // Dynamically import PeerJS
     import("peerjs")
@@ -25,12 +20,10 @@ const usePeer = (roomId) => {
           secure: true,
           debug: 3,
           config: {
-            iceServers,
-            iceCandidatePoolSize: 10,
-            iceTransportPolicy: "all",
-            bundlePolicy: "max-bundle",
-            rtcpMuxPolicy: "require",
-            iceServersPolicy: "all",
+            iceServers: [
+              { urls: "stun:stun.l.google.com:19302" },
+              { urls: "stun:global.stun.twilio.com:3478" },
+            ],
           },
         });
 
@@ -61,7 +54,7 @@ const usePeer = (roomId) => {
       .catch((err) => {
         console.error("Failed to load PeerJS:", err);
       });
-  }, [roomId, socket, isConnected, iceServers, loading]);
+  }, [roomId, socket, isConnected]);
 
   return {
     peer,
