@@ -1,64 +1,75 @@
 import { useState, useEffect, useRef } from "react";
 import { useWatchTogetherSocket } from "../pages/WatchTogether/providers/WatchTogetherSocketProvider";
+import Peer from "peerjs";
 
 const usePeer = (roomId) => {
   const { socket, isConnected } = useWatchTogetherSocket();
   const [peer, setPeer] = useState(null);
   const [myId, setMyId] = useState("");
+  const [error, setError] = useState(null);
   const isPeerSet = useRef(false);
 
   useEffect(() => {
     if (isPeerSet.current || !roomId || !socket || !isConnected) return;
     isPeerSet.current = true;
 
-    // Dynamically import PeerJS
-    import("peerjs")
-      .then(({ default: Peer }) => {
-        const myPeer = new Peer(undefined, {
-          host: "0.peerjs.com",
-          port: 443,
-          secure: true,
-          debug: 3,
-          config: {
-            iceServers: [
-              { urls: "stun:stun.l.google.com:19302" },
-              { urls: "stun:global.stun.twilio.com:3478" },
-            ],
-          },
-        });
+    // Thêm cấu hình STUN/TURN server
+    const peerConfig = {
+      debug: 3, // Mức độ log cao nhất để debug
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          { urls: "stun:stun2.l.google.com:19302" },
+          // Thêm TURN server nếu có
+          // {
+          //   urls: 'turn:your-turn-server.com:3478',
+          //   username: 'username',
+          //   credential: 'credential'
+          // }
+        ],
+        iceCandidatePoolSize: 10,
+      },
+    };
 
-        setPeer(myPeer);
+    try {
+      console.log("Initializing PeerJS with config:", peerConfig);
+      const newPeer = new Peer(undefined, peerConfig);
 
-        myPeer.on("open", (id) => {
-          console.log(`Your peer ID is ${id}`);
-          setMyId(id);
-          socket.emit("join-room", { roomId, userId: id });
-        });
-
-        myPeer.on("error", (err) => {
-          console.error("PeerJS error:", err);
-          // Try to reconnect after error
-          setTimeout(() => {
-            if (isPeerSet.current) {
-              isPeerSet.current = false;
-            }
-          }, 5000);
-        });
-
-        // Clean up on unmount
-        return () => {
-          myPeer.destroy();
-          isPeerSet.current = false;
-        };
-      })
-      .catch((err) => {
-        console.error("Failed to load PeerJS:", err);
+      newPeer.on("open", (id) => {
+        console.log("My peer ID is:", id);
+        setMyId(id);
+        socket.emit("join-room", { roomId, userId: id });
       });
+
+      newPeer.on("error", (err) => {
+        console.error("PeerJS error:", err);
+        setError(err);
+        // Try to reconnect after error
+        setTimeout(() => {
+          if (isPeerSet.current) {
+            isPeerSet.current = false;
+          }
+        }, 5000);
+      });
+
+      setPeer(newPeer);
+
+      return () => {
+        console.log("Destroying peer connection");
+        newPeer.destroy();
+        isPeerSet.current = false;
+      };
+    } catch (err) {
+      console.error("Error creating Peer instance:", err);
+      setError(err);
+    }
   }, [roomId, socket, isConnected]);
 
   return {
     peer,
     myId,
+    error,
   };
 };
 

@@ -52,11 +52,40 @@ const WatchTogetherContent = () => {
     }
   }, [stream]);
 
-  // Thêm xử lý lỗi và thông báo cho người dùng
+  // Thêm xử lý lỗi chi tiết hơn
   useEffect(() => {
     if (!stream) {
       console.warn("Không có stream camera/mic");
       // Hiển thị thông báo cho người dùng
+      // Có thể thêm một thông báo UI ở đây
+    } else {
+      // Kiểm tra chi tiết về stream
+      const videoTracks = stream.getVideoTracks();
+      const audioTracks = stream.getAudioTracks();
+
+      console.log(
+        "Video tracks:",
+        videoTracks.length,
+        "Audio tracks:",
+        audioTracks.length
+      );
+
+      if (videoTracks.length === 0) {
+        console.warn("Không có video track trong stream");
+        // Hiển thị thông báo cho người dùng
+      }
+
+      // Kiểm tra trạng thái của các track
+      videoTracks.forEach((track) => {
+        console.log(
+          "Video track:",
+          track.label,
+          "enabled:",
+          track.enabled,
+          "readyState:",
+          track.readyState
+        );
+      });
     }
   }, [stream]);
 
