@@ -12,6 +12,26 @@ import {
   ConnectionQuality,
 } from "livekit-client";
 
+const createToken = (roomName, identity) => {
+  const apiKey = "APIKPafXgDRxdLD";
+  const apiSecret = "D6eaH0EH0fxqw2f37Uju8kfK5DLgooZ2rcE79pa3IhfD";
+
+  // Tạo token trực tiếp (không an toàn cho production)
+  // Cần thư viện: npm install livekit-server-sdk
+  const { AccessToken } = require("livekit-server-sdk");
+  const at = new AccessToken(apiKey, apiSecret, {
+    identity: identity,
+  });
+
+  at.addGrant({
+    roomJoin: true,
+    room: roomName,
+    canPublish: true,
+    canSubscribe: true,
+  });
+  return at.toJwt();
+};
+
 const useLiveKit = (roomId, userName) => {
   const [room, setRoom] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -26,10 +46,7 @@ const useLiveKit = (roomId, userName) => {
         console.log("Connecting to LiveKit room:", roomId);
 
         // Tạo token từ server của bạn
-        const response = await fetch(
-          `/api/get-livekit-token?room=${roomId}&username=${userName}`
-        );
-        const { token } = await response.json();
+        const token = createToken(roomId, userName);
 
         if (!token) {
           throw new Error("Không thể lấy token LiveKit");
