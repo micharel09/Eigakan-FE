@@ -168,6 +168,45 @@ const WatchTogetherContent = () => {
     }));
   }, [myId, setPlayers, stream]);
 
+  // Thêm vào useEffect để debug kết nối
+  useEffect(() => {
+    if (!peer || !stream) return;
+
+    // Debug kết nối
+    peer.on("call", (call) => {
+      // Log trạng thái kết nối
+      if (call.peerConnection) {
+        call.peerConnection.addEventListener("iceconnectionstatechange", () => {
+          console.log(
+            `ICE connection state with ${call.peer}:`,
+            call.peerConnection.iceConnectionState
+          );
+        });
+
+        call.peerConnection.addEventListener("connectionstatechange", () => {
+          console.log(
+            `Connection state with ${call.peer}:`,
+            call.peerConnection.connectionState
+          );
+        });
+
+        call.peerConnection.addEventListener("icegatheringstatechange", () => {
+          console.log(
+            `ICE gathering state with ${call.peer}:`,
+            call.peerConnection.iceGatheringState
+          );
+        });
+
+        call.peerConnection.addEventListener("signalingstatechange", () => {
+          console.log(
+            `Signaling state with ${call.peer}:`,
+            call.peerConnection.signalingState
+          );
+        });
+      }
+    });
+  }, [peer, stream]);
+
   const toggleMyVideoVisibility = () => {
     setShowMyVideo(!showMyVideo);
   };
@@ -203,6 +242,57 @@ const WatchTogetherContent = () => {
   // Thêm kiểm tra null/undefined cho myPlayer
   const isMuted = myPlayer?.muted || false;
   const isPlaying = myPlayer?.playing || false;
+
+  // Thêm state để theo dõi trạng thái quyền truy cập
+  const [permissionStatus, setPermissionStatus] = useState({
+    camera: "unknown",
+    microphone: "unknown",
+  });
+
+  // Kiểm tra quyền truy cập khi component mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        // Kiểm tra quyền camera
+        const cameraResult = await navigator.permissions.query({
+          name: "camera",
+        });
+        setPermissionStatus((prev) => ({
+          ...prev,
+          camera: cameraResult.state,
+        }));
+
+        // Kiểm tra quyền microphone
+        const micResult = await navigator.permissions.query({
+          name: "microphone",
+        });
+        setPermissionStatus((prev) => ({
+          ...prev,
+          microphone: micResult.state,
+        }));
+
+        console.log("Permission status:", {
+          camera: cameraResult.state,
+          microphone: micResult.state,
+        });
+      } catch (err) {
+        console.error("Error checking permissions:", err);
+      }
+    };
+
+    checkPermissions();
+  }, []);
+
+  // Hiển thị thông báo nếu cần cấp quyền
+  {
+    (permissionStatus.camera !== "granted" ||
+      permissionStatus.microphone !== "granted") && (
+      <div className="absolute top-5 left-0 right-0 mx-auto w-max bg-red-500 text-white px-4 py-2 rounded-md">
+        Vui lòng cấp quyền truy cập camera và microphone để sử dụng tính năng
+        này
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
