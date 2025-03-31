@@ -253,6 +253,107 @@ const WatchTogetherContent = () => {
   const isMuted = myPlayer?.muted || false;
   const isPlaying = myPlayer?.playing || false;
 
+  // Thêm vào useEffect để xử lý lỗi ICE candidate
+  useEffect(() => {
+    if (!peer || !stream) return;
+
+    // Thêm xử lý lỗi ICE candidate
+    const handleIceError = (event) => {
+      console.warn("ICE candidate error:", event);
+
+      // Nếu lỗi liên quan đến TURN server, thử kết nối lại
+      if (event.url && event.url.includes("turn:")) {
+        console.log("TURN server connection failed, trying to reconnect...");
+
+        // Thử kết nối lại sau 2 giây
+        setTimeout(() => {
+          if (peer && peer.reconnect) {
+            console.log("Attempting to reconnect peer...");
+            peer.reconnect();
+          }
+        }, 2000);
+      }
+    };
+
+    // Thêm event listener cho tất cả các kết nối
+    if (peer._connections) {
+      Object.values(peer._connections).forEach((conn) => {
+        if (conn.peerConnection) {
+          conn.peerConnection.addEventListener(
+            "icecandidateerror",
+            handleIceError
+          );
+        }
+      });
+    }
+
+    return () => {
+      // Cleanup
+      if (peer._connections) {
+        Object.values(peer._connections).forEach((conn) => {
+          if (conn.peerConnection) {
+            conn.peerConnection.removeEventListener(
+              "icecandidateerror",
+              handleIceError
+            );
+          }
+        });
+      }
+    };
+  }, [peer, stream]);
+
+  // Thêm vào useEffect để kiểm tra trạng thái kết nối
+  useEffect(() => {
+    if (!peer || !users) return;
+
+    // Kiểm tra trạng thái kết nối mỗi 5 giây
+    const checkInterval = setInterval(() => {
+      Object.entries(users).forEach(([peerId, call]) => {
+        if (call && call.peerConnection) {
+          const state = call.peerConnection.iceConnectionState;
+          console.log(`ICE connection state with ${peerId}: ${state}`);
+
+          // Nếu kết nối bị ngắt hoặc thất bại, thử kết nối lại
+          if (state === "disconnected" || state === "failed") {
+            console.log(
+              `Connection to ${peerId} is ${state}, attempting to reconnect...`
+            );
+
+            // Đóng kết nối cũ
+            call.close();
+
+            // Tạo kết nối mới sau 1 giây
+            setTimeout(() => {
+              if (peer && stream) {
+                console.log(`Calling ${peerId} again...`);
+                const newCall = peer.call(peerId, stream);
+
+                newCall.on("stream", (incomingStream) => {
+                  console.log(`Reconnected to ${peerId}`);
+                  setPlayers((prev) => ({
+                    ...prev,
+                    [peerId]: {
+                      url: incomingStream,
+                      muted: true,
+                      playing: true,
+                    },
+                  }));
+
+                  setUsers((prev) => ({
+                    ...prev,
+                    [peerId]: newCall,
+                  }));
+                });
+              }
+            }, 1000);
+          }
+        }
+      });
+    }, 5000);
+
+    return () => clearInterval(checkInterval);
+  }, [peer, users, stream, setPlayers, setUsers]);
+
   return (
     <div className="relative w-full h-screen bg-gray-900 text-white overflow-hidden">
       {/* Right panel - other participants' videos */}
