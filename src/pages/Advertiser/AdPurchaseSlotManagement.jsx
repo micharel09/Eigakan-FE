@@ -334,32 +334,32 @@ const AdPurchaseSlotManagement = () => {
 
       if (!validVideoTypes.includes(file.type)) {
         notification.warning({
-          message: "Định dạng không được hỗ trợ",
-          description: `Định dạng file ${file.type} có thể không được hỗ trợ. Hãy thử dùng MP4, WebM, hoặc Ogg.`,
+          message: "Unsupported Format",
+          description: `File format ${file.type} may not be supported. Try using MP4, WebM, or Ogg.`,
         });
         // Continue anyway, just a warning
       }
 
       if (file.size > 100 * 1024 * 1024) {
         // 100MB limit
-        throw new Error("File vượt quá giới hạn 100MB");
+        throw new Error("File exceeds 100MB limit");
       }
 
-      console.log("Đang tải video lên:", file.name, file.type, file.size);
+      console.log("Uploading video:", file.name, file.type, file.size);
 
       // Show immediate notification
       notification.info({
-        message: "Bắt đầu tải lên",
+        message: "Upload Started",
         description:
-          "Đang tải video lên. Quá trình này có thể mất một thời gian tùy thuộc vào kích thước file.",
+          "Video upload in progress. This process may take some time depending on the file size.",
         duration: 3,
       });
 
-      // Sử dụng phương thức tải lên Cloudinary trực tiếp
+      // Using direct Cloudinary upload method
       try {
-        console.log("Tải lên Cloudinary trực tiếp");
+        console.log("Uploading directly to Cloudinary");
         const response = await uploadFileApi.UploadVideoToCloudinary(file);
-        console.log("Kết quả tải video lên Cloudinary:", response);
+        console.log("Cloudinary video upload result:", response);
 
         if (
           response.status === true &&
@@ -368,41 +368,42 @@ const AdPurchaseSlotManagement = () => {
           response.data[0].url
         ) {
           const uploadedUrl = response.data[0].url;
-          console.log("URL video trên Cloudinary:", uploadedUrl);
+          console.log("Cloudinary video URL:", uploadedUrl);
           setVideoUrl(uploadedUrl);
           form.setFieldsValue({ video: uploadedUrl });
           updateForm.setFieldsValue({ video: uploadedUrl });
 
           notification.success({
-            message: "Tải lên thành công",
-            description: "Video đã được tải lên thành công.",
+            message: "Upload Successful",
+            description: "Video has been uploaded successfully.",
           });
           onSuccess("Ok");
         } else {
-          throw new Error("Không thể lấy URL video từ phản hồi");
+          throw new Error("Could not retrieve video URL from response");
         }
       } catch (err) {
-        console.error("Lỗi khi tải lên Cloudinary:", err);
+        console.error("Error uploading to Cloudinary:", err);
 
-        // Hiển thị form nhập URL thủ công nếu tải lên thất bại
+        // Display manual URL input form if upload fails
         setIsVideoUploading(false);
         setIsDirectUrlModalVisible(true);
         directUrlForm.resetFields();
 
         notification.error({
-          message: "Tải lên thất bại",
+          message: "Upload Failed",
           description:
-            "Không thể tải video lên. Vui lòng nhập URL video thủ công.",
+            "Could not upload the video. Please enter the video URL manually.",
         });
 
         onError({ error: err });
       }
     } catch (err) {
-      console.error("Lỗi tải video:", err);
+      console.error("Video upload error:", err);
       onError({ error: err });
       notification.error({
-        message: "Tải lên thất bại",
-        description: err.message || "Có lỗi xảy ra khi tải video lên.",
+        message: "Upload Failed",
+        description:
+          err.message || "An error occurred while uploading the video.",
       });
     } finally {
       setIsVideoUploading(false);
@@ -919,7 +920,7 @@ const AdPurchaseSlotManagement = () => {
                 </Input.Group>
               </Form.Item>
 
-              {/* Hiển thị preview ảnh nếu có */}
+              {/* Display image preview if available */}
               {imageUrl && (
                 <Form.Item label="Image Preview">
                   <div className="mt-2">
@@ -955,7 +956,7 @@ const AdPurchaseSlotManagement = () => {
                       loading={isVideoUploading}
                       className="mr-2"
                     >
-                      {isVideoUploading ? "Đang tải..." : "Tải video lên"}
+                      {isVideoUploading ? "Uploading..." : "Upload Video"}
                     </Button>
                   </Upload>
                   <Input
@@ -963,7 +964,7 @@ const AdPurchaseSlotManagement = () => {
                     prefix={
                       <VideoCameraOutlined className="site-form-item-icon" />
                     }
-                    placeholder="Hoặc nhập URL video"
+                    placeholder="Or enter video URL"
                     value={form.getFieldValue("video")}
                     onChange={(e) => {
                       form.setFieldsValue({ video: e.target.value });
@@ -973,8 +974,8 @@ const AdPurchaseSlotManagement = () => {
                   />
                 </Input.Group>
                 <div className="mt-1 text-xs text-gray-500">
-                  (Video sẽ được tải lên Cloudinary. Hỗ trợ MP4, WebM, Ogg. Tối
-                  đa 100MB)
+                  (Video will be uploaded to Cloudinary. Supports MP4, WebM,
+                  Ogg. Maximum 100MB)
                 </div>
               </Form.Item>
 
@@ -1320,7 +1321,7 @@ const AdPurchaseSlotManagement = () => {
                 </Input.Group>
               </Form.Item>
 
-              {/* Preview image if available */}
+              {/* Display image preview if available */}
               {imageUrl && (
                 <Form.Item label="Image Preview">
                   <div className="mt-2">
@@ -1356,7 +1357,7 @@ const AdPurchaseSlotManagement = () => {
                       loading={isVideoUploading}
                       className="mr-2"
                     >
-                      {isVideoUploading ? "Đang tải..." : "Tải video lên"}
+                      {isVideoUploading ? "Uploading..." : "Upload Video"}
                     </Button>
                   </Upload>
                   <Input
@@ -1364,7 +1365,7 @@ const AdPurchaseSlotManagement = () => {
                     prefix={
                       <VideoCameraOutlined className="site-form-item-icon" />
                     }
-                    placeholder="Hoặc nhập URL video"
+                    placeholder="Or enter video URL"
                     value={updateForm.getFieldValue("video")}
                     onChange={(e) => {
                       updateForm.setFieldsValue({ video: e.target.value });
@@ -1374,8 +1375,8 @@ const AdPurchaseSlotManagement = () => {
                   />
                 </Input.Group>
                 <div className="mt-1 text-xs text-gray-500">
-                  (Video sẽ được tải lên Cloudinary. Hỗ trợ MP4, WebM, Ogg. Tối
-                  đa 100MB)
+                  (Video will be uploaded to Cloudinary. Supports MP4, WebM,
+                  Ogg. Maximum 100MB)
                 </div>
               </Form.Item>
 

@@ -9,19 +9,19 @@ const uploadFileApi = {
       const formData = new FormData();
       formData.append("formFiles", file);
 
-      // Log FormData để kiểm tra
+      // Log FormData for checking
       for (let pair of formData.entries()) {
         console.log(pair[0] + ": " + pair[1]);
       }
 
-      // Gửi request mà không cần set Content-Type
+      // Send request without setting Content-Type
       const res = await axios.post(`${API_URL}/UploadFileTemp`, formData);
 
-      console.log("Response từ server:", res.data); // Log kết quả từ server
+      console.log("Response from server:", res.data); // Log result from server
 
-      return res.data; // Trả về kết quả sau khi upload thành công
+      return res.data; // Return result after successful upload
     } catch (err) {
-      console.error("Lỗi upload:", err); // Log lỗi chi tiết
+      console.error("Upload error:", err); // Log detailed error
       throw err.response?.data || { message: "Upload failed" };
     }
   },
@@ -38,7 +38,7 @@ const uploadFileApi = {
 
       return res.data;
     } catch (err) {
-      console.error("Lỗi upload:", err);
+      console.error("Upload error:", err);
       throw err.response?.data || { message: "Upload failed" };
     }
   },
@@ -46,15 +46,15 @@ const uploadFileApi = {
   async UploadPicture(file) {
     try {
       const formData = new FormData();
-      formData.append("formFiles", file); // Đảm bảo key "file" trùng với yêu cầu của backend
+      formData.append("formFiles", file); // Ensure key "file" matches backend requirements
 
       const res = await axios.post(`${API_URL}/Upload_Pictures`, formData);
 
-      console.log("Response từ server:", res.data); // Log kết quả từ server
+      console.log("Response from server:", res.data); // Log result from server
 
-      return res.data; // Trả về kết quả sau khi upload thành công
+      return res.data; // Return result after successful upload
     } catch (err) {
-      console.error("Lỗi upload:", err); // Log lỗi chi tiết
+      console.error("Upload error:", err); // Log detailed error
       throw err.response?.data || { message: "Upload failed" };
     }
   },
@@ -277,46 +277,44 @@ const uploadFileApi = {
     });
   },
 
-  // Thêm phương thức mới để tải video trực tiếp lên Cloudinary
+  // Add new method to upload video directly to Cloudinary
   async UploadVideoToCloudinary(file) {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset", cloudinaryConfig.unsignedUploadPreset); // Sử dụng preset đã tạo cho unsigned upload
-      formData.append("cloud_name", import.meta.env.VITE_CLOUDINARY_CLOUD_NAME);
+      formData.append("upload_preset", cloudinaryConfig.unsignedUploadPreset); // Use preset created for unsigned upload
+      formData.append("cloud_name", cloudinaryConfig.cloudName);
       formData.append("resource_type", "video");
 
-      console.log("Tải video lên Cloudinary trực tiếp:", file.name);
+      console.log("Uploading video directly to Cloudinary:", file.name);
       console.log(
-        "Sử dụng upload preset:",
+        "Using upload preset:",
         cloudinaryConfig.unsignedUploadPreset
       );
 
-      // Gửi trực tiếp đến Cloudinary API, không qua backend
-      // Sử dụng unsigned upload API của Cloudinary (không cần API secret)
+      // Send directly to Cloudinary API, not through backend
+      // Use Cloudinary's unsigned upload API (no API secret needed)
       const res = await axios.post(
-        `https://api.cloudinary.com/v1_1/${
-          import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-        }/auto/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/auto/upload`,
         formData
       );
 
-      console.log("Kết quả tải video lên Cloudinary:", res.data);
+      console.log("Cloudinary video upload result:", res.data);
 
       return {
         status: true,
         data: [{ url: res.data.secure_url }],
       };
     } catch (err) {
-      console.error("Lỗi khi tải video lên Cloudinary:", err);
+      console.error("Error uploading video to Cloudinary:", err);
       if (err.response) {
         console.error(
-          "Thông tin lỗi từ Cloudinary:",
+          "Error details from Cloudinary:",
           err.response.status,
           err.response.data
         );
       }
-      throw { message: err.message || "Tải video lên thất bại" };
+      throw { message: err.message || "Video upload failed" };
     }
   },
 };

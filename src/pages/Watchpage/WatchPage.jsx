@@ -22,7 +22,7 @@ const AdDisplay = memo(({ ad, className }) => {
 
   // Check if it's a header ad or sidebar ad
   const isHeaderAd = className && className.includes("max-h-[100px]");
-  const isSidebarAd = className && className.includes("max-h-none");
+  const isSidebarAd = className && className.includes("sidebar-ad");
 
   // For video ads in regular ad slots
   const adVideoRef = useRef(null);
@@ -153,7 +153,9 @@ const AdDisplay = memo(({ ad, className }) => {
 
   return (
     <div
-      className={`p-2 bg-black/40 rounded border border-white/10 w-full h-auto flex flex-col items-center ${className}`}
+      className={`p-2 bg-black/40 rounded border border-white/10 w-full flex flex-col items-center ${
+        isSidebarAd ? "h-full" : "h-auto"
+      } ${className}`}
     >
       <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
         SPONSORED
@@ -166,7 +168,7 @@ const AdDisplay = memo(({ ad, className }) => {
             isHeaderAd
               ? "h-[60px]"
               : isSidebarAd
-              ? "aspect-video max-h-[250px]"
+              ? "aspect-[9/16] h-[calc(100vh-220px)] max-h-full flex-1"
               : "aspect-video"
           }`}
         >
@@ -193,17 +195,17 @@ const AdDisplay = memo(({ ad, className }) => {
           href={ad.url || "#"}
           target="_blank"
           rel="noopener noreferrer"
-          className="block w-full"
+          className={`block w-full ${isSidebarAd ? "flex-1" : ""}`}
         >
           <img
             src={ad.image}
             alt="Advertisement"
-            className={`w-full object-contain hover:opacity-90 transition-opacity rounded ${
+            className={`w-full hover:opacity-90 transition-opacity rounded ${
               isHeaderAd
-                ? "max-h-[60px]"
+                ? "max-h-[60px] object-contain"
                 : isSidebarAd
-                ? "max-h-[800px]" // Increased max height for sidebar ads
-                : "max-h-[400px]"
+                ? "h-[calc(100vh-220px)] max-h-full object-cover"
+                : "max-h-[400px] object-contain"
             }`}
             onError={(e) => {
               e.target.onerror = null;
@@ -236,10 +238,49 @@ const AdDisplay = memo(({ ad, className }) => {
 const CenterAdDisplay = memo(({ centerAd, showCenterAd, setShowCenterAd }) => {
   if (!centerAd || !showCenterAd) return null;
 
+  // Add state to track close button visibility
+  const [showCloseButton, setShowCloseButton] = useState(false);
+  // Add countdown state
+  const [countdown, setCountdown] = useState(10);
+
   // Create a separate useVideo hook instance for the ad video
   const adVideoRef = useRef(null);
   const playerInstanceRef = useRef(null);
   const isInitializingRef = useRef(false);
+
+  // Add effect to show close button after 10 seconds with countdown
+  useEffect(() => {
+    let timer;
+    let countdownInterval;
+
+    if (showCenterAd) {
+      // Initialize countdown to 10 seconds
+      setCountdown(10);
+
+      // Set up countdown interval
+      countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          const newCount = prev - 1;
+          if (newCount <= 0) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return newCount;
+        });
+      }, 1000);
+
+      // Set timeout to show close button after 10 seconds
+      timer = setTimeout(() => {
+        setShowCloseButton(true);
+        clearInterval(countdownInterval);
+      }, 10000); // 10 seconds delay
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      if (countdownInterval) clearInterval(countdownInterval);
+    };
+  }, [showCenterAd]);
 
   // Only initialize the player when the ad has a video and is visible
   useEffect(() => {
@@ -371,99 +412,177 @@ const CenterAdDisplay = memo(({ centerAd, showCenterAd, setShowCenterAd }) => {
   }, []);
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/70">
-      <div className="relative max-w-3xl max-h-[80vh] w-full mx-auto p-4">
-        {/* Always show close button, no need for user interaction first */}
-        <button
-          onClick={() => setShowCenterAd(false)}
-          className="absolute -top-4 -right-4 w-12 h-12 rounded-full bg-[#FF009F] text-white flex items-center justify-center hover:bg-[#D1007F] transition-colors z-10 shadow-lg animate-pulse hover:animate-none"
-          aria-label="Close advertisement"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-7 w-7"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+    <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/80 backdrop-blur-sm">
+      <div className="relative max-w-3xl max-h-[80vh] w-full mx-auto">
+        {/* Show close button only after delay - Improved styling */}
+        {showCloseButton && (
+          <button
+            onClick={() => setShowCenterAd(false)}
+            className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-[#FF009F] text-white flex items-center justify-center hover:bg-[#D1007F] transition-colors z-10 shadow-lg"
+            aria-label="Close advertisement"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
 
-        {/* Ad content container */}
-        <div className="bg-black/90 rounded-xl border border-[#FF009F]/30 p-4 shadow-xl relative">
-          <div className="text-[#FF009F] text-sm uppercase tracking-wider mb-3 text-center font-medium border-b border-[#FF009F]/20 pb-2">
-            SPONSORED ADVERTISEMENT
+        {/* Ad content container - Cleaner, more minimalist design */}
+        <div className="bg-black/90 rounded-xl overflow-hidden border border-white/10 shadow-xl relative">
+          {/* Header */}
+          <div className="bg-[#FF009F]/10 px-4 py-2 text-center border-b border-[#FF009F]/20">
+            <span className="text-[#FF009F] text-xs uppercase tracking-wider font-medium">
+              Sponsored Advertisement
+            </span>
           </div>
 
-          {/* Video ad content */}
-          {centerAd.video ? (
-            <div className="relative w-full aspect-video overflow-hidden rounded border border-white/10 mb-3">
-              <iframe
-                ref={adVideoRef}
-                src={`${centerAd.video}${
-                  centerAd.video.includes("?") ? "&" : "?"
-                }autoplay=1&muted=1&controls=0&playsinline=1&enablejsapi=1&loop=1&playlist=${centerAd.video
-                  .split("/")
-                  .pop()}`}
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                allowFullScreen
-                allow="autoplay; fullscreen; encrypted-media"
-                frameBorder="0"
-                autoPlay
-                muted
-                playsInline
-                loading="eager"
-              />
+          {/* Content area */}
+          <div className="p-3">
+            {/* Video ad content with optimized container */}
+            {centerAd.video ? (
+              <div className="relative w-full aspect-video overflow-hidden rounded-lg shadow-lg group">
+                <iframe
+                  ref={adVideoRef}
+                  src={`${centerAd.video}${
+                    centerAd.video.includes("?") ? "&" : "?"
+                  }autoplay=1&muted=1&controls=0&playsinline=1&enablejsapi=1&loop=1&playlist=${centerAd.video
+                    .split("/")
+                    .pop()}`}
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  allowFullScreen
+                  allow="autoplay; fullscreen; encrypted-media"
+                  frameBorder="0"
+                  autoPlay
+                  muted
+                  playsInline
+                  loading="eager"
+                />
+
+                {/* Gradient overlay with integrated visit button */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {centerAd.url && (
+                    <a
+                      href={centerAd.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-[#FF009F]/90 hover:bg-[#FF009F] text-white text-sm font-medium py-2 px-4 rounded-md transition-all transform hover:scale-105 shadow-lg"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                      Visit Site
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : centerAd.image ? (
+              /* Image ad content with improved styling and integrated visit button */
+              <a
+                href={centerAd.url || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full group relative"
+              >
+                <div className="overflow-hidden rounded-lg shadow-lg">
+                  <img
+                    src={centerAd.image}
+                    alt="Advertisement"
+                    className="w-full object-contain rounded-lg max-h-[60vh] transform transition-transform group-hover:scale-[1.02]"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://placehold.co/800x600?text=Ad";
+                    }}
+                  />
+
+                  {/* Overlay on hover with subtle visit indicator */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-4">
+                    <div className="inline-flex items-center gap-2 text-white text-sm font-medium">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                      Visit Advertiser
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ) : null}
+
+            {/* Ad content text with improved styling */}
+            {centerAd.content && (
+              <div className="mt-3 text-white/80 text-center text-sm">
+                {centerAd.content}
+              </div>
+            )}
+
+            {/* Close instruction */}
+            <div className="mt-4 text-center">
+              {showCloseButton ? (
+                <p className="text-white/60 text-xs">
+                  Click the X button to close this ad
+                </p>
+              ) : (
+                <div className="bg-black/80 py-2 px-4 rounded-lg inline-block">
+                  <p className="text-white/90 text-xs mb-2">
+                    <span className="text-[#FF009F]">Close button</span> will
+                    appear in{" "}
+                    <span className="font-bold text-[#FF009F]">
+                      {countdown}
+                    </span>{" "}
+                    seconds
+                  </p>
+                  {/* Improved progress bar */}
+                  <div className="w-32 h-1 bg-[#3A0033] rounded-full overflow-hidden mx-auto">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#FF009F] to-[#FF4DB8]"
+                      style={{
+                        width: `${(countdown / 10) * 100}%`,
+                        transition: "width 1s linear",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          ) : centerAd.image ? (
-            /* Image ad content */
-            <a
-              href={centerAd.url || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full"
-            >
-              <img
-                src={centerAd.image}
-                alt="Advertisement"
-                className="w-full object-contain rounded max-h-[60vh] border border-white/10"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://placehold.co/800x600?text=Ad";
-                }}
-              />
-            </a>
-          ) : null}
+          </div>
 
-          {/* Ad content text if available */}
-          {centerAd.content && (
-            <div className="mt-3 text-white/90 text-center bg-white/5 py-2 px-3 rounded">
-              {centerAd.content}
-            </div>
-          )}
-
-          {/* URL button for video ads if URL is provided */}
-          {centerAd.video && centerAd.url && (
-            <a
-              href={centerAd.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full mt-3 bg-[#FF009F] text-white text-center py-2 rounded hover:bg-[#D1007F] transition-colors"
-            >
-              Visit Advertiser
-            </a>
-          )}
-
-          {/* Clear instruction on how to close */}
-          <div className="mt-4 text-center">
-            <p className="text-white text-sm bg-[#FF009F]/20 py-2 px-4 rounded-lg inline-block">
-              Click the X button in the top-right corner to close this ad
+          {/* Footer with privacy notice */}
+          <div className="px-4 py-2 border-t border-white/5 bg-black/40">
+            <p className="text-white/40 text-[10px] text-center">
+              Your privacy matters. No user data is collected from this
+              advertisement.
             </p>
           </div>
         </div>
@@ -810,15 +929,17 @@ const WatchPage = () => {
       };
     }
 
-    // Other roles have smaller centered video
+    // Other roles have larger centered video (increased width and height for better visibility)
     return {
-      width: "70%",
-      height: "70%",
+      width: "100%",
+      height: "80%",
       position: "absolute",
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
       zIndex: 5,
+      borderRadius: "8px",
+      boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
     };
   };
 
@@ -901,79 +1022,92 @@ const WatchPage = () => {
           </div>
         )}
 
-        <div className="relative w-full h-full">
-          {/* Left Sidebar Ad */}
-          {leftSidebarAd && (
-            <div className="absolute left-0 top-0 h-full w-[280px] flex flex-col items-start justify-start z-10 pt-20">
-              <AdDisplay ad={leftSidebarAd} className="max-h-none" />
-            </div>
-          )}
-
-          {/* Video container */}
-          <div style={getVideoContainerStyle()} className="relative">
-            <iframe
-              ref={iframeRef}
-              id="bunny-stream-embed"
-              src={showTrailer ? directTrailerUrl : directMovieUrl}
-              className="absolute inset-0 w-full h-full"
-              allowFullScreen
-              allow="autoplay; fullscreen"
-              frameBorder="0"
-            />
-
-            {/* Resume playback dialog */}
-            {playbackPosition.showResumeDialog &&
-              playbackPosition.savedPosition > 0 && (
-                <div className="absolute bottom-24 left-0 right-0 flex justify-center z-30 pointer-events-auto">
-                  <div className="bg-black/90 text-white w-72 rounded shadow-xl overflow-hidden">
-                    <div className="px-4 pt-4 pb-2.5 text-center">
-                      <p className="text-base font-normal">
-                        Resume from {formatTime(playbackPosition.savedPosition)}
-                        ?
-                      </p>
-                    </div>
-                    <div className="flex">
-                      <button
-                        onClick={() => handleResumePlayback(true)}
-                        className="flex-1 py-2.5 bg-[#FF009F] text-white hover:bg-[#D1007F] transition-colors"
-                      >
-                        Resume
-                      </button>
-                      <button
-                        onClick={() => handleResumePlayback(false)}
-                        className="flex-1 py-2.5 bg-[#333333] text-white hover:bg-[#444444] transition-colors"
-                      >
-                        Start Over
-                      </button>
-                    </div>
-                    <div className="w-full h-[1px]">
-                      <div
-                        className="h-full bg-[#FF009F]"
-                        style={{
-                          width: `${(countdown / 4) * 100}%`,
-                          transition: "width 1s linear",
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              )}
+        {/* Main content with 3-column grid layout - Adjust column widths for larger center column */}
+        <div className="grid grid-cols-[250px_1fr_250px] w-full h-full">
+          {/* Left Sidebar Ad Column - Reduced width slightly */}
+          <div className="h-full overflow-hidden z-10">
+            {leftSidebarAd ? (
+              <div className="h-full pt-[80px] pb-[60px] pr-2">
+                <AdDisplay ad={leftSidebarAd} className="sidebar-ad h-full" />
+              </div>
+            ) : (
+              // Empty placeholder to maintain grid
+              <div className="h-full"></div>
+            )}
           </div>
 
-          {/* CENTER Ad */}
-          <CenterAdDisplay
-            centerAd={centerAd}
-            showCenterAd={showCenterAd}
-            setShowCenterAd={setShowCenterAd}
-          />
+          {/* Center Video Column - Always centered with more space */}
+          <div className="relative flex items-center justify-center h-full py-2">
+            <div style={getVideoContainerStyle()} className="relative">
+              <iframe
+                ref={iframeRef}
+                id="bunny-stream-embed"
+                src={showTrailer ? directTrailerUrl : directMovieUrl}
+                className="absolute inset-0 w-full h-full"
+                allowFullScreen
+                allow="autoplay; fullscreen"
+                frameBorder="0"
+              />
 
-          {/* Right Sidebar Ad */}
-          {sidebarAd && (
-            <div className="absolute right-0 top-0 h-full w-[280px] flex flex-col items-start justify-start z-10 pt-20">
-              <AdDisplay ad={sidebarAd} className="max-h-none" />
+              {/* Resume playback dialog */}
+              {playbackPosition.showResumeDialog &&
+                playbackPosition.savedPosition > 0 && (
+                  <div className="absolute bottom-24 left-0 right-0 flex justify-center z-30 pointer-events-auto">
+                    <div className="bg-black/90 text-white w-72 rounded shadow-xl overflow-hidden">
+                      <div className="px-4 pt-4 pb-2.5 text-center">
+                        <p className="text-base font-normal">
+                          Resume from{" "}
+                          {formatTime(playbackPosition.savedPosition)}?
+                        </p>
+                      </div>
+                      <div className="flex">
+                        <button
+                          onClick={() => handleResumePlayback(true)}
+                          className="flex-1 py-2.5 bg-[#FF009F] text-white hover:bg-[#D1007F] transition-colors"
+                        >
+                          Resume
+                        </button>
+                        <button
+                          onClick={() => handleResumePlayback(false)}
+                          className="flex-1 py-2.5 bg-[#333333] text-white hover:bg-[#444444] transition-colors"
+                        >
+                          Start Over
+                        </button>
+                      </div>
+                      <div className="w-full h-[1px]">
+                        <div
+                          className="h-full bg-[#FF009F]"
+                          style={{
+                            width: `${(countdown / 4) * 100}%`,
+                            transition: "width 1s linear",
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
             </div>
-          )}
+          </div>
+
+          {/* Right Sidebar Ad Column - Reduced width slightly */}
+          <div className="h-full overflow-hidden z-10">
+            {sidebarAd ? (
+              <div className="h-full pt-[80px] pb-[60px] pl-2">
+                <AdDisplay ad={sidebarAd} className="sidebar-ad h-full" />
+              </div>
+            ) : (
+              // Empty placeholder to maintain grid
+              <div className="h-full"></div>
+            )}
+          </div>
         </div>
+
+        {/* CENTER Ad - Full screen overlay */}
+        <CenterAdDisplay
+          centerAd={centerAd}
+          showCenterAd={showCenterAd}
+          setShowCenterAd={setShowCenterAd}
+        />
 
         {/* Footer Ad */}
         {footerAd && (
