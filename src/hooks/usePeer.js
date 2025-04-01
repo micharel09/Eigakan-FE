@@ -13,30 +13,37 @@ const usePeer = (roomId) => {
     if (isPeerSet.current || !roomId || !socket || !isConnected) return;
     isPeerSet.current = true;
 
-    // Thêm cấu hình STUN/TURN server
+    // Cập nhật cấu hình TURN server với các server đáng tin cậy hơn
     const peerConfig = {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" },
-        { urls: "stun:stun3.l.google.com:19302" },
-        { urls: "stun:stun4.l.google.com:19302" },
-        {
-          urls: "turn:relay1.expressturn.com:3478",
-          username: "efXU9WzPjF",
-          credential: "zD5pDqI3Kz",
-        },
-        {
-          urls: "turn:numb.viagenie.ca",
-          username: "webrtc@live.com",
-          credential: "muazkh",
-        },
-        {
-          urls: "turn:openrelay.metered.ca:80",
-          username: "openrelayproject",
-          credential: "openrelayproject",
-        },
-      ],
+      debug: 3,
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          // Sử dụng nhiều TURN server khác nhau để tăng khả năng kết nối
+          {
+            urls: [
+              "turn:openrelay.metered.ca:80",
+              "turn:openrelay.metered.ca:443",
+              "turn:openrelay.metered.ca:443?transport=tcp",
+              "turn:openrelay.metered.ca:80?transport=tcp",
+            ],
+            username: "openrelayproject",
+            credential: "openrelayproject",
+          },
+          // Thêm TURN server từ Google
+          {
+            urls: "turn:74.125.140.127:19305?transport=udp",
+            username: "CKjCuLwFEgahxNRjuTAYzc/s6OMT",
+            credential: "u1SQDR/SQsPQIxXNWQT7czc/G4c=",
+          },
+          {
+            urls: "turn:74.125.140.127:19305?transport=tcp",
+            username: "CKjCuLwFEgahxNRjuTAYzc/s6OMT",
+            credential: "u1SQDR/SQsPQIxXNWQT7czc/G4c=",
+          },
+        ],
+        iceCandidatePoolSize: 10,
+      },
     };
 
     try {
@@ -96,6 +103,15 @@ const usePeer = (roomId) => {
           console.error(
             "Kết nối ICE thất bại - có thể TURN server không hoạt động"
           );
+
+          // Thử kết nối lại sau 3 giây
+          setTimeout(() => {
+            console.log("Đang thử kết nối lại...");
+            // Thử kết nối lại bằng cách khởi tạo lại ICE
+            if (newPeer.restartIce) {
+              newPeer.restartIce();
+            }
+          }, 3000);
         }
       });
 
