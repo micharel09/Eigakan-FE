@@ -15,26 +15,28 @@ const usePeer = (roomId) => {
 
     // Thêm cấu hình STUN/TURN server
     const peerConfig = {
-      debug: 3,
-      config: {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-          { urls: "stun:stun2.l.google.com:19302" },
-          { urls: "stun:stun3.l.google.com:19302" },
-          { urls: "stun:stun4.l.google.com:19302" },
-          {
-            urls: "turn:relay1.expressturn.com:3478",
-            username: "efXU9WzPjF",
-            credential: "zD5pDqI3Kz",
-          },
-          {
-            urls: "turn:numb.viagenie.ca",
-            username: "webrtc@live.com",
-            credential: "muazkh",
-          },
-        ],
-      },
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun3.l.google.com:19302" },
+        { urls: "stun:stun4.l.google.com:19302" },
+        {
+          urls: "turn:relay1.expressturn.com:3478",
+          username: "efXU9WzPjF",
+          credential: "zD5pDqI3Kz",
+        },
+        {
+          urls: "turn:numb.viagenie.ca",
+          username: "webrtc@live.com",
+          credential: "muazkh",
+        },
+        {
+          urls: "turn:openrelay.metered.ca:80",
+          username: "openrelayproject",
+          credential: "openrelayproject",
+        },
+      ],
     };
 
     try {
