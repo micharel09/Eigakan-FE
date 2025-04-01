@@ -193,6 +193,24 @@ const Navbar = () => {
       }
 
       const roomDetails = await roomService.getRoomDetails(roomId.trim());
+
+      if (roomDetails?.status === 403) { 
+        notification.error({
+          message: "Error",
+          description: "You are not VIP MEMBER - Please buy subscription to join room",
+        });
+        return;
+      }
+      
+      if (roomDetails?.success == false) {
+        notification.error({
+          message: "Error",
+          description: roomDetails?.message || "Room details not available.",
+        });
+        return;
+      }
+      
+
       let movieId = roomDetails.success ? roomDetails.data?.movieID : null;
 
       if (!movieId) {

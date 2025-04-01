@@ -19,7 +19,7 @@ const WatchTogether = () => {
   const [showParticipants, setShowParticipants] = useState(false)
   const [roomUsers, setRoomUsers] = useState([])
   const [messages, setMessages] = useState([])
-  const user = useSelector((state) => state.auth.user)
+  const [user, setUser] = useState(null);
   const [connection, setConnection] = useState(null)
   const [localStream, setLocalStream] = useState(null)
   const navigate = useNavigate()
@@ -35,7 +35,12 @@ const WatchTogether = () => {
   const [isHost, setIsHost] = useState(false)
   const [isPlayerReady, setIsPlayerReady] = useState(false);
 
-
+    useEffect(() => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+          setUser(JSON.parse(storedUser));  // Cập nhật state với user từ localStorage
+      }
+    }, []);
     // Fetch movie data
     useEffect(() => {
       const fetchMovie = async () => {
@@ -339,6 +344,10 @@ const WatchTogether = () => {
                     console.log("🎬 Sync: Playing video");
                 } else if (data.action === "pause") {
                     playerRef.current.pause();
+                    notification.info({
+                      message: "Success",
+                      description: "Host has paused the video",
+                    })
                     console.log("⏸ Sync: Stoping video");
                 }
             }
@@ -437,7 +446,7 @@ const WatchTogether = () => {
       let interval = null;
   
       if (!interval) {
-          interval = setInterval(syncTime, 1000);
+          interval = setInterval(syncTime, 5000);
       }
   
       return () => {
@@ -449,29 +458,38 @@ const WatchTogether = () => {
     // Nhận thời gian từ host và đồng bộ
     useEffect(() => {
       if (!isPlayerReady) return;
-
+  
       const handleSyncTime = (data) => {
           console.log("⏳ Nhận thời gian từ host:", data.currentTime);
-
+  
           if (!playerRef.current) return;
-
-          playerRef.current.getCurrentTime((current) => {
-              const diff = Math.abs(current - data.currentTime);
-
-              if (diff > 0.5) { // Nếu lệch hơn 0.5s thì mới đồng bộ
-                  console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
-                  playerRef.current.setCurrentTime(data.currentTime);
-              }
+  
+          // Kiểm tra xem player có đang pause không
+          playerRef.current.getPaused((isPaused) => {
+              if (isPaused) return; // Nếu đang pause thì không đồng bộ
+  
+              playerRef.current.getCurrentTime((current) => {
+                  const diff = Math.abs(current - data.currentTime);
+  
+                  if (diff > 0.5) { // Nếu lệch hơn 0.5s thì mới đồng bộ
+                      console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
+                      notification.info({
+                        message: "Success",
+                        description: "Auto synced with host",
+                      })
+                      playerRef.current.setCurrentTime(data.currentTime);
+                  }
+              });
           });
       };
-
+  
       connection.on("SyncTime", handleSyncTime);
-
+  
       return () => {
           connection.off("SyncTime", handleSyncTime);
       };
     }, [isPlayerReady, connection]);
-
+  
     
     
     const sendMessage = async (text) => {
