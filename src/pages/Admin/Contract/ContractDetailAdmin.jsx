@@ -2,11 +2,22 @@
 
 import { useState, useEffect } from "react"
 import { Link, useParams } from "react-router-dom"
-import { Descriptions, Button, notification, Spin, Card, Avatar, Modal, Input, Typography } from "antd"
+import {
+  Descriptions,
+  Button,
+  notification,
+  Spin,
+  Card,
+  Avatar,
+  Modal,
+  Input,
+  Typography,
+  Form,
+  DatePicker,
+  InputNumber,
+} from "antd"
 import {
   FileTextOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   UploadOutlined,
   UserOutlined,
   CalendarOutlined,
@@ -18,6 +29,7 @@ import uploadFileApi from "../../../apis/Upload/upload.jsx"
 import { extractUrl } from "../../../utils/extractUrl"
 import contractApi from "../../../apis/Contract/contract.js"
 import ContractProcessStatus from "../../../components/WorkFlow/ContractWorkflow"
+import dayjs from "dayjs"
 
 const { Title, Text } = Typography
 const { Meta } = Card
@@ -33,6 +45,12 @@ const ContractDetailAdmin = () => {
   const [reason, setReason] = useState("")
   const [signToken, setSignedToken] = useState("")
 
+  const [form] = Form.useForm()
+  const [fileList, setFileList] = useState([])
+  const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false)
+  const [uploadedFileUrl, setUploadedFileUrl] = useState("")
+  const [uploadError, setUploadError] = useState("")
+
   useEffect(() => {
     fetchContractDetail()
   }, [])
@@ -46,11 +64,6 @@ const ContractDetailAdmin = () => {
   const fetchMovie = async (movieId) => {
     setLoadingMovie(true)
     try {
-      // Assuming there's an API to fetch movie details
-      // const response = await movieApi.getMovieById(movieId);
-      // setMovie(response.data);
-
-      // For now, we'll use the movie data from the contract
       setMovie(contract.movie)
     } catch (error) {
       console.error("Error fetching movie:", error)
@@ -111,8 +124,90 @@ const ContractDetailAdmin = () => {
     return statusMap[status] || { text: status, color: "bg-gray-500 text-white" }
   }
 
+  const showUpdateModal = () => {
+    form.setFieldsValue({
+      startDate: contract?.startDate ? dayjs(contract.startDate) : null,
+      duration: contract?.duration || 30,
+      price: contract?.price || 0,
+      publisherName: contract?.publisherName || "",
+      distributorName: contract?.distributorName || "",
+    })
+    setFileList([])
+    setUploadedFileUrl("")
+    setUploadError("")
+    setIsUpdateModalVisible(true)
+  }
 
-  if (loading) {
+  const handleUpdate = async () => {
+    try {
+      const values = await form.validateFields()
+
+      if (!uploadedFileUrl && fileList.length > 0) {
+        // If file is selected but not uploaded yet, upload it first
+        const fileUrl = await handleUpload()
+        if (!fileUrl) {
+          notification.error({ message: "Please upload the contract file first" })
+          return
+        }
+      }
+
+      setLoading(true)
+
+      const contractData = {
+        id,
+        ...values,
+        movieId: contract.movie?.id,
+        startDate: values.startDate.format("DD/MM/YYYY"),
+      }
+
+      await contractApi.updateContract(id, contractData)
+      notification.success({ message: "Contract updated successfully" })
+      setIsUpdateModalVisible(false)
+      await fetchContractDetail() // Refresh data
+    } catch (error) {
+      console.error("Error updating contract:", error)
+      notification.error({ message: "Failed to update contract" })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpload = async () => {
+    if (fileList.length === 0) {
+      notification.error({ message: "Please select a contract file" })
+      return null
+    }
+
+    setLoading(true)
+    setUploadError("")
+
+    try {
+      const file = fileList[0].originFileObj || fileList[0]
+
+      // Use the existing API function directly
+      const response = await uploadFileApi.UploadFileContractTemp(file)
+
+      if (response?.status == true) {
+        setUploadedFileUrl(response.fileUrl)
+        notification.success({ message: "File uploaded successfully" })
+        return response.fileUrl
+      } else {
+        throw new Error("File uploaded but no URL returned")
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error)
+      setUploadError(error.message || "Failed to upload file")
+      notification.error({
+        message: "Upload Failed",
+        description: error.message || "Failed to upload file",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading && !isUpdateModalVisible) {
     return (
       <div className="flex justify-center items-center h-64">
         <Spin size="large" />
@@ -131,8 +226,8 @@ const ContractDetailAdmin = () => {
   }
 
   // Check if upload button should be shown
-  const showUploadButton =
-    contract?.status === "SIGNED" && contract.movie && contract.movie.isFilmVipOrTrailer === false
+  const showUpdateButton =
+    contract?.status === "DENIED" && contract.movie && contract.movie.isFilmVipOrTrailer === false
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
@@ -288,6 +383,19 @@ const ContractDetailAdmin = () => {
                 {contract.updateDate ? formatDate(contract.updateDate) : "N/A"}
               </Descriptions.Item>
             </Descriptions>
+
+            <div className="mt-6 flex justify-end">
+              {showUpdateButton && (
+                <Button
+                  type="primary"
+                  onClick={showUpdateModal}
+                  icon={<UploadOutlined />}
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  Update Contract
+                </Button>
+              )}
+            </div>
           </Card>
         </div>
 
@@ -340,6 +448,121 @@ const ContractDetailAdmin = () => {
         </div>
       </div>
 
+      {/* Contract Update Modal */}
+      <Modal
+        title="Update Contract"
+        open={isUpdateModalVisible}
+        onOk={handleUpdate}
+        onCancel={() => setIsUpdateModalVisible(false)}
+        okText="Update Contract"
+        cancelText="Cancel"
+        confirmLoading={loading}
+        width={600}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="startDate"
+            label="Start Date"
+            rules={[{ required: true, message: "Please select a start date" }]}
+          >
+            <DatePicker style={{ width: "100%" }} />
+          </Form.Item>
+
+          <Form.Item
+            name="duration"
+            label="Duration (days)"
+            rules={[{ required: true, message: "Please enter duration" }]}
+          >
+            <InputNumber style={{ width: "100%" }} min={1} />
+          </Form.Item>
+
+          <Form.Item name="price" label="Price (VND)" rules={[{ required: true, message: "Please enter a price" }]}>
+            <InputNumber
+              style={{ width: "100%" }}
+              min={0}
+              formatter={(value) => (value ? new Intl.NumberFormat("en-US").format(value) : "")}
+              parser={(value) => value.replace(/,/g, "")}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="publisherName"
+            label="Publisher Name"
+            rules={[{ required: true, message: "Please enter publisher name" }]}
+          >
+            <Input />
+          </Form.Item>
+
+          <Form.Item
+            name="distributorName"
+            label="Distributor Name"
+            rules={[{ required: true, message: "Please enter distributor name" }]}
+          >
+            <Input />
+          </Form.Item>
+
+          <Form.Item label="Contract File">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  setFileList([
+                    {
+                      uid: "-1",
+                      name: file.name,
+                      status: "done",
+                      originFileObj: file,
+                    },
+                  ])
+                  setUploadedFileUrl("")
+                  setUploadError("")
+                }
+              }}
+              className="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100"
+            />
+
+            {fileList.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600">Selected file: {fileList[0].name}</p>
+                <Button
+                  type="link"
+                  onClick={() => {
+                    setFileList([])
+                    setUploadedFileUrl("")
+                    setUploadError("")
+                  }}
+                  className="text-red-500 p-0"
+                >
+                  Remove
+                </Button>
+              </div>
+            )}
+
+            {uploadError && <div className="mt-2 text-red-500 text-sm">Error: {uploadError}</div>}
+
+            <div className="mt-3">
+              <Button
+                type="primary"
+                onClick={handleUpload}
+                disabled={fileList.length === 0 || loading}
+                loading={loading}
+              >
+                Upload File
+              </Button>
+
+              {uploadedFileUrl && <span className="ml-3 text-green-600">✓ File uploaded successfully</span>}
+            </div>
+          </Form.Item>
+        
+        </Form>
+      </Modal>
     </div>
   )
 }

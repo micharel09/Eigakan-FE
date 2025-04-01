@@ -14,7 +14,6 @@ import {
   Spin,
   Typography,
   Tooltip,
-  Tabs,
 } from "antd";
 import {
   EditOutlined,
@@ -23,14 +22,12 @@ import {
   SearchOutlined,
   FilterOutlined,
   ShoppingOutlined,
-  HistoryOutlined,
 } from "@ant-design/icons";
 import subscriptionService from "../../../apis/Subscription/subscription";
 import { Helmet } from "react-helmet";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
 
 const SubscriptionManagement = () => {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -52,21 +49,22 @@ const SubscriptionManagement = () => {
     setLoading(true);
     try {
       const response = await subscriptionService.getAllPackages(page, pageSize);
-      if (response.success) {
-        setSubscriptions(response.data.subscriptionpackage || []);
-        setFilteredData(response.data.subscriptionpackage || []);
-        setPagination({
-          ...pagination,
-          current: page,
-          pageSize: pageSize,
-          total: response.data.total || 0,
-        });
-      } else {
+      if (!response.success) {
         notification.error({
           message: "Error",
           description: response.message || "Failed to fetch subscriptions",
         });
+        return;
       }
+
+      setSubscriptions(response.data.subscriptionpackage || []);
+      setFilteredData(response.data.subscriptionpackage || []);
+      setPagination({
+        ...pagination,
+        current: page,
+        pageSize: pageSize,
+        total: response.data.total || 0,
+      });
     } catch (error) {
       notification.error({
         message: "Error",
@@ -123,8 +121,7 @@ const SubscriptionManagement = () => {
           ? "Package has been updated successfully"
           : "New package has been created successfully",
       });
-      setIsModalVisible(false);
-      form.resetFields();
+      handleCloseModal();
       fetchSubscriptions(pagination.current, pagination.pageSize);
     } catch (error) {
       notification.error({
@@ -180,6 +177,35 @@ const SubscriptionManagement = () => {
     }).format(price);
   };
 
+  const handleOpenModal = () => {
+    setEditingId(null);
+    form.resetFields();
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    form.resetFields();
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchText(e.target.value);
+  };
+
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value);
+  };
+
+  const handleClearFilters = () => {
+    setSearchText("");
+    setStatusFilter(null);
+  };
+
+  const handlePaginationChange = (newPagination) => {
+    setPagination(newPagination);
+    fetchSubscriptions(newPagination.current, newPagination.pageSize);
+  };
+
   const columns = [
     {
       title: "Name",
@@ -226,17 +252,21 @@ const SubscriptionManagement = () => {
           <Tooltip title="Edit">
             <Button
               type="text"
-              icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
-            />
+              aria-label="Edit package"
+            >
+              <EditOutlined className="text-[var(--eigakan-primary)]" />
+            </Button>
           </Tooltip>
           <Tooltip title="Delete">
             <Button
               type="text"
               danger
-              icon={<DeleteOutlined />}
               onClick={() => handleDelete(record.id)}
-            />
+              aria-label="Delete package"
+            >
+              <DeleteOutlined />
+            </Button>
           </Tooltip>
         </Space>
       ),
@@ -249,100 +279,80 @@ const SubscriptionManagement = () => {
         <title>Subscription Management</title>
       </Helmet>
 
-      <Tabs defaultActiveKey="1" className="mb-4">
-        <TabPane
-          tab={
-            <span className="flex items-center">
-              <ShoppingOutlined className="mr-2" />
-              Packages
-            </span>
-          }
-          key="1"
-        >
-          <Card className="mb-4">
-            <div className="flex justify-between items-center mb-4">
-              <Title level={3} className="mb-0">
-                Subscription Packages
-              </Title>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => {
-                  setEditingId(null);
-                  form.resetFields();
-                  setIsModalVisible(true);
-                }}
-                className="bg-blue-500 hover:bg-blue-600"
-              >
-                Add Package
-              </Button>
-            </div>
+      <div>
+        <Card className="mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <Title level={3} className="mb-0">
+              Subscription Packages
+            </Title>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleOpenModal}
+              className="bg-[var(--eigakan-primary)] border-[var(--eigakan-primary)]"
+              aria-label="Add package"
+            >
+              Add Package
+            </Button>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-              <Input
-                placeholder="Search by package name..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                className="rounded-lg"
-                allowClear
-                onChange={(e) => setSearchText(e.target.value)}
-                value={searchText}
-              />
-              <Select
-                placeholder="Filter by status"
-                className="w-full"
-                allowClear
-                onChange={(value) => setStatusFilter(value)}
-                value={statusFilter}
-              >
-                <Option value="Active">Active</Option>
-                <Option value="Inactive">Inactive</Option>
-              </Select>
-              <Button
-                icon={<FilterOutlined />}
-                onClick={() => {
-                  setSearchText("");
-                  setStatusFilter(null);
-                }}
-                className="md:w-fit md:ml-auto"
-              >
-                Clear Filters
-              </Button>
-            </div>
-          </Card>
-
-          <Card>
-            <Table
-              columns={columns}
-              dataSource={filteredData}
-              loading={loading}
-              rowKey="id"
-              pagination={{
-                ...pagination,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total) => `Total ${total} items`,
-              }}
-              onChange={(newPagination) => {
-                setPagination(newPagination);
-                fetchSubscriptions(
-                  newPagination.current,
-                  newPagination.pageSize
-                );
-              }}
-              className="rounded-lg overflow-hidden"
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <Input
+              placeholder="Search by package name..."
+              prefix={<SearchOutlined className="text-gray-400" />}
+              className="rounded-lg"
+              allowClear
+              onChange={handleSearchChange}
+              value={searchText}
+              aria-label="Search packages"
             />
-          </Card>
-        </TabPane>
-      </Tabs>
+            <Select
+              placeholder="Filter by status"
+              className="w-full"
+              allowClear
+              onChange={handleStatusFilterChange}
+              value={statusFilter}
+              aria-label="Filter by status"
+            >
+              <Option value="Active">Active</Option>
+              <Option value="Inactive">Inactive</Option>
+            </Select>
+            <Button
+              onClick={handleClearFilters}
+              className="md:w-fit md:ml-auto"
+              aria-label="Clear filters"
+            >
+              <FilterOutlined /> Clear Filters
+            </Button>
+          </div>
+        </Card>
+
+        <Card>
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            loading={loading}
+            rowKey="id"
+            pagination={{
+              ...pagination,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `Total ${total} items`,
+            }}
+            onChange={handlePaginationChange}
+            className="rounded-lg overflow-hidden"
+            aria-label="Subscription packages table"
+          />
+        </Card>
+      </div>
 
       <Modal
         title={editingId ? "Edit Package" : "Add Package"}
         open={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          form.resetFields();
-        }}
+        onCancel={handleCloseModal}
         footer={null}
+        centered
+        getContainer={false}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
@@ -350,7 +360,7 @@ const SubscriptionManagement = () => {
             label="Package Name"
             rules={[{ required: true, message: "Please input package name!" }]}
           >
-            <Input />
+            <Input aria-label="Package name" />
           </Form.Item>
 
           <Form.Item
@@ -358,7 +368,11 @@ const SubscriptionManagement = () => {
             label="Duration (days)"
             rules={[{ required: true, message: "Please input duration!" }]}
           >
-            <InputNumber className="w-full" min={1} />
+            <InputNumber
+              className="w-full"
+              min={1}
+              aria-label="Duration in days"
+            />
           </Form.Item>
 
           <Form.Item
@@ -373,6 +387,7 @@ const SubscriptionManagement = () => {
               }
               parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
               min={0}
+              aria-label="Price"
             />
           </Form.Item>
 
@@ -382,7 +397,7 @@ const SubscriptionManagement = () => {
               label="Status"
               rules={[{ required: true, message: "Please select status!" }]}
             >
-              <Select>
+              <Select aria-label="Package status">
                 <Option value="Active">Active</Option>
                 <Option value="Inactive">Inactive</Option>
               </Select>
@@ -394,15 +409,15 @@ const SubscriptionManagement = () => {
               <Button
                 type="primary"
                 htmlType="submit"
-                className="bg-blue-500 hover:bg-blue-600"
+                className="bg-[var(--eigakan-primary)] border-[var(--eigakan-primary)]"
+                aria-label={editingId ? "Update package" : "Create package"}
               >
                 {editingId ? "Update" : "Create"}
               </Button>
               <Button
-                onClick={() => {
-                  setIsModalVisible(false);
-                  form.resetFields();
-                }}
+                onClick={handleCloseModal}
+                className="hover:border-[var(--eigakan-primary)] hover:text-[var(--eigakan-primary)]"
+                aria-label="Cancel"
               >
                 Cancel
               </Button>

@@ -51,6 +51,26 @@ const UserRegisterApi = {
         }
     },
 
+    async getAllUserRegisterByUserId(userId, page = 1, pageSize = 10) {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API_URL}/GetAllUserRegisterByUserId`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                params: {
+                    userId,
+                    page,
+                    pageSize
+                }
+            });
+            return res.data;
+        } catch (err) {
+            console.error("Error fetching user registers by user ID:", err);
+            throw err.response?.data || err.message;
+        }
+    },
+
     async acceptedUserRegister(data) {
         try {
             const token = localStorage.getItem('token');

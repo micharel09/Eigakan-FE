@@ -16,6 +16,8 @@ import {
   Tag,
   Tabs,
   TimePicker,
+  Image,
+  Popconfirm,
 } from "antd";
 import {
   EditOutlined,
@@ -26,10 +28,16 @@ import {
   ClockCircleOutlined,
   ScheduleOutlined,
   AppstoreOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  FileImageOutlined,
+  LinkOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import adSlotService from "../../../apis/AdSlot/adslot";
+import adMediaService from "../../../apis/AdMedia/adMedia";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -52,7 +60,7 @@ const AdSlotTimeManagement = () => {
   const [statusFilter, setStatusFilter] = useState(null);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 5,
     total: 0,
   });
   const [adSlotTimeRanges, setAdSlotTimeRanges] = useState([]);
@@ -64,7 +72,7 @@ const AdSlotTimeManagement = () => {
   const [rangeStatusFilter, setRangeStatusFilter] = useState(null);
   const [rangePagination, setRangePagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 5,
     total: 0,
   });
   const [activeTab, setActiveTab] = useState("1");
@@ -77,9 +85,23 @@ const AdSlotTimeManagement = () => {
   const [slotStatusFilter, setSlotStatusFilter] = useState(null);
   const [slotPagination, setSlotPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 5,
     total: 0,
   });
+  const [adMedias, setAdMedias] = useState([]);
+  const [filteredAdMedias, setFilteredAdMedias] = useState([]);
+  const [searchAdMediaText, setSearchAdMediaText] = useState("");
+  const [adMediaStatusFilter, setAdMediaStatusFilter] = useState(null);
+  const [adMediaPagination, setAdMediaPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    total: 0,
+  });
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const [selectedAdMediaId, setSelectedAdMediaId] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [previewImage, setPreviewImage] = useState("");
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   const fetchAdSlotTimes = async () => {
     setLoading(true);
@@ -151,10 +173,39 @@ const AdSlotTimeManagement = () => {
     }
   };
 
+  const fetchAdMedias = async () => {
+    setLoading(true);
+    try {
+      const response = await adMediaService.getAllAdMedia();
+
+      if (response.success) {
+        console.log("Fetched ad media:", response.data);
+        setAdMedias(response.data);
+
+        // Không lọc mặc định, hiển thị tất cả quảng cáo
+        setFilteredAdMedias(response.data);
+        setAdMediaPagination({
+          ...adMediaPagination,
+          total: response.data.length,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch ad media:", error);
+      notification.error({
+        message: "Error",
+        description:
+          error.response?.data?.message || "Failed to fetch ad media",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAdSlotTimes();
     fetchAdSlotTimeRanges();
     fetchAdSlots();
+    fetchAdMedias();
   }, []);
 
   const handleSubmit = async (values) => {
@@ -175,20 +226,21 @@ const AdSlotTimeManagement = () => {
         response = await adSlotService.createAdSlotTime(createData);
       }
 
-      if (response.success) {
-        notification.success({
-          message: editingId ? "Updated Successfully" : "Created Successfully",
-          description: response.message || "Operation completed successfully",
-        });
-        setIsModalVisible(false);
-        form.resetFields();
-        fetchAdSlotTimes();
-      } else {
+      if (!response.success) {
         notification.error({
           message: "Operation Failed",
           description: response.message || "Something went wrong",
         });
+        return;
       }
+
+      notification.success({
+        message: editingId ? "Updated Successfully" : "Created Successfully",
+        description: response.message || "Operation completed successfully",
+      });
+      setIsModalVisible(false);
+      form.resetFields();
+      fetchAdSlotTimes();
     } catch (error) {
       notification.error({
         message: "Error",
@@ -220,28 +272,138 @@ const AdSlotTimeManagement = () => {
         response = await adSlotService.createAdSlotTimeRange(formattedData);
       }
 
-      if (response.success) {
-        notification.success({
-          message: editingRangeId
-            ? "Updated Successfully"
-            : "Created Successfully",
-          description: response.message || "Operation completed successfully",
-        });
-        setIsRangeModalVisible(false);
-        rangeForm.resetFields();
-        fetchAdSlotTimeRanges();
-      } else {
+      if (!response.success) {
         notification.error({
           message: "Operation Failed",
           description: response.message || "Something went wrong",
         });
+        return;
       }
+
+      notification.success({
+        message: editingRangeId
+          ? "Updated Successfully"
+          : "Created Successfully",
+        description: response.message || "Operation completed successfully",
+      });
+      setIsRangeModalVisible(false);
+      rangeForm.resetFields();
+      fetchAdSlotTimeRanges();
     } catch (error) {
       notification.error({
         message: "Error",
         description: error.response?.data?.message || "Failed to submit",
       });
     }
+  };
+
+  const handleClearFilters = () => {
+    setSearchText("");
+    setStatusFilter(null);
+  };
+
+  const handleClearRangeFilters = () => {
+    setSearchRangeText("");
+    setRangeStatusFilter(null);
+  };
+
+  const handleClearSlotFilters = () => {
+    setSearchSlotText("");
+    setSlotStatusFilter(null);
+  };
+
+  const handleClearAdMediaFilters = () => {
+    setSearchAdMediaText("");
+    setAdMediaStatusFilter("PENDING");
+  };
+
+  const handleOpenModal = () => {
+    setEditingId(null);
+    form.resetFields();
+    setIsModalVisible(true);
+  };
+
+  const handleOpenRangeModal = () => {
+    setEditingRangeId(null);
+    rangeForm.resetFields();
+    setIsRangeModalVisible(true);
+  };
+
+  const handleOpenSlotModal = () => {
+    setEditingSlotId(null);
+    slotForm.resetFields();
+    setIsSlotModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    form.resetFields();
+  };
+
+  const handleCloseRangeModal = () => {
+    setIsRangeModalVisible(false);
+    rangeForm.resetFields();
+  };
+
+  const handleCloseSlotModal = () => {
+    setIsSlotModalVisible(false);
+    slotForm.resetFields();
+  };
+
+  const handleShowPreview = (image) => {
+    setPreviewImage(image);
+    setIsPreviewVisible(true);
+  };
+
+  const handleClosePreview = () => {
+    setIsPreviewVisible(false);
+  };
+
+  const handleShowRejectModal = (id) => {
+    setSelectedAdMediaId(id);
+    setIsRejectModalVisible(true);
+  };
+
+  const handleCloseRejectModal = () => {
+    setIsRejectModalVisible(false);
+    setRejectReason("");
+    setSelectedAdMediaId(null);
+  };
+
+  const handleRejectReasonChange = (e) => {
+    setRejectReason(e.target.value);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchText(e.target.value);
+  };
+
+  const handleSearchRangeChange = (e) => {
+    setSearchRangeText(e.target.value);
+  };
+
+  const handleSearchSlotChange = (e) => {
+    setSearchSlotText(e.target.value);
+  };
+
+  const handleSearchAdMediaChange = (e) => {
+    setSearchAdMediaText(e.target.value);
+  };
+
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value);
+  };
+
+  const handleRangeStatusFilterChange = (value) => {
+    setRangeStatusFilter(value);
+  };
+
+  const handleSlotStatusFilterChange = (value) => {
+    setSlotStatusFilter(value);
+  };
+
+  const handleAdMediaStatusFilterChange = (value) => {
+    setAdMediaStatusFilter(value);
   };
 
   const handleDelete = (id) => {
@@ -489,6 +651,98 @@ const AdSlotTimeManagement = () => {
     setFilteredSlots(result);
   }, [searchSlotText, slotStatusFilter, adSlots]);
 
+  useEffect(() => {
+    if (!adMedias.length) return;
+
+    let result = [...adMedias];
+
+    if (searchAdMediaText) {
+      result = result.filter(
+        (item) =>
+          (item.content &&
+            item.content
+              .toLowerCase()
+              .includes(searchAdMediaText.toLowerCase())) ||
+          (item.url &&
+            item.url.toLowerCase().includes(searchAdMediaText.toLowerCase()))
+      );
+    }
+
+    if (adMediaStatusFilter) {
+      result = result.filter((item) => item.status === adMediaStatusFilter);
+    }
+
+    setFilteredAdMedias(result);
+    setAdMediaPagination({
+      ...adMediaPagination,
+      total: result.length,
+    });
+  }, [adMedias, searchAdMediaText, adMediaStatusFilter]);
+
+  const handleApproveAdMedia = async (id) => {
+    try {
+      const response = await adMediaService.approveAdMedia({ id });
+
+      if (response.success) {
+        notification.success({
+          message: "Approved Successfully",
+          description: response.message || "Ad media has been approved",
+        });
+        fetchAdMedias();
+      } else {
+        notification.error({
+          message: "Approval Failed",
+          description: response.message || "Failed to approve ad media",
+        });
+      }
+    } catch (error) {
+      notification.error({
+        message: "Approval Failed",
+        description:
+          error.response?.data?.message || "Failed to approve ad media",
+      });
+    }
+  };
+
+  const handleRejectAdMedia = async () => {
+    try {
+      if (!selectedAdMediaId || !rejectReason.trim()) {
+        notification.warning({
+          message: "Missing Information",
+          description: "Please provide a reason for rejection",
+        });
+        return;
+      }
+
+      const response = await adMediaService.rejectAdMedia({
+        id: selectedAdMediaId,
+        reasonForRejection: rejectReason,
+      });
+
+      if (response.success) {
+        notification.success({
+          message: "Rejected Successfully",
+          description: response.message || "Ad media has been rejected",
+        });
+        setIsRejectModalVisible(false);
+        setRejectReason("");
+        setSelectedAdMediaId(null);
+        fetchAdMedias();
+      } else {
+        notification.error({
+          message: "Rejection Failed",
+          description: response.message || "Failed to reject ad media",
+        });
+      }
+    } catch (error) {
+      notification.error({
+        message: "Rejection Failed",
+        description:
+          error.response?.data?.message || "Failed to reject ad media",
+      });
+    }
+  };
+
   const columns = [
     {
       title: "Slot Location",
@@ -562,7 +816,8 @@ const AdSlotTimeManagement = () => {
               type="text"
               icon={<EditOutlined />}
               onClick={() => handleEdit(record)}
-              className="hover:text-blue-500"
+              className="hover:text-pink-500"
+              aria-label="Edit slot time"
             />
           </Tooltip>
           <Tooltip title="Delete">
@@ -571,6 +826,7 @@ const AdSlotTimeManagement = () => {
               icon={<DeleteOutlined />}
               onClick={() => handleDelete(record.id)}
               className="hover:text-red-500"
+              aria-label="Delete slot time"
             />
           </Tooltip>
         </Space>
@@ -628,7 +884,7 @@ const AdSlotTimeManagement = () => {
               type="text"
               icon={<EditOutlined />}
               onClick={() => handleRangeEdit(record)}
-              className="hover:text-blue-500"
+              className="hover:text-pink-500"
             />
           </Tooltip>
           <Tooltip title="Delete">
@@ -650,7 +906,7 @@ const AdSlotTimeManagement = () => {
       dataIndex: "slotLocation",
       key: "slotLocation",
       render: (location) => (
-        <Tag color="blue" className="text-xs font-medium px-3 py-1">
+        <Tag color="green" className="text-xs font-medium px-3 py-1">
           {location}
         </Tag>
       ),
@@ -693,7 +949,7 @@ const AdSlotTimeManagement = () => {
               type="text"
               icon={<EditOutlined />}
               onClick={() => handleSlotEdit(record)}
-              className="hover:text-blue-500"
+              className="hover:text-pink-500"
             />
           </Tooltip>
           <Tooltip title="Delete">
@@ -709,6 +965,184 @@ const AdSlotTimeManagement = () => {
     },
   ];
 
+  const adMediaColumns = [
+    {
+      title: "Preview",
+      key: "preview",
+      render: (_, record) => (
+        <div className="flex justify-center">
+          {record.image ? (
+            <div
+              className="cursor-pointer w-16 h-16 rounded overflow-hidden border border-gray-200"
+              onClick={() => handleShowPreview(record.image)}
+              role="button"
+              tabIndex="0"
+              aria-label="Preview ad image"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  handleShowPreview(record.image);
+                }
+              }}
+            >
+              <img
+                src={record.image}
+                alt="Ad preview"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://placehold.co/100x100?text=No+Image";
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded">
+              <FileImageOutlined className="text-gray-400 text-2xl" />
+            </div>
+          )}
+        </div>
+      ),
+      width: 100,
+    },
+    {
+      title: "Content",
+      dataIndex: "content",
+      key: "content",
+      render: (content) => (
+        <div className="max-w-xs truncate">
+          {content || <span className="text-gray-400 italic">No content</span>}
+        </div>
+      ),
+    },
+    {
+      title: "Links",
+      key: "links",
+      render: (_, record) => (
+        <div className="space-y-1">
+          {record.url && (
+            <div className="flex items-center space-x-1">
+              <LinkOutlined className="text-pink-500" />
+              <a
+                href={record.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-pink-500 hover:underline truncate max-w-[150px] inline-block"
+              >
+                {record.url}
+              </a>
+            </div>
+          )}
+          {record.video && (
+            <div className="flex items-center space-x-1">
+              <FileImageOutlined className="text-pink-500" />
+              <span className="truncate max-w-[150px] text-gray-500">
+                {record.video}
+              </span>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => {
+        let color = "default";
+        let icon = null;
+
+        switch (status) {
+          case "ACTIVE":
+            color = "success";
+            icon = <CheckCircleOutlined />;
+            break;
+          case "PENDING":
+            color = "warning";
+            icon = <ClockCircleOutlined />;
+            break;
+          case "REJECTED":
+            color = "error";
+            icon = <CloseCircleOutlined />;
+            break;
+          default:
+            color = "default";
+        }
+
+        return (
+          <Tag icon={icon} color={color}>
+            {status}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Submitted At",
+      dataIndex: "createAt",
+      key: "createAt",
+      render: (date) => new Date(date).toLocaleString(),
+    },
+    {
+      title: "Actions",
+      key: "action",
+      width: 200,
+      render: (_, record) => {
+        if (record.status === "PENDING") {
+          return (
+            <Space size="small">
+              <Popconfirm
+                title="Approve this ad?"
+                description="Are you sure you want to approve this ad?"
+                onConfirm={() => handleApproveAdMedia(record.id)}
+                okText="Yes"
+                cancelText="No"
+                icon={<CheckCircleOutlined style={{ color: "#ff009f" }} />}
+              >
+                <Button
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  size="small"
+                  className="bg-pink-500 hover:bg-pink-600"
+                >
+                  Approve
+                </Button>
+              </Popconfirm>
+
+              <Button
+                danger
+                icon={<CloseCircleOutlined />}
+                size="small"
+                onClick={() => handleShowRejectModal(record.id)}
+              >
+                Reject
+              </Button>
+            </Space>
+          );
+        } else if (record.status === "ACTIVE") {
+          return (
+            <Tag color="green" icon={<CheckCircleOutlined />}>
+              Approved
+            </Tag>
+          );
+        } else if (record.status === "REJECTED") {
+          return (
+            <Tooltip title={record.reasonForRejection || "No reason provided"}>
+              <Tag color="red" icon={<CloseCircleOutlined />}>
+                Rejected
+              </Tag>
+            </Tooltip>
+          );
+        } else if (record.status === "EXPIRED") {
+          return (
+            <Tag color="default" icon={<InfoCircleOutlined />}>
+              Expired
+            </Tag>
+          );
+        }
+
+        return null;
+      },
+    },
+  ];
+
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
       <Card className="mb-4">
@@ -721,39 +1155,13 @@ const AdSlotTimeManagement = () => {
               Manage all advertising slot times
             </Text>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              if (activeTab === "1") {
-                setEditingId(null);
-                form.resetFields();
-                setIsModalVisible(true);
-              } else if (activeTab === "2") {
-                setEditingRangeId(null);
-                rangeForm.resetFields();
-                setIsRangeModalVisible(true);
-              } else if (activeTab === "3") {
-                setEditingSlotId(null);
-                slotForm.resetFields();
-                setIsSlotModalVisible(true);
-              }
-            }}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            {activeTab === "1"
-              ? "Add Slot Time"
-              : activeTab === "2"
-              ? "Add Time Range"
-              : "Add Slot Location"}
-          </Button>
         </div>
       </Card>
 
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
-        className="mb-4 bg-white p-1 rounded-lg shadow-sm"
+        className="mb-4 bg-white p-1 rounded-lg shadow-sm eigakan-tabs"
       >
         <TabPane
           tab={
@@ -768,15 +1176,15 @@ const AdSlotTimeManagement = () => {
               <Input
                 placeholder="Search by time range..."
                 prefix={<SearchOutlined className="text-gray-400" />}
-                className="rounded-lg"
+                className="rounded-lg hover:border-pink-500 focus:border-pink-500"
                 allowClear
-                onChange={(e) => setSearchText(e.target.value)}
+                onChange={handleSearchChange}
               />
               <Select
                 placeholder="Filter by status"
-                className="w-full"
+                className="w-full hover:border-pink-500 focus:border-pink-500"
                 allowClear
-                onChange={(value) => setStatusFilter(value)}
+                onChange={handleStatusFilterChange}
                 value={statusFilter}
               >
                 <Option value="ACTIVE">Active</Option>
@@ -784,11 +1192,8 @@ const AdSlotTimeManagement = () => {
               </Select>
               <Button
                 icon={<FilterOutlined />}
-                onClick={() => {
-                  setSearchText("");
-                  setStatusFilter(null);
-                }}
-                className="md:w-fit md:ml-auto"
+                onClick={handleClearFilters}
+                className="md:w-fit md:ml-auto hover:text-pink-500 hover:border-pink-500"
               >
                 Clear Filters
               </Button>
@@ -820,15 +1225,15 @@ const AdSlotTimeManagement = () => {
               <Input
                 placeholder="Search by time..."
                 prefix={<SearchOutlined className="text-gray-400" />}
-                className="rounded-lg"
+                className="rounded-lg hover:border-pink-500 focus:border-pink-500"
                 allowClear
-                onChange={(e) => setSearchRangeText(e.target.value)}
+                onChange={handleSearchRangeChange}
               />
               <Select
                 placeholder="Filter by status"
-                className="w-full"
+                className="w-full hover:border-pink-500 focus:border-pink-500"
                 allowClear
-                onChange={(value) => setRangeStatusFilter(value)}
+                onChange={handleRangeStatusFilterChange}
                 value={rangeStatusFilter}
               >
                 <Option value="ACTIVE">Active</Option>
@@ -836,11 +1241,8 @@ const AdSlotTimeManagement = () => {
               </Select>
               <Button
                 icon={<FilterOutlined />}
-                onClick={() => {
-                  setSearchRangeText("");
-                  setRangeStatusFilter(null);
-                }}
-                className="md:w-fit md:ml-auto"
+                onClick={handleClearRangeFilters}
+                className="md:w-fit md:ml-auto hover:text-pink-500 hover:border-pink-500"
               >
                 Clear Filters
               </Button>
@@ -872,15 +1274,15 @@ const AdSlotTimeManagement = () => {
               <Input
                 placeholder="Search by location..."
                 prefix={<SearchOutlined className="text-gray-400" />}
-                className="rounded-lg"
+                className="rounded-lg hover:border-pink-500 focus:border-pink-500"
                 allowClear
-                onChange={(e) => setSearchSlotText(e.target.value)}
+                onChange={handleSearchSlotChange}
               />
               <Select
                 placeholder="Filter by status"
-                className="w-full"
+                className="w-full hover:border-pink-500 focus:border-pink-500"
                 allowClear
-                onChange={(value) => setSlotStatusFilter(value)}
+                onChange={handleSlotStatusFilterChange}
                 value={slotStatusFilter}
               >
                 <Option value="ACTIVE">Active</Option>
@@ -888,11 +1290,8 @@ const AdSlotTimeManagement = () => {
               </Select>
               <Button
                 icon={<FilterOutlined />}
-                onClick={() => {
-                  setSearchSlotText("");
-                  setSlotStatusFilter(null);
-                }}
-                className="md:w-fit md:ml-auto"
+                onClick={handleClearSlotFilters}
+                className="md:w-fit md:ml-auto hover:text-pink-500 hover:border-pink-500"
               >
                 Clear Filters
               </Button>
@@ -911,16 +1310,74 @@ const AdSlotTimeManagement = () => {
             />
           </Card>
         </TabPane>
+        <TabPane
+          tab={
+            <span>
+              <FileImageOutlined /> Ad Media Approval
+            </span>
+          }
+          key="4"
+        >
+          <Card className="mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Input
+                placeholder="Search by content or URL..."
+                prefix={<SearchOutlined className="text-gray-400" />}
+                className="rounded-lg hover:border-pink-500 focus:border-pink-500"
+                allowClear
+                onChange={handleSearchAdMediaChange}
+                value={searchAdMediaText}
+              />
+              <Select
+                placeholder="Filter by status"
+                className="w-full hover:border-pink-500 focus:border-pink-500"
+                onChange={handleAdMediaStatusFilterChange}
+                value={adMediaStatusFilter}
+              >
+                <Option value="PENDING">Pending</Option>
+                <Option value="ACTIVE">Approved</Option>
+                <Option value="REJECTED">Rejected</Option>
+                <Option value="EXPIRED">Expired</Option>
+                <Option value={null}>All</Option>
+              </Select>
+              <Button
+                icon={<FilterOutlined />}
+                onClick={handleClearAdMediaFilters}
+                className="md:w-fit md:ml-auto hover:text-pink-500 hover:border-pink-500"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </Card>
+
+          <Card>
+            <Table
+              columns={adMediaColumns}
+              dataSource={filteredAdMedias}
+              rowKey="id"
+              pagination={adMediaPagination}
+              loading={loading}
+              onChange={(newPagination) => setAdMediaPagination(newPagination)}
+              className="rounded-lg overflow-hidden"
+              locale={{
+                emptyText: (
+                  <div className="py-8 text-center">
+                    No ads found matching your filter criteria
+                  </div>
+                ),
+              }}
+            />
+          </Card>
+        </TabPane>
       </Tabs>
 
       <Modal
         title={editingId ? "Edit Slot Time" : "Add Slot Time"}
         open={isModalVisible}
-        onCancel={() => {
-          setIsModalVisible(false);
-          form.resetFields();
-        }}
+        onCancel={handleCloseModal}
         footer={null}
+        centered
+        getContainer={false}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
@@ -928,7 +1385,10 @@ const AdSlotTimeManagement = () => {
             label="Time Range"
             rules={[{ required: true, message: "Please select time range!" }]}
           >
-            <Select placeholder="Select time range">
+            <Select
+              placeholder="Select time range"
+              className="hover:border-pink-500 focus:border-pink-500"
+            >
               {adSlotTimeRanges.map((range) => (
                 <Option key={range.id} value={range.id}>
                   {range.startTime} - {range.endTime}
@@ -955,17 +1415,15 @@ const AdSlotTimeManagement = () => {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit" loading={loading}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                className="bg-pink-500 hover:bg-pink-600"
+              >
                 {editingId ? "Update" : "Create"}
               </Button>
-              <Button
-                onClick={() => {
-                  setIsModalVisible(false);
-                  form.resetFields();
-                }}
-              >
-                Cancel
-              </Button>
+              <Button onClick={handleCloseModal}>Cancel</Button>
             </Space>
           </Form.Item>
         </Form>
@@ -974,11 +1432,10 @@ const AdSlotTimeManagement = () => {
       <Modal
         title={editingRangeId ? "Edit Time Range" : "Add Time Range"}
         open={isRangeModalVisible}
-        onCancel={() => {
-          setIsRangeModalVisible(false);
-          rangeForm.resetFields();
-        }}
+        onCancel={handleCloseRangeModal}
         footer={null}
+        centered
+        getContainer={false}
       >
         <Form form={rangeForm} layout="vertical" onFinish={handleRangeSubmit}>
           <Form.Item
@@ -986,7 +1443,11 @@ const AdSlotTimeManagement = () => {
             label="Start Time"
             rules={[{ required: true, message: "Please select start time!" }]}
           >
-            <TimePicker className="w-full" format="HH:mm" minuteStep={15} />
+            <TimePicker
+              className="w-full hover:border-pink-500 focus:border-pink-500"
+              format="HH:mm"
+              minuteStep={15}
+            />
           </Form.Item>
 
           <Form.Item
@@ -994,7 +1455,11 @@ const AdSlotTimeManagement = () => {
             label="End Time"
             rules={[{ required: true, message: "Please select end time!" }]}
           >
-            <TimePicker className="w-full" format="HH:mm" minuteStep={15} />
+            <TimePicker
+              className="w-full hover:border-pink-500 focus:border-pink-500"
+              format="HH:mm"
+              minuteStep={15}
+            />
           </Form.Item>
 
           <Form.Item
@@ -1003,7 +1468,7 @@ const AdSlotTimeManagement = () => {
             rules={[{ required: true, message: "Please input price!" }]}
           >
             <InputNumber
-              className="w-full"
+              className="w-full hover:border-pink-500 focus:border-pink-500"
               formatter={(value) =>
                 `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
               }
@@ -1014,17 +1479,15 @@ const AdSlotTimeManagement = () => {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit" loading={loading}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                className="bg-pink-500 hover:bg-pink-600"
+              >
                 {editingRangeId ? "Update" : "Create"}
               </Button>
-              <Button
-                onClick={() => {
-                  setIsRangeModalVisible(false);
-                  rangeForm.resetFields();
-                }}
-              >
-                Cancel
-              </Button>
+              <Button onClick={handleCloseRangeModal}>Cancel</Button>
             </Space>
           </Form.Item>
         </Form>
@@ -1033,11 +1496,10 @@ const AdSlotTimeManagement = () => {
       <Modal
         title={editingSlotId ? "Edit Slot Location" : "Add Slot Location"}
         open={isSlotModalVisible}
-        onCancel={() => {
-          setIsSlotModalVisible(false);
-          slotForm.resetFields();
-        }}
+        onCancel={handleCloseSlotModal}
         footer={null}
+        centered
+        getContainer={false}
       >
         <Form form={slotForm} layout="vertical" onFinish={handleSlotSubmit}>
           <Form.Item
@@ -1054,7 +1516,7 @@ const AdSlotTimeManagement = () => {
             rules={[{ required: true, message: "Please input price!" }]}
           >
             <InputNumber
-              className="w-full"
+              className="w-full hover:border-pink-500 focus:border-pink-500"
               formatter={(value) =>
                 `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
               }
@@ -1065,20 +1527,61 @@ const AdSlotTimeManagement = () => {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit" loading={loading}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                className="bg-pink-500 hover:bg-pink-600"
+              >
                 {editingSlotId ? "Update" : "Create"}
               </Button>
-              <Button
-                onClick={() => {
-                  setIsSlotModalVisible(false);
-                  slotForm.resetFields();
-                }}
-              >
-                Cancel
-              </Button>
+              <Button onClick={handleCloseSlotModal}>Cancel</Button>
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        open={isPreviewVisible}
+        footer={null}
+        onCancel={handleClosePreview}
+        centered
+        width={800}
+        getContainer={false}
+      >
+        <img alt="Ad Preview" style={{ width: "100%" }} src={previewImage} />
+      </Modal>
+
+      <Modal
+        title="Reject Ad Media"
+        open={isRejectModalVisible}
+        onCancel={handleCloseRejectModal}
+        footer={[
+          <Button key="back" onClick={handleCloseRejectModal}>
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            danger
+            onClick={handleRejectAdMedia}
+            disabled={!rejectReason.trim()}
+          >
+            Reject
+          </Button>,
+        ]}
+        centered
+        getContainer={false}
+      >
+        <div className="mb-4">
+          <p className="mb-2">Please provide a reason for rejection:</p>
+          <Input.TextArea
+            rows={4}
+            value={rejectReason}
+            onChange={handleRejectReasonChange}
+            placeholder="The ad content violates our policy because..."
+          />
+        </div>
       </Modal>
     </div>
   );

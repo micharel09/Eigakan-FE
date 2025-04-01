@@ -1,12 +1,14 @@
 import React from "react";
 import { Spin } from "antd";
 
-const Loading = ({ isVisible = true }) => {
+const Loading = ({ isVisible = true, className = "" }) => {
   if (!isVisible) return null;
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-900">
-      <Spin size="large" style={{ color: "#FF009F" }} />
+    <div
+      className={`flex justify-center items-center h-screen bg-black ${className}`}
+    >
+      <Spin size="large" className="[&_.ant-spin-dot-item]:bg-[#FF009F]" />
     </div>
   );
 };

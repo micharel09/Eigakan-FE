@@ -57,6 +57,9 @@ import WatchTogether from "../pages/WatchTogether/WatchTogether";
 import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
 import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
 import { Navigate } from "react-router-dom";
+import AdPurchaseSlotManagement from "../pages/Advertiser/AdPurchaseSlotManagement";
+import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory";
+import PaymentDetails from "../pages/Advertiser/PaymentHistory/PaymentDetails";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -219,9 +222,7 @@ const routes = [
 
   {
     path: "/MovieCount/:id",
-    element: (
-        <MovieCount />
-    ),
+    element: <MovieCount />,
   },
 
   { path: "/user", element: <User />, layout: "AdminLayout" },
@@ -509,6 +510,36 @@ const routes = [
       </PrivateRoute>
     ),
     layout: "UserLayout",
+  },
+
+  {
+    path: "/advertiser/ad-purchase-slots",
+    element: (
+      <PrivateRoute>
+        <AdPurchaseSlotManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/advertiser/payment-history",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <PaymentHistory />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/advertiser/payment-details/:id",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <PaymentDetails />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },

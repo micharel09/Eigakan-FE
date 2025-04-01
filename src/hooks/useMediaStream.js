@@ -2,60 +2,67 @@ import { useState, useEffect, useRef } from "react";
 
 const useMediaStream = () => {
   const [stream, setStream] = useState(null);
-  const [error, setError] = useState(null);
+  const isStreamSet = useRef(false);
 
   useEffect(() => {
-    let mediaStream = null;
+    if (isStreamSet.current) return;
 
-    const getMediaStream = async () => {
+    const initStream = async () => {
       try {
         console.log("Requesting media permissions...");
+        isStreamSet.current = true;
 
-        // Thử với các ràng buộc đơn giản hơn
-        const constraints = {
-          video: true,
+        // Yêu cầu quyền truy cập camera và microphone
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-        };
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { max: 30 },
+          },
+        });
 
-        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        console.log("Media stream obtained successfully:", mediaStream);
-
-        // Kiểm tra chất lượng stream
-        const videoTracks = mediaStream.getVideoTracks();
-        if (videoTracks.length > 0) {
-          console.log("Video track settings:", videoTracks[0].getSettings());
-        }
+        console.log("Media stream initialized successfully");
+        console.log("Video tracks:", mediaStream.getVideoTracks().length);
+        console.log("Audio tracks:", mediaStream.getAudioTracks().length);
 
         setStream(mediaStream);
       } catch (err) {
-        console.error("Error getting media stream:", err);
-        setError(err);
+        console.error("Error accessing media devices:", err);
+        isStreamSet.current = false;
 
-        // Thử lại chỉ với audio
+        // Thử lại với chỉ audio nếu video thất bại
         try {
-          console.log("Trying fallback to audio only...");
-          mediaStream = await navigator.mediaDevices.getUserMedia({
+          console.log("Trying audio only...");
+          const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
             video: false,
           });
-          console.log("Audio-only stream obtained");
-          setStream(mediaStream);
+          console.log("Audio-only stream initialized");
+          setStream(audioOnlyStream);
         } catch (audioErr) {
-          console.error("Could not get audio stream either:", audioErr);
+          console.error("Failed to get even audio stream:", audioErr);
         }
       }
     };
 
-    getMediaStream();
+    initStream();
 
+    // Cleanup function
     return () => {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => track.stop());
+      if (stream) {
+        console.log("Cleaning up media stream");
+        stream.getTracks().forEach((track) => {
+          track.stop();
+          console.log(`Stopped ${track.kind} track`);
+        });
       }
     };
   }, []);
 
-  return { stream, error };
+  return {
+    stream,
+  };
 };
 
 export default useMediaStream;

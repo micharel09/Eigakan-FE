@@ -142,6 +142,30 @@ const MovieDetail = () => {
     }
   }
 
+  const handleAcceptNoContract = async () => {
+    try {
+      setLoading(true) 
+
+      const data = { Id: movie?.id }
+     
+      const response = await movieService.acceptedMovieNotContract(data)
+
+      if (response.status === 200) {
+        notification.success({ message: "Accepted successfull!!!" })
+
+        await fetchMovieDetails()
+      } else {
+        notification.error({
+          message: response.data.message || "Failed to accept movie",
+        })
+      }
+    } catch (error) {
+      notification.error({ message: error.data?.message || "An error occurred" })
+    } finally {
+      setLoading(false) // 🔹 Luôn tắt loading khi xử lý xong
+    }
+  }
+
   const handleReject = async () => {
     setLoading(true)
     try {
@@ -453,7 +477,7 @@ const MovieDetail = () => {
                         View File
                       </Button>
 
-                      {movie?.status === "WAITING_FOR_REVIEWING" && (
+                      {movie?.status === "WAITING_FOR_REVIEWING" && movie?.isContract === true && (
                         <>
                           <Button
                             type="primary"
@@ -478,6 +502,32 @@ const MovieDetail = () => {
                         </>
                       )}
 
+                      {movie?.status === "WAITING_FOR_REVIEWING" && movie?.isContract === false && (
+                        <>
+                          <Button
+                            type="primary"
+                            icon={<CheckCircleOutlined />}
+                            size="large"
+                            onClick={handleAcceptNoContract}
+                            className="bg-green-500 hover:bg-green-600 border-green-500 hover:border-green-600"
+                          >
+                            Acceptee
+                          </Button>
+                          <Button
+                            type="primary"
+                            danger
+                            icon={<CloseCircleOutlined />}
+                            size="large"
+                            onClick={() => setIsRejectModalVisible(true)}
+                            loading={loading}
+                            className="hover:bg-red-600 hover:border-red-600"
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      )}
+
+
                       {(movie?.status === "WAITING_FOR_UPLOADING" ||
                         movie?.status === "ACTIVE" ||
                         movie?.status === "ARCHIVED") && (
@@ -492,6 +542,7 @@ const MovieDetail = () => {
                           >
                             Activate
                           </Button>
+                          
                           <Button
                             type="primary"
                             danger
@@ -502,7 +553,7 @@ const MovieDetail = () => {
                             className="hover:bg-red-600 hover:border-red-600"
                           >
                             Deactivate
-                          </Button>
+                          </Button>                   
                         </>
                       )}
                     </div>
@@ -632,7 +683,8 @@ const MovieDetail = () => {
           confirmLoading={loading}
         >
           <h1>Are you sure to active this movie and publish on website?</h1>
-        </Modal>      
+        </Modal> 
+             
       </Content>
     </Layout>
   )

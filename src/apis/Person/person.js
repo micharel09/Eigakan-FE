@@ -1,17 +1,20 @@
 import axios from "axios";
+import { makeAuthenticatedRequest, makePublicRequest, API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Person";
-
+/**
+ * Service for handling person operations
+ */
 const personService = {
-  // Get all persons with pagination and search
-  async getAllPerson(pageNumber = 1, pageSize = 10, name = '') {
-    try {
-      const token = localStorage.getItem("token");
+  /**
+   * Get all persons with pagination and search
+   */
+  getAllPerson: (pageNumber = 1, pageSize = 10, name = '') => 
+    makeAuthenticatedRequest(async (headers) => {
       const params = { pageNumber, pageSize };
       if (name?.trim()) params.name = name.trim();
       
-      const response = await axios.get(API_URL, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await axios.get(API_URLS.PERSON, {
+        headers,
         params
       });
       
@@ -23,165 +26,137 @@ const personService = {
         hasNextPage: response.data.hasNextPage || 
           (response.data.data?.length >= pageSize)
       };
-    } catch (error) {
-      console.error("Error fetching persons:", error);
-      throw error.response?.data || { 
-        success: false, 
-        message: "Could not load person list" 
-      };
-    }   
-  },
+    }),
 
-  // Get person by ID
-  async getPersonById(id) {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_URL}/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      return res.data;
-    } catch (err) {
-      throw err.response?.data || { message: "Error fetching person" };
-    }
-  },
+  /**
+   * Get person by ID
+   */
+  getPersonById: (id) => 
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${API_URLS.PERSON}/${id}`, { headers });
+      return response.data;
+    }),
 
-  // Create new person
-  async createPerson(personData) {
-    try {
-      const token = localStorage.getItem("token");
+  /**
+   * Create new person - Admin only
+   */
+  createPerson: (personData) => 
+    makeAuthenticatedRequest(async (headers) => {
       if (localStorage.getItem("role") !== "ADMIN") {
         throw new Error("Unauthorized - Only admin can create persons");
       }
-
-      const response = await axios.post(API_URL, personData, {
+      
+      const response = await axios.post(API_URLS.PERSON, personData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...headers,
           "Content-Type": "application/json"
         }
       });
       return response.data;
-    } catch (error) {
-      console.error("Error creating person:", error);
-      throw error.response?.data || {
-        success: false,
-        message: "Failed to create person"
-      };
-    }
-  },
+    }),
 
-  // Update person
-  async updatePerson(id, personData) {
-    try {
-      const token = localStorage.getItem("token");
+  /**
+   * Update person - Admin only
+   */
+  updatePerson: (id, personData) => 
+    makeAuthenticatedRequest(async (headers) => {
       if (localStorage.getItem("role") !== "ADMIN") {
         throw new Error("Unauthorized - Only admin can update persons");
       }
-
-      const response = await axios.put(`${API_URL}/${id}`, personData, {
+      
+      const response = await axios.put(`${API_URLS.PERSON}/${id}`, personData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...headers,
           "Content-Type": "application/json"
         }
       });
       return response.data;
-    } catch (error) {
-      console.error("Error updating person:", error);
-      throw error.response?.data || {
-        success: false,
-        message: "Failed to update person"
-      };
-    }
-  },
+    }),
 
-  // Delete person
-  async deletePerson(id) {
-    try {
-      const token = localStorage.getItem("token");
+  /**
+   * Delete person - Admin only
+   */
+  deletePerson: (id) => 
+    makeAuthenticatedRequest(async (headers) => {
       if (localStorage.getItem("role") !== "ADMIN") {
         throw new Error("Unauthorized - Only admin can delete persons");
       }
 
-      await axios.delete(`${API_URL}/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      return { success: true, message: "Person deleted successfully" };
-    } catch (error) {
-      console.error("Error deleting person:", error);
-      if (error.response?.status === 400) {
+      try {
+        await axios.delete(`${API_URLS.PERSON}/${id}`, { headers });
         return { success: true, message: "Person deleted successfully" };
+      } catch (error) {
+        if (error.response?.status === 400) {
+          return { success: true, message: "Person deleted successfully" };
+        }
+        throw error;
       }
-      throw error.response?.data || {
-        success: false,
-        message: "Failed to delete person"
-      };
-    }
-  },
+    }),
 
-  // Upload image
-  async uploadImage(file, abortSignal) {
-    try {
-      const token = localStorage.getItem('token');
+  /**
+   * Upload image for person
+   */
+  uploadImage: (file, abortSignal) => 
+    makeAuthenticatedRequest(async (headers) => {
       const formData = new FormData();
       formData.append('formFiles', file.originFileObj || file);
 
-      const res = await axios.post(
-        'https://eigakan2222-001-site1.jtempurl.com/api/Upload/Upload_Pictures', 
-        formData, 
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-            'accept': '*/*'
-          },
-          signal: abortSignal
-        }
-      );
-      return res;
-    } catch (err) {
-      if (axios.isCancel(err)) {
-        console.log('Upload cancelled');
-        return;
-      }
-      return err.response;
-    }
-  },
+      const uploadHeaders = {
+        ...headers,
+        'Content-Type': 'multipart/form-data',
+        'accept': '*/*'
+      };
 
-  // Get total count of persons
-  async getTotalPersons() {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/count`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      let total = 30;
-      if (response.data) {
-        if (typeof response.data === 'object') {
-          total = response.data.total || response.data.count || response.data.data || 30;
-        } else if (typeof response.data === 'number') {
-          total = response.data;
+      try {
+        const response = await axios.post(API_URLS.UPLOAD, formData, {
+          headers: uploadHeaders,
+          signal: abortSignal
+        });
+        return response;
+      } catch (err) {
+        if (axios.isCancel(err)) {
+          console.log('Upload cancelled');
+          return;
+        }
+        throw err;
+      }
+    }),
+
+  /**
+   * Get total count of persons
+   */
+  getTotalPersons: () => 
+    makeAuthenticatedRequest(async (headers) => {
+      try {
+        const response = await axios.get(`${API_URLS.PERSON}/count`, { headers });
+        
+        let total = 30;
+        if (response.data) {
+          if (typeof response.data === 'object') {
+            total = response.data.total || response.data.count || response.data.data || 30;
+          } else if (typeof response.data === 'number') {
+            total = response.data;
+          }
+        }
+        
+        return { success: true, total: Math.min(total, 30) };
+      } catch (error) {
+        // Fallback: try to get the count from the full list
+        try {
+          const response = await axios.get(API_URLS.PERSON, {
+            headers,
+            params: { pageNumber: 1, pageSize: 1000 }
+          });
+          
+          return { 
+            success: true, 
+            total: Math.min(response.data.data?.length || 30, 30)
+          };
+        } catch (innerError) {
+          return { success: false, total: 30 };
         }
       }
-      
-      return { success: true, total: Math.min(total, 30) };
-    } catch (error) {
-      console.error("Error fetching total persons:", error);
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(API_URL, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { pageNumber: 1, pageSize: 1000 }
-        });
-        
-        return { 
-          success: true, 
-          total: Math.min(response.data.data?.length || 30, 30)
-        };
-      } catch (innerError) {
-        return { success: false, total: 30 };
-      }
-    }
-  }
+    })
 };
 
 export default personService; 

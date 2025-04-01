@@ -30,7 +30,7 @@ import usePlayer from "../../hooks/usePlayer";
 import Player from "./components/Player";
 import Bottom from "./components/Bottom";
 
-const WatchTogetherContent = () => {
+const WatchTogetherPage = () => {
   const { movieId } = useParams();
   const [searchParams] = useSearchParams();
   const roomId = searchParams.get("roomId");
@@ -54,6 +54,8 @@ const WatchTogetherContent = () => {
   const [isHost, setIsHost] = useState(false);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [showParticipantGrid, setShowParticipantGrid] = useState(false);
+  const [showOtherVideos, setShowOtherVideos] = useState(true);
 
   const { socket, isConnected } = useWatchTogetherSocket();
   const { peer, myId } = usePeer(roomId);
@@ -775,6 +777,11 @@ const WatchTogetherContent = () => {
   const isMuted = myPlayer?.muted || false;
   const isPlaying = myPlayer?.playing || false;
 
+  // Thêm hàm để toggle hiển thị
+  const toggleOtherVideos = () => {
+    setShowOtherVideos(!showOtherVideos);
+  };
+
   //=================================================================
   return (
     <div className="fixed inset-0 bg-black flex flex-col pt-16">
@@ -801,51 +808,53 @@ const WatchTogetherContent = () => {
             )}
 
             {/* Participant Videos Grid */}
-            <div className="absolute bottom-4 right-4 flex flex-wrap gap-2 z-10 max-w-[40%]">
-              {roomUsers
-                .filter(
-                  (participant) =>
-                    participant.id !== user?.id &&
-                    participant.userName !== user?.fullName
-                )
-                .map((participant) => (
-                  <div
-                    key={participant.id}
-                    className="w-32 h-24 bg-gray-800 rounded-lg overflow-hidden shadow-lg"
-                  >
-                    {participantStreams[participant.id] ? (
-                      <ParticipantVideo
-                        participant={participant}
-                        participantStream={participantStreams[participant.id]}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                        <div className="flex flex-col items-center">
-                          <Avatar
-                            src={
-                              participant.avatar ||
-                              "/placeholder.svg?height=40&width=40"
-                            }
-                            size={40}
-                            className="mb-1"
-                          />
-                          <span className="text-white text-xs truncate max-w-[80px]">
-                            {participant.userName}
-                          </span>
-                          <div className="flex items-center gap-1 mt-1">
-                            {participant.isMuted && (
-                              <MicOff size={10} className="text-red-500" />
-                            )}
-                            {participant.isVideoOff && (
-                              <VideoOff size={10} className="text-red-500" />
-                            )}
+            {showParticipantGrid && (
+              <div className="absolute bottom-4 right-4 flex flex-wrap gap-2 z-10 max-w-[40%]">
+                {roomUsers
+                  .filter(
+                    (participant) =>
+                      participant.id !== user?.id &&
+                      participant.userName !== user?.fullName
+                  )
+                  .map((participant) => (
+                    <div
+                      key={participant.id}
+                      className="w-32 h-24 bg-gray-800 rounded-lg overflow-hidden shadow-lg"
+                    >
+                      {participantStreams[participant.id] ? (
+                        <ParticipantVideo
+                          participant={participant}
+                          participantStream={participantStreams[participant.id]}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                          <div className="flex flex-col items-center">
+                            <Avatar
+                              src={
+                                participant.avatar ||
+                                "/placeholder.svg?height=40&width=40"
+                              }
+                              size={40}
+                              className="mb-1"
+                            />
+                            <span className="text-white text-xs truncate max-w-[80px]">
+                              {participant.userName}
+                            </span>
+                            <div className="flex items-center gap-1 mt-1">
+                              {participant.isMuted && (
+                                <MicOff size={10} className="text-red-500" />
+                              )}
+                              {participant.isVideoOff && (
+                                <VideoOff size={10} className="text-red-500" />
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           {/* Video Controls */}
@@ -898,6 +907,29 @@ const WatchTogetherContent = () => {
                   </Button>
                 </Tooltip>
 
+                {/* Thêm nút mới để hiển thị/ẩn camera của người dùng khác */}
+                <Tooltip
+                  title={
+                    showOtherVideos
+                      ? "Hide Other Cameras"
+                      : "Show Other Cameras"
+                  }
+                >
+                  <Button
+                    type={showOtherVideos ? "primary" : "default"}
+                    shape="circle"
+                    icon={
+                      showOtherVideos ? (
+                        <Video className="h-4 w-4" />
+                      ) : (
+                        <VideoOff className="h-4 w-4" />
+                      )
+                    }
+                    onClick={toggleOtherVideos}
+                    className="relative flex items-center justify-center"
+                  />
+                </Tooltip>
+
                 {/* Chat Button */}
                 <Tooltip title={showChat ? "Hide Chat" : "Show Chat"}>
                   <Button
@@ -934,6 +966,14 @@ const WatchTogetherContent = () => {
                     className="flex items-center justify-center"
                   />
                 </Tooltip>
+
+                {/* Toggle Participant Grid Button */}
+                <Button
+                  onClick={() => setShowParticipantGrid(!showParticipantGrid)}
+                  className="ml-2"
+                >
+                  {showParticipantGrid ? "Hide Grid" : "Show Grid"}
+                </Button>
               </div>
             </div>
           </div>
@@ -982,8 +1022,12 @@ const WatchTogetherContent = () => {
       </div>
 
       {/* Right panel - other participants' videos */}
-      {Object.keys(otherPlayers).length > 0 && (
-        <div className="absolute flex flex-col overflow-y-auto z-20 space-y-3 w-[220px] max-h-[60vh] right-5 top-20">
+      {Object.keys(otherPlayers).length > 0 && showOtherVideos && (
+        <div
+          className={`absolute flex flex-col overflow-y-auto z-20 space-y-3 w-[220px] max-h-[60vh] right-5 top-20 ${
+            showChat || showParticipants ? "right-[340px]" : "right-5"
+          }`}
+        >
           {Object.keys(otherPlayers).map((playerId) => {
             if (!otherPlayers[playerId]) return null;
 
@@ -1082,15 +1126,6 @@ const WatchTogetherContent = () => {
               <EyeOff className="h-5 w-5 text-white" />
             )}
           </button>
-
-          <button
-            onClick={handleLeaveRoom}
-            className="p-2 rounded-full bg-red-500 hover:bg-red-600"
-            title="Leave room"
-            disabled={isLeaving}
-          >
-            <X className="h-5 w-5 text-white" />
-          </button>
         </div>
       </div>
     </div>
@@ -1100,7 +1135,7 @@ const WatchTogetherContent = () => {
 const WatchTogether = () => {
   return (
     <WatchTogetherSocketProvider>
-      <WatchTogetherContent />
+      <WatchTogetherPage />
     </WatchTogetherSocketProvider>
   );
 };

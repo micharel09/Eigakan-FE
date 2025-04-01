@@ -1,7 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Star } from "lucide-react";
 
 function MovieCard({ movie }) {
+  // Get the IMDB rating or fallback to internal rating
+  const imdbRating =
+    movie.imdbRating !== undefined ? movie.imdbRating : movie.rating;
+
   return (
     <Link
       to={`/movie/${movie.id}`}
@@ -52,12 +57,16 @@ function MovieCard({ movie }) {
           </div>
 
           {/* Rating Badge */}
-          <div
-            className="absolute top-2 right-2 bg-[#FF009F]/90 text-white px-2 py-1 
-            rounded text-sm font-medium"
-          >
-            {movie.rating}
-          </div>
+          {imdbRating > 0 && (
+            <div
+              className="absolute top-2 right-2 bg-[#F5C518] text-black px-2 py-1 
+              rounded text-sm font-medium flex items-center gap-1"
+              title={movie.imdbRating ? "IMDB Rating" : "Internal Rating"}
+            >
+              <Star className="w-3 h-3" fill="currentColor" />
+              <span>{imdbRating.toFixed(1)}</span>
+            </div>
+          )}
         </div>
       </div>
     </Link>

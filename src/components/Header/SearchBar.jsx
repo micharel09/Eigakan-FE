@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Clock, Film, User } from "lucide-react";
+import { Search, X, Clock, Film, User, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import movieService from "../../apis/Movie/movie.js";
 
@@ -92,7 +92,7 @@ const SearchBar = ({ onClose }) => {
             type="text"
             value={searchTerm}
             onChange={handleSearch}
-            placeholder="Tìm kiếm phim..."
+            placeholder="Search for movies..."
             className="flex-1 bg-transparent outline-none text-white 
                      placeholder-gray-400 text-base py-2"
           />
@@ -118,22 +118,22 @@ const SearchBar = ({ onClose }) => {
               <div className="flex justify-center">
                 <div className="w-10 h-10 border-2 border-[#FF009F]/30 border-t-[#FF009F] rounded-full animate-spin" />
               </div>
-              <p className="mt-3 text-sm">Đang tìm kiếm...</p>
+              <p className="mt-3 text-sm">Searching...</p>
             </div>
           ) : searchTerm && searchResults.length === 0 ? (
             <div className="p-12 text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-800/50 mb-4">
                 <Search className="w-10 h-10 text-gray-500" />
               </div>
-              <p className="text-gray-400 text-lg">Không tìm thấy kết quả</p>
+              <p className="text-gray-400 text-lg">No results found</p>
               <p className="text-gray-500 mt-2">
-                Thử tìm kiếm với từ khóa khác
+                Try searching with different keywords
               </p>
             </div>
           ) : searchTerm ? (
             <div>
               <div className="p-3 text-xs text-gray-400 uppercase tracking-wider font-medium bg-gray-800/50">
-                Kết quả tìm kiếm
+                Search Results
               </div>
 
               {displayResults.map((movie) => (
@@ -196,14 +196,24 @@ const SearchBar = ({ onClose }) => {
                     {movie.director && (
                       <div className="mt-2 flex items-center text-sm text-gray-400">
                         <User className="w-4 h-4 mr-1" />
-                        <span>Đạo diễn: {movie.director}</span>
+                        <span>Director: {movie.director}</span>
                       </div>
                     )}
 
-                    {movie.rating > 0 && (
+                    {(movie.imdbRating > 0 || movie.rating > 0) && (
                       <div className="mt-2">
-                        <span className="text-sm bg-[#FF009F]/20 text-[#FF009F] px-2 py-0.5 rounded-md">
-                          {movie.rating.toFixed(1)}
+                        <span
+                          className={`text-sm px-2 py-0.5 rounded-md flex items-center w-fit gap-1 ${
+                            movie.imdbRating
+                              ? "bg-[#F5C518]/20 text-[#F5C518]"
+                              : "bg-[#FF009F]/20 text-[#FF009F]"
+                          }`}
+                          title={
+                            movie.imdbRating ? "IMDB Rating" : "Internal Rating"
+                          }
+                        >
+                          <Star className="w-3 h-3" fill="currentColor" />
+                          {(movie.imdbRating || movie.rating).toFixed(1)}
                         </span>
                       </div>
                     )}
@@ -228,7 +238,7 @@ const SearchBar = ({ onClose }) => {
                              text-white rounded-lg hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 transition-all
                              font-medium shadow-lg hover:shadow-[#FF009F]/20 hover:shadow-xl"
                   >
-                    Xem tất cả {searchResults.length} kết quả
+                    View all {searchResults.length} results
                   </button>
                 </div>
               )}
