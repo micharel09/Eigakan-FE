@@ -15,9 +15,6 @@ const usePeer = (roomId) => {
     import("peerjs")
       .then(({ default: Peer }) => {
         const myPeer = new Peer(undefined, {
-          host: "eigakan.metered.live", // Dùng Metered Domain của bạn
-          port: 443,
-          secure: true, // Bật bảo mật HTTPS
           debug: 3,
           config: {
             iceServers: [
