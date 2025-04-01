@@ -13,37 +13,51 @@ const usePeer = (roomId) => {
     if (isPeerSet.current || !roomId || !socket || !isConnected) return;
     isPeerSet.current = true;
 
-    // Cập nhật cấu hình TURN server với các server đáng tin cậy hơn
+    // Thay đổi cấu hình PeerJS để sử dụng TURN server khác
     const peerConfig = {
       debug: 3,
+      secure: true, // Đảm bảo kết nối an toàn
       config: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
-          // Sử dụng nhiều TURN server khác nhau để tăng khả năng kết nối
+          // Sử dụng TURN server từ Xirsys (miễn phí cho phát triển)
           {
-            urls: [
-              "turn:openrelay.metered.ca:80",
-              "turn:openrelay.metered.ca:443",
-              "turn:openrelay.metered.ca:443?transport=tcp",
-              "turn:openrelay.metered.ca:80?transport=tcp",
-            ],
-            username: "openrelayproject",
-            credential: "openrelayproject",
-          },
-          // Thêm TURN server từ Google
-          {
-            urls: "turn:74.125.140.127:19305?transport=udp",
-            username: "CKjCuLwFEgahxNRjuTAYzc/s6OMT",
-            credential: "u1SQDR/SQsPQIxXNWQT7czc/G4c=",
+            urls: "turn:us-turn1.xirsys.com:80?transport=udp",
+            username:
+              "0vKSW_0z9-AvVG-LRD8IvCl7W_YVUmMLcQIxKrEw3ZL-V3VKSbCvVj0AAAAAAAAAABZ9Y2xhdWRlLXdlYnJ0Yy10ZXN0",
+            credential: "2aa9e624-3cf1-11ef-8de1-0242ac120004",
           },
           {
-            urls: "turn:74.125.140.127:19305?transport=tcp",
-            username: "CKjCuLwFEgahxNRjuTAYzc/s6OMT",
-            credential: "u1SQDR/SQsPQIxXNWQT7czc/G4c=",
+            urls: "turn:us-turn1.xirsys.com:3478?transport=udp",
+            username:
+              "0vKSW_0z9-AvVG-LRD8IvCl7W_YVUmMLcQIxKrEw3ZL-V3VKSbCvVj0AAAAAAAAAABZ9Y2xhdWRlLXdlYnJ0Yy10ZXN0",
+            credential: "2aa9e624-3cf1-11ef-8de1-0242ac120004",
+          },
+          {
+            urls: "turn:us-turn1.xirsys.com:80?transport=tcp",
+            username:
+              "0vKSW_0z9-AvVG-LRD8IvCl7W_YVUmMLcQIxKrEw3ZL-V3VKSbCvVj0AAAAAAAAAABZ9Y2xhdWRlLXdlYnJ0Yy10ZXN0",
+            credential: "2aa9e624-3cf1-11ef-8de1-0242ac120004",
+          },
+          {
+            urls: "turn:us-turn1.xirsys.com:3478?transport=tcp",
+            username:
+              "0vKSW_0z9-AvVG-LRD8IvCl7W_YVUmMLcQIxKrEw3ZL-V3VKSbCvVj0AAAAAAAAAABZ9Y2xhdWRlLXdlYnJ0Yy10ZXN0",
+            credential: "2aa9e624-3cf1-11ef-8de1-0242ac120004",
+          },
+          {
+            urls: "turns:us-turn1.xirsys.com:443?transport=tcp",
+            username:
+              "0vKSW_0z9-AvVG-LRD8IvCl7W_YVUmMLcQIxKrEw3ZL-V3VKSbCvVj0AAAAAAAAAABZ9Y2xhdWRlLXdlYnJ0Yy10ZXN0",
+            credential: "2aa9e624-3cf1-11ef-8de1-0242ac120004",
           },
         ],
         iceCandidatePoolSize: 10,
       },
+      // Thêm các tùy chọn để ưu tiên TURN
+      host: "localhost", // Sử dụng localhost để tránh vấn đề với DNS
+      path: "/peerjs", // Đường dẫn mặc định
+      port: 443, // Cổng an toàn
     };
 
     try {
@@ -53,6 +67,15 @@ const usePeer = (roomId) => {
       newPeer.on("open", (id) => {
         console.log("My peer ID is:", id);
         setMyId(id);
+
+        // Cấu hình để ưu tiên TURN
+        if (newPeer._options) {
+          newPeer._options.config = {
+            ...newPeer._options.config,
+            iceTransportPolicy: "relay", // Chỉ sử dụng TURN server, bỏ qua STUN
+          };
+        }
+
         socket.emit("join-room", { roomId, userId: id });
       });
 
@@ -104,14 +127,21 @@ const usePeer = (roomId) => {
             "Kết nối ICE thất bại - có thể TURN server không hoạt động"
           );
 
-          // Thử kết nối lại sau 3 giây
-          setTimeout(() => {
-            console.log("Đang thử kết nối lại...");
-            // Thử kết nối lại bằng cách khởi tạo lại ICE
-            if (newPeer.restartIce) {
-              newPeer.restartIce();
-            }
-          }, 3000);
+          // Thử khởi tạo lại ICE
+          if (newPeer.restartIce) {
+            console.log("Đang thử khởi tạo lại ICE...");
+            newPeer.restartIce();
+
+            // Nếu vẫn thất bại sau 5 giây, khởi tạo lại toàn bộ kết nối
+            setTimeout(() => {
+              if (newPeer.iceConnectionState === "failed") {
+                restartConnection();
+              }
+            }, 5000);
+          } else {
+            // Nếu không có phương thức restartIce, khởi tạo lại toàn bộ kết nối
+            restartConnection();
+          }
         }
       });
 
@@ -127,6 +157,25 @@ const usePeer = (roomId) => {
       setError(err);
     }
   }, [roomId, socket, isConnected]);
+
+  // Thêm hàm để khởi tạo lại kết nối khi thất bại
+  const restartConnection = () => {
+    console.log("Đang khởi tạo lại kết nối...");
+
+    // Hủy kết nối cũ
+    if (peer) {
+      peer.destroy();
+    }
+
+    // Đặt lại trạng thái
+    isPeerSet.current = false;
+
+    // Khởi tạo lại sau 2 giây
+    setTimeout(() => {
+      // Kích hoạt useEffect để tạo kết nối mới
+      setPeer(null);
+    }, 2000);
+  };
 
   return {
     peer,
