@@ -15,14 +15,18 @@ const usePeer = (roomId) => {
     import("peerjs")
       .then(({ default: Peer }) => {
         const myPeer = new Peer(undefined, {
-          host: "0.peerjs.com",
-          port: 443,
-          secure: true,
+          host: "localhost", // Nếu deploy thì dùng IP server
+          port: 9000,
+          path: "/myapp",
           debug: 3,
           config: {
             iceServers: [
               { urls: "stun:stun.l.google.com:19302" },
-              { urls: "stun:global.stun.twilio.com:3478" },
+              {
+                urls: "turn:relay1.expressturn.com:3478",
+                username: "efXU9WzPjF",
+                credential: "zD5pDqI3Kz",
+              },
             ],
           },
         });
