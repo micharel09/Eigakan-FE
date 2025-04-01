@@ -22,11 +22,28 @@ const usePeer = (roomId) => {
           secure: false,
           config: {
             iceServers: [
-              { urls: "stun:stun.l.google.com:19302" },
               {
-                urls: "turn:relay1.expressturn.com:3478",
-                username: "efXU9WzPjF",
-                credential: "zD5pDqI3Kz",
+                urls: "stun:stun.relay.metered.ca:80",
+              },
+              {
+                urls: "turn:global.relay.metered.ca:80",
+                username: "295a034c94d499118aa0b5bd",
+                credential: "5x8yaBNbZrjBYLo0",
+              },
+              {
+                urls: "turn:global.relay.metered.ca:80?transport=tcp",
+                username: "295a034c94d499118aa0b5bd",
+                credential: "5x8yaBNbZrjBYLo0",
+              },
+              {
+                urls: "turn:global.relay.metered.ca:443",
+                username: "295a034c94d499118aa0b5bd",
+                credential: "5x8yaBNbZrjBYLo0",
+              },
+              {
+                urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                username: "295a034c94d499118aa0b5bd",
+                credential: "5x8yaBNbZrjBYLo0",
               },
             ],
           },
