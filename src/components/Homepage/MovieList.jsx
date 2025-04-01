@@ -53,17 +53,18 @@ const MovieList = ({ title, genreName, showAll = false }) => {
 
   if (loading) {
     return (
-      <div className="py-8">
-        <div className="animate-pulse flex space-x-4 overflow-hidden">
+      <div className="py-4 sm:py-8">
+        <div className="flex space-x-2 sm:space-x-4 overflow-hidden px-2">
           {[...Array(6)].map((_, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="bg-gray-800/50 rounded-lg h-[360px] w-[240px] flex-shrink-0"
+              className="bg-gray-800/50 rounded-lg h-[240px] sm:h-[300px] md:h-[360px] w-[160px] sm:w-[200px] md:w-[240px] flex-shrink-0 relative overflow-hidden"
             >
-              <div className="h-full w-full bg-gradient-to-b from-transparent to-gray-900/30" />
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-800/50 via-gray-700/50 to-gray-800/50 animate-shimmer"></div>
+              <div className="h-full w-full bg-gradient-to-b from-transparent to-gray-900/30 relative z-10" />
             </motion.div>
           ))}
         </div>
@@ -72,15 +73,15 @@ const MovieList = ({ title, genreName, showAll = false }) => {
   }
 
   return (
-    <div className="mb-12">
-      <div className="flex items-center justify-between mb-6 px-4">
+    <div className="mb-8 sm:mb-12">
+      <div className="flex items-center justify-between mb-4 sm:mb-6 px-2 sm:px-4">
         <motion.h2
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-2xl font-bold text-white flex items-center gap-3"
+          className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3"
         >
           {title}
-          <span className="text-sm font-normal text-gray-400">
+          <span className="text-xs sm:text-sm font-normal text-gray-400">
             ({movies.length})
           </span>
         </motion.h2>
@@ -91,7 +92,7 @@ const MovieList = ({ title, genreName, showAll = false }) => {
           >
             <Link
               to={`/genre/${genreName}`}
-              className="px-4 py-2 rounded-full text-sm font-medium bg-[#FF009F]/10 text-[#FF009F] hover:bg-[#FF009F]/20 transition-all duration-300"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-[#FF009F]/10 text-[#FF009F] hover:bg-[#FF009F]/20 transition-all duration-300"
             >
               View All
             </Link>
@@ -107,14 +108,29 @@ const MovieList = ({ title, genreName, showAll = false }) => {
           disableOnInteraction: true,
           pauseOnMouseEnter: true,
         }}
-        spaceBetween={20}
+        spaceBetween={12}
         slidesPerView="auto"
-        className="movie-list-swiper"
-        slidesOffsetBefore={20}
-        slidesOffsetAfter={20}
+        className="movie-list-swiper px-2"
+        slidesOffsetBefore={8}
+        slidesOffsetAfter={8}
+        breakpoints={{
+          640: {
+            spaceBetween: 16,
+            slidesOffsetBefore: 16,
+            slidesOffsetAfter: 16,
+          },
+          768: {
+            spaceBetween: 20,
+            slidesOffsetBefore: 20,
+            slidesOffsetAfter: 20,
+          },
+        }}
       >
         {movies.map((movie) => (
-          <SwiperSlide key={movie.id} className="!w-[240px]">
+          <SwiperSlide
+            key={movie.id}
+            className="!w-[140px] sm:!w-[180px] md:!w-[220px] lg:!w-[240px]"
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -139,52 +155,55 @@ const MovieList = ({ title, genreName, showAll = false }) => {
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover/item:opacity-100 transition-all duration-300">
-                    <div className="absolute inset-0 flex flex-col justify-between p-4">
+                    <div className="absolute inset-0 flex flex-col justify-between p-2 sm:p-4">
                       <div className="flex justify-between items-start">
-                        <span className="px-2 py-1 rounded-md bg-[#FF009F] text-white text-xs font-medium backdrop-blur-sm">
+                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-[#FF009F] text-white text-[10px] sm:text-xs font-medium backdrop-blur-sm">
                           {movie.quality || "HD"}
                         </span>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={(e) => handlePlayClick(e, movie.id)}
-                          className="p-2 rounded-full bg-white/10 backdrop-blur-sm hover:bg-[#FF009F]/80 transition-colors"
+                          className="p-1.5 sm:p-2 rounded-full bg-white/10 backdrop-blur-sm hover:bg-[#FF009F]/80 transition-colors"
                           aria-label={`Play ${movie.title}`}
                         >
-                          <PlayCircle className="w-5 h-5 text-white" />
+                          <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </motion.button>
                       </div>
 
-                      <div className="space-y-3">
-                        <h3 className="text-white font-medium line-clamp-2 group-hover/item:text-[#FF009F] transition-colors">
+                      <div className="space-y-2 sm:space-y-3">
+                        <h3 className="text-xs sm:text-sm md:text-base text-white font-medium line-clamp-2 group-hover/item:text-[#FF009F] transition-colors">
                           {movie.title}
                         </h3>
-                        <div className="space-y-2 text-sm text-gray-300">
-                          <div className="flex items-center gap-2 text-xs">
-                            <Calendar className="w-4 h-4" />
+                        <div className="space-y-1 sm:space-y-2 text-xs text-gray-300">
+                          <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs">
+                            <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>{movie.releaseYear}</span>
                             {movie.imdbScore && (
                               <>
                                 <span>•</span>
-                                <Star className="w-4 h-4 text-[#FF009F]" />
+                                <Star className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />
                                 <span>{movie.imdbScore}</span>
                               </>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-xs">
-                            <Clock className="w-4 h-4" />
+                          <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs">
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>{movie.duration} min</span>
                           </div>
                           {movie.genreNames && (
-                            <div className="flex flex-wrap gap-1">
-                              {movie.genreNames.split(",").map((genre, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-2 py-1 rounded-full bg-white/10 text-xs backdrop-blur-sm"
-                                >
-                                  {genre.trim()}
-                                </span>
-                              ))}
+                            <div className="hidden sm:flex flex-wrap gap-1">
+                              {movie.genreNames
+                                .split(",")
+                                .slice(0, 2)
+                                .map((genre, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-white/10 text-[10px] sm:text-xs backdrop-blur-sm"
+                                  >
+                                    {genre.trim()}
+                                  </span>
+                                ))}
                             </div>
                           )}
                         </div>

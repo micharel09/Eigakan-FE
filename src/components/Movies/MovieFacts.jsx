@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import GlobalApi from "../Homepage/GlobalApi";
+import GlobalApi from "../../apis/ThirdParty/GlobalApi";
 
 const MovieFacts = () => {
   const { movieId } = useParams();

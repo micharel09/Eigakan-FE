@@ -5,6 +5,7 @@ import { Spin } from "antd";
 import { Helmet } from "react-helmet";
 import authService from "../../apis/Auth/auth";
 import Navbar from "../../components/Header/Navbar";
+import { useAuth } from "../../hooks";
 
 /**
  * Initial form state
@@ -38,6 +39,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Use our custom auth hook
+  const { setUser, ROLES } = useAuth();
   const navigate = useNavigate();
 
   /**
@@ -67,20 +70,23 @@ const LoginPage = () => {
     localStorage.setItem("role", data.roleName);
     localStorage.setItem("userId", data.userId);
 
+    // Update auth state
+    setUser(data);
+
     toast.success("Login successful!");
 
     // Navigate based on role
     switch (data.roleName) {
-      case "ADMIN":
+      case ROLES.ADMIN:
         navigate("/dashboard");
         break;
-      case "MANAGER":
+      case ROLES.MANAGER:
         navigate("/manager/dashboard");
         break;
-      case "PUBLISHER":
+      case ROLES.PUBLISHER:
         navigate("/publisher/dashboard");
         break;
-      case "ADVERTISER":
+      case ROLES.ADVERTISER:
         navigate("/advertiser/dashboard");
         break;
       default:

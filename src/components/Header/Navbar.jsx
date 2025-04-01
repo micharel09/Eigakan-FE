@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import PropTypes from "prop-types";
 import { CrownOutlined } from "@ant-design/icons";
@@ -20,6 +20,7 @@ import {
   UsersRound,
   Sparkles,
   BrainCircuit,
+  ChevronDown,
 } from "lucide-react";
 
 import authService from "../../apis/Auth/auth";
@@ -27,48 +28,7 @@ import roomService from "../../apis/Room/room";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
 import RecommendedMovies from "../Homepage/RecommendedMovies";
-
-// CSS Animation for Shimmer Effect
-const shimmerKeyframes = `
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.animate-shimmer {
-  animation: shimmer 2.5s infinite;
-}
-`;
-
-const NAV_LINKS = [
-  { path: "/homescreen", label: "Movies", icon: <Film className="h-4 w-4" /> },
-  {
-    path: "/genres",
-    label: "Genres",
-    icon: <TrendingUp className="h-4 w-4" />,
-  },
-  { path: "/", label: "TV Shows", icon: <Home className="h-4 w-4" /> },
-  {
-    path: "/favorites",
-    label: "Favorite",
-    icon: <Bookmark className="h-4 w-4" />,
-  },
-  {
-    path: "/people",
-    label: "Popular People",
-    icon: <Users className="h-4 w-4" />,
-  },
-  { path: "/news", label: "News", icon: <Newspaper className="h-4 w-4" /> },
-  {
-    path: "/history",
-    label: "Search History",
-    icon: <Clock className="h-4 w-4" />,
-  },
-];
+import { useAuth, useScrollEffect, usePath } from "../../hooks";
 
 const ROLES = {
   ADMIN: "ADMIN",
@@ -79,12 +39,122 @@ const ROLES = {
   VIP_MEMBER: "VIP MEMBER",
 };
 
+const NAV_LINKS = [
+  { path: "/homescreen", label: "Movies", icon: <Film className="h-4 w-4" /> },
+  {
+    path: "/genres",
+    label: "Genres",
+    icon: <TrendingUp className="h-4 w-4" />,
+  },
+  {
+    path: "/people",
+    label: "Popular People",
+    icon: <Users className="h-4 w-4" />,
+  },
+  { path: "/news", label: "News", icon: <Newspaper className="h-4 w-4" /> },
+];
+
+// NavLink component extracted and memoized to prevent re-renders
+const NavLink = React.memo(({ path, label, icon, isActive }) => {
+  return (
+    <Link
+      to={path}
+      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-300 flex items-center gap-2 relative ${
+        isActive ? "bg-[#FF009F]/10" : "hover:bg-white/5"
+      }`}
+      aria-label={label}
+      tabIndex="0"
+    >
+      <div
+        className={`transition-colors duration-300 ${
+          isActive
+            ? "text-[#FF009F]"
+            : "text-gray-400 group-hover:text-[#FF009F]"
+        }`}
+      >
+        {icon}
+      </div>
+      <span
+        className={`transition-colors duration-300 ${
+          isActive ? "text-[#FF009F]" : "text-gray-300 group-hover:text-white"
+        }`}
+      >
+        {label}
+      </span>
+      {isActive && (
+        <motion.div
+          layoutId={`indicator-${path}`}
+          className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        />
+      )}
+    </Link>
+  );
+});
+
+NavLink.displayName = "NavLink";
+
+// Action button component extracted and memoized
+const ActionButton = React.memo(
+  ({ onClick, ariaLabel, icon, label, isSpecial = false }) => {
+    const baseClasses = isSpecial
+      ? "bg-[#FF009F]/10 hover:bg-[#FF009F]/20 border-[#FF009F]/30 hover:border-[#FF009F]/50 hover:shadow-[0_0_15px_rgba(255,0,159,0.3)]"
+      : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]";
+
+    return (
+      <button
+        onClick={onClick}
+        className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full ${baseClasses} text-white transition-all duration-300 border shadow-lg hover:scale-105 relative overflow-hidden group`}
+        aria-label={ariaLabel}
+        tabIndex="0"
+      >
+        <div
+          className={`absolute inset-0 bg-gradient-to-r ${
+            isSpecial
+              ? "from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0"
+              : "from-white/0 via-white/5 to-white/0"
+          } opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer`}
+        ></div>
+        {React.cloneElement(icon, {
+          className: `w-3.5 h-3.5 md:w-4 md:h-4 ${
+            isSpecial ? "text-[#FF009F]" : "text-[#FF009F]"
+          } group-hover:scale-110 transition-transform duration-300`,
+        })}
+        {label && (
+          <span className="text-xs hidden md:inline relative z-10">
+            {label}
+          </span>
+        )}
+      </button>
+    );
+  }
+);
+
+ActionButton.displayName = "ActionButton";
+
 const Navbar = () => {
-  const [user, setUser] = useState(() => {
-    const userData = localStorage.getItem("user");
-    return userData ? JSON.parse(userData) : null;
-  });
-  const [isScrolled, setIsScrolled] = useState(false);
+  // Use custom hooks
+  const {
+    user,
+    token,
+    handleLogout,
+    isAdmin,
+    isManager,
+    isPublisher,
+    isAdvertiser,
+    isVipMember,
+    isMember,
+  } = useAuth();
+
+  const { isScrolled } = useScrollEffect(10);
+  const { isInPath } = usePath();
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Local state
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -95,80 +165,43 @@ const Navbar = () => {
   const [showRecommendationsModal, setShowRecommendationsModal] =
     useState(false);
 
-  const navigate = useNavigate();
-  const location = useLocation();
+  // Memoized values
+  const isMoviePage = useMemo(
+    () => location.pathname.includes("/movie/"),
+    [location.pathname]
+  );
+  const role = useMemo(
+    () => user?.roleName || localStorage.getItem("role"),
+    [user]
+  );
 
-  const role = user?.roleName || localStorage.getItem("role");
-  const token = localStorage.getItem("token");
+  // Memoize dashboard path calculation
+  const dashboardPath = useMemo(() => {
+    if (isAdmin) return "/dashboard";
+    if (isManager) return "/manager/dashboard";
+    if (isPublisher) return "/publisher/dashboard";
+    if (isAdvertiser) return "/advertiser/dashboard";
+    return "";
+  }, [isAdmin, isManager, isPublisher, isAdvertiser]);
 
-  const isUserRole = (roleType) => role === roleType;
-  const isInPath = (path) => location.pathname.includes(path);
+  const shouldShowDashboardButton = useMemo(
+    () => isAdmin || isManager || isPublisher || isAdvertiser,
+    [isAdmin, isManager, isPublisher, isAdvertiser]
+  );
 
-  const isAdmin = isUserRole(ROLES.ADMIN);
-  const isManager = isUserRole(ROLES.MANAGER);
-  const isPublisher = isUserRole(ROLES.PUBLISHER);
-  const isAdvertiser = isUserRole(ROLES.ADVERTISER);
-  const isVipMember = isUserRole(ROLES.VIP_MEMBER);
-  const isMember = isUserRole(ROLES.MEMBER);
+  // Use callbacks for event handlers
+  const toggleMenu = useCallback(() => setIsOpen((prev) => !prev), []);
+  const toggleSearch = useCallback(() => setShowSearch((prev) => !prev), []);
+  const openRecommendationsModal = useCallback(
+    () => setShowRecommendationsModal(true),
+    []
+  );
+  const closeRecommendationsModal = useCallback(
+    () => setShowRecommendationsModal(false),
+    []
+  );
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const updateUser = () => setUser(authService.getCurrentUser());
-    authService.addListener(updateUser);
-    return () => authService.removeListener(updateUser);
-  }, []);
-
-  useEffect(() => {
-    const handleRoleChange = () => {
-      setUser(JSON.parse(localStorage.getItem("user") || "{}"));
-    };
-    window.addEventListener("userRoleChanged", handleRoleChange);
-    return () =>
-      window.removeEventListener("userRoleChanged", handleRoleChange);
-  }, []);
-
-  useEffect(() => {
-    const fetchHostedRooms = async () => {
-      if (!token || !user) return;
-
-      try {
-        const response = await roomService.getHostRoom();
-        if (!response.success) return;
-
-        const roomData = Array.isArray(response.data)
-          ? response.data
-          : [response.data].filter(Boolean);
-
-        setHostedRooms(roomData.filter((room) => room?.status === "Active"));
-      } catch (error) {
-        console.error("Error fetching hosted rooms:", error);
-        setHostedRooms([]);
-      }
-    };
-
-    fetchHostedRooms();
-  }, [user, token]);
-
-  const handleLogout = () => {
-    const keysToRemove = [
-      "user",
-      "token",
-      "fullName",
-      "avatar",
-      "role",
-      "userId",
-    ];
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
-    navigate("/login");
-    window.location.reload();
-  };
-
-  const handleJoinRoom = async () => {
+  const handleJoinRoom = useCallback(async () => {
     if (isJoining || !roomId.trim()) return;
     setIsJoining(true);
 
@@ -202,10 +235,10 @@ const Navbar = () => {
         return;
       }
       
-      if (roomDetails?.success == false) {
+      if (roomDetails?.data.success == false) {
         notification.error({
           message: "Error",
-          description: roomDetails?.message || "Room details not available.",
+          description: roomDetails?.data?.message || "Room details not available.",
         });
         return;
       }
@@ -253,240 +286,155 @@ const Navbar = () => {
     } finally {
       setIsJoining(false);
     }
-  };
+  }, [isJoining, roomId, token, user, hostedRooms, navigate]);
 
-  const getDashboardPath = () => {
-    if (isAdmin) return "/dashboard";
-    if (isManager) return "/manager/dashboard";
-    if (isPublisher) return "/publisher/dashboard";
-    if (isAdvertiser) return "/advertiser/dashboard";
-    return "";
-  };
+  // Fetch hosted rooms
+  useEffect(() => {
+    const fetchHostedRooms = async () => {
+      if (!token || !user) return;
 
-  const shouldShowDashboardButton =
-    isAdmin || isManager || isPublisher || isAdvertiser;
+      try {
+        const response = await roomService.getHostRoom();
+        if (!response.success) return;
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
+        const roomData = Array.isArray(response.data)
+          ? response.data
+          : [response.data].filter(Boolean);
 
-  const toggleSearch = () => {
-    setShowSearch(!showSearch);
-  };
+        setHostedRooms(roomData.filter((room) => room?.status === "Active"));
+      } catch (error) {
+        console.error("Error fetching hosted rooms:", error);
+        setHostedRooms([]);
+      }
+    };
 
-  const openRecommendationsModal = () => {
-    setShowRecommendationsModal(true);
-  };
+    fetchHostedRooms();
+  }, [user, token]);
 
-  const closeRecommendationsModal = () => {
-    setShowRecommendationsModal(false);
-  };
+  // Memoize filtered navigation links
+  const filteredNavLinks = useMemo(() => {
+    return NAV_LINKS.filter((link) => !isInPath("/") || link.path !== "/");
+  }, [isInPath]);
+
+  // Rest of the component remains the same, but using the memoized values
+  // and extracted components for better performance
 
   return (
     <div
-      className="navbar-wrapper"
-      style={{ margin: 0, padding: 0, border: 0 }}
+      className={`relative ${
+        isMoviePage ? "m-0 p-0 border-0 shadow-none navbar-clean" : ""
+      }`}
     >
-      <style dangerouslySetInnerHTML={{ __html: shimmerKeyframes }} />
+      {/* Background gradient that fades to transparent - only shown on non-movie pages */}
+      {!isMoviePage && (
+        <div className="fixed top-0 left-0 right-0 z-40 pointer-events-none">
+          <div className="h-20 w-full">
+            <div
+              className={`absolute inset-0 bg-gradient-to-b from-black via-black/70 to-transparent transition-opacity duration-300 border-0 outline-none shadow-none ${
+                isScrolled ? "opacity-90" : "opacity-85"
+              }`}
+            ></div>
+          </div>
+        </div>
+      )}
+
+      {/* Actual navbar container - transparent background */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-0"
-        style={{
-          backgroundColor: "rgba(0, 0, 0, 0.85)",
-          backdropFilter: "blur(10px)",
-          borderBottom: "1px solid rgba(255, 0, 159, 0.1)",
-          boxShadow: "0 4px 30px rgba(0, 0, 0, 0.3)",
-          margin: 0,
-          padding: 0,
-        }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          isMoviePage ? "border-0 shadow-none bg-transparent" : ""
+        }`}
       >
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link to="/homepage" className="flex items-center group">
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="text-[#FF009F] font-bold text-3xl tracking-wider relative"
-                whileHover={{ scale: 1.05 }}
-              >
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] eigakan-gradient relative z-10">
+        <div className="container mx-auto px-4 lg:px-6">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Logo - Simple with gradient color effect but no hover/transition animations */}
+            <Link
+              to="/homepage"
+              className="flex items-center"
+              aria-label="Home"
+            >
+              <div className="navbar-logo text-[#FF009F] font-bold text-2xl md:text-3xl tracking-wider">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] eigakan-gradient">
                   EIGAKAN
                 </span>
-                <div className="absolute inset-0 bg-[#FF009F] blur-[20px] opacity-20 group-hover:opacity-30 transition-opacity duration-300 z-0"></div>
-              </motion.div>
+              </div>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-1">
-              {/* Thêm nút Dashboard nếu là vai trò cần thiết */}
+            <nav className="hidden md:flex items-center space-x-1">
               {shouldShowDashboardButton && (
-                <Link
-                  to={getDashboardPath()}
-                  className="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer hover:scale-105"
-                  style={{
-                    color:
-                      location.pathname === getDashboardPath()
-                        ? "#ffffff"
-                        : "#d1d5db",
-                    backgroundColor:
-                      location.pathname === getDashboardPath()
-                        ? "rgba(255, 0, 159, 0.2)"
-                        : "transparent",
-                    borderBottom:
-                      location.pathname === getDashboardPath()
-                        ? "2px solid #FF009F"
-                        : "none",
-                  }}
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </Link>
+                <NavLink
+                  path={dashboardPath}
+                  label="Dashboard"
+                  icon={<LayoutDashboard className="w-4 h-4" />}
+                  isActive={isInPath(dashboardPath)}
+                />
               )}
 
-              {NAV_LINKS.filter(
-                (link) => !["/", "/favorites", "/history"].includes(link.path)
-              ).map((link) => (
-                <Link
+              {filteredNavLinks.map((link) => (
+                <NavLink
                   key={link.path}
-                  to={link.path}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer hover:scale-105 relative group overflow-hidden`}
-                  style={{
-                    color:
-                      location.pathname === link.path ? "#ffffff" : "#d1d5db",
-                    backgroundColor:
-                      location.pathname === link.path
-                        ? "rgba(255, 0, 159, 0.2)"
-                        : "transparent",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (location.pathname !== link.path) {
-                      e.currentTarget.style.backgroundColor =
-                        "rgba(255, 255, 255, 0.05)";
-                      e.currentTarget.style.color = "#ffffff";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (location.pathname !== link.path) {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = "#d1d5db";
-                    }
-                  }}
-                >
-                  <div
-                    className={`${
-                      location.pathname === link.path
-                        ? "text-[#FF009F]"
-                        : "text-gray-400 group-hover:text-[#FF009F]"
-                    } transition-colors duration-300`}
-                  >
-                    {link.icon}
-                  </div>
-                  <span>{link.label}</span>
-                  {location.pathname === link.path && (
-                    <motion.div
-                      layoutId="activeNavIndicator"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  )}
-                </Link>
+                  path={link.path}
+                  label={link.label}
+                  icon={link.icon}
+                  isActive={isInPath(link.path)}
+                />
               ))}
+
               {isAdmin && (
-                <Link
-                  to="/admin/persons"
-                  className="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 cursor-pointer hover:scale-105 relative group overflow-hidden"
-                  style={{
-                    color:
-                      location.pathname === "/admin/persons"
-                        ? "#ffffff"
-                        : "#d1d5db",
-                    backgroundColor:
-                      location.pathname === "/admin/persons"
-                        ? "rgba(255, 0, 159, 0.2)"
-                        : "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (location.pathname !== "/admin/persons") {
-                      e.currentTarget.style.backgroundColor =
-                        "rgba(255, 255, 255, 0.05)";
-                      e.currentTarget.style.color = "#ffffff";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (location.pathname !== "/admin/persons") {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = "#d1d5db";
-                    }
-                  }}
-                >
-                  <div
-                    className={`${
-                      location.pathname === "/admin/persons"
-                        ? "text-[#FF009F]"
-                        : "text-gray-400 group-hover:text-[#FF009F]"
-                    } transition-colors duration-300`}
-                  >
-                    <User className="w-4 h-4" />
-                  </div>
-                  <span>Person Management</span>
-                  {location.pathname === "/admin/persons" && (
-                    <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  )}
-                </Link>
+                <NavLink
+                  path="/admin/persons"
+                  label="Person Management"
+                  icon={<User className="w-4 h-4" />}
+                  isActive={isInPath("/admin/persons")}
+                />
               )}
             </nav>
 
             {/* Right Side Actions */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 md:space-x-4">
+              {/* Toggle Mobile Menu Button - Only visible on mobile */}
+              <button
+                className="md:hidden text-white hover:text-[#FF009F] transition-colors"
+                onClick={toggleMenu}
+                aria-label="Toggle Mobile Menu"
+              >
+                {isOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
+              </button>
+
               {/* Join Room Button */}
               {token && user && (
-                <button
+                <ActionButton
                   onClick={() => setIsJoinRoomModalVisible(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30 hover:border-[#FF009F]/50 shadow-lg hover:shadow-[0_0_15px_rgba(255,0,159,0.3)] cursor-pointer hover:scale-105 relative overflow-hidden group"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer"></div>
-                  <UsersRound className="w-4 h-4 text-[#FF009F] group-hover:scale-110 transition-transform duration-300" />
-                  <span className="text-sm hidden sm:inline relative z-10">
-                    Join Room
-                  </span>
-                </button>
+                  ariaLabel="Join Room"
+                  icon={<UsersRound />}
+                  label="Join Room"
+                  isSpecial={true}
+                />
               )}
 
               {/* AI Recommendations Button - Only for VIP MEMBER, ADMIN or MANAGER*/}
-              {isVipMember || isAdmin || isManager ? (
-                <button
+              {(isVipMember || isAdmin || isManager) && (
+                <ActionButton
                   onClick={openRecommendationsModal}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30 hover:border-[#FF009F]/50 shadow-lg hover:shadow-[0_0_15px_rgba(255,0,159,0.3)] cursor-pointer hover:scale-105 relative overflow-hidden group"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer"></div>
-                  <BrainCircuit className="w-4 h-4 text-[#FF009F] group-hover:scale-110 transition-transform duration-300" />
-                  <span className="text-sm hidden sm:inline relative z-10">
-                    AI Picks
-                  </span>
-                  <Sparkles className="w-3 h-3 text-[#FF009F]" />
-                </button>
-              ) : null}
+                  ariaLabel="AI Recommendations"
+                  icon={<BrainCircuit />}
+                  label="AI Picks"
+                  isSpecial={true}
+                />
+              )}
 
               {/* Search Button */}
-              <button
+              <ActionButton
                 onClick={toggleSearch}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white transition-all duration-300 border border-white/10 hover:border-white/20 shadow-lg hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] cursor-pointer hover:scale-105 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer"></div>
-                <Search className="w-4 h-4 text-[#FF009F] group-hover:scale-110 transition-transform duration-300" />
-                <span className="text-sm hidden sm:inline relative z-10">
-                  Search
-                </span>
-              </button>
+                ariaLabel="Search"
+                icon={<Search />}
+                label="Search"
+                isSpecial={false}
+              />
 
               {/* User Menu or Login Button */}
               {token && user ? (
@@ -500,46 +448,25 @@ const Navbar = () => {
                       setShowProfileMenu(!showProfileMenu);
                     }}
                   />
-                  {(role === "MEMBER" || user.roleName === "MEMBER") && (
+                  {isMember && (
                     <Link
                       to="/subscription-plans"
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                      bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white transition-all
-                      duration-300 ease-in-out shadow-md hover:shadow-[0_0_15px_rgba(255,0,159,0.5)]
-                      transform hover:translate-y-[-2px] cursor-pointer hover:scale-105 relative overflow-hidden group"
+                      className="hidden md:flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs font-medium
+                      bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white transition-all"
                     >
-                      <div className="absolute top-0 left-0 right-0 h-full w-full bg-gradient-to-r from-[#FF009F]/0 via-white/20 to-[#FF009F]/0 transform -skew-x-30 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-700"></div>
-                      <CrownOutlined className="text-yellow-300 group-hover:animate-pulse" />
-                      <span className="relative z-10">Upgrade Plan</span>
+                      <CrownOutlined className="text-yellow-300" />
+                      Upgrade
                     </Link>
                   )}
                 </>
               ) : (
                 <Link
                   to="/login"
-                  className="bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 
-                  text-white px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300 
-                  shadow-md hover:shadow-[0_0_20px_rgba(255,0,159,0.4)] transform hover:translate-y-[-2px] cursor-pointer
-                  relative overflow-hidden group"
+                  className="px-4 py-2 rounded-lg bg-[#FF009F] hover:bg-[#FF0086] text-white transition-all duration-200 text-sm font-medium"
                 >
-                  <span className="relative z-10">Login</span>
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] blur-sm"></div>
-                  </div>
+                  Login
                 </Link>
               )}
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={toggleMenu}
-                className="md:hidden p-2 text-white hover:text-[#FF009F] transition-colors bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer"
-              >
-                {isOpen ? (
-                  <X className="w-6 h-6" />
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
-              </button>
             </div>
           </div>
         </div>
@@ -549,74 +476,135 @@ const Navbar = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-40 pt-16 md:hidden"
-            style={{
-              backgroundColor: "rgba(0, 0, 0, 0.95)",
-              backdropFilter: "blur(8px)",
-            }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="fixed inset-0 z-40 pt-16 md:hidden overflow-y-auto bg-black/95 backdrop-blur-md"
+            aria-label="Mobile menu"
           >
-            <div className="container mx-auto px-4 py-8">
-              <nav className="flex flex-col space-y-4">
+            <div className="container mx-auto px-4 py-6">
+              <nav className="flex flex-col space-y-3">
                 {token && user && (
                   <button
                     onClick={() => {
                       setIsJoinRoomModalVisible(true);
                       setIsOpen(false);
                     }}
-                    className="flex items-center gap-3 p-3 rounded-lg transition-all duration-300 text-gray-300 hover:bg-white/5 hover:text-white cursor-pointer hover:scale-102"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 border border-[#FF009F]/30"
+                    aria-label="Join Room"
+                    tabIndex="0"
                   >
                     <UsersRound className="w-5 h-5 text-[#FF009F]" />
-                    <span className="text-lg font-medium">Join Room</span>
+                    <span className="text-base font-medium">Join Room</span>
                   </button>
+                )}
+
+                {/* Dashboard Link (if applicable) */}
+                {shouldShowDashboardButton && (
+                  <Link
+                    to={dashboardPath}
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors duration-300 ${
+                      isInPath(dashboardPath)
+                        ? "bg-[#FF009F]/10 border-l-4 border-[#FF009F]"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white border-l-4 border-transparent"
+                    }`}
+                    onClick={() => setIsOpen(false)}
+                    aria-label="Dashboard"
+                    tabIndex="0"
+                  >
+                    <span
+                      className={`w-5 h-5 flex items-center justify-center transition-colors duration-300 ${
+                        isInPath(dashboardPath) ? "text-[#FF009F]" : ""
+                      }`}
+                    >
+                      <LayoutDashboard className="w-5 h-5" />
+                    </span>
+                    <span
+                      className={`text-base font-medium transition-colors duration-300 ${
+                        isInPath(dashboardPath) ? "text-[#FF009F]" : ""
+                      }`}
+                    >
+                      Dashboard
+                    </span>
+                  </Link>
                 )}
 
                 {NAV_LINKS.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 cursor-pointer hover:scale-102 group ${
-                      location.pathname === link.path
-                        ? "bg-[#FF009F]/20 text-white border-l-4 border-[#FF009F]"
-                        : "text-gray-300 hover:bg-white/5 hover:text-white relative overflow-hidden"
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors duration-300 ${
+                      isInPath(link.path)
+                        ? "bg-[#FF009F]/10 border-l-4 border-[#FF009F]"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white border-l-4 border-transparent"
                     }`}
                     onClick={() => setIsOpen(false)}
+                    aria-label={link.label}
+                    tabIndex="0"
                   >
-                    {location.pathname !== link.path && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-x-[-100%] group-hover:translate-x-[100%] pointer-events-none"></div>
-                    )}
                     <span
-                      className={`${
-                        location.pathname === link.path ? "text-[#FF009F]" : ""
-                      } transition-colors duration-300`}
+                      className={`w-5 h-5 flex items-center justify-center transition-colors duration-300 ${
+                        isInPath(link.path) ? "text-[#FF009F]" : ""
+                      }`}
                     >
                       {link.icon}
                     </span>
-                    <span className="text-lg font-medium">{link.label}</span>
+                    <span
+                      className={`text-base font-medium transition-colors duration-300 ${
+                        isInPath(link.path) ? "text-[#FF009F]" : ""
+                      }`}
+                    >
+                      {link.label}
+                    </span>
                   </Link>
                 ))}
+
                 {isAdmin && (
                   <Link
                     to="/admin/persons"
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 cursor-pointer hover:scale-102 ${
-                      location.pathname === "/admin/persons"
-                        ? "bg-[#FF009F]/20 text-white border-l-4 border-[#FF009F]"
-                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors duration-300 ${
+                      isInPath("/admin/persons")
+                        ? "bg-[#FF009F]/10 border-l-4 border-[#FF009F]"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white border-l-4 border-transparent"
                     }`}
                     onClick={() => setIsOpen(false)}
+                    aria-label="Person Management"
+                    tabIndex="0"
                   >
-                    <User className="w-5 h-5" />
-                    <span className="text-lg font-medium">
+                    <span
+                      className={`w-5 h-5 flex items-center justify-center transition-colors duration-300 ${
+                        isInPath("/admin/persons") ? "text-[#FF009F]" : ""
+                      }`}
+                    >
+                      <User className="w-5 h-5" />
+                    </span>
+                    <span
+                      className={`text-base font-medium transition-colors duration-300 ${
+                        isInPath("/admin/persons") ? "text-[#FF009F]" : ""
+                      }`}
+                    >
                       Person Management
                     </span>
                   </Link>
                 )}
+
+                {/* Add Upgrade Plan button in mobile menu for MEMBER users */}
+                {token && user && isMember && (
+                  <Link
+                    to="/subscription-plans"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white transition-all duration-300 hover:scale-102 shadow-md hover:shadow-[0_0_15px_rgba(255,0,159,0.3)]"
+                    onClick={() => setIsOpen(false)}
+                    aria-label="Upgrade Plan"
+                    tabIndex="0"
+                  >
+                    <CrownOutlined className="text-yellow-300" />
+                    <span className="text-base font-medium">Upgrade Plan</span>
+                  </Link>
+                )}
               </nav>
 
-              <div className="mt-8 border-t border-white/10 pt-6">
+              <div className="mt-6 border-t border-white/10 pt-6">
                 {/* AI Picks Button in Mobile Menu - Only for VIP MEMBER, ADMIN or MANAGER */}
                 {(isVipMember || isAdmin || isManager) && (
                   <button
@@ -624,10 +612,12 @@ const Navbar = () => {
                       openRecommendationsModal();
                       setIsOpen(false);
                     }}
-                    className="flex items-center gap-3 w-full p-3 mb-4 rounded-lg bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 cursor-pointer hover:scale-102 border border-[#FF009F]/30"
+                    className="flex items-center gap-3 w-full p-3 mb-3 rounded-lg bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 hover:scale-102 border border-[#FF009F]/30"
+                    aria-label="AI Recommendations"
+                    tabIndex="0"
                   >
                     <BrainCircuit className="w-5 h-5 text-[#FF009F]" />
-                    <span className="text-lg font-medium">AI Picks</span>
+                    <span className="text-base font-medium">AI Picks</span>
                     <Sparkles className="w-3 h-3 text-[#FF009F] ml-1" />
                   </button>
                 )}
@@ -637,10 +627,12 @@ const Navbar = () => {
                     toggleSearch();
                     setIsOpen(false);
                   }}
-                  className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all duration-300 cursor-pointer hover:scale-102"
+                  className="flex items-center gap-3 w-full p-3 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all duration-300 hover:scale-102"
+                  aria-label="Search"
+                  tabIndex="0"
                 >
                   <Search className="w-5 h-5 text-[#FF009F]" />
-                  <span className="text-lg font-medium">Search</span>
+                  <span className="text-base font-medium">Search</span>
                 </button>
               </div>
             </div>
@@ -650,7 +642,12 @@ const Navbar = () => {
 
       {/* Join Room Modal */}
       <Modal
-        title="Join Watch Room"
+        title={
+          <div className="flex items-center gap-2 text-gray-800">
+            <UsersRound className="w-5 h-5 text-[#FF009F]" />
+            <span className="text-lg font-medium">Join Watch Room</span>
+          </div>
+        }
         open={isJoinRoomModalVisible}
         onOk={handleJoinRoom}
         onCancel={() => {
@@ -662,32 +659,44 @@ const Navbar = () => {
         okButtonProps={{
           loading: isJoining,
           disabled: isJoining || !roomId.trim(),
+          className:
+            "bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] border-[#FF009F]",
         }}
-        cancelButtonProps={{ disabled: isJoining }}
+        cancelButtonProps={{
+          disabled: isJoining,
+          className: "border-gray-300",
+        }}
+        width={360}
+        centered
+        destroyOnClose
+        className="watch-room-modal"
       >
         <div className="mt-4">
           {hostedRooms.length > 0 && (
             <div className="mb-4">
-              <p className="text-sm text-gray-500 mb-2">Your active room:</p>
-              {hostedRooms.map((room) => (
-                <div
-                  key={room.id}
-                  className="flex items-center justify-between bg-gray-100 p-2 rounded mb-2"
-                >
-                  <span className="font-medium text-sm truncate max-w-[200px]">
-                    {room.id}
-                  </span>
-                  <button
-                    className="text-blue-500 text-sm hover:text-blue-700 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRoomId(room.id);
-                    }}
+              <p className="text-sm text-gray-500 mb-2 font-medium">
+                Your active rooms:
+              </p>
+              <div className="max-h-[120px] overflow-y-auto">
+                {hostedRooms.map((room) => (
+                  <div
+                    key={room.id}
+                    className="flex items-center justify-between bg-gray-50 hover:bg-gray-100 p-2 rounded mb-2 border border-gray-200 transition-colors duration-200"
                   >
-                    Use this room
-                  </button>
-                </div>
-              ))}
+                    <span className="font-medium text-xs truncate max-w-[180px]">
+                      {room.id}
+                    </span>
+                    <button
+                      className="text-[#FF009F] text-xs font-medium hover:text-[#FF6B9F] transition-colors"
+                      onClick={() => setRoomId(room.id)}
+                      aria-label={`Use room ${room.id}`}
+                      tabIndex="0"
+                    >
+                      Use
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           <Input
@@ -696,7 +705,13 @@ const Navbar = () => {
             onChange={(e) => setRoomId(e.target.value)}
             disabled={isJoining}
             className="cursor-text"
+            prefix={<UsersRound className="w-4 h-4 text-gray-400 mr-1" />}
+            autoFocus
+            onPressEnter={handleJoinRoom}
           />
+          <div className="mt-3 text-xs text-gray-500">
+            Enter a room ID to join a watch party with friends
+          </div>
         </div>
       </Modal>
 
@@ -715,6 +730,11 @@ const Navbar = () => {
       </AnimatePresence>
     </div>
   );
+};
+
+Navbar.propTypes = {
+  setShowSearch: PropTypes.func,
+  setSidebarOpen: PropTypes.func,
 };
 
 export default Navbar;
