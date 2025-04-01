@@ -18,8 +18,6 @@ import {
   TrendingUp,
   LayoutDashboard,
   UsersRound,
-  Sparkles,
-  BrainCircuit,
   ChevronDown,
 } from "lucide-react";
 
@@ -27,7 +25,6 @@ import authService from "../../apis/Auth/auth";
 import roomService from "../../apis/Room/room";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
-import RecommendedMovies from "../Homepage/RecommendedMovies";
 import { useAuth, useScrollEffect, usePath } from "../../hooks";
 
 const ROLES = {
@@ -56,6 +53,13 @@ const NAV_LINKS = [
 
 // NavLink component extracted and memoized to prevent re-renders
 const NavLink = React.memo(({ path, label, icon, isActive }) => {
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.currentTarget.click();
+    }
+  };
+
   return (
     <Link
       to={path}
@@ -64,6 +68,7 @@ const NavLink = React.memo(({ path, label, icon, isActive }) => {
       }`}
       aria-label={label}
       tabIndex="0"
+      onKeyDown={handleKeyDown}
     >
       <div
         className={`transition-colors duration-300 ${
@@ -103,12 +108,20 @@ const ActionButton = React.memo(
       ? "bg-[#FF009F]/10 hover:bg-[#FF009F]/20 border-[#FF009F]/30 hover:border-[#FF009F]/50 hover:shadow-[0_0_15px_rgba(255,0,159,0.3)]"
       : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]";
 
+    const handleKeyDown = (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    };
+
     return (
       <button
         onClick={onClick}
         className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full ${baseClasses} text-white transition-all duration-300 border shadow-lg hover:scale-105 relative overflow-hidden group`}
         aria-label={ariaLabel}
         tabIndex="0"
+        onKeyDown={handleKeyDown}
       >
         <div
           className={`absolute inset-0 bg-gradient-to-r ${
@@ -162,8 +175,6 @@ const Navbar = () => {
   const [roomId, setRoomId] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [hostedRooms, setHostedRooms] = useState([]);
-  const [showRecommendationsModal, setShowRecommendationsModal] =
-    useState(false);
 
   // Memoized values
   const isMoviePage = useMemo(
@@ -192,14 +203,6 @@ const Navbar = () => {
   // Use callbacks for event handlers
   const toggleMenu = useCallback(() => setIsOpen((prev) => !prev), []);
   const toggleSearch = useCallback(() => setShowSearch((prev) => !prev), []);
-  const openRecommendationsModal = useCallback(
-    () => setShowRecommendationsModal(true),
-    []
-  );
-  const closeRecommendationsModal = useCallback(
-    () => setShowRecommendationsModal(false),
-    []
-  );
 
   const handleJoinRoom = useCallback(async () => {
     if (isJoining || !roomId.trim()) return;
@@ -416,17 +419,6 @@ const Navbar = () => {
                 />
               )}
 
-              {/* AI Recommendations Button - Only for VIP MEMBER, ADMIN or MANAGER*/}
-              {(isVipMember || isAdmin || isManager) && (
-                <ActionButton
-                  onClick={openRecommendationsModal}
-                  ariaLabel="AI Recommendations"
-                  icon={<BrainCircuit />}
-                  label="AI Picks"
-                  isSpecial={true}
-                />
-              )}
-
               {/* Search Button */}
               <ActionButton
                 onClick={toggleSearch}
@@ -605,23 +597,6 @@ const Navbar = () => {
               </nav>
 
               <div className="mt-6 border-t border-white/10 pt-6">
-                {/* AI Picks Button in Mobile Menu - Only for VIP MEMBER, ADMIN or MANAGER */}
-                {(isVipMember || isAdmin || isManager) && (
-                  <button
-                    onClick={() => {
-                      openRecommendationsModal();
-                      setIsOpen(false);
-                    }}
-                    className="flex items-center gap-3 w-full p-3 mb-3 rounded-lg bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 hover:scale-102 border border-[#FF009F]/30"
-                    aria-label="AI Recommendations"
-                    tabIndex="0"
-                  >
-                    <BrainCircuit className="w-5 h-5 text-[#FF009F]" />
-                    <span className="text-base font-medium">AI Picks</span>
-                    <Sparkles className="w-3 h-3 text-[#FF009F] ml-1" />
-                  </button>
-                )}
-
                 <button
                   onClick={() => {
                     toggleSearch();
@@ -714,15 +689,6 @@ const Navbar = () => {
           </div>
         </div>
       </Modal>
-
-      {/* AI Recommendations Modal */}
-      {showRecommendationsModal && (
-        <RecommendedMovies
-          showModal={showRecommendationsModal}
-          setShowModal={setShowRecommendationsModal}
-          isModal={true}
-        />
-      )}
 
       {/* Search Overlay */}
       <AnimatePresence>

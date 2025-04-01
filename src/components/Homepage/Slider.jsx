@@ -25,12 +25,23 @@ const Slider = () => {
     navigate(`/movie/${movieId}`);
   };
 
+  const handleReload = () => {
+    window.location.reload();
+  };
+
+  const handleKeyDown = (e, callback) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      callback(e);
+    }
+  };
+
   const preloadNextImage = useCallback(
     (nextIndex) => {
-      if (movies[nextIndex]) {
-        const img = new Image();
-        img.src = movies[nextIndex].medias?.[0]?.url || "/placeholder.svg";
-      }
+      if (!movies[nextIndex]) return;
+
+      const img = new Image();
+      img.src = movies[nextIndex].medias?.[0]?.url || "/placeholder.svg";
     },
     [movies]
   );
@@ -44,12 +55,13 @@ const Slider = () => {
           sortBy: "createdAt",
           sortOrder: "desc",
         });
-        if (response.success && response.movies?.length > 0) {
-          setMovies(response.movies);
-          setIsInitialized(true);
-        } else {
+
+        if (!response.success || !response.movies?.length) {
           throw new Error("No movies found");
         }
+
+        setMovies(response.movies);
+        setIsInitialized(true);
       } catch (error) {
         console.error("Error fetching movies:", error);
         setError(error.message);
@@ -62,14 +74,15 @@ const Slider = () => {
   }, []);
 
   useEffect(() => {
-    if (movies.length > 0) {
-      const timer = setInterval(() => {
-        const nextIndex = (currentIndex + 1) % movies.length;
-        preloadNextImage(nextIndex);
-        setCurrentIndex(nextIndex);
-      }, 8000);
-      return () => clearInterval(timer);
-    }
+    if (movies.length <= 0) return;
+
+    const timer = setInterval(() => {
+      const nextIndex = (currentIndex + 1) % movies.length;
+      preloadNextImage(nextIndex);
+      setCurrentIndex(nextIndex);
+    }, 8000);
+
+    return () => clearInterval(timer);
   }, [currentIndex, movies.length, preloadNextImage]);
 
   if (!isInitialized && !isLoading && !error) {
@@ -80,8 +93,11 @@ const Slider = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => window.location.reload()}
+            onClick={handleReload}
+            onKeyDown={(e) => handleKeyDown(e, handleReload)}
             className="mt-4 px-6 py-2 bg-[#FF009F] rounded-full hover:bg-[#FF6B9F] transition-colors"
+            aria-label="Reload page"
+            tabIndex="0"
           >
             Reload Page
           </motion.button>
@@ -98,8 +114,11 @@ const Slider = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => window.location.reload()}
+            onClick={handleReload}
+            onKeyDown={(e) => handleKeyDown(e, handleReload)}
             className="px-6 py-2 bg-[#FF009F] text-white rounded-full hover:bg-[#FF6B9F] transition-colors"
+            aria-label="Try loading movies again"
+            tabIndex="0"
           >
             Try Again
           </motion.button>
@@ -120,8 +139,11 @@ const Slider = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => window.location.reload()}
+            onClick={handleReload}
+            onKeyDown={(e) => handleKeyDown(e, handleReload)}
             className="mt-4 px-6 py-2 bg-[#FF009F] rounded-full hover:bg-[#FF6B9F] transition-colors"
+            aria-label="Reload page to try again"
+            tabIndex="0"
           >
             Reload Page
           </motion.button>
@@ -222,6 +244,14 @@ const Slider = () => {
                           to={`/genre/${genre.trim()}`}
                           className="px-2 sm:px-3 py-1 sm:py-1.5 bg-[#FF009F]/20 border border-[#FF009F]/30 rounded-md text-xs sm:text-sm
                                hover:bg-[#FF009F]/40 transition-all duration-300 transform hover:scale-105"
+                          aria-label={`View ${genre.trim()} movies`}
+                          tabIndex="0"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              e.currentTarget.click();
+                            }
+                          }}
                         >
                           {genre.trim()}
                         </Link>
@@ -242,9 +272,14 @@ const Slider = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={(e) => handleWatchNow(e, movie.id)}
+                      onKeyDown={(e) =>
+                        handleKeyDown(e, (ev) => handleWatchNow(ev, movie.id))
+                      }
                       className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white 
                              px-4 sm:px-6 py-2 sm:py-3 rounded-full hover:shadow-[0_0_15px_rgba(255,0,159,0.5)] transition-all 
                              duration-300 font-semibold text-sm sm:text-base md:text-lg"
+                      aria-label={`Watch ${movie.title} now`}
+                      tabIndex="0"
                     >
                       <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                       Watch Now
@@ -254,9 +289,14 @@ const Slider = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={(e) => handleMoreInfo(e, movie.id)}
+                      onKeyDown={(e) =>
+                        handleKeyDown(e, (ev) => handleMoreInfo(ev, movie.id))
+                      }
                       className="flex items-center gap-1 sm:gap-2 bg-white/10 border border-white/20 backdrop-blur-sm
                              px-4 sm:px-6 py-2 sm:py-3 rounded-full hover:bg-white/20 transition-all duration-300
                            text-white font-medium text-sm sm:text-base"
+                      aria-label={`More info about ${movie.title}`}
+                      tabIndex="0"
                     >
                       <Info className="w-4 h-4 sm:w-5 sm:h-5" />
                       More Info
@@ -270,7 +310,6 @@ const Slider = () => {
         )}
       </AnimatePresence>
 
-      {/* Move SliderNavigation outside AnimatePresence to ensure it's always visible */}
       <SliderNavigation
         movies={movies}
         currentIndex={currentIndex}
@@ -287,59 +326,81 @@ const MetadataBadge = ({ icon, children }) => (
   </div>
 );
 
-const SliderNavigation = ({ movies, currentIndex, setCurrentIndex }) => (
-  <>
-    {/* Thumbnail navigation for desktop */}
-    <div className="absolute bottom-8 right-8 z-20 hidden md:flex gap-3">
-      {movies.map((movie, index) => (
-        <motion.div
-          key={movie.id}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative"
-        >
-          <img
-            src={movie.medias?.[0]?.url || "/placeholder.svg"}
-            alt={movie.title}
-            className={`w-24 h-14 object-cover rounded-md cursor-pointer transition-all duration-300
+const SliderNavigation = ({ movies, currentIndex, setCurrentIndex }) => {
+  const handleNavClick = (index) => {
+    setCurrentIndex(index);
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setCurrentIndex(index);
+    }
+  };
+
+  return (
+    <>
+      <div className="absolute bottom-8 right-8 z-20 hidden md:flex gap-3">
+        {movies.map((movie, index) => (
+          <motion.div
+            key={movie.id}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative"
+          >
+            <img
+              src={movie.medias?.[0]?.url || "/placeholder.svg"}
+              alt={movie.title}
+              className={`w-24 h-14 object-cover rounded-md cursor-pointer transition-all duration-300
               ${
                 currentIndex === index
                   ? "border-2 border-[#FF009F] shadow-[0_0_10px_rgba(255,0,159,0.5)]"
                   : "opacity-90 hover:opacity-100 border border-white/20"
               }`}
-            onClick={() => setCurrentIndex(index)}
-            loading="lazy"
-          />
-          {currentIndex === index && (
-            <motion.div
-              layoutId="activeSlide"
-              className="absolute -bottom-2 left-0 right-0 h-1 bg-[#FF009F] rounded-full"
+              onClick={() => handleNavClick(index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              tabIndex="0"
+              role="button"
+              aria-label={`Switch to ${movie.title}`}
+              aria-current={currentIndex === index ? "true" : "false"}
+              loading="lazy"
             />
-          )}
-        </motion.div>
-      ))}
-    </div>
+            {currentIndex === index && (
+              <motion.div
+                layoutId="activeSlide"
+                className="absolute -bottom-2 left-0 right-0 h-1 bg-[#FF009F] rounded-full"
+              />
+            )}
+          </motion.div>
+        ))}
+      </div>
 
-    {/* Dot navigation for mobile */}
-    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-1 sm:gap-2 z-20 md:hidden">
-      {movies.map((_, index) => (
-        <button
-          key={index}
-          onClick={() => setCurrentIndex(index)}
-          className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
-            index === currentIndex
-              ? "bg-[#FF009F] scale-110"
-              : "bg-white/70 hover:bg-white/90"
-          }`}
-          aria-label={`Go to slide ${index + 1}`}
-        />
-      ))}
-    </div>
-  </>
-);
+      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-1 sm:gap-2 z-20 md:hidden">
+        {movies.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => handleNavClick(index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+            className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
+              index === currentIndex
+                ? "bg-[#FF009F] scale-110"
+                : "bg-white/70 hover:bg-white/90"
+            }`}
+            aria-label={`Go to slide ${index + 1}`}
+            aria-current={currentIndex === index ? "true" : "false"}
+            tabIndex="0"
+          />
+        ))}
+      </div>
+    </>
+  );
+};
 
 const ProgressBar = ({ currentIndex }) => (
-  <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+  <div
+    className="absolute bottom-0 left-0 right-0 h-1 bg-white/10"
+    aria-hidden="true"
+  >
     <motion.div
       key={currentIndex}
       initial={{ width: "0%" }}

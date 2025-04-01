@@ -35,6 +35,7 @@ import adPurchaseSlotService from "../../apis/AdPurchaseSlot/adPurchaseSlot";
 import adMediaService from "../../apis/AdMedia/adMedia";
 import axios from "axios";
 import uploadFileApi from "../../apis/Upload/upload.jsx";
+import cloudinaryConfig from "../../config/cloudinary";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -161,6 +162,8 @@ const AdPurchaseSlotManagement = () => {
   const [form] = Form.useForm();
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
   const [isAdMediaDetailModalVisible, setIsAdMediaDetailModalVisible] =
     useState(false);
   const [selectedAdMediaDetail, setSelectedAdMediaDetail] = useState(null);
@@ -169,6 +172,8 @@ const AdPurchaseSlotManagement = () => {
   const [selectedAdMediaId, setSelectedAdMediaId] = useState(null);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
   const [totalSlots, setTotalSlots] = useState(0);
+  const [isDirectUrlModalVisible, setIsDirectUrlModalVisible] = useState(false);
+  const [directUrlForm] = Form.useForm();
 
   const navigate = useNavigate();
 
@@ -194,6 +199,15 @@ const AdPurchaseSlotManagement = () => {
     fetchAdPurchaseSlots();
   }, [fetchAdPurchaseSlots]);
 
+  // Log Cloudinary configuration on component mount
+  useEffect(() => {
+    console.log("Cloudinary Config:", {
+      cloudName: cloudinaryConfig.cloudName,
+      apiKey: cloudinaryConfig.apiKey,
+      hasSecret: !!cloudinaryConfig.apiSecret, // For security, only log if secret exists, not the actual secret
+    });
+  }, []);
+
   const handleCreateAdClick = (slotId) => {
     setSelectedSlotId(slotId);
     setIsModalVisible(true);
@@ -209,11 +223,17 @@ const AdPurchaseSlotManagement = () => {
         return;
       }
 
-      setLoading(true);
-      const response = await adMediaService.createAdMedia({
+      console.log("Creating ad media with values:", values);
+
+      // Ensure video URL is included from state if not in form values
+      const mediaData = {
         ...values,
         adPurchaseSlotId: selectedSlotId,
-      });
+        video: values.video || videoUrl, // Use state value as fallback
+      };
+
+      setLoading(true);
+      const response = await adMediaService.createAdMedia(mediaData);
 
       if (response.success) {
         notification.success({
@@ -222,6 +242,7 @@ const AdPurchaseSlotManagement = () => {
         });
         setIsModalVisible(false);
         setImageUrl("");
+        setVideoUrl("");
         form.resetFields();
         fetchAdPurchaseSlots();
       } else {
@@ -296,6 +317,142 @@ const AdPurchaseSlotManagement = () => {
     }
   };
 
+  const handleVideoUpload = async (options) => {
+    const { file, onSuccess, onError } = options;
+    setIsVideoUploading(true);
+
+    try {
+      // Validate file type and size before uploading
+      const validVideoTypes = [
+        "video/mp4",
+        "video/webm",
+        "video/ogg",
+        "video/quicktime",
+      ];
+
+      if (!file) throw new Error("No file selected");
+
+      if (!validVideoTypes.includes(file.type)) {
+        notification.warning({
+          message: "Unsupported Format",
+          description: `File format ${file.type} may not be supported. Try using MP4, WebM, or Ogg.`,
+        });
+        // Continue anyway, just a warning
+      }
+
+      if (file.size > 100 * 1024 * 1024) {
+        // 100MB limit
+        throw new Error("File exceeds 100MB limit");
+      }
+
+      console.log("Uploading video:", file.name, file.type, file.size);
+
+      // Show immediate notification
+      notification.info({
+        message: "Upload Started",
+        description:
+          "Video upload in progress. This process may take some time depending on the file size.",
+        duration: 3,
+      });
+
+      // Using direct Cloudinary upload method
+      try {
+        console.log("Uploading directly to Cloudinary");
+        const response = await uploadFileApi.UploadVideoToCloudinary(file);
+        console.log("Cloudinary video upload result:", response);
+
+        if (
+          response.status === true &&
+          response.data &&
+          response.data[0] &&
+          response.data[0].url
+        ) {
+          const uploadedUrl = response.data[0].url;
+          console.log("Cloudinary video URL:", uploadedUrl);
+          setVideoUrl(uploadedUrl);
+          form.setFieldsValue({ video: uploadedUrl });
+          updateForm.setFieldsValue({ video: uploadedUrl });
+
+          notification.success({
+            message: "Upload Successful",
+            description: "Video has been uploaded successfully.",
+          });
+          onSuccess("Ok");
+        } else {
+          throw new Error("Could not retrieve video URL from response");
+        }
+      } catch (err) {
+        console.error("Error uploading to Cloudinary:", err);
+
+        // Display manual URL input form if upload fails
+        setIsVideoUploading(false);
+        setIsDirectUrlModalVisible(true);
+        directUrlForm.resetFields();
+
+        notification.error({
+          message: "Upload Failed",
+          description:
+            "Could not upload the video. Please enter the video URL manually.",
+        });
+
+        onError({ error: err });
+      }
+    } catch (err) {
+      console.error("Video upload error:", err);
+      onError({ error: err });
+      notification.error({
+        message: "Upload Failed",
+        description:
+          err.message || "An error occurred while uploading the video.",
+      });
+    } finally {
+      setIsVideoUploading(false);
+    }
+  };
+
+  const handleDirectUrlSubmit = (values) => {
+    const { videoUrl: directUrl } = values;
+
+    if (directUrl && directUrl.trim()) {
+      setVideoUrl(directUrl.trim());
+      form.setFieldsValue({ video: directUrl.trim() });
+      updateForm.setFieldsValue({ video: directUrl.trim() });
+
+      setIsDirectUrlModalVisible(false);
+
+      notification.success({
+        message: "Video URL Set",
+        description: "Video URL has been manually set.",
+      });
+    }
+  };
+
+  // Helper function to find URLs in a response object
+  const findUrlInObject = (obj) => {
+    // If it's a string that looks like a URL, return it
+    if (typeof obj === "string" && obj.match(/^https?:\/\//)) {
+      return obj;
+    }
+
+    // If it's an array, check each element
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = findUrlInObject(item);
+        if (found) return found;
+      }
+    }
+
+    // If it's an object, check each property
+    if (typeof obj === "object" && obj !== null) {
+      for (const key in obj) {
+        const found = findUrlInObject(obj[key]);
+        if (found) return found;
+      }
+    }
+
+    return null;
+  };
+
   const handleViewDetails = async (id) => {
     try {
       setDetailLoading(true);
@@ -358,6 +515,7 @@ const AdPurchaseSlotManagement = () => {
           url: adMedia.url,
         });
         setImageUrl(adMedia.image);
+        setVideoUrl(adMedia.video);
         setIsUpdateModalVisible(true);
       }
     } catch (error) {
@@ -381,10 +539,18 @@ const AdPurchaseSlotManagement = () => {
         return;
       }
 
+      console.log("Updating ad media with values:", values);
+
+      // Ensure video URL is included from state if not in form values
+      const mediaData = {
+        ...values,
+        video: values.video || videoUrl, // Use state value as fallback
+      };
+
       setLoading(true);
       const response = await adMediaService.updateAdMedia(
         selectedAdMediaId,
-        values
+        mediaData
       );
 
       if (response.success) {
@@ -394,6 +560,7 @@ const AdPurchaseSlotManagement = () => {
         });
         setIsUpdateModalVisible(false);
         setImageUrl("");
+        setVideoUrl("");
         updateForm.resetFields();
         fetchAdPurchaseSlots();
       } else {
@@ -630,6 +797,16 @@ const AdPurchaseSlotManagement = () => {
     }
   };
 
+  // Initialize videoUrl in component effect when showing modals
+  useEffect(() => {
+    if (isUpdateModalVisible && selectedAdMediaId) {
+      const videoUrlValue = updateForm.getFieldValue("video");
+      if (videoUrlValue && videoUrlValue !== "string") {
+        setVideoUrl(videoUrlValue);
+      }
+    }
+  }, [isUpdateModalVisible, selectedAdMediaId, updateForm]);
+
   return (
     <>
       <style>{statusStyles}</style>
@@ -699,6 +876,7 @@ const AdPurchaseSlotManagement = () => {
             onCancel={() => {
               setIsModalVisible(false);
               setImageUrl("");
+              setVideoUrl("");
               form.resetFields();
             }}
             footer={null}
@@ -742,7 +920,7 @@ const AdPurchaseSlotManagement = () => {
                 </Input.Group>
               </Form.Item>
 
-              {/* Hiển thị preview ảnh nếu có */}
+              {/* Display image preview if available */}
               {imageUrl && (
                 <Form.Item label="Image Preview">
                   <div className="mt-2">
@@ -765,14 +943,84 @@ const AdPurchaseSlotManagement = () => {
                 </Form.Item>
               )}
 
-              <Form.Item name="video" label="Video URL">
-                <Input
-                  prefix={
-                    <VideoCameraOutlined className="site-form-item-icon" />
-                  }
-                  placeholder="https://example.com/video.mp4"
-                />
+              <Form.Item name="video" label="Video">
+                <Input.Group compact>
+                  <Upload
+                    customRequest={handleVideoUpload}
+                    showUploadList={false}
+                    maxCount={1}
+                    accept="video/*"
+                  >
+                    <Button
+                      icon={<UploadOutlined />}
+                      loading={isVideoUploading}
+                      className="mr-2"
+                    >
+                      {isVideoUploading ? "Uploading..." : "Upload Video"}
+                    </Button>
+                  </Upload>
+                  <Input
+                    className="flex-1"
+                    prefix={
+                      <VideoCameraOutlined className="site-form-item-icon" />
+                    }
+                    placeholder="Or enter video URL"
+                    value={form.getFieldValue("video")}
+                    onChange={(e) => {
+                      form.setFieldsValue({ video: e.target.value });
+                      setVideoUrl(e.target.value);
+                    }}
+                    disabled={isVideoUploading}
+                  />
+                </Input.Group>
+                <div className="mt-1 text-xs text-gray-500">
+                  (Video will be uploaded to Cloudinary. Supports MP4, WebM,
+                  Ogg. Maximum 100MB)
+                </div>
               </Form.Item>
+
+              {/* Video preview if available */}
+              {videoUrl && (
+                <Form.Item label="Video Preview">
+                  <div className="mt-2 border border-gray-200 rounded overflow-hidden">
+                    <video
+                      controls
+                      className="max-w-full h-auto max-h-[250px]"
+                      style={{ display: "block", margin: "0 auto" }}
+                      onError={(e) => {
+                        console.error("Video element error:", e.target.error);
+                        e.target.onerror = null;
+                        notification.warning({
+                          message: "Video Preview Error",
+                          description:
+                            "Could not load video preview. The URL may be invalid or the format is not supported by your browser.",
+                        });
+                      }}
+                    >
+                      <source src={videoUrl} type="video/mp4" />
+                      <source src={videoUrl} type="video/webm" />
+                      <source src={videoUrl} type="video/ogg" />
+                      <source src={videoUrl} type="video/quicktime" />
+                      Your browser does not support HTML video.
+                    </video>
+                    <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex items-center justify-between">
+                      <div>
+                        {videoUrl.length > 60
+                          ? videoUrl.substring(0, 57) + "..."
+                          : videoUrl}
+                      </div>
+                      <a
+                        href={videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        Open in new tab
+                      </a>
+                    </div>
+                  </div>
+                </Form.Item>
+              )}
 
               <Form.Item name="url" label="Destination URL">
                 <Input
@@ -785,28 +1033,31 @@ const AdPurchaseSlotManagement = () => {
                 <Space className="w-full justify-end">
                   <Button
                     onClick={() => {
-                      if (isUploading) {
+                      if (isUploading || isVideoUploading) {
                         notification.warning({
                           message: "Please wait",
-                          description: "Image is still uploading...",
+                          description: "Media is still uploading...",
                         });
                         return;
                       }
                       setIsModalVisible(false);
                       setImageUrl("");
+                      setVideoUrl("");
                       form.resetFields();
                     }}
-                    disabled={isUploading}
+                    disabled={isUploading || isVideoUploading}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="primary"
                     htmlType="submit"
-                    loading={loading || isUploading}
-                    disabled={isUploading}
+                    loading={loading || isUploading || isVideoUploading}
+                    disabled={isUploading || isVideoUploading}
                   >
-                    {isUploading ? "Uploading..." : "Create Ad Media"}
+                    {isUploading || isVideoUploading
+                      ? "Uploading..."
+                      : "Create Ad Media"}
                   </Button>
                 </Space>
               </Form.Item>
@@ -875,6 +1126,46 @@ const AdPurchaseSlotManagement = () => {
                       </div>
                     )}
 
+                  {/* Video display */}
+                  {selectedAdMediaDetail.video &&
+                    selectedAdMediaDetail.video !== "string" && (
+                      <div className="detail-image">
+                        <video
+                          controls
+                          className="w-full object-contain"
+                          style={{ maxHeight: "300px" }}
+                          onError={(e) => {
+                            console.error("Video error:", e.target.error);
+                            e.target.onerror = null;
+                          }}
+                        >
+                          <source
+                            src={selectedAdMediaDetail.video}
+                            type="video/mp4"
+                          />
+                          <source
+                            src={selectedAdMediaDetail.video}
+                            type="video/webm"
+                          />
+                          <source
+                            src={selectedAdMediaDetail.video}
+                            type="video/ogg"
+                          />
+                          Your browser does not support HTML video.
+                        </video>
+                        <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200">
+                          <a
+                            href={selectedAdMediaDetail.video}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline"
+                          >
+                            Open video in new tab
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
                   <div className="detail-content">
                     {/* Content section */}
                     <div className="detail-section">
@@ -900,7 +1191,7 @@ const AdPurchaseSlotManagement = () => {
                       </div>
                     )}
 
-                    {/* Video URL section if available */}
+                    {/* Video URL section if available as text */}
                     {selectedAdMediaDetail.video && (
                       <div className="detail-section">
                         <div className="detail-label">Video URL</div>
@@ -982,6 +1273,7 @@ const AdPurchaseSlotManagement = () => {
             onCancel={() => {
               setIsUpdateModalVisible(false);
               setImageUrl("");
+              setVideoUrl("");
               updateForm.resetFields();
             }}
             footer={null}
@@ -1029,7 +1321,7 @@ const AdPurchaseSlotManagement = () => {
                 </Input.Group>
               </Form.Item>
 
-              {/* Preview image if available */}
+              {/* Display image preview if available */}
               {imageUrl && (
                 <Form.Item label="Image Preview">
                   <div className="mt-2">
@@ -1052,14 +1344,84 @@ const AdPurchaseSlotManagement = () => {
                 </Form.Item>
               )}
 
-              <Form.Item name="video" label="Video URL">
-                <Input
-                  prefix={
-                    <VideoCameraOutlined className="site-form-item-icon" />
-                  }
-                  placeholder="https://example.com/video.mp4"
-                />
+              <Form.Item name="video" label="Video">
+                <Input.Group compact>
+                  <Upload
+                    customRequest={handleVideoUpload}
+                    showUploadList={false}
+                    maxCount={1}
+                    accept="video/*"
+                  >
+                    <Button
+                      icon={<UploadOutlined />}
+                      loading={isVideoUploading}
+                      className="mr-2"
+                    >
+                      {isVideoUploading ? "Uploading..." : "Upload Video"}
+                    </Button>
+                  </Upload>
+                  <Input
+                    className="flex-1"
+                    prefix={
+                      <VideoCameraOutlined className="site-form-item-icon" />
+                    }
+                    placeholder="Or enter video URL"
+                    value={updateForm.getFieldValue("video")}
+                    onChange={(e) => {
+                      updateForm.setFieldsValue({ video: e.target.value });
+                      setVideoUrl(e.target.value);
+                    }}
+                    disabled={isVideoUploading}
+                  />
+                </Input.Group>
+                <div className="mt-1 text-xs text-gray-500">
+                  (Video will be uploaded to Cloudinary. Supports MP4, WebM,
+                  Ogg. Maximum 100MB)
+                </div>
               </Form.Item>
+
+              {/* Video preview if available */}
+              {videoUrl && (
+                <Form.Item label="Video Preview">
+                  <div className="mt-2 border border-gray-200 rounded overflow-hidden">
+                    <video
+                      controls
+                      className="max-w-full h-auto max-h-[250px]"
+                      style={{ display: "block", margin: "0 auto" }}
+                      onError={(e) => {
+                        console.error("Video element error:", e.target.error);
+                        e.target.onerror = null;
+                        notification.warning({
+                          message: "Video Preview Error",
+                          description:
+                            "Could not load video preview. The URL may be invalid or the format is not supported by your browser.",
+                        });
+                      }}
+                    >
+                      <source src={videoUrl} type="video/mp4" />
+                      <source src={videoUrl} type="video/webm" />
+                      <source src={videoUrl} type="video/ogg" />
+                      <source src={videoUrl} type="video/quicktime" />
+                      Your browser does not support HTML video.
+                    </video>
+                    <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex items-center justify-between">
+                      <div>
+                        {videoUrl.length > 60
+                          ? videoUrl.substring(0, 57) + "..."
+                          : videoUrl}
+                      </div>
+                      <a
+                        href={videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        Open in new tab
+                      </a>
+                    </div>
+                  </div>
+                </Form.Item>
+              )}
 
               <Form.Item name="url" label="Destination URL">
                 <Input
@@ -1072,30 +1434,77 @@ const AdPurchaseSlotManagement = () => {
                 <Space className="w-full justify-end">
                   <Button
                     onClick={() => {
-                      if (isUploading) {
+                      if (isUploading || isVideoUploading) {
                         notification.warning({
                           message: "Please wait",
-                          description: "Image is still uploading...",
+                          description: "Media is still uploading...",
                         });
                         return;
                       }
                       setIsUpdateModalVisible(false);
                       setImageUrl("");
+                      setVideoUrl("");
                       updateForm.resetFields();
                     }}
-                    disabled={isUploading}
+                    disabled={isUploading || isVideoUploading}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="primary"
                     htmlType="submit"
-                    loading={loading || isUploading}
-                    disabled={isUploading}
+                    loading={loading || isUploading || isVideoUploading}
+                    disabled={isUploading || isVideoUploading}
                   >
-                    {isUploading ? "Uploading..." : "Update Ad Media"}
+                    {isUploading || isVideoUploading
+                      ? "Uploading..."
+                      : "Update Ad Media"}
                   </Button>
                 </Space>
+              </Form.Item>
+            </Form>
+          </Modal>
+
+          {/* Direct URL Input Modal */}
+          <Modal
+            title="Enter Video URL"
+            open={isDirectUrlModalVisible}
+            onCancel={() => setIsDirectUrlModalVisible(false)}
+            footer={null}
+          >
+            <Form
+              form={directUrlForm}
+              layout="vertical"
+              onFinish={handleDirectUrlSubmit}
+            >
+              <Form.Item
+                label="Video URL"
+                name="videoUrl"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter the video URL",
+                  },
+                  {
+                    type: "url",
+                    message: "Please enter a valid URL",
+                  },
+                ]}
+              >
+                <Input
+                  prefix={<VideoCameraOutlined />}
+                  placeholder="https://example.com/video.mp4"
+                />
+              </Form.Item>
+              <Form.Item>
+                <div className="flex justify-between">
+                  <Button onClick={() => setIsDirectUrlModalVisible(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="primary" htmlType="submit">
+                    Confirm
+                  </Button>
+                </div>
               </Form.Item>
             </Form>
           </Modal>

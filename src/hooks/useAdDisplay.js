@@ -29,6 +29,63 @@ export const useAdDisplay = ({
   }, [userRole]);
 
   /**
+   * Process an individual ad and update its state
+   */
+  const processAdMedia = useCallback(async (ad) => {
+    if (!ad || !ad.adPurchaseSlotId) return;
+    
+    try {
+      const adSlotId = ad.adPurchaseSlotId;
+      
+      // Use different methods based on authentication status
+      const adSlotDetails = isAuthenticated
+        ? await adPurchaseSlotService.getAdPurchaseSlotById(adSlotId)
+        : await adPurchaseSlotService.getPublicAdPurchaseSlotById(adSlotId);
+
+      if (!adSlotDetails.success || !adSlotDetails.data) return;
+      
+      const slotLocation = adSlotDetails.data.adSlotTime.adSlot.slotLocation;
+      
+      // Ensure we have either image or video content for the ad
+      if (!ad.image && !ad.video && !ad.content) {
+        console.warn("Ad missing content (no image, video, or text):", ad.id);
+        return;
+      }
+      
+      // Create an enhanced ad object with additional properties as needed
+      const enhancedAd = {
+        ...ad,
+        slotLocation,
+        // Any other properties you want to add
+      };
+      
+      // Classify ads by location
+      switch (slotLocation) {
+        case "SIDEBAR-RIGHT":
+          setSidebarAd(enhancedAd);
+          break;
+        case "SIDEBAR-LEFT":
+          setLeftSidebarAd(enhancedAd);
+          break;
+        case "HEADER":
+          setHeaderAd(enhancedAd);
+          break;
+        case "FOOTER":
+          setFooterAd(enhancedAd);
+          break;
+        case "CENTER":
+          setCenterAd(enhancedAd);
+          setShowCenterAd(true);
+          break;
+        default:
+          console.log(`Unknown ad slot location: ${slotLocation}`);
+      }
+    } catch (error) {
+      console.error("Failed to process ad media:", error);
+    }
+  }, [isAuthenticated]);
+
+  /**
    * Fetch and categorize ads
    */
   const fetchAdMedia = useCallback(async () => {
@@ -46,46 +103,13 @@ export const useAdDisplay = ({
 
         // Process each ad and categorize by position
         for (const ad of response.data) {
-          const adSlotId = ad.adPurchaseSlotId;
-          
-          try {
-            // Use different methods based on authentication status
-            const adSlotDetails = isAuthenticated
-              ? await adPurchaseSlotService.getAdPurchaseSlotById(adSlotId)
-              : await adPurchaseSlotService.getPublicAdPurchaseSlotById(adSlotId);
-
-            if (adSlotDetails.success) {
-              const slotLocation = adSlotDetails.data.adSlotTime.adSlot.slotLocation;
-              
-              // Classify ads by location
-              switch (slotLocation) {
-                case "SIDEBAR-RIGHT":
-                  setSidebarAd(ad);
-                  break;
-                case "SIDEBAR-LEFT":
-                  setLeftSidebarAd(ad);
-                  break;
-                case "HEADER":
-                  setHeaderAd(ad);
-                  break;
-                case "FOOTER":
-                  setFooterAd(ad);
-                  break;
-                case "CENTER":
-                  setCenterAd(ad);
-                  setShowCenterAd(true);
-                  break;
-              }
-            }
-          } catch (slotError) {
-            console.error("Failed to fetch ad slot details:", slotError);
-          }
+          await processAdMedia(ad);
         }
       }
     } catch (error) {
       console.error("Failed to fetch ad media:", error);
     }
-  }, [isAuthenticated, shouldShowAds]);
+  }, [shouldShowAds, processAdMedia]);
 
   /**
    * Load ads on component mount
