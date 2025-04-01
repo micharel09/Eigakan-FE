@@ -272,8 +272,10 @@ const WatchTogetherContent = () => {
         />
       </div>
     </div>
-  );
-};
+  )
+}
+
+export default WatchTogether
 
 const WatchTogether = () => {
   return (

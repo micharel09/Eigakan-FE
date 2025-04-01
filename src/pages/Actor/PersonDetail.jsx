@@ -34,11 +34,11 @@ function PersonDetail() {
       <Helmet>
         <title>{person.name} - Actor Details</title>
       </Helmet>
-      <div className="max-w-7xl mx-auto ">
+      <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-[300px,1fr] gap-8">
           {/* Left Column - Image and Personal Info */}
           <div>
-            <div className="rounded-lg overflow-hidden mb-6">
+            <div className="rounded-lg overflow-hidden mb-6 shadow-xl">
               <img
                 src={person.picture}
                 alt={person.name}
@@ -49,7 +49,7 @@ function PersonDetail() {
               />
             </div>
 
-            <div className="bg-gray-900 rounded-lg p-6 mb-10">
+            <div className="bg-gray-900 rounded-lg p-6 mb-6 shadow-lg">
               <h2 className="text-xl font-bold text-white mb-4">
                 Personal Info
               </h2>
@@ -82,24 +82,17 @@ function PersonDetail() {
                   </h3>
                   <p>{person.birthday}</p>
                 </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-400">
-                    Description
-                  </h3>
-                  <p>{person.description}</p>
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column - Biography and Known For */}
+          {/* Right Column - Name, Biography and Known For */}
           <div>
-            <h1 className="text-4xl font-bold text-white mb-6">
+            <h1 className="text-4xl font-bold text-white mb-4 border-b border-purple-700 pb-2">
               {person.name}
             </h1>
 
-            <div className="mb-8">
+            <div className="mb-8 bg-gray-900 rounded-lg p-6 shadow-lg">
               <h2 className="text-2xl font-bold text-white mb-4">Biography</h2>
               <p className="text-gray-300 leading-relaxed">
                 {person.description || "No biography available."}
@@ -107,16 +100,16 @@ function PersonDetail() {
             </div>
 
             {person.movieList?.length > 0 && (
-              <div>
+              <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
                 <h2 className="text-2xl font-bold text-white mb-4">
-                  Known For
+                  Filmography
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {person.movieList.map((movie) => (
                     <Link
                       key={movie.id}
                       to={`/movie/${movie.id}`}
-                      className="group relative overflow-hidden rounded-lg transition-transform hover:scale-105"
+                      className="group relative overflow-hidden rounded-lg transition-transform hover:scale-105 shadow-md"
                     >
                       <div className="aspect-[2/3]">
                         <img

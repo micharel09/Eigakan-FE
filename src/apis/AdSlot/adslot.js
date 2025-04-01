@@ -15,13 +15,9 @@ const makeAuthenticatedRequest = async (apiCall) => {
     }
     const headers = {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
     };
     return await apiCall(headers);
   } catch (error) {
-    // Log error để debug
-    console.error('API Error:', error);
     throw error.response?.data || error.message;
   }
 };
@@ -31,6 +27,12 @@ const adSlotService = {
   getAllAdSlots: () =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(`${BASE_URL}/AdSlot`, { headers });
+      return response.data;
+    }),
+
+  getAdSlotById: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdSlot/${id}`, { headers });
       return response.data;
     }),
 
@@ -60,6 +62,12 @@ const adSlotService = {
   getAllAdSlotTimes: () =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(`${BASE_URL}/AdSlotTime`, { headers });
+      return response.data;
+    }),
+
+  getAdSlotTimeById: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdSlotTime/${id}`, { headers });
       return response.data;
     }),
 
@@ -96,6 +104,12 @@ const adSlotService = {
       return response.data;
     }),
 
+  getAdSlotTimeRangeById: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${BASE_URL}/AdSlotTimeRange/${id}`, { headers });
+      return response.data;
+    }),
+
   createAdSlotTimeRange: (data) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.post(`${BASE_URL}/AdSlotTimeRange`, data, {
@@ -126,18 +140,13 @@ const adSlotService = {
   createAdPayment: (adSlotTimeId) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.post(
-        `${BASE_URL}/AdPurchaseTransaction`,
+        `${BASE_URL}/api/AdPurchaseTransaction`,
         {
           adSlotTimeId,
           redirectUrl: `${window.location.origin}/payment-success-adslot`,
         },
-        { 
-          headers,
-          validateStatus: (status) => status < 500 // Chấp nhận status codes < 500
-        }
+        { headers }
       );
-      // Log response để debug
-      console.log('API Response:', response);
       return response.data;
     }),
 

@@ -36,16 +36,30 @@ export const makePublicRequest = async (apiCall) => {
 };
 
 /**
+ * Base API URL
+ */
+export const API_BASE_URL = "https://eigakan2222-001-site1.jtempurl.com/api";
+
+/**
  * Base URLs for different API endpoints
  */
 export const API_URLS = {
-  BASE: "https://eigakan2222-001-site1.jtempurl.com/api",
-  NEWS: "https://eigakan2222-001-site1.jtempurl.com/api/News",
-  UPLOAD: "https://eigakan2222-001-site1.jtempurl.com/api/Upload/Upload_Pictures",
-  AUTH: "https://eigakan2222-001-site1.jtempurl.com/api/Auth",
-  MOVIE: "https://eigakan2222-001-site1.jtempurl.com/api/Movie",
-  RATING: "https://eigakan2222-001-site1.jtempurl.com/api/MovieRating",
-  COMMENT: "https://eigakan2222-001-site1.jtempurl.com/api/Comment",
-  GENRE: "https://eigakan2222-001-site1.jtempurl.com/api/Genre",
+  BASE: API_BASE_URL,
+  NEWS: `${API_BASE_URL}/News`,
+  UPLOAD: `${API_BASE_URL}/Upload/Upload_Pictures`,
+  AUTH: `${API_BASE_URL}/Auth`,
+  MOVIE: `${API_BASE_URL}/Movie`,
+  RATING: `${API_BASE_URL}/MovieRating`,
+  COMMENT: `${API_BASE_URL}/Comment`,
+  GENRE: `${API_BASE_URL}/Genre`,
+  PERSON: `${API_BASE_URL}/Person`,
+  // Ad related endpoints
+  AD_MEDIA: `${API_BASE_URL}/AdMedia`,
+  AD_PURCHASE_SLOT: `${API_BASE_URL}/AdPurchaseSlot`,
+  AD_SLOT: `${API_BASE_URL}/AdSlot`,
+  AD_SLOT_TIME: `${API_BASE_URL}/AdSlotTime`,
+  AD_SLOT_TIME_RANGE: `${API_BASE_URL}/AdSlotTimeRange`,
+  AD_PACKAGE: `${API_BASE_URL}/AdPackage`,
+  AD_PURCHASE_TRANSACTION: `${API_BASE_URL}/AdPurchaseTransaction`,
   // ... thêm các endpoint khác
 }; 

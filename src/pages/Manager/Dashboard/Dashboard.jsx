@@ -831,16 +831,24 @@ const ManagerDashboard = () => {
   // Render skeleton for chart
   const renderSkeletonChart = () => (
     <div className="bg-white p-4 rounded-xl shadow-md">
-      <Skeleton.Input style={{ width: 150, marginBottom: 16 }} active />
-      <Skeleton.Input style={{ width: "100%", height: 300 }} active />
+      <div className="w-[150px] h-6 mb-4 bg-gray-200 rounded relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"></div>
+      </div>
+      <div className="w-full h-[300px] bg-gray-200 rounded relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"></div>
+      </div>
     </div>
   );
 
   // Render skeleton for card
   const renderSkeletonCard = () => (
     <div className="bg-white p-5 rounded-xl shadow-sm">
-      <Skeleton.Input style={{ width: 60, marginBottom: 8 }} active />
-      <Skeleton.Input style={{ width: 120 }} active />
+      <div className="w-[60px] h-4 mb-2 bg-gray-200 rounded relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"></div>
+      </div>
+      <div className="w-[120px] h-6 bg-gray-200 rounded relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"></div>
+      </div>
     </div>
   );
 

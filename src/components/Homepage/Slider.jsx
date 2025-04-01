@@ -5,6 +5,7 @@ import { faImdb } from "@fortawesome/free-brands-svg-icons";
 import { PlayCircle, Clock, Star, Calendar, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import movieService from "../../apis/Movie/movie";
+import Loading from "../Loading/Loading";
 
 const Slider = () => {
   const [movies, setMovies] = useState([]);
@@ -73,7 +74,7 @@ const Slider = () => {
 
   if (!isInitialized && !isLoading && !error) {
     return (
-      <div className="relative h-[65vh] bg-gray-900 flex items-center justify-center -mt-16">
+      <div className="relative h-[85vh] bg-gray-900 flex items-center justify-center -mt-16">
         <div className="text-white text-center">
           <p>Initializing content...</p>
           <motion.button
@@ -91,7 +92,7 @@ const Slider = () => {
 
   if (error) {
     return (
-      <div className="h-[65vh] flex items-center justify-center -mt-16">
+      <div className="h-[85vh] flex items-center justify-center -mt-16">
         <div className="text-center">
           <p className="text-red-500 mb-4">Error loading content: {error}</p>
           <motion.button
@@ -108,21 +109,12 @@ const Slider = () => {
   }
 
   if (isLoading) {
-    return (
-      <div className="relative h-[65vh] bg-gray-900 -mt-16">
-        <div className="flex justify-center items-center h-full">
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-[#FF009F]/30 border-t-[#FF009F] rounded-full animate-spin mb-4" />
-            <p className="text-gray-400">Loading amazing movies...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading className="h-[85vh] -mt-16" />;
   }
 
   if (!movies.length) {
     return (
-      <div className="relative h-[65vh] bg-gray-900 flex items-center justify-center -mt-16">
+      <div className="relative h-[85vh] bg-gray-900 flex items-center justify-center -mt-16">
         <div className="text-white text-center">
           <p>No movies found. Please try again later.</p>
           <motion.button
@@ -139,8 +131,8 @@ const Slider = () => {
   }
 
   return (
-    <div className="relative h-[55vh] bg-black overflow-hidden -mt-16">
-      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black via-black/50 to-transparent z-10" />
+    <div className="relative h-[60vh] sm:h-[70vh] md:h-[85vh] bg-black overflow-hidden -mt-16">
+      <div className="absolute inset-x-0 top-0 h-24 sm:h-40 bg-gradient-to-b from-black via-black/50 to-transparent z-10" />
 
       <AnimatePresence mode="wait">
         {movies.map(
@@ -159,8 +151,8 @@ const Slider = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-10" />
 
                   <motion.img
-                    initial={{ scale: 1.05 }}
-                    animate={{ scale: 1.15 }}
+                    initial={{ scale: 1.02 }}
+                    animate={{ scale: 1.05 }}
                     transition={{ duration: 8, ease: "easeOut" }}
                     src={movie.medias?.[0]?.url || "/placeholder.svg"}
                     alt={movie.title}
@@ -174,28 +166,32 @@ const Slider = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
-                  className="relative z-20 flex flex-col justify-center h-full ml-[5%] max-w-[50%] text-white mt-2"
+                  className="relative z-20 flex flex-col justify-center h-full ml-[5%] max-w-[90%] sm:max-w-[70%] md:max-w-[50%] text-white mt-2"
                 >
-                  <h1 className="text-5xl md:text-6xl font-bold mb-4 leading-tight">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-2 sm:mb-4 leading-tight">
                     {movie.title}
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: "40%" }}
                       transition={{ duration: 1, delay: 1 }}
-                      className="h-1 bg-gradient-to-r from-[#FF009F] to-transparent mt-2"
+                      className="h-0.5 sm:h-1 bg-gradient-to-r from-[#FF009F] to-transparent mt-1 sm:mt-2"
                     />
                   </h1>
 
-                  <div className="flex flex-wrap items-center gap-4 mb-6">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-3 sm:mb-6">
                     <MetadataBadge
-                      icon={<Calendar className="w-4 h-4 text-[#FF009F]" />}
+                      icon={
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />
+                      }
                     >
                       {movie.releaseYear}
                     </MetadataBadge>
 
                     {movie.duration && (
                       <MetadataBadge
-                        icon={<Clock className="w-4 h-4 text-[#FF009F]" />}
+                        icon={
+                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF009F]" />
+                        }
                       >
                         {Math.floor(movie.duration / 60)}h {movie.duration % 60}
                         m
@@ -207,7 +203,7 @@ const Slider = () => {
                         icon={
                           <FontAwesomeIcon
                             icon={faImdb}
-                            className="text-[#FFD43B] text-lg"
+                            className="text-[#FFD43B] text-sm sm:text-lg"
                           />
                         }
                       >
@@ -216,38 +212,41 @@ const Slider = () => {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {movie.genreNames?.split(",").map((genre, idx) => (
-                      <Link
-                        key={idx}
-                        to={`/genre/${genre.trim()}`}
-                        className="px-3 py-1.5 bg-[#FF009F]/20 border border-[#FF009F]/30 rounded-md text-sm
+                  <div className="flex flex-wrap gap-1 sm:gap-2 mb-3 sm:mb-6">
+                    {movie.genreNames
+                      ?.split(",")
+                      .slice(0, 3)
+                      .map((genre, idx) => (
+                        <Link
+                          key={idx}
+                          to={`/genre/${genre.trim()}`}
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-[#FF009F]/20 border border-[#FF009F]/30 rounded-md text-xs sm:text-sm
                                hover:bg-[#FF009F]/40 transition-all duration-300 transform hover:scale-105"
-                      >
-                        {genre.trim()}
-                      </Link>
-                    ))}
+                        >
+                          {genre.trim()}
+                        </Link>
+                      ))}
                   </div>
 
                   <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.5 }}
-                    className="text-gray-200 text-lg leading-relaxed line-clamp-3 mb-8"
+                    className="text-gray-200 text-sm sm:text-base md:text-lg leading-relaxed line-clamp-2 sm:line-clamp-3 mb-4 sm:mb-8"
                   >
                     {movie.description}
                   </motion.p>
 
-                  <div className="flex flex-wrap gap-4">
+                  <div className="flex flex-wrap gap-2 sm:gap-4">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={(e) => handleWatchNow(e, movie.id)}
-                      className="flex items-center gap-2 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white 
-                             px-6 py-3 rounded-full hover:shadow-[0_0_15px_rgba(255,0,159,0.5)] transition-all 
-                             duration-300 font-semibold text-lg"
+                      className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white 
+                             px-4 sm:px-6 py-2 sm:py-3 rounded-full hover:shadow-[0_0_15px_rgba(255,0,159,0.5)] transition-all 
+                             duration-300 font-semibold text-sm sm:text-base md:text-lg"
                     >
-                      <PlayCircle className="w-5 h-5" />
+                      <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                       Watch Now
                     </motion.button>
 
@@ -255,68 +254,88 @@ const Slider = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={(e) => handleMoreInfo(e, movie.id)}
-                      className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20
-                             text-white px-6 py-3 rounded-full hover:bg-white/20 transition-all 
-                             duration-300 font-medium"
+                      className="flex items-center gap-1 sm:gap-2 bg-white/10 border border-white/20 backdrop-blur-sm
+                             px-4 sm:px-6 py-2 sm:py-3 rounded-full hover:bg-white/20 transition-all duration-300
+                           text-white font-medium text-sm sm:text-base"
                     >
-                      <Info className="w-5 h-5" />
+                      <Info className="w-4 h-4 sm:w-5 sm:h-5" />
                       More Info
                     </motion.button>
                   </div>
                 </motion.div>
+
+                <ProgressBar currentIndex={currentIndex} />
               </motion.div>
             )
         )}
       </AnimatePresence>
 
+      {/* Move SliderNavigation outside AnimatePresence to ensure it's always visible */}
       <SliderNavigation
         movies={movies}
         currentIndex={currentIndex}
         setCurrentIndex={setCurrentIndex}
       />
-
-      <ProgressBar currentIndex={currentIndex} />
     </div>
   );
 };
 
 const MetadataBadge = ({ icon, children }) => (
-  <span className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
+  <div className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-black/30 backdrop-blur-sm rounded-full text-xs sm:text-sm">
     {icon}
-    {children}
-  </span>
+    <span>{children}</span>
+  </div>
 );
 
 const SliderNavigation = ({ movies, currentIndex, setCurrentIndex }) => (
-  <div className="absolute bottom-8 right-8 z-20 flex gap-3">
-    {movies.map((movie, index) => (
-      <motion.div
-        key={movie.id}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="relative"
-      >
-        <img
-          src={movie.medias?.[0]?.url || "/placeholder.svg"}
-          alt={movie.title}
-          className={`w-24 h-14 object-cover rounded-md cursor-pointer transition-all duration-300
-            ${
-              currentIndex === index
-                ? "border-2 border-[#FF009F] shadow-[0_0_10px_rgba(255,0,159,0.5)]"
-                : "opacity-50 hover:opacity-80 filter grayscale hover:grayscale-0"
-            }`}
-          onClick={() => setCurrentIndex(index)}
-          loading="lazy"
-        />
-        {currentIndex === index && (
-          <motion.div
-            layoutId="activeSlide"
-            className="absolute -bottom-2 left-0 right-0 h-1 bg-[#FF009F] rounded-full"
+  <>
+    {/* Thumbnail navigation for desktop */}
+    <div className="absolute bottom-8 right-8 z-20 hidden md:flex gap-3">
+      {movies.map((movie, index) => (
+        <motion.div
+          key={movie.id}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative"
+        >
+          <img
+            src={movie.medias?.[0]?.url || "/placeholder.svg"}
+            alt={movie.title}
+            className={`w-24 h-14 object-cover rounded-md cursor-pointer transition-all duration-300
+              ${
+                currentIndex === index
+                  ? "border-2 border-[#FF009F] shadow-[0_0_10px_rgba(255,0,159,0.5)]"
+                  : "opacity-90 hover:opacity-100 border border-white/20"
+              }`}
+            onClick={() => setCurrentIndex(index)}
+            loading="lazy"
           />
-        )}
-      </motion.div>
-    ))}
-  </div>
+          {currentIndex === index && (
+            <motion.div
+              layoutId="activeSlide"
+              className="absolute -bottom-2 left-0 right-0 h-1 bg-[#FF009F] rounded-full"
+            />
+          )}
+        </motion.div>
+      ))}
+    </div>
+
+    {/* Dot navigation for mobile */}
+    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-1 sm:gap-2 z-20 md:hidden">
+      {movies.map((_, index) => (
+        <button
+          key={index}
+          onClick={() => setCurrentIndex(index)}
+          className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
+            index === currentIndex
+              ? "bg-[#FF009F] scale-110"
+              : "bg-white/70 hover:bg-white/90"
+          }`}
+          aria-label={`Go to slide ${index + 1}`}
+        />
+      ))}
+    </div>
+  </>
 );
 
 const ProgressBar = ({ currentIndex }) => (
