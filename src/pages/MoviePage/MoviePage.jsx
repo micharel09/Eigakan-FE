@@ -685,7 +685,6 @@ const MoviePage = () => {
   }, [user, movieId]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
     return () => {
       // Clean up any event listeners or timers if needed
     };

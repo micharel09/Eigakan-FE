@@ -42,7 +42,6 @@ const SearchBar = ({ onClose }) => {
 
     setIsLoading(true);
     try {
-      // Using page 1 with page size 100 to get all possible results
       const response = await movieService.getMovies(1, 100, "", query, "");
 
       if (response.success && response.movies) {
@@ -58,9 +57,32 @@ const SearchBar = ({ onClose }) => {
     }
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  const handleNavigateToMovie = (movieId) => {
+    navigate(`/movie/${movieId}`);
+    onClose();
+  };
+
+  const handleViewAllResults = () => {
+    navigate(`/search?q=${searchTerm}`);
+    onClose();
+  };
+
+  const handleKeyDown = (e, callback) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      callback();
+    }
+  };
+
   // Helper function to get poster URL from movie media
   const getPosterUrl = (movie) => {
-    if (movie.medias && movie.medias.length > 0) {
+    if (!movie || !movie.medias) return "/placeholder.svg";
+
+    if (movie.medias.length > 0) {
       const poster = movie.medias.find((media) => media.type === "POSTER");
       if (poster) return poster.url;
       return movie.medias[0].url;
@@ -93,20 +115,26 @@ const SearchBar = ({ onClose }) => {
             value={searchTerm}
             onChange={handleSearch}
             placeholder="Search for movies..."
-            className="flex-1 bg-transparent outline-none text-white 
-                     placeholder-gray-400 text-base py-2"
+            className="flex-1 bg-transparent outline-none text-white placeholder-gray-400 text-base py-2"
+            aria-label="Search for movies"
           />
           {searchTerm && (
             <button
-              onClick={() => setSearchTerm("")}
+              onClick={handleClearSearch}
+              onKeyDown={(e) => handleKeyDown(e, handleClearSearch)}
               className="p-1.5 hover:bg-white/10 rounded-full transition-colors mr-2"
+              aria-label="Clear search"
+              tabIndex="0"
             >
               <X className="w-4 h-4 text-gray-400" />
             </button>
           )}
           <button
             onClick={onClose}
+            onKeyDown={(e) => handleKeyDown(e, onClose)}
             className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+            aria-label="Close search"
+            tabIndex="0"
           >
             <X className="w-5 h-5 text-white" />
           </button>
@@ -139,12 +167,14 @@ const SearchBar = ({ onClose }) => {
               {displayResults.map((movie) => (
                 <div
                   key={movie.id}
-                  onClick={() => {
-                    navigate(`/movie/${movie.id}`);
-                    onClose();
-                  }}
-                  className="flex gap-4 p-4 hover:bg-gray-800/50 
-                           cursor-pointer transition-colors border-b border-gray-800/80"
+                  onClick={() => handleNavigateToMovie(movie.id)}
+                  onKeyDown={(e) =>
+                    handleKeyDown(e, () => handleNavigateToMovie(movie.id))
+                  }
+                  className="flex gap-4 p-4 hover:bg-gray-800/50 cursor-pointer transition-colors border-b border-gray-800/80"
+                  tabIndex="0"
+                  role="button"
+                  aria-label={`View details for ${movie.title}`}
                 >
                   <div className="w-24 h-36 rounded-md overflow-hidden bg-gray-800 flex-shrink-0 shadow-lg">
                     <img
@@ -230,13 +260,11 @@ const SearchBar = ({ onClose }) => {
               {searchResults.length > 5 && (
                 <div className="p-4 bg-gray-800/30">
                   <button
-                    onClick={() => {
-                      navigate(`/search?q=${searchTerm}`);
-                      onClose();
-                    }}
-                    className="w-full py-3 text-center text-sm bg-gradient-to-r from-[#FF009F] to-[#FF6B9F]
-                             text-white rounded-lg hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 transition-all
-                             font-medium shadow-lg hover:shadow-[#FF009F]/20 hover:shadow-xl"
+                    onClick={handleViewAllResults}
+                    onKeyDown={(e) => handleKeyDown(e, handleViewAllResults)}
+                    className="w-full py-3 text-center text-sm bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white rounded-lg hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 transition-all font-medium shadow-lg hover:shadow-[#FF009F]/20 hover:shadow-xl"
+                    aria-label={`View all ${searchResults.length} search results`}
+                    tabIndex="0"
                   >
                     View all {searchResults.length} results
                   </button>

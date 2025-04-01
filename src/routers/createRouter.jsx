@@ -4,7 +4,6 @@ import AdminLayout from "../Layout/AdminLayout";
 import UserLayout from "../Layout/UserLayout";
 import PrivateRoute from "./PrivateRoute";
 import AdvertiserLayout from "../Layout/AdvertiserLayout";
-import ScrollToTop from "../components/Header/ScrollToTop";
 import ManagerLayout from "../Layout/ManagerLayout";
 import PublisherLayout from "../Layout/PublisherLayout";
 import PersistentLayout from "../Layout/PersistentLayout";
@@ -32,13 +31,7 @@ const renderWithLayout = (route) => {
     route.element
   );
 
-  return Layout ? (
-    <ScrollToTop>
-      <Layout>{content}</Layout>
-    </ScrollToTop>
-  ) : (
-    content
-  );
+  return Layout ? <Layout>{content}</Layout> : content;
 };
 
 /**
