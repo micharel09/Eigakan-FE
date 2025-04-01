@@ -15,23 +15,15 @@ const usePeer = (roomId) => {
     import("peerjs")
       .then(({ default: Peer }) => {
         const myPeer = new Peer(undefined, {
-          host: "localhost", // Nếu deploy thì dùng IP server
-          port: 9000,
-          path: "/myapp",
+          host: "eigakan.metered.live", // Dùng Metered Domain của bạn
+          port: 443,
+          secure: true, // Bật bảo mật HTTPS
           debug: 3,
-          secure: false,
           config: {
             iceServers: [
-              {
-                urls: "stun:stun.relay.metered.ca:80",
-              },
+              { urls: "stun:stun.relay.metered.ca:80" },
               {
                 urls: "turn:global.relay.metered.ca:80",
-                username: "295a034c94d499118aa0b5bd",
-                credential: "5x8yaBNbZrjBYLo0",
-              },
-              {
-                urls: "turn:global.relay.metered.ca:80?transport=tcp",
                 username: "295a034c94d499118aa0b5bd",
                 credential: "5x8yaBNbZrjBYLo0",
               },
@@ -41,7 +33,7 @@ const usePeer = (roomId) => {
                 credential: "5x8yaBNbZrjBYLo0",
               },
               {
-                urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                urls: "turns:global.relay.metered.ca:443",
                 username: "295a034c94d499118aa0b5bd",
                 credential: "5x8yaBNbZrjBYLo0",
               },
