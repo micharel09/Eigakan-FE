@@ -54,10 +54,6 @@ const usePeer = (roomId) => {
         ],
         iceCandidatePoolSize: 10,
       },
-      // Thêm các tùy chọn để ưu tiên TURN
-      host: "localhost", // Sử dụng localhost để tránh vấn đề với DNS
-      path: "/peerjs", // Đường dẫn mặc định
-      port: 443, // Cổng an toàn
     };
 
     try {
