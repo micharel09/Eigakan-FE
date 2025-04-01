@@ -60,6 +60,7 @@ import { Navigate } from "react-router-dom";
 import AdPurchaseSlotManagement from "../pages/Advertiser/AdPurchaseSlotManagement";
 import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory";
 import PaymentDetails from "../pages/Advertiser/PaymentHistory/PaymentDetails";
+import WaitingRoom from "../pages/WatchTogether/WaitingRoom.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -237,7 +238,19 @@ const routes = [
 
   {
     path: "/watch-together/:movieId",
-    element: <WatchTogether />,
+    element: 
+      <PrivateRoute requiredRoles="VIP MEMBER">
+        <WatchTogether />
+      </PrivateRoute>,
+    layout: "UserLayout",
+  },
+  { 
+    path: "/waiting",
+    element: (
+      <PrivateRoute requiredRoles="VIP MEMBER">
+        <WaitingRoom />
+      </PrivateRoute>
+    ),
     layout: "UserLayout",
   },
 

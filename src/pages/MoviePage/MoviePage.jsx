@@ -338,7 +338,7 @@ const MovieFacts = memo(({ movie }) => {
 
 // Tách MovieHero thành component riêng để tránh re-render không cần thiết
 const MovieHero = memo(
-  ({ movie, onTrailerClick, onCreateRoom, onJoinRoom, onWatchNow }) => {
+  ({ movie, onTrailerClick, onCreateRoom, onWatchNow }) => {
     const banner = movie.medias?.find((m) => m.type === "BANNER");
     const poster = movie.medias?.find((m) => m.type === "POSTER");
     const trailer = movie.medias?.find((m) => m.type === "TRAILER");
@@ -547,15 +547,7 @@ const MovieHero = memo(
                         <span className="hidden sm:block">Create Room</span>
                       </ActionButton>
 
-                      <ActionButton
-                        icon={
-                          <UsergroupAddOutlined className="text-sm sm:text-base md:text-lg" />
-                        }
-                        onClick={onJoinRoom}
-                      >
-                        <span className="block sm:hidden">Join</span>
-                        <span className="hidden sm:block">Join Room</span>
-                      </ActionButton>
+          
                     </div>
                   </motion.div>
                 </div>
@@ -585,7 +577,6 @@ const MoviePage = () => {
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [isCreateRoomModalVisible, setIsCreateRoomModalVisible] =
     useState(false);
-  const [isJoinRoomModalVisible, setIsJoinRoomModalVisible] = useState(false);
   const [roomId, setRoomId] = useState("");
   const [hostedRooms, setHostedRooms] = useState([]);
   const navigate = useNavigate();
@@ -754,114 +745,7 @@ const MoviePage = () => {
     }
   }, [isCreatingRoom, isAuthenticated, user, movie, movieId, navigate]);
 
-  const handleJoinRoom = useCallback(async () => {
-    if (isJoining || !isAuthenticated) {
-      if (!isAuthenticated) {
-        notification.error({
-          message: "Authentication required",
-          description: "Please login to join a watch room",
-          placement: "bottomRight",
-        });
-      }
-      return;
-    }
-
-    try {
-      setIsJoining(true);
-
-      if (!roomId.trim()) {
-        notification.error({
-          message: "Room ID required",
-          description: "Please enter a room ID",
-          placement: "bottomRight",
-        });
-        return;
-      }
-
-      // Get user data from localStorage if not available in Redux
-      let userData = user;
-      if (!userData || !userData.userId) {
-        const userDataStr = localStorage.getItem("user");
-        if (userDataStr) {
-          try {
-            userData = JSON.parse(userDataStr);
-          } catch (e) {
-            console.error("Error parsing user data:", e);
-          }
-        }
-      }
-
-      if (!userData || !userData.userId) {
-        notification.error({
-          message: "User data missing",
-          description:
-            "Cannot join room without user data. Please try logging in again.",
-          placement: "bottomRight",
-        });
-        return;
-      }
-
-      const userId = userData.userId.replace(/^userid:\s*/i, "");
-
-      // Verify room matches current movie
-      try {
-        const roomDetails = await roomService.getRoomDetails(roomId.trim());
-
-        if (roomDetails.success && roomDetails.data) {
-          const roomMovieId = roomDetails.data.movieID;
-
-          if (roomMovieId && roomMovieId !== movieId) {
-            notification.error({
-              message: "Movie ID mismatch",
-              description:
-                "You cannot join this room from this movie page. Please go to the correct movie page to join this room.",
-              placement: "bottomRight",
-            });
-            setIsJoining(false);
-            return;
-          }
-        }
-      } catch (detailsError) {
-        console.error("Error fetching room details:", detailsError);
-        notification.warning({
-          message: "Failed to check room details",
-          description:
-            "Could not verify if this room matches the current movie. Proceeding anyway.",
-          placement: "bottomRight",
-        });
-      }
-
-      // Join the room
-      const response = await roomService.joinRoom({
-        roomId: roomId.trim(),
-        userId: userId,
-        movieId: movieId,
-      });
-
-      if (response.success) {
-        notification.success({
-          message: "Joined room successfully!",
-          placement: "bottomRight",
-        });
-        setIsJoinRoomModalVisible(false);
-        navigate(
-          `/watch-together/${movieId}?roomId=${roomId}&movieId=${movieId}`
-        );
-      }
-    } catch (error) {
-      console.error("Join room error:", error);
-      notification.error({
-        message: "Failed to join room",
-        description:
-          error.response?.data?.message ||
-          error.message ||
-          "Could not join room",
-        placement: "bottomRight",
-      });
-    } finally {
-      setIsJoining(false);
-    }
-  }, [isJoining, isAuthenticated, roomId, user, movieId, navigate]);
+ 
 
   // Render header with enhanced scroll behavior
   const renderHeader = () => (
@@ -905,7 +789,6 @@ const MoviePage = () => {
               ?.scrollIntoView({ behavior: "smooth", block: "center" })
           }
           onCreateRoom={() => setIsCreateRoomModalVisible(true)}
-          onJoinRoom={() => setIsJoinRoomModalVisible(true)}
           onWatchNow={() => navigate(`/watch/${movieId}`)}
         />
       </div>
@@ -1119,116 +1002,7 @@ const MoviePage = () => {
             </div>
           </Modal>
 
-          <Modal
-            title={
-              <div className="flex items-center gap-2">
-                <UsergroupAddOutlined className="text-[#FF009F]" /> Join Watch
-                Room
-              </div>
-            }
-            open={isJoinRoomModalVisible}
-            onOk={handleJoinRoom}
-            onCancel={() => {
-              setRoomId("");
-              setIsJoinRoomModalVisible(false);
-            }}
-            okText="Join Room"
-            cancelText="Cancel"
-            okButtonProps={{
-              loading: isJoining,
-              disabled: isJoining || !roomId.trim(),
-              className:
-                "bg-gradient-to-r from-[#FF009F] to-[#FF0055] hover:from-[#FF00AA] hover:to-[#FF0066] border-none text-white hover:text-white shadow-lg",
-            }}
-            cancelButtonProps={{
-              disabled: isJoining,
-              className: "hover:text-[#FF009F] hover:border-[#FF009F]",
-            }}
-            className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
-            width={320}
-            centered
-          >
-            <div className="py-3 sm:py-4">
-              <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
-                <img
-                  src={
-                    movie.medias?.find((m) => m.type === "POSTER")?.url ||
-                    "/placeholder.jpg"
-                  }
-                  alt={movie.title}
-                  className="w-8 sm:w-10 md:w-12 h-12 sm:h-14 md:h-16 object-cover rounded-md"
-                />
-                <div>
-                  <h3 className="font-medium text-white text-xs sm:text-sm md:text-base">
-                    {movie.title}
-                  </h3>
-                  <p className="text-gray-400 text-[10px] sm:text-xs">
-                    {movie.releaseYear} • {movie.duration}m
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-gray-300 mb-3 sm:mb-4 text-[10px] sm:text-xs md:text-sm">
-                Enter a room ID to join a watch party for "{movie.title}".
-              </p>
-
-              {hostedRooms.length > 0 &&
-                hostedRooms.some(
-                  (room) =>
-                    room?.movieID === movieId && room?.status === "Active"
-                ) && (
-                  <div className="mb-3 sm:mb-4 bg-gray-800 p-2 sm:p-3 md:p-4 rounded-lg">
-                    <p className="text-[10px] sm:text-xs md:text-sm text-white mb-2 flex items-center">
-                      <TeamOutlined className="mr-1 sm:mr-2 text-[#FF009F]" />
-                      Your active rooms:
-                    </p>
-                    {hostedRooms.map(
-                      (room) =>
-                        room &&
-                        room.movieID === movieId &&
-                        room.status === "Active" && (
-                          <div
-                            key={room.id}
-                            className="flex items-center justify-between bg-gray-700/50 p-2 sm:p-3 rounded mt-2 border border-gray-700"
-                          >
-                            <div className="max-w-[60%]">
-                              <span className="font-medium text-white text-[10px] sm:text-xs truncate block">
-                                {room.id}
-                              </span>
-                              <p className="text-[8px] sm:text-[10px] md:text-xs text-gray-400 mt-1">
-                                Host: You
-                              </p>
-                            </div>
-                            <Button
-                              size="small"
-                              onClick={() => setRoomId(room.id)}
-                              className="bg-[#FF009F]/20 hover:bg-[#FF009F]/40 text-[#FF009F] border border-[#FF009F]/30 hover:border-[#FF009F] text-[10px] sm:text-xs md:text-sm"
-                            >
-                              Use this room
-                            </Button>
-                          </div>
-                        )
-                    )}
-                  </div>
-                )}
-
-              <Input
-                placeholder="Enter Room ID"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
-                disabled={isJoining}
-                className="hover:border-[#FF009F] focus:border-[#FF009F] active:border-[#FF009F] bg-gray-800 text-white text-xs sm:text-sm"
-                prefix={<TeamOutlined className="text-gray-500" />}
-              />
-
-              <div className="bg-gray-800/50 p-2 sm:p-3 rounded-lg mt-3 sm:mt-4">
-                <p className="text-[10px] sm:text-xs md:text-sm text-gray-300">
-                  <InfoCircleOutlined className="mr-1 sm:mr-2 text-gray-400" />
-                  The host will control playback for everyone in the room.
-                </p>
-              </div>
-            </div>
-          </Modal>
+      
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center min-h-screen">
