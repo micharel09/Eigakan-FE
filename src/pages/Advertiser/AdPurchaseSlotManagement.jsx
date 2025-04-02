@@ -174,6 +174,7 @@ const AdPurchaseSlotManagement = () => {
   const [totalSlots, setTotalSlots] = useState(0);
   const [isDirectUrlModalVisible, setIsDirectUrlModalVisible] = useState(false);
   const [directUrlForm] = Form.useForm();
+  const [currentSlotLocation, setCurrentSlotLocation] = useState(null);
 
   const navigate = useNavigate();
 
@@ -199,18 +200,32 @@ const AdPurchaseSlotManagement = () => {
     fetchAdPurchaseSlots();
   }, [fetchAdPurchaseSlots]);
 
-  // Log Cloudinary configuration on component mount
-  useEffect(() => {
-    console.log("Cloudinary Config:", {
-      cloudName: cloudinaryConfig.cloudName,
-      apiKey: cloudinaryConfig.apiKey,
-      hasSecret: !!cloudinaryConfig.apiSecret, // For security, only log if secret exists, not the actual secret
-    });
-  }, []);
+  const handleCreateAdClick = async (slotId) => {
+    try {
+      setDetailLoading(true);
+      setSelectedSlotId(slotId);
 
-  const handleCreateAdClick = (slotId) => {
-    setSelectedSlotId(slotId);
-    setIsModalVisible(true);
+      // Fetch slot details to determine location
+      const response = await adPurchaseSlotService.getAdPurchaseSlotById(
+        slotId
+      );
+      if (response.success && response.data) {
+        const slotLocation = response.data.adSlotTime?.adSlot?.slotLocation;
+        setCurrentSlotLocation(slotLocation);
+      } else {
+        setCurrentSlotLocation(null);
+      }
+
+      setIsModalVisible(true);
+    } catch (error) {
+      notification.error({
+        message: "Error",
+        description: error.message || "Failed to fetch slot details",
+      });
+      setCurrentSlotLocation(null);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const handleCreateMedia = async (values) => {
@@ -223,14 +238,18 @@ const AdPurchaseSlotManagement = () => {
         return;
       }
 
-      console.log("Creating ad media with values:", values);
-
-      // Ensure video URL is included from state if not in form values
+      // Create the media data object
       const mediaData = {
         ...values,
         adPurchaseSlotId: selectedSlotId,
-        video: values.video || videoUrl, // Use state value as fallback
       };
+
+      // Only include video for CENTER slot location
+      if (currentSlotLocation === "CENTER") {
+        mediaData.video = values.video || videoUrl;
+      } else {
+        mediaData.video = null;
+      }
 
       setLoading(true);
       const response = await adMediaService.createAdMedia(mediaData);
@@ -483,7 +502,23 @@ const AdPurchaseSlotManagement = () => {
       setDetailLoading(true);
       const response = await adMediaService.getAdMediaById(mediaId);
       if (response.success) {
-        setSelectedAdMediaDetail(response.data);
+        const adMediaData = response.data;
+
+        // Fetch the slot location for this ad media
+        if (adMediaData.adPurchaseSlotId) {
+          const slotResponse =
+            await adPurchaseSlotService.getAdPurchaseSlotById(
+              adMediaData.adPurchaseSlotId
+            );
+          if (slotResponse.success && slotResponse.data) {
+            const slotLocation =
+              slotResponse.data.adSlotTime?.adSlot?.slotLocation;
+            // Add slot location to the selected ad media details
+            adMediaData.slotLocation = slotLocation;
+          }
+        }
+
+        setSelectedAdMediaDetail(adMediaData);
         setIsAdMediaDetailModalVisible(true);
       } else {
         notification.error({
@@ -508,6 +543,25 @@ const AdPurchaseSlotManagement = () => {
       if (response.success) {
         const adMedia = response.data;
         setSelectedAdMediaId(mediaId);
+
+        // Fetch the slot location for this ad media
+        if (adMedia.adPurchaseSlotId) {
+          const slotResponse =
+            await adPurchaseSlotService.getAdPurchaseSlotById(
+              adMedia.adPurchaseSlotId
+            );
+          if (slotResponse.success && slotResponse.data) {
+            const slotLocation =
+              slotResponse.data.adSlotTime?.adSlot?.slotLocation;
+            setCurrentSlotLocation(slotLocation);
+
+            // Clear video field if it exists but we're not in CENTER position
+            if (slotLocation !== "CENTER" && adMedia.video) {
+              adMedia.video = null;
+            }
+          }
+        }
+
         updateForm.setFieldsValue({
           content: adMedia.content,
           image: adMedia.image,
@@ -515,7 +569,7 @@ const AdPurchaseSlotManagement = () => {
           url: adMedia.url,
         });
         setImageUrl(adMedia.image);
-        setVideoUrl(adMedia.video);
+        setVideoUrl(adMedia.video || "");
         setIsUpdateModalVisible(true);
       }
     } catch (error) {
@@ -539,13 +593,17 @@ const AdPurchaseSlotManagement = () => {
         return;
       }
 
-      console.log("Updating ad media with values:", values);
-
-      // Ensure video URL is included from state if not in form values
+      // Create the media data object
       const mediaData = {
         ...values,
-        video: values.video || videoUrl, // Use state value as fallback
       };
+
+      // Only include video for CENTER slot location
+      if (currentSlotLocation === "CENTER") {
+        mediaData.video = values.video || videoUrl;
+      } else {
+        mediaData.video = null;
+      }
 
       setLoading(true);
       const response = await adMediaService.updateAdMedia(
@@ -877,6 +935,7 @@ const AdPurchaseSlotManagement = () => {
               setIsModalVisible(false);
               setImageUrl("");
               setVideoUrl("");
+              setCurrentSlotLocation(null);
               form.resetFields();
             }}
             footer={null}
@@ -943,44 +1002,47 @@ const AdPurchaseSlotManagement = () => {
                 </Form.Item>
               )}
 
-              <Form.Item name="video" label="Video">
-                <Input.Group compact>
-                  <Upload
-                    customRequest={handleVideoUpload}
-                    showUploadList={false}
-                    maxCount={1}
-                    accept="video/*"
-                  >
-                    <Button
-                      icon={<UploadOutlined />}
-                      loading={isVideoUploading}
-                      className="mr-2"
+              {/* Only show video upload for CENTER slots */}
+              {currentSlotLocation === "CENTER" && (
+                <Form.Item name="video" label="Video">
+                  <Input.Group compact>
+                    <Upload
+                      customRequest={handleVideoUpload}
+                      showUploadList={false}
+                      maxCount={1}
+                      accept="video/*"
                     >
-                      {isVideoUploading ? "Uploading..." : "Upload Video"}
-                    </Button>
-                  </Upload>
-                  <Input
-                    className="flex-1"
-                    prefix={
-                      <VideoCameraOutlined className="site-form-item-icon" />
-                    }
-                    placeholder="Or enter video URL"
-                    value={form.getFieldValue("video")}
-                    onChange={(e) => {
-                      form.setFieldsValue({ video: e.target.value });
-                      setVideoUrl(e.target.value);
-                    }}
-                    disabled={isVideoUploading}
-                  />
-                </Input.Group>
-                <div className="mt-1 text-xs text-gray-500">
-                  (Video will be uploaded to Cloudinary. Supports MP4, WebM,
-                  Ogg. Maximum 100MB)
-                </div>
-              </Form.Item>
+                      <Button
+                        icon={<UploadOutlined />}
+                        loading={isVideoUploading}
+                        className="mr-2"
+                      >
+                        {isVideoUploading ? "Uploading..." : "Upload Video"}
+                      </Button>
+                    </Upload>
+                    <Input
+                      className="flex-1"
+                      prefix={
+                        <VideoCameraOutlined className="site-form-item-icon" />
+                      }
+                      placeholder="Or enter video URL"
+                      value={form.getFieldValue("video")}
+                      onChange={(e) => {
+                        form.setFieldsValue({ video: e.target.value });
+                        setVideoUrl(e.target.value);
+                      }}
+                      disabled={isVideoUploading}
+                    />
+                  </Input.Group>
+                  <div className="mt-1 text-xs text-gray-500">
+                    (Video will be uploaded to Cloudinary. Supports MP4, WebM,
+                    Ogg. Maximum 100MB)
+                  </div>
+                </Form.Item>
+              )}
 
               {/* Video preview if available */}
-              {videoUrl && (
+              {currentSlotLocation === "CENTER" && videoUrl && (
                 <Form.Item label="Video Preview">
                   <div className="mt-2 border border-gray-200 rounded overflow-hidden">
                     <video
@@ -988,7 +1050,6 @@ const AdPurchaseSlotManagement = () => {
                       className="max-w-full h-auto max-h-[250px]"
                       style={{ display: "block", margin: "0 auto" }}
                       onError={(e) => {
-                        console.error("Video element error:", e.target.error);
                         e.target.onerror = null;
                         notification.warning({
                           message: "Video Preview Error",
@@ -1128,14 +1189,14 @@ const AdPurchaseSlotManagement = () => {
 
                   {/* Video display */}
                   {selectedAdMediaDetail.video &&
-                    selectedAdMediaDetail.video !== "string" && (
+                    selectedAdMediaDetail.video !== "string" &&
+                    selectedAdMediaDetail.slotLocation === "CENTER" && (
                       <div className="detail-image">
                         <video
                           controls
                           className="w-full object-contain"
                           style={{ maxHeight: "300px" }}
                           onError={(e) => {
-                            console.error("Video error:", e.target.error);
                             e.target.onerror = null;
                           }}
                         >
@@ -1192,20 +1253,21 @@ const AdPurchaseSlotManagement = () => {
                     )}
 
                     {/* Video URL section if available as text */}
-                    {selectedAdMediaDetail.video && (
-                      <div className="detail-section">
-                        <div className="detail-label">Video URL</div>
-                        <div className="detail-value">
-                          <a
-                            href={selectedAdMediaDetail.video}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {selectedAdMediaDetail.video}
-                          </a>
+                    {selectedAdMediaDetail.video &&
+                      selectedAdMediaDetail.slotLocation === "CENTER" && (
+                        <div className="detail-section">
+                          <div className="detail-label">Video URL</div>
+                          <div className="detail-value">
+                            <a
+                              href={selectedAdMediaDetail.video}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {selectedAdMediaDetail.video}
+                            </a>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Created at info */}
                     <div className="detail-section">
@@ -1274,6 +1336,7 @@ const AdPurchaseSlotManagement = () => {
               setIsUpdateModalVisible(false);
               setImageUrl("");
               setVideoUrl("");
+              setCurrentSlotLocation(null);
               updateForm.resetFields();
             }}
             footer={null}
@@ -1344,44 +1407,47 @@ const AdPurchaseSlotManagement = () => {
                 </Form.Item>
               )}
 
-              <Form.Item name="video" label="Video">
-                <Input.Group compact>
-                  <Upload
-                    customRequest={handleVideoUpload}
-                    showUploadList={false}
-                    maxCount={1}
-                    accept="video/*"
-                  >
-                    <Button
-                      icon={<UploadOutlined />}
-                      loading={isVideoUploading}
-                      className="mr-2"
+              {/* Only show video upload for CENTER slots in update form */}
+              {currentSlotLocation === "CENTER" && (
+                <Form.Item name="video" label="Video">
+                  <Input.Group compact>
+                    <Upload
+                      customRequest={handleVideoUpload}
+                      showUploadList={false}
+                      maxCount={1}
+                      accept="video/*"
                     >
-                      {isVideoUploading ? "Uploading..." : "Upload Video"}
-                    </Button>
-                  </Upload>
-                  <Input
-                    className="flex-1"
-                    prefix={
-                      <VideoCameraOutlined className="site-form-item-icon" />
-                    }
-                    placeholder="Or enter video URL"
-                    value={updateForm.getFieldValue("video")}
-                    onChange={(e) => {
-                      updateForm.setFieldsValue({ video: e.target.value });
-                      setVideoUrl(e.target.value);
-                    }}
-                    disabled={isVideoUploading}
-                  />
-                </Input.Group>
-                <div className="mt-1 text-xs text-gray-500">
-                  (Video will be uploaded to Cloudinary. Supports MP4, WebM,
-                  Ogg. Maximum 100MB)
-                </div>
-              </Form.Item>
+                      <Button
+                        icon={<UploadOutlined />}
+                        loading={isVideoUploading}
+                        className="mr-2"
+                      >
+                        {isVideoUploading ? "Uploading..." : "Upload Video"}
+                      </Button>
+                    </Upload>
+                    <Input
+                      className="flex-1"
+                      prefix={
+                        <VideoCameraOutlined className="site-form-item-icon" />
+                      }
+                      placeholder="Or enter video URL"
+                      value={updateForm.getFieldValue("video")}
+                      onChange={(e) => {
+                        updateForm.setFieldsValue({ video: e.target.value });
+                        setVideoUrl(e.target.value);
+                      }}
+                      disabled={isVideoUploading}
+                    />
+                  </Input.Group>
+                  <div className="mt-1 text-xs text-gray-500">
+                    (Video will be uploaded to Cloudinary. Supports MP4, WebM,
+                    Ogg. Maximum 100MB)
+                  </div>
+                </Form.Item>
+              )}
 
-              {/* Video preview if available */}
-              {videoUrl && (
+              {/* Video preview if available for CENTER slots */}
+              {currentSlotLocation === "CENTER" && videoUrl && (
                 <Form.Item label="Video Preview">
                   <div className="mt-2 border border-gray-200 rounded overflow-hidden">
                     <video
@@ -1389,7 +1455,6 @@ const AdPurchaseSlotManagement = () => {
                       className="max-w-full h-auto max-h-[250px]"
                       style={{ display: "block", margin: "0 auto" }}
                       onError={(e) => {
-                        console.error("Video element error:", e.target.error);
                         e.target.onerror = null;
                         notification.warning({
                           message: "Video Preview Error",
