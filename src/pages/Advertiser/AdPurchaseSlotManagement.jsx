@@ -17,6 +17,7 @@ import {
   Descriptions,
   Divider,
   Upload,
+  Collapse,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,6 +30,11 @@ import {
   InfoCircleOutlined,
   EditOutlined,
   UploadOutlined,
+  DollarOutlined,
+  FileTextOutlined,
+  CalendarOutlined,
+  AppstoreOutlined,
+  ShoppingOutlined,
 } from "@ant-design/icons";
 import { format } from "date-fns";
 import adPurchaseSlotService from "../../apis/AdPurchaseSlot/adPurchaseSlot";
@@ -39,6 +45,7 @@ import cloudinaryConfig from "../../config/cloudinary";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
+const { Panel } = Collapse;
 
 // Custom theme with brand color
 const theme = {
@@ -158,12 +165,9 @@ const AdPurchaseSlotManagement = () => {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedAdMedia, setSelectedAdMedia] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [form] = Form.useForm();
-  const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
-  const [isVideoUploading, setIsVideoUploading] = useState(false);
   const [isAdMediaDetailModalVisible, setIsAdMediaDetailModalVisible] =
     useState(false);
   const [selectedAdMediaDetail, setSelectedAdMediaDetail] = useState(null);
@@ -175,34 +179,41 @@ const AdPurchaseSlotManagement = () => {
   const [isDirectUrlModalVisible, setIsDirectUrlModalVisible] = useState(false);
   const [directUrlForm] = Form.useForm();
   const [currentSlotLocation, setCurrentSlotLocation] = useState(null);
+  const [detailLoadingMap, setDetailLoadingMap] = useState({});
+  const [detailDataMap, setDetailDataMap] = useState({});
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   const navigate = useNavigate();
 
   const fetchAdPurchaseSlots = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await adPurchaseSlotService.getAdPurchaseSlotsByUserId();
-      if (response.success) {
-        setAdPurchaseSlots(response.data);
-        setTotalSlots(response.total || response.data.length);
+      const response = await adPurchaseSlotService.getAdPurchaseSlotsByUserId(
+        pagination.current,
+        pagination.pageSize
+      );
+      if (response?.success) {
+        setAdPurchaseSlots(response.data || []);
+        setTotalSlots(response.total || (response.data || []).length);
       }
     } catch (error) {
       notification.error({
         message: "Error",
         description: error.message || "Failed to fetch ad purchase slots",
       });
+      setAdPurchaseSlots([]);
+      setTotalSlots(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination?.current, pagination?.pageSize]);
 
   useEffect(() => {
     fetchAdPurchaseSlots();
-  }, [fetchAdPurchaseSlots]);
+  }, [fetchAdPurchaseSlots, fetchTrigger]);
 
   const handleCreateAdClick = async (slotId) => {
     try {
-      setDetailLoading(true);
       setSelectedSlotId(slotId);
 
       // Fetch slot details to determine location
@@ -223,8 +234,6 @@ const AdPurchaseSlotManagement = () => {
         description: error.message || "Failed to fetch slot details",
       });
       setCurrentSlotLocation(null);
-    } finally {
-      setDetailLoading(false);
     }
   };
 
@@ -251,7 +260,6 @@ const AdPurchaseSlotManagement = () => {
         mediaData.video = null;
       }
 
-      setLoading(true);
       const response = await adMediaService.createAdMedia(mediaData);
 
       if (response.success) {
@@ -272,37 +280,11 @@ const AdPurchaseSlotManagement = () => {
         message: "Error",
         description: error.message || "Failed to create ad media",
       });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAdMediaDetails = async (id) => {
-    try {
-      setDetailLoading(true);
-      const response = await adMediaService.getAdMediaById(id);
-      if (response.success) {
-        setSelectedAdMedia(response.data);
-        setIsDetailModalVisible(true);
-      } else {
-        notification.error({
-          message: "Error",
-          description: response.message || "Failed to fetch ad media details",
-        });
-      }
-    } catch (error) {
-      notification.error({
-        message: "Error",
-        description: error.message || "Failed to fetch ad media details",
-      });
-    } finally {
-      setDetailLoading(false);
     }
   };
 
   const handleUpload = async (options) => {
     const { file, onSuccess, onError } = options;
-    setIsUploading(true);
 
     try {
       if (!file) throw new Error("No file selected");
@@ -331,14 +313,11 @@ const AdPurchaseSlotManagement = () => {
         description:
           err.message || "An error occurred while uploading the image.",
       });
-    } finally {
-      setIsUploading(false);
     }
   };
 
   const handleVideoUpload = async (options) => {
     const { file, onSuccess, onError } = options;
-    setIsVideoUploading(true);
 
     try {
       // Validate file type and size before uploading
@@ -404,7 +383,6 @@ const AdPurchaseSlotManagement = () => {
         console.error("Error uploading to Cloudinary:", err);
 
         // Display manual URL input form if upload fails
-        setIsVideoUploading(false);
         setIsDirectUrlModalVisible(true);
         directUrlForm.resetFields();
 
@@ -424,8 +402,6 @@ const AdPurchaseSlotManagement = () => {
         description:
           err.message || "An error occurred while uploading the video.",
       });
-    } finally {
-      setIsVideoUploading(false);
     }
   };
 
@@ -474,7 +450,6 @@ const AdPurchaseSlotManagement = () => {
 
   const handleViewDetails = async (id) => {
     try {
-      setDetailLoading(true);
       const response = await adPurchaseSlotService.getAdPurchaseSlotById(id);
       if (response.success) {
         setSelectedAdMedia(response.data);
@@ -492,14 +467,11 @@ const AdPurchaseSlotManagement = () => {
         description:
           error.message || "Failed to fetch ad purchase slot details",
       });
-    } finally {
-      setDetailLoading(false);
     }
   };
 
   const handleViewAdMediaDetails = async (mediaId) => {
     try {
-      setDetailLoading(true);
       const response = await adMediaService.getAdMediaById(mediaId);
       if (response.success) {
         const adMediaData = response.data;
@@ -531,14 +503,11 @@ const AdPurchaseSlotManagement = () => {
         message: "Error",
         description: error.message || "Failed to fetch ad media details",
       });
-    } finally {
-      setDetailLoading(false);
     }
   };
 
   const handleUpdateAdMedia = async (mediaId) => {
     try {
-      setDetailLoading(true);
       const response = await adMediaService.getAdMediaById(mediaId);
       if (response.success) {
         const adMedia = response.data;
@@ -578,8 +547,6 @@ const AdPurchaseSlotManagement = () => {
         description:
           error.message || "Failed to fetch ad media details for update",
       });
-    } finally {
-      setDetailLoading(false);
     }
   };
 
@@ -605,7 +572,6 @@ const AdPurchaseSlotManagement = () => {
         mediaData.video = null;
       }
 
-      setLoading(true);
       const response = await adMediaService.updateAdMedia(
         selectedAdMediaId,
         mediaData
@@ -629,200 +595,340 @@ const AdPurchaseSlotManagement = () => {
         message: "Error",
         description: error.message || "Failed to update ad media",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
+  const fetchDetailData = useCallback(async (id) => {
+    if (!id) return;
+
+    try {
+      setDetailLoadingMap((prev) => ({ ...prev, [id]: true }));
+      const response = await adPurchaseSlotService.getPublicAdPurchaseSlotById(
+        id
+      );
+      if (response?.success) {
+        setDetailDataMap((prev) => ({ ...prev, [id]: response.data }));
+      } else {
+        notification.error({
+          message: "Error",
+          description: response?.message || "Failed to fetch details",
+        });
+      }
+    } catch (error) {
+      notification.error({
+        message: "Error",
+        description: error.message || "Failed to fetch details",
+      });
+    } finally {
+      setDetailLoadingMap((prev) => ({ ...prev, [id]: false }));
+    }
+  }, []);
+
   const columns = [
     {
-      title: "Package Info",
-      dataIndex: "adPackage",
-      key: "packageInfo",
-      render: (adPackage) => (
-        <div>
-          <div className="font-medium">{adPackage?.packageName}</div>
-          <div className="text-gray-500 text-sm">
-            Price: {formatCurrency(adPackage?.packPrice)}
-          </div>
-          <div className="text-gray-500 text-sm">
-            Duration: {adPackage?.duration} month
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Duration",
-      key: "duration",
-      render: (_, record) => (
-        <div>
-          <div className="text-sm">
-            <ClockCircleOutlined className="mr-1" />
-            Start: {format(new Date(record.startDate), "MMM dd, yyyy HH:mm")}
-          </div>
-          <div className="text-sm">
-            <ClockCircleOutlined className="mr-1" />
-            End: {format(new Date(record.expiredDate), "MMM dd, yyyy HH:mm")}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Price",
-      key: "price",
-      render: (_, record) => (
-        <div>
-          <div className="font-medium">
-            {formatCurrency(record.purchaseSlotPrice)}
-          </div>
-          <div className="text-gray-500 text-sm">
-            Slot: {formatCurrency(record.adSlotTime?.slotTimePrice)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => {
-        let color = "default";
-        let icon = null;
-
-        switch (status) {
-          case "ACTIVE":
-            color = "success";
-            icon = <CheckCircleOutlined />;
-            break;
-          case "EXPIRED":
-            color = "default";
-            icon = <ClockCircleOutlined />;
-            break;
-          case "PENDING":
-            color = "warning";
-            icon = <ClockCircleOutlined />;
-            break;
-          default:
-            color = "error";
-            icon = <CloseCircleOutlined />;
-        }
+      title: "Ad Slot Details",
+      key: "details",
+      render: (_, record) => {
+        // Move useEffect outside of render function
+        const detailData = record?.id ? detailDataMap[record.id] : null;
+        const isLoading = record?.id ? detailLoadingMap[record.id] : false;
 
         return (
-          <Tag icon={icon} color={color}>
-            {status}
-          </Tag>
+          <div className="w-full">
+            <Collapse
+              defaultActiveKey={[]}
+              onChange={() => {
+                if (record?.id && !detailDataMap[record.id]) {
+                  fetchDetailData(record.id);
+                }
+              }}
+            >
+              {/* Package & Basic Info */}
+              <Panel
+                key="1"
+                header={
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-4">
+                      <FileTextOutlined className="text-[#FF009F]" />
+                      <div>
+                        <div className="font-medium">
+                          {detailData?.adPackage?.packageName ||
+                            record?.adPackage?.packageName ||
+                            "N/A"}
+                        </div>
+                        <div className="text-gray-500 text-sm">
+                          Price:{" "}
+                          {formatCurrency(
+                            detailData?.adPackage?.packPrice ||
+                              record?.adPackage?.packPrice ||
+                              0
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`status-badge status-${(
+                          detailData?.status ||
+                          record?.status ||
+                          "pending"
+                        ).toLowerCase()}`}
+                      >
+                        <span className="status-icon">
+                          {getIconForStatus(
+                            detailData?.status || record?.status || "pending"
+                          )}
+                        </span>
+                        <span className="status-text">
+                          {detailData?.status || record?.status || "Pending"}
+                        </span>
+                      </div>
+                      {((detailData?.adMedias || record?.adMedias)?.length ||
+                        0) > 0 ? (
+                        <Button
+                          type="link"
+                          className="flex items-center p-0 m-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewAdMediaDetails(
+                              (detailData?.adMedias || record?.adMedias)[0]?.id
+                            );
+                          }}
+                          icon={<FileImageOutlined />}
+                        >
+                          <span>View Ad</span>
+                        </Button>
+                      ) : (
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCreateAdClick(detailData?.id || record?.id);
+                          }}
+                          size="small"
+                        >
+                          Create Ad
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                }
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Left Column */}
+                  <div>
+                    <Collapse defaultActiveKey={[]} className="mb-4">
+                      {/* Package Information */}
+                      <Panel
+                        key="1"
+                        header={
+                          <div className="flex items-center">
+                            <FileTextOutlined className="mr-2 text-[#FF009F]" />
+                            <span className="font-medium">
+                              Package Information
+                            </span>
+                          </div>
+                        }
+                      >
+                        <Descriptions column={1} size="small">
+                          <Descriptions.Item label="Package Name">
+                            <Text strong>
+                              {detailData?.adPackage?.packageName}
+                            </Text>
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Package Price">
+                            {formatCurrency(detailData?.adPackage?.packPrice)}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Duration">
+                            {detailData?.adPackage?.duration} month
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Package Status">
+                            <Tag
+                              color={getTagColorForStatus(
+                                detailData?.adPackage?.status
+                              )}
+                            >
+                              {detailData?.adPackage?.status}
+                            </Tag>
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </Panel>
+
+                      {/* Slot Details */}
+                      <Panel
+                        key="2"
+                        header={
+                          <div className="flex items-center">
+                            <AppstoreOutlined className="mr-2 text-blue-500" />
+                            <span className="font-medium">Slot Details</span>
+                          </div>
+                        }
+                      >
+                        <Descriptions column={1} size="small">
+                          <Descriptions.Item label="Purchase Price">
+                            {formatCurrency(detailData?.purchaseSlotPrice)}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Slot Time Price">
+                            {formatCurrency(
+                              detailData?.adSlotTime?.slotTimePrice
+                            )}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Slot Location">
+                            <Tag color="blue">
+                              {detailData?.adSlotTime?.adSlot?.slotLocation}
+                            </Tag>
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Slot Price">
+                            {formatCurrency(
+                              detailData?.adSlotTime?.adSlot?.slotPrice
+                            )}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Slot Status">
+                            <Tag
+                              color={getTagColorForStatus(
+                                detailData?.adSlotTime?.adSlot?.status
+                              )}
+                            >
+                              {detailData?.adSlotTime?.adSlot?.status}
+                            </Tag>
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </Panel>
+                    </Collapse>
+                  </div>
+
+                  {/* Right Column */}
+                  <div>
+                    <Collapse defaultActiveKey={[]} className="mb-4">
+                      {/* Time Information */}
+                      <Panel
+                        key="1"
+                        header={
+                          <div className="flex items-center">
+                            <ClockCircleOutlined className="mr-2 text-green-500" />
+                            <span className="font-medium">
+                              Time Information
+                            </span>
+                          </div>
+                        }
+                      >
+                        <Descriptions column={1} size="small">
+                          <Descriptions.Item label="Time Range">
+                            {detailData?.adSlotTime?.adSlotTimeRange?.startTime}{" "}
+                            - {detailData?.adSlotTime?.adSlotTimeRange?.endTime}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Start Date">
+                            {formatDate(detailData?.startDate)}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Expired Date">
+                            {formatDate(detailData?.expiredDate)}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Created At">
+                            {formatDate(detailData?.createAt)}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Time Range Price">
+                            {formatCurrency(
+                              detailData?.adSlotTime?.adSlotTimeRange
+                                ?.slotTimeRangePrice
+                            )}
+                          </Descriptions.Item>
+                          <Descriptions.Item label="Time Range Status">
+                            <Tag
+                              color={getTagColorForStatus(
+                                detailData?.adSlotTime?.adSlotTimeRange?.status
+                              )}
+                            >
+                              {detailData?.adSlotTime?.adSlotTimeRange?.status}
+                            </Tag>
+                          </Descriptions.Item>
+                        </Descriptions>
+                      </Panel>
+
+                      {/* Ad Media Preview if exists */}
+                      {detailData?.adMedias?.length > 0 && (
+                        <Panel
+                          key="2"
+                          header={
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <FileImageOutlined className="mr-2 text-purple-500" />
+                                <span className="font-medium">Ad Media</span>
+                              </div>
+                              <div
+                                className={`status-badge status-${detailData.adMedias[0].status.toLowerCase()}`}
+                              >
+                                {detailData.adMedias[0].status}
+                              </div>
+                            </div>
+                          }
+                        >
+                          <div className="space-y-4">
+                            {detailData.adMedias[0].image && (
+                              <div>
+                                <img
+                                  src={detailData.adMedias[0].image}
+                                  alt="Ad Media"
+                                  className="max-w-full h-auto rounded-lg border border-gray-200"
+                                  style={{ maxHeight: "150px" }}
+                                />
+                              </div>
+                            )}
+                            {detailData.adMedias[0].content && (
+                              <div className="p-3 bg-white rounded-lg border border-gray-200">
+                                {detailData.adMedias[0].content}
+                              </div>
+                            )}
+                            {detailData.adMedias[0].reasonForRejection && (
+                              <div className="p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
+                                {detailData.adMedias[0].reasonForRejection}
+                              </div>
+                            )}
+                            {detailData.adMedias[0].status === "REJECTED" && (
+                              <Button
+                                type="primary"
+                                icon={<EditOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateAdMedia(
+                                    detailData.adMedias[0].id
+                                  );
+                                }}
+                              >
+                                Update Ad Media
+                              </Button>
+                            )}
+                          </div>
+                        </Panel>
+                      )}
+                    </Collapse>
+                  </div>
+                </div>
+              </Panel>
+            </Collapse>
+          </div>
         );
       },
     },
-    {
-      title: "Ad Media",
-      key: "adMedia",
-      render: (_, record) => (
-        <div>
-          {record.adMedias?.length > 0 ? (
-            <div className="flex items-center gap-3">
-              <Button
-                type="link"
-                className="flex items-center p-0 m-0"
-                onClick={() => handleViewAdMediaDetails(record.adMedias[0].id)}
-                icon={<FileImageOutlined />}
-              >
-                <span>View Ad</span>
-              </Button>
-              <div
-                className={`status-badge status-${record.adMedias[0].status.toLowerCase()}`}
-              >
-                <span className="status-icon">
-                  {getIconForStatus(record.adMedias[0].status)}
-                </span>
-                <span className="status-text">{record.adMedias[0].status}</span>
-              </div>
-            </div>
-          ) : (
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => handleCreateAdClick(record.id)}
-            >
-              Create Ad
-            </Button>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<InfoCircleOutlined />}
-              onClick={() => handleViewDetails(record.id)}
-            />
-          </Tooltip>
-          {record.adMedias?.length > 0 &&
-            record.adMedias[0].status === "REJECTED" && (
-              <Tooltip title="Update Ad Media">
-                <Button
-                  type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => handleUpdateAdMedia(record.adMedias[0].id)}
-                />
-              </Tooltip>
-            )}
-        </Space>
-      ),
-    },
   ];
-
-  const DetailModal = ({ adPurchaseSlot }) => (
-    <Descriptions bordered column={1} size="small">
-      <Descriptions.Item label="Package Name">
-        {adPurchaseSlot.adPackage?.packageName}
-      </Descriptions.Item>
-      <Descriptions.Item label="Package Price">
-        {formatCurrency(adPurchaseSlot.adPackage?.packPrice)}
-      </Descriptions.Item>
-      <Descriptions.Item label="Duration">
-        {adPurchaseSlot.adPackage?.duration} month
-      </Descriptions.Item>
-      <Descriptions.Item label="Purchase Price">
-        {formatCurrency(adPurchaseSlot.purchaseSlotPrice)}
-      </Descriptions.Item>
-      <Descriptions.Item label="Slot Time Price">
-        {formatCurrency(adPurchaseSlot.adSlotTime?.slotTimePrice)}
-      </Descriptions.Item>
-      <Descriptions.Item label="Slot Location">
-        {adPurchaseSlot.adSlotTime?.adSlot?.slotLocation}
-      </Descriptions.Item>
-      <Descriptions.Item label="Time Range">
-        {adPurchaseSlot.adSlotTime?.adSlotTimeRange?.startTime} -{" "}
-        {adPurchaseSlot.adSlotTime?.adSlotTimeRange?.endTime}
-      </Descriptions.Item>
-      <Descriptions.Item label="Start Date">
-        {format(new Date(adPurchaseSlot.startDate), "MMM dd, yyyy HH:mm")}
-      </Descriptions.Item>
-      <Descriptions.Item label="Expired Date">
-        {format(new Date(adPurchaseSlot.expiredDate), "MMM dd, yyyy HH:mm")}
-      </Descriptions.Item>
-      <Descriptions.Item label="Status">
-        <Tag color={adPurchaseSlot.status === "ACTIVE" ? "success" : "default"}>
-          {adPurchaseSlot.status}
-        </Tag>
-      </Descriptions.Item>
-      <Descriptions.Item label="Created At">
-        {format(new Date(adPurchaseSlot.createAt), "MMM dd, yyyy HH:mm")}
-      </Descriptions.Item>
-    </Descriptions>
-  );
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      return format(date, "MMM dd, yyyy HH:mm");
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return "Invalid Date";
+    }
   };
 
   const getTagColorForStatus = (status) => {
@@ -855,15 +961,16 @@ const AdPurchaseSlotManagement = () => {
     }
   };
 
-  // Initialize videoUrl in component effect when showing modals
-  useEffect(() => {
-    if (isUpdateModalVisible && selectedAdMediaId) {
-      const videoUrlValue = updateForm.getFieldValue("video");
-      if (videoUrlValue && videoUrlValue !== "string") {
-        setVideoUrl(videoUrlValue);
-      }
-    }
-  }, [isUpdateModalVisible, selectedAdMediaId, updateForm]);
+  // Update pagination handlers
+  const handlePaginationChange = useCallback((page, pageSize) => {
+    setPagination((prev) => ({ ...prev, current: page, pageSize }));
+    setFetchTrigger((t) => t + 1);
+  }, []);
+
+  const handleShowSizeChange = useCallback((current, size) => {
+    setPagination({ current: 1, pageSize: size });
+    setFetchTrigger((t) => t + 1);
+  }, []);
 
   return (
     <>
@@ -887,8 +994,8 @@ const AdPurchaseSlotManagement = () => {
 
             <Table
               columns={columns}
-              dataSource={adPurchaseSlots}
-              rowKey="id"
+              dataSource={adPurchaseSlots || []}
+              rowKey={(record) => record?.id || Math.random().toString()}
               loading={loading}
               pagination={{
                 current: pagination.current,
@@ -897,14 +1004,8 @@ const AdPurchaseSlotManagement = () => {
                 pageSizeOptions: ["5", "10", "20", "50"],
                 total: Math.min(totalSlots, pagination.pageSize * 6),
                 showTotal: (total) => `Total ${total} items`,
-                onChange: (page, pageSize) => {
-                  setPagination({ current: page, pageSize });
-                  fetchAdPurchaseSlots();
-                },
-                onShowSizeChange: (current, size) => {
-                  setPagination({ current: 1, pageSize: size });
-                  fetchAdPurchaseSlots();
-                },
+                onChange: handlePaginationChange,
+                onShowSizeChange: handleShowSizeChange,
                 size: "default",
                 showLessItems: true,
               }}
@@ -958,11 +1059,7 @@ const AdPurchaseSlotManagement = () => {
                     maxCount={1}
                     accept="image/*"
                   >
-                    <Button
-                      icon={<UploadOutlined />}
-                      loading={isUploading}
-                      className="mr-2"
-                    >
+                    <Button icon={<UploadOutlined />} className="mr-2">
                       Upload Image
                     </Button>
                   </Upload>
@@ -974,7 +1071,6 @@ const AdPurchaseSlotManagement = () => {
                       form.setFieldsValue({ image: e.target.value });
                       setImageUrl(e.target.value);
                     }}
-                    disabled={isUploading}
                   />
                 </Input.Group>
               </Form.Item>
@@ -1012,12 +1108,8 @@ const AdPurchaseSlotManagement = () => {
                       maxCount={1}
                       accept="video/*"
                     >
-                      <Button
-                        icon={<UploadOutlined />}
-                        loading={isVideoUploading}
-                        className="mr-2"
-                      >
-                        {isVideoUploading ? "Uploading..." : "Upload Video"}
+                      <Button icon={<UploadOutlined />} className="mr-2">
+                        Upload Video
                       </Button>
                     </Upload>
                     <Input
@@ -1031,7 +1123,6 @@ const AdPurchaseSlotManagement = () => {
                         form.setFieldsValue({ video: e.target.value });
                         setVideoUrl(e.target.value);
                       }}
-                      disabled={isVideoUploading}
                     />
                   </Input.Group>
                   <div className="mt-1 text-xs text-gray-500">
@@ -1094,31 +1185,16 @@ const AdPurchaseSlotManagement = () => {
                 <Space className="w-full justify-end">
                   <Button
                     onClick={() => {
-                      if (isUploading || isVideoUploading) {
-                        notification.warning({
-                          message: "Please wait",
-                          description: "Media is still uploading...",
-                        });
-                        return;
-                      }
                       setIsModalVisible(false);
                       setImageUrl("");
                       setVideoUrl("");
                       form.resetFields();
                     }}
-                    disabled={isUploading || isVideoUploading}
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading || isUploading || isVideoUploading}
-                    disabled={isUploading || isVideoUploading}
-                  >
-                    {isUploading || isVideoUploading
-                      ? "Uploading..."
-                      : "Create Ad Media"}
+                  <Button type="primary" htmlType="submit">
+                    Create Ad Media
                   </Button>
                 </Space>
               </Form.Item>
@@ -1162,136 +1238,127 @@ const AdPurchaseSlotManagement = () => {
             centered
             bodyStyle={{ padding: 0 }}
           >
-            {detailLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="loading-spinner"></div>
-              </div>
-            ) : (
-              selectedAdMediaDetail && (
-                <div className="detail-card">
-                  {/* Image display */}
-                  {selectedAdMediaDetail.image &&
-                    selectedAdMediaDetail.image !== "string" && (
-                      <div className="detail-image">
-                        <img
-                          src={selectedAdMediaDetail.image}
-                          alt="Ad Media"
-                          className="w-full object-contain"
-                          style={{ maxHeight: "300px" }}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src =
-                              "https://placehold.co/600x400?text=Image+Not+Available";
-                          }}
-                        />
-                      </div>
-                    )}
+            {selectedAdMediaDetail && (
+              <div className="detail-card">
+                {/* Image display */}
+                {selectedAdMediaDetail.image &&
+                  selectedAdMediaDetail.image !== "string" && (
+                    <div className="detail-image">
+                      <img
+                        src={selectedAdMediaDetail.image}
+                        alt="Ad Media"
+                        className="w-full object-contain"
+                        style={{ maxHeight: "300px" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src =
+                            "https://placehold.co/600x400?text=Image+Not+Available";
+                        }}
+                      />
+                    </div>
+                  )}
 
-                  {/* Video display */}
-                  {selectedAdMediaDetail.video &&
-                    selectedAdMediaDetail.video !== "string" &&
-                    selectedAdMediaDetail.slotLocation === "CENTER" && (
-                      <div className="detail-image">
-                        <video
-                          controls
-                          className="w-full object-contain"
-                          style={{ maxHeight: "300px" }}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                          }}
+                {/* Video display */}
+                {selectedAdMediaDetail.video &&
+                  selectedAdMediaDetail.video !== "string" &&
+                  selectedAdMediaDetail.slotLocation === "CENTER" && (
+                    <div className="detail-image">
+                      <video
+                        controls
+                        className="w-full object-contain"
+                        style={{ maxHeight: "300px" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                        }}
+                      >
+                        <source
+                          src={selectedAdMediaDetail.video}
+                          type="video/mp4"
+                        />
+                        <source
+                          src={selectedAdMediaDetail.video}
+                          type="video/webm"
+                        />
+                        <source
+                          src={selectedAdMediaDetail.video}
+                          type="video/ogg"
+                        />
+                        Your browser does not support HTML video.
+                      </video>
+                      <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200">
+                        <a
+                          href={selectedAdMediaDetail.video}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline"
                         >
-                          <source
-                            src={selectedAdMediaDetail.video}
-                            type="video/mp4"
-                          />
-                          <source
-                            src={selectedAdMediaDetail.video}
-                            type="video/webm"
-                          />
-                          <source
-                            src={selectedAdMediaDetail.video}
-                            type="video/ogg"
-                          />
-                          Your browser does not support HTML video.
-                        </video>
-                        <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200">
+                          Open video in new tab
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                <div className="detail-content">
+                  {/* Content section */}
+                  <div className="detail-section">
+                    <div className="detail-label">Content</div>
+                    <div className="detail-value">
+                      {selectedAdMediaDetail.content || "No content provided"}
+                    </div>
+                  </div>
+
+                  {/* URL section if available */}
+                  {selectedAdMediaDetail.url && (
+                    <div className="detail-section">
+                      <div className="detail-label">Destination URL</div>
+                      <div className="detail-value">
+                        <a
+                          href={selectedAdMediaDetail.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {selectedAdMediaDetail.url}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Video URL section if available as text */}
+                  {selectedAdMediaDetail.video &&
+                    selectedAdMediaDetail.slotLocation === "CENTER" && (
+                      <div className="detail-section">
+                        <div className="detail-label">Video URL</div>
+                        <div className="detail-value">
                           <a
                             href={selectedAdMediaDetail.video}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline"
                           >
-                            Open video in new tab
+                            {selectedAdMediaDetail.video}
                           </a>
                         </div>
                       </div>
                     )}
 
-                  <div className="detail-content">
-                    {/* Content section */}
-                    <div className="detail-section">
-                      <div className="detail-label">Content</div>
-                      <div className="detail-value">
-                        {selectedAdMediaDetail.content || "No content provided"}
-                      </div>
+                  {/* Created at info */}
+                  <div className="detail-section">
+                    <div className="detail-label">Created At</div>
+                    <div className="detail-value">
+                      {formatDate(selectedAdMediaDetail.createAt)}
                     </div>
-
-                    {/* URL section if available */}
-                    {selectedAdMediaDetail.url && (
-                      <div className="detail-section">
-                        <div className="detail-label">Destination URL</div>
-                        <div className="detail-value">
-                          <a
-                            href={selectedAdMediaDetail.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {selectedAdMediaDetail.url}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Video URL section if available as text */}
-                    {selectedAdMediaDetail.video &&
-                      selectedAdMediaDetail.slotLocation === "CENTER" && (
-                        <div className="detail-section">
-                          <div className="detail-label">Video URL</div>
-                          <div className="detail-value">
-                            <a
-                              href={selectedAdMediaDetail.video}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {selectedAdMediaDetail.video}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-
-                    {/* Created at info */}
-                    <div className="detail-section">
-                      <div className="detail-label">Created At</div>
-                      <div className="detail-value">
-                        {format(
-                          new Date(selectedAdMediaDetail.createAt),
-                          "MMM dd, yyyy HH:mm"
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Show rejection reason if applicable */}
-                    {selectedAdMediaDetail.reasonForRejection && (
-                      <div className="detail-section">
-                        <div className="detail-label">Rejection Reason</div>
-                        <div className="rejection-box">
-                          {selectedAdMediaDetail.reasonForRejection}
-                        </div>
-                      </div>
-                    )}
                   </div>
+
+                  {/* Show rejection reason if applicable */}
+                  {selectedAdMediaDetail.reasonForRejection && (
+                    <div className="detail-section">
+                      <div className="detail-label">Rejection Reason</div>
+                      <div className="rejection-box">
+                        {selectedAdMediaDetail.reasonForRejection}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )
+              </div>
             )}
           </Modal>
 
@@ -1317,15 +1384,7 @@ const AdPurchaseSlotManagement = () => {
             width={700}
             centered
           >
-            {detailLoading ? (
-              <div className="flex justify-center py-4">
-                <div className="loading-spinner"></div>
-              </div>
-            ) : (
-              selectedAdMedia && (
-                <DetailModal adPurchaseSlot={selectedAdMedia} />
-              )
-            )}
+            {selectedAdMedia && <expandedRowRender record={selectedAdMedia} />}
           </Modal>
 
           {/* Update Ad Media Modal */}
@@ -1363,11 +1422,7 @@ const AdPurchaseSlotManagement = () => {
                     maxCount={1}
                     accept="image/*"
                   >
-                    <Button
-                      icon={<UploadOutlined />}
-                      loading={isUploading}
-                      className="mr-2"
-                    >
+                    <Button icon={<UploadOutlined />} className="mr-2">
                       Upload Image
                     </Button>
                   </Upload>
@@ -1379,7 +1434,6 @@ const AdPurchaseSlotManagement = () => {
                       updateForm.setFieldsValue({ image: e.target.value });
                       setImageUrl(e.target.value);
                     }}
-                    disabled={isUploading}
                   />
                 </Input.Group>
               </Form.Item>
@@ -1417,12 +1471,8 @@ const AdPurchaseSlotManagement = () => {
                       maxCount={1}
                       accept="video/*"
                     >
-                      <Button
-                        icon={<UploadOutlined />}
-                        loading={isVideoUploading}
-                        className="mr-2"
-                      >
-                        {isVideoUploading ? "Uploading..." : "Upload Video"}
+                      <Button icon={<UploadOutlined />} className="mr-2">
+                        Upload Video
                       </Button>
                     </Upload>
                     <Input
@@ -1436,7 +1486,6 @@ const AdPurchaseSlotManagement = () => {
                         updateForm.setFieldsValue({ video: e.target.value });
                         setVideoUrl(e.target.value);
                       }}
-                      disabled={isVideoUploading}
                     />
                   </Input.Group>
                   <div className="mt-1 text-xs text-gray-500">
@@ -1499,31 +1548,16 @@ const AdPurchaseSlotManagement = () => {
                 <Space className="w-full justify-end">
                   <Button
                     onClick={() => {
-                      if (isUploading || isVideoUploading) {
-                        notification.warning({
-                          message: "Please wait",
-                          description: "Media is still uploading...",
-                        });
-                        return;
-                      }
                       setIsUpdateModalVisible(false);
                       setImageUrl("");
                       setVideoUrl("");
                       updateForm.resetFields();
                     }}
-                    disabled={isUploading || isVideoUploading}
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading || isUploading || isVideoUploading}
-                    disabled={isUploading || isVideoUploading}
-                  >
-                    {isUploading || isVideoUploading
-                      ? "Uploading..."
-                      : "Update Ad Media"}
+                  <Button type="primary" htmlType="submit">
+                    Update Ad Media
                   </Button>
                 </Space>
               </Form.Item>

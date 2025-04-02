@@ -238,13 +238,14 @@ const routes = [
 
   {
     path: "/watch-together/:movieId",
-    element: 
+    element: (
       <PrivateRoute requiredRoles="VIP MEMBER">
         <WatchTogether />
-      </PrivateRoute>,
+      </PrivateRoute>
+    ),
     layout: "UserLayout",
   },
-  { 
+  {
     path: "/waiting",
     element: (
       <PrivateRoute requiredRoles="VIP MEMBER">
