@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SearchOutlined } from "@ant-design/icons";
 import { Spin } from "antd";
 import NewsApi from "../../apis/News/news";
+import UserApi from "../../apis/User/user";
 import { notification } from "antd";
 
 // Using Tailwind classes instead of CSS overrides
@@ -31,13 +32,49 @@ const NewsPage = () => {
             news.status?.toLowerCase() === "active"
         );
 
-        // Store all active news
-        setAllNews(activeNews);
+        // Fetch user details for each news item
+        const newsWithUserDetails = await Promise.all(
+          activeNews.map(async (newsItem) => {
+            if (newsItem.userId) {
+              try {
+                const userResponse = await UserApi.getUserDetail(
+                  newsItem.userId
+                );
+
+                // Check if user data is properly structured
+                if (userResponse && userResponse.success && userResponse.data) {
+                  const userData = userResponse.data;
+                  return {
+                    ...newsItem,
+                    userAvatar: userData.picture || "/avatar.jpg",
+                    userName: userData.fullName || "Anonymous",
+                  };
+                } else {
+                  console.error(
+                    `Invalid user data format for news ID ${newsItem.id}:`,
+                    userResponse
+                  );
+                  return newsItem;
+                }
+              } catch (error) {
+                console.error(
+                  `Failed to fetch user data for news ID ${newsItem.id}:`,
+                  error
+                );
+                return newsItem; // Return original news item if user fetch fails
+              }
+            }
+            return newsItem;
+          })
+        );
+
+        // Store all active news with user details
+        setAllNews(newsWithUserDetails);
 
         // Apply filtering if there's a search query
         const newsToDisplay = searchQuery
-          ? filterNewsBySearchQuery(activeNews, searchQuery)
-          : activeNews;
+          ? filterNewsBySearchQuery(newsWithUserDetails, searchQuery)
+          : newsWithUserDetails;
 
         const startIndex = 0;
         const endIndex = page * pageSize;
@@ -319,7 +356,7 @@ const NewsCard = ({ news, index }) => (
           <div className="flex items-center gap-3 mb-4 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <img
-                src="/avatar.jpg"
+                src={news.userAvatar || "/avatar.jpg"}
                 alt={news.userName || "Admin"}
                 className="w-8 h-8 rounded-full border-2 border-[#FF009F]/20"
               />
