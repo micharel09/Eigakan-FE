@@ -33,7 +33,6 @@ const AdDisplay = memo(({ ad, className }) => {
   useEffect(() => {
     if (!ad.video || !adVideoRef.current) return;
 
-    // Avoid multiple initialization attempts
     if (isInitializingRef.current) return;
     isInitializingRef.current = true;
 
@@ -471,30 +470,28 @@ const CenterAdDisplay = memo(({ centerAd, showCenterAd, setShowCenterAd }) => {
 
                 {/* Gradient overlay with integrated visit button */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  {centerAd.url && (
-                    <a
-                      href={centerAd.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-[#FF009F]/90 hover:bg-[#FF009F] text-white text-sm font-medium py-2 px-4 rounded-md transition-all transform hover:scale-105 shadow-lg"
+                  <a
+                    href={centerAd.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-[#FF009F]/90 hover:bg-[#FF009F] text-white text-sm font-medium py-2 px-4 rounded-md transition-all transform hover:scale-105 shadow-lg"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                      Visit Site
-                    </a>
-                  )}
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                    Visit Site
+                  </a>
                 </div>
               </div>
             ) : centerAd.image ? (
@@ -913,23 +910,22 @@ const WatchPage = () => {
     </div>
   );
 
-  // Helper function for video container styling
   const getVideoContainerStyle = () => {
     // VIP MEMBER has full-screen video
     if (role === "VIP MEMBER") {
       return {
-        width: "100%",
-        height: "96%",
-        position: "absolute",
+        width: "100vw",
+        height: "97vh",
+        position: "fixed",
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 5,
+        zIndex: 15,
       };
     }
 
-    // Other roles have larger centered video (increased width and height for better visibility)
+    // Other roles
     return {
       width: "100%",
       height: "80%",
@@ -1013,7 +1009,7 @@ const WatchPage = () => {
 
       <div className="fixed inset-0 bg-black">
         {/* Header Ad */}
-        {headerAd && (
+        {headerAd && role !== "VIP MEMBER" && (
           <div className="absolute top-2 left-0 right-0 z-10 flex justify-center">
             <AdDisplay
               ad={headerAd}
@@ -1022,19 +1018,25 @@ const WatchPage = () => {
           </div>
         )}
 
-        {/* Main content with 3-column grid layout - Adjust column widths for larger center column */}
-        <div className="grid grid-cols-[250px_1fr_250px] w-full h-full">
+        {/* Main content with 3-column grid layout - Hide sidebar columns for VIP MEMBER */}
+        <div
+          className={`${
+            role === "VIP MEMBER" ? "" : "grid grid-cols-[250px_1fr_250px]"
+          } w-full h-full`}
+        >
           {/* Left Sidebar Ad Column - Reduced width slightly */}
-          <div className="h-full overflow-hidden z-10">
-            {leftSidebarAd ? (
-              <div className="h-full pt-[80px] pb-[60px] pr-2">
-                <AdDisplay ad={leftSidebarAd} className="sidebar-ad h-full" />
-              </div>
-            ) : (
-              // Empty placeholder to maintain grid
-              <div className="h-full"></div>
-            )}
-          </div>
+          {role !== "VIP MEMBER" && (
+            <div className="h-full overflow-hidden z-10">
+              {leftSidebarAd ? (
+                <div className="h-full pt-[80px] pb-[60px] pr-2">
+                  <AdDisplay ad={leftSidebarAd} className="sidebar-ad h-full" />
+                </div>
+              ) : (
+                // Empty placeholder to maintain grid
+                <div className="h-full"></div>
+              )}
+            </div>
+          )}
 
           {/* Center Video Column - Always centered with more space */}
           <div className="relative flex items-center justify-center h-full py-2">
@@ -1090,27 +1092,31 @@ const WatchPage = () => {
           </div>
 
           {/* Right Sidebar Ad Column - Reduced width slightly */}
-          <div className="h-full overflow-hidden z-10">
-            {sidebarAd ? (
-              <div className="h-full pt-[80px] pb-[60px] pl-2">
-                <AdDisplay ad={sidebarAd} className="sidebar-ad h-full" />
-              </div>
-            ) : (
-              // Empty placeholder to maintain grid
-              <div className="h-full"></div>
-            )}
-          </div>
+          {role !== "VIP MEMBER" && (
+            <div className="h-full overflow-hidden z-10">
+              {sidebarAd ? (
+                <div className="h-full pt-[80px] pb-[60px] pl-2">
+                  <AdDisplay ad={sidebarAd} className="sidebar-ad h-full" />
+                </div>
+              ) : (
+                // Empty placeholder to maintain grid
+                <div className="h-full"></div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* CENTER Ad - Full screen overlay */}
-        <CenterAdDisplay
-          centerAd={centerAd}
-          showCenterAd={showCenterAd}
-          setShowCenterAd={setShowCenterAd}
-        />
+        {/* CENTER Ad - Full screen overlay (hide for VIP members) */}
+        {role !== "VIP MEMBER" && (
+          <CenterAdDisplay
+            centerAd={centerAd}
+            showCenterAd={showCenterAd}
+            setShowCenterAd={setShowCenterAd}
+          />
+        )}
 
-        {/* Footer Ad */}
-        {footerAd && (
+        {/* Footer Ad (hide for VIP members) */}
+        {footerAd && role !== "VIP MEMBER" && (
           <div className="absolute bottom-[60px] left-0 right-0 z-10 flex justify-center pointer-events-auto">
             <AdDisplay ad={footerAd} className="max-w-[728px] max-h-[100px]" />
           </div>
