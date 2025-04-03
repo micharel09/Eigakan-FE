@@ -2,568 +2,252 @@ import movieHistoryService from "../MovieHistory/MovieHistory";
 import movieService from "../Movie/movie";
 import ratingService from "../Movie/rating";
 
+/**
+ * Service for handling movie recommendations
+ */
 const recommendationService = {
   /**
-   * Gets recommended movies based on user's watch history and ratings
-   * Uses an intelligent algorithm to recommend similar movies based on genres, years, and user ratings
-   * @returns {Promise<{success: boolean, recommendations: Array}>}
+   * Get recommended movies for the user
+   * Based on their watch history and ratings
+   * @returns {Promise<{success: boolean, recommendations: Array, source: string}>}
    */
   getRecommendedMovies: async () => {
     try {
-      // Fetch the user's watch history
-      const historyResponse = await movieHistoryService.getAllListMoviesHistory(1, 1000);
-      
-      if (!historyResponse?.data || !historyResponse.data.movieHistories || historyResponse.data.movieHistories.length === 0) {
-        // If no watch history, return empty recommendations
-        console.log("No watch history found");
-        return {
-          success: true,
-          recommendations: [],
-          source: "none" // Indicates no recommendations available
-        };
+      // Get 50 most recent movies from user's watch history
+      const { data: historyData } = await movieHistoryService.getAllListMoviesHistory(1, 50);
+      if (!historyData?.movieHistories?.length) {
+        return { success: true, recommendations: [], source: "none" };
       }
 
-      console.log("Watch history:", historyResponse.data.movieHistories);
-      
-      // Extract watched movies from history
-      const watchedMovies = historyResponse.data.movieHistories.map(history => history.movies);
-      
-      // Get watched movie IDs for filtering out later
-      const watchedMovieIds = new Set(watchedMovies.map(movie => movie.id));
-      
-      // Check if any watchedMovies have genreNames, if not we need to fetch more movie details
-      const needGenreDetails = !watchedMovies.some(movie => movie.genreNames);
-      
-      // If we need more details, get them for each watched movie
-      let watchedMoviesWithDetails = [...watchedMovies];
-      if (needGenreDetails) {
-        try {
-          // Get details for each watched movie in parallel
-          const detailPromises = watchedMovies.map(movie => 
-            movieService.getMovieById(movie.id).catch(() => null)
-          );
-          const detailsResults = await Promise.all(detailPromises);
-          
-          // Replace movies with their detailed versions if available
-          watchedMoviesWithDetails = detailsResults
-            .filter(result => result !== null)
-            .map(movie => movie);
-          
-          console.log("Watched movies with details:", watchedMoviesWithDetails);
-        } catch (error) {
-          console.error("Error fetching movie details:", error);
-          // If we can't get details, continue with basic recommendations
-        }
+      // Extract watched movies and their IDs
+      const watchedMovies = historyData.movieHistories.map(h => h.movies);
+      const watchedIds = new Set(watchedMovies.map(m => m.id));
+
+      // If movies don't have genre info, fetch additional details
+      let moviesWithDetails = [...watchedMovies];
+      if (!watchedMovies.some(m => m.genreNames)) {
+        const details = await Promise.all(
+          watchedMovies.map(m => movieService.getMovieById(m.id).catch(() => null))
+        );
+        moviesWithDetails = details.filter(Boolean).map(r => r.data || r);
       }
-      
-      // Fetch user ratings for watched movies to improve recommendation quality
-      const ratingPromises = watchedMovies.map(movie => 
-        ratingService.getUserRatingForMovie(movie.id).catch(() => null)
+
+      // Get user ratings for watched movies
+      const ratings = {};
+      const ratingResults = await Promise.all(
+        watchedMovies.map(m => ratingService.getUserRatingForMovie(m.id).catch(() => null))
       );
-      
-      const ratingsResults = await Promise.all(ratingPromises);
-      const movieRatings = {};
-      
-      // Process ratings into a usable format
-      ratingsResults.forEach(result => {
-        if (result?.success && result.data) {
-          movieRatings[result.data.movieId] = result.data.stars;
-        }
+      ratingResults.forEach(r => {
+        if (r?.success && r.data) ratings[r.data.movieId] = r.data.stars;
       });
-      
-      console.log("Movie ratings:", movieRatings);
-      
-      // Check if we have enough watch history for meaningful recommendations
-      if (watchedMoviesWithDetails.length < 1) {
-        console.log("Not enough watch history for personalized recommendations");
-        return {
-          success: true,
-          recommendations: [],
-          source: "none"
-        };
-      }
-      
-      // Extract patterns from watch history (genres, years, etc.) and incorporate ratings
-      const patterns = extractPatterns(watchedMoviesWithDetails, movieRatings);
-      
-      console.log("Extracted patterns:", patterns);
-      
-      // For very limited watch history (1-2 movies), we'll be more lenient
-      const isLimitedHistory = watchedMoviesWithDetails.length <= 2;
-      
-      // Get all movies to filter from
-      const allMoviesResponse = await movieService.getMovies(1, 200);
-      const allMovies = allMoviesResponse.movies || [];
 
-      console.log(`Found ${allMovies.length} total movies to filter from`);
+      // Analyze user preferences based on watch history and ratings
+      const prefs = getUserPreferences(moviesWithDetails, ratings);
 
+      // Get list of all active movies
+      const { movies: allMovies = [] } = await movieService.getMovies(1, 200);
       // Filter out already watched movies
-      const unwatchedMovies = allMovies.filter(movie => 
-        !watchedMovieIds.has(movie.id)
-      );
-      
-      console.log(`${unwatchedMovies.length} unwatched movies`);
-      
-      // If no unwatched movies, return empty recommendations
-      if (unwatchedMovies.length === 0) {
-        return {
-          success: true,
-          recommendations: [],
-          source: "none"
-        };
+      const unwatched = allMovies.filter(m => !watchedIds.has(m.id));
+      if (!unwatched.length) {
+        return { success: true, recommendations: [], source: "none" };
       }
-      
-      // Score and rank the unwatched movies based on patterns
-      const scoredMovies = scoreMovies(unwatchedMovies, patterns, watchedMoviesWithDetails, movieRatings, isLimitedHistory);
-      
-      console.log("Scored movies:", scoredMovies.map(m => ({
-        title: m.title,
-        score: m.recommendationScore,
-        components: m.scoreComponents
-      })));
-      
-      // Use a lower threshold for limited watch history
-      const MINIMUM_SCORE_THRESHOLD = isLimitedHistory ? 1 : 3;
-      
-      // Filter movies with a minimum similarity threshold to ensure relevance
-      let relevantMovies = scoredMovies.filter(movie => movie.recommendationScore >= MINIMUM_SCORE_THRESHOLD);
-      
-      console.log(`${relevantMovies.length} movies above threshold ${MINIMUM_SCORE_THRESHOLD}`);
-      
-      // If too few movies meet the threshold, gradually lower it
-      if (relevantMovies.length < 3 && scoredMovies.length > 0) {
-        console.log("Too few relevant movies, lowering threshold");
-        // Take top 5 regardless of score
-        relevantMovies = scoredMovies.slice(0, 5);
-      }
-      
-      // If still no movies, return empty
-      if (relevantMovies.length === 0) {
-        console.log("No relevant movies found after all attempts");
-        return {
-          success: true,
-          recommendations: [],
-          source: "none"
-        };
-      }
-      
-      // Add an explanation of why each movie was recommended
-      const moviesWithExplanation = relevantMovies.map(movie => {
-        const explanation = generateRecommendationExplanation(movie, patterns, watchedMoviesWithDetails);
-        return {
-          ...movie,
-          recommendationReason: explanation
-        };
-      });
-      
-      console.log("Final recommendations:", moviesWithExplanation.map(m => ({ 
-        title: m.title, 
-        score: m.recommendationScore, 
-        reason: m.recommendationReason 
-      })));
-      
-      // Return top recommendations (limited to 10)
-      return {
-        success: true,
-        recommendations: moviesWithExplanation.slice(0, 10),
-        source: "personalized" // Indicates these are personalized recommendations
-      };
+
+      // Score and rank unwatched movies, get top 10
+      const recommendations = rankMovies(unwatched, prefs, ratings).slice(0, 10);
+      return { success: true, recommendations, source: "personalized" };
+
     } catch (error) {
-      console.error("Error generating recommendations:", error);
-      return {
-        success: false,
-        recommendations: [],
-        error: error.message
-      };
+      console.error("Recommendation error:", error);
+      return { success: false, recommendations: [], error: error.message };
     }
   }
 };
 
 /**
- * Generates a human-readable explanation for why a movie was recommended
- * @param {Object} movie - The recommended movie
- * @param {Object} patterns - The extracted patterns from watch history
- * @param {Array} watchedMovies - Movies the user has watched
- * @returns {String} An explanation string
+ * Analyze user preferences based on watch history and ratings
+ * @param {Array} movies - List of watched movies
+ * @param {Object} ratings - Object containing user ratings for movies
+ * @returns {Object} Object containing user preferences
  */
-const generateRecommendationExplanation = (movie, patterns, watchedMovies) => {
-  const reasons = [];
-  
-  // Check for genre matches
-  if (movie.genreNames) {
-    const movieGenres = movie.genreNames.split(',').map(g => g.trim());
-    const matchedGenres = movieGenres.filter(genre => patterns.genres[genre]);
-    
-    if (matchedGenres.length > 0) {
-      reasons.push(`similar genres (${matchedGenres.join(', ')})`);
-    }
-  }
-  
-  // Check for director matches
-  if (movie.director && patterns.directors[movie.director]) {
-    reasons.push(`same director (${movie.director})`);
-  }
-  
-  // Check for actor matches
-  if (movie.actors) {
-    const movieActors = movie.actors.split(',').map(a => a.trim());
-    const matchedActors = movieActors.filter(actor => patterns.actors[actor]);
-    
-    if (matchedActors.length > 0) {
-      reasons.push(`featuring ${matchedActors.join(', ')}`);
-    }
-  }
-  
-  // Check for year proximity
-  if (movie.releaseYear) {
-    const watchedYears = Object.keys(patterns.years);
-    if (watchedYears.some(year => Math.abs(parseInt(movie.releaseYear) - parseInt(year)) <= 3)) {
-      reasons.push(`from a similar time period`);
-    }
-  }
-  
-  // Generate the final reason string
-  if (reasons.length === 0) {
-    return "based on your viewing preferences";
-  } else if (reasons.length === 1) {
-    return reasons[0];
-  } else {
-    const lastReason = reasons.pop();
-    return `${reasons.join(', ')} and ${lastReason}`;
-  }
-};
+const getUserPreferences = (movies, ratings) => {
+  // Initialize objects to store user preferences
+  const genres = {};        // Store preference scores for each genre
+  const years = {};         // Store preference scores for release years
+  const titles = new Set(); // Store watched movie titles (for finding similar ones)
+  const recentGenres = new Set(); // Store genres from most recently watched movie
 
-/**
- * Extracts patterns from watched movies to use for recommendations
- * @param {Array} watchedMovies - List of movies the user has watched
- * @param {Object} ratings - User ratings for movies
- * @returns {Object} Patterns object containing preferred genres, years, etc.
- */
-const extractPatterns = (watchedMovies, ratings = {}) => {
-  const genres = {};
-  const years = {};
-  const directors = {};
-  const actors = {};
+  // Sort movies by watch date, most recent first
+  const sorted = [...movies].sort((a, b) => new Date(b.createDate || 0) - new Date(a.createDate || 0));
   
-  // For limited watch history, extract genres from movie titles if needed
-  if (watchedMovies.length <= 2) {
-    watchedMovies.forEach(movie => {
-      if (!movie.genreNames && movie.title) {
-        // Try to infer genres from title for common keywords
-        const title = movie.title.toLowerCase();
-        if (title.includes('action') || title.includes('fight') || title.includes('wick')) {
-          genres['Action'] = (genres['Action'] || 0) + 1;
-        }
-        if (title.includes('horror') || title.includes('scary') || title.includes('dead')) {
-          genres['Horror'] = (genres['Horror'] || 0) + 1;
-        }
-        if (title.includes('comedy') || title.includes('funny')) {
-          genres['Comedy'] = (genres['Comedy'] || 0) + 1;
-        }
-        if (title.includes('sci-fi') || title.includes('space') || title.includes('future')) {
-          genres['Sci-Fi'] = (genres['Sci-Fi'] || 0) + 1;
-        }
-        if (title.includes('drama')) {
-          genres['Drama'] = (genres['Drama'] || 0) + 1;
-        }
-        if (title.includes('adventure') || title.includes('quest') || title.includes('journey')) {
-          genres['Adventure'] = (genres['Adventure'] || 0) + 1;
-        }
-      }
+  // Get and store genres from most recent movie
+  const latestGenres = sorted[0]?.genreNames?.split(',').map(g => g.trim()) || [];
+  latestGenres.forEach(g => recentGenres.add(g));
+
+  // Process each movie to calculate preferences
+  sorted.forEach(movie => {
+    // Calculate weight based on user rating
+    // Example: 5 stars = 1.67 weight, 3 stars = 1 weight, 1 star = 0.33 weight
+    const weight = (ratings[movie.id] || 3) / 3;
+    const isRecent = movie === sorted[0]; // Check if it's the most recent movie
+
+    // Store movie title in watched list
+    if (movie.title) titles.add(movie.title.toLowerCase().trim());
+
+    // Process and score each genre
+    movie.genreNames?.split(',').forEach(genre => {
+      const g = genre.trim();
+      // Recent movie genres get double points
+      const boost = recentGenres.has(g) ? 2 : 1;
+      // Accumulate genre score (score = rating weight * time factor)
+      genres[g] = (genres[g] || 0) + (weight * boost);
     });
-  }
-  
-  // Count occurrences first to identify primary preferences
-  const genreCounts = {};
-  const allGenres = new Set();
-  
-  // First pass: collect all genre information
-  watchedMovies.forEach(movie => {
-    if (movie.genreNames) {
-      const movieGenres = movie.genreNames.split(',').map(g => g.trim());
-      movieGenres.forEach(genre => {
-        genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-        allGenres.add(genre);
-      });
-    }
-  });
-  
-  // Calculate genre frequency to identify primary genres
-  const totalMovies = Math.max(watchedMovies.length, 1); // Avoid division by zero
-  const primaryGenres = new Set();
-  allGenres.forEach(genre => {
-    // For very limited history, treat all genres as primary
-    if (watchedMovies.length <= 2) {
-      primaryGenres.add(genre);
-    } else {
-      const frequency = genreCounts[genre] / totalMovies;
-      if (frequency >= 0.25) { // Consider genres present in at least 25% of watched movies as primary
-        primaryGenres.add(genre);
-      }
-    }
-  });
-  
-  // Second pass: apply weights with emphasis on primary genres
-  watchedMovies.forEach(movie => {
-    // Get rating weight - higher rated movies have more influence
-    const ratingWeight = ratings[movie.id] ? (ratings[movie.id] / 2.5) : 1;
-    const recencyWeight = getRecencyWeight(movie.createDate);
-    const totalWeight = ratingWeight * recencyWeight;
-    
-    // Extract genres with rating weight and primary genre boost
-    if (movie.genreNames) {
-      const movieGenres = movie.genreNames.split(',').map(g => g.trim());
-      movieGenres.forEach(genre => {
-        // Apply higher weight to primary genres
-        const genreWeight = primaryGenres.has(genre) ? 2.5 : 1;
-        genres[genre] = (genres[genre] || 0) + (genreWeight * totalWeight);
-      });
-    }
-    
-    // Extract years with weights
+
+    // Process and score release year
     if (movie.releaseYear) {
-      years[movie.releaseYear] = (years[movie.releaseYear] || 0) + totalWeight;
-    }
-    
-    // Extract directors with weights
-    if (movie.director) {
-      directors[movie.director] = (directors[movie.director] || 0) + totalWeight;
-    }
-    
-    // Extract actors with weights
-    if (movie.actors) {
-      const movieActors = movie.actors.split(',').map(a => a.trim());
-      movieActors.forEach(actor => {
-        actors[actor] = (actors[actor] || 0) + totalWeight;
-      });
+      // Recent movie year gets double points
+      const yearBoost = isRecent ? 2 : 1;
+      // Accumulate year score
+      years[movie.releaseYear] = (years[movie.releaseYear] || 0) + (weight * yearBoost);
     }
   });
-  
-  // If we still have no genres (could happen with limited data), add default genres
-  if (Object.keys(genres).length === 0) {
-    // Popular genres as fallback
-    genres["Action"] = 1;
-    genres["Adventure"] = 1;
-    if (watchedMovies.some(m => m.title && m.title.includes("John Wick"))) {
-      genres["Action"] = 3; // Boost action for John Wick
-      genres["Thriller"] = 2;
-    } else if (watchedMovies.some(m => m.title && m.title.includes("Sonic"))) {
-      genres["Family"] = 3;
-      genres["Adventure"] = 3;
-      genres["Comedy"] = 2;
-    }
-  }
-  
-  return {
-    genres,
-    years,
-    directors,
-    actors,
-    primaryGenres: Array.from(primaryGenres)
-  };
+
+  // Return object containing all user preferences
+  return { genres, years, titles, recentGenres };
 };
 
 /**
- * Calculate weight based on recency of watch
- * @param {String} createDate - Date when movie was watched
- * @returns {Number} Weight between 1-1.5 with more recent watches weighted higher
+ * Score and rank unwatched movies based on user preferences
+ * @param {Array} movies - List of movies to rank
+ * @param {Object} prefs - User preferences
+ * @param {Object} ratings - User ratings for watched movies
+ * @returns {Array} Scored and sorted list of movies
  */
-const getRecencyWeight = (createDate) => {
-  if (!createDate) return 1;
-  
-  try {
-    const watchDate = new Date(createDate);
-    const now = new Date();
-    const daysDifference = Math.floor((now - watchDate) / (1000 * 60 * 60 * 24));
-    
-    // Recent watches (within 30 days) get higher weight
-    if (daysDifference <= 30) {
-      return 1.5 - (daysDifference / 30) * 0.5; // Scale from 1.5 down to 1.0
-    }
-    return 1.0;
-  } catch (e) {
-    return 1.0;
-  }
-};
+const rankMovies = (movies, prefs, ratings) => {
+  // Calculate user's average rating
+  const avgRating = Object.values(ratings).reduce((sum, r) => sum + r, 0) / 
+                   Math.max(Object.values(ratings).length, 1);
 
-/**
- * Scores unwatched movies based on similarity to patterns
- * @param {Array} unwatchedMovies - Movies the user hasn't watched
- * @param {Object} patterns - Patterns extracted from watch history
- * @param {Array} watchedMovies - Movies the user has watched (for additional context)
- * @param {Object} ratings - User ratings for movies
- * @param {Boolean} isLimitedHistory - Whether user has limited watch history
- * @returns {Array} Sorted array of movies with scores
- */
-const scoreMovies = (unwatchedMovies, patterns, watchedMovies, ratings = {}, isLimitedHistory = false) => {
-  // Calculate average rating to use as baseline
-  const ratingValues = Object.values(ratings);
-  const avgRating = ratingValues.length > 0 
-    ? ratingValues.reduce((sum, val) => sum + val, 0) / ratingValues.length 
-    : 3;
-  
-  // Get top 3 genres
-  const topGenres = Object.entries(patterns.genres)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(entry => entry[0]);
-  
-  console.log("Top genres detected:", topGenres);
-  
-  return unwatchedMovies
+  return movies
     .map(movie => {
       let score = 0;
-      const scoreComponents = {
-        genreScore: 0,
-        yearScore: 0,
-        directorScore: 0,
-        actorScore: 0,
-        similarityScore: 0
+      // Object to store movie match information
+      const matchData = {
+        exactTitle: false,         // Whether title matches a watched movie
+        genreMatches: 0,          // Number of matching genres
+        recentGenreMatches: 0     // Number of matches with recent genres
       };
-      
-      // More lenient scoring for limited history
-      const minOverlapThreshold = isLimitedHistory ? 0.1 : 0.2;
-      
-      // Score based on genre matches - this is the most important factor
+
+      // Score exact title matches (100 points)
+      if (movie.title && prefs.titles.has(movie.title.toLowerCase().trim())) {
+        score += 100;
+        matchData.exactTitle = true;
+      }
+
+      // Score genres (up to 60 points)
       if (movie.genreNames) {
-        const movieGenres = movie.genreNames.split(',').map(g => g.trim());
-        let genreMatchCount = 0;
-        
-        movieGenres.forEach(genre => {
-          if (patterns.genres[genre]) {
-            // Extra weight for top genres
-            const genreImportance = topGenres.includes(genre) ? 4 : 2.5;
-            const genreScore = patterns.genres[genre] * genreImportance;
-            score += genreScore;
-            scoreComponents.genreScore += genreScore;
-            genreMatchCount++;
+        const genres = movie.genreNames.split(',').map(g => g.trim());
+        genres.forEach(genre => {
+          if (prefs.genres[genre]) {
+            matchData.genreMatches++;
+            // Recent genres get 8 points
+            // Other genres get 6 points
+            if (prefs.recentGenres.has(genre)) {
+              matchData.recentGenreMatches++;
+              score += prefs.genres[genre] * 8;
+            } else {
+              score += prefs.genres[genre] * 6;
+            }
           }
         });
-        
-        // For limited history, don't require exact genre match
-        if (!isLimitedHistory && genreMatchCount === 0 && Object.keys(patterns.genres).length > 0) {
-          // Apply a small base score even without genre matches for limited history
-          score += isLimitedHistory ? 1 : 0;
-        }
-        
-        // Boost score based on genre match percentage (how many of the movie's genres match preferences)
-        if (genreMatchCount > 0) {
-          const genreMatchPercentage = genreMatchCount / movieGenres.length;
-          score += genreMatchPercentage * 5; // Up to 5 additional points
-          scoreComponents.genreScore += genreMatchPercentage * 5;
-        }
+
+        // Bonus points for multiple genre matches
+        if (matchData.genreMatches > 1) score += matchData.genreMatches * 2;
+        if (matchData.recentGenreMatches > 0) score += matchData.recentGenreMatches * 5;
       }
-      
-      // Score based on release year proximity
+
+      // Score release year (up to 20 points)
+      // Higher score for years closer to preferred years
       if (movie.releaseYear) {
-        Object.keys(patterns.years).forEach(year => {
-          const yearDiff = Math.abs(parseInt(movie.releaseYear) - parseInt(year));
-          if (yearDiff <= 5) { // Within 5 years
-            const yearScore = (5 - yearDiff) * patterns.years[year] * 0.5;
-            score += yearScore;
-            scoreComponents.yearScore += yearScore;
-          }
+        Object.keys(prefs.years).forEach(year => {
+          const diff = Math.abs(movie.releaseYear - year);
+          if (diff <= 5) score += (5 - diff) * prefs.years[year] * 2;
         });
       }
-      
-      // Score based on director matches - strong signal
-      if (movie.director && patterns.directors[movie.director]) {
-        const directorScore = patterns.directors[movie.director] * 10;
-        score += directorScore;
-        scoreComponents.directorScore += directorScore;
+
+      // Score movie rating (up to 20 points)
+      // Bonus points for ratings above user's average
+      if (movie.rating && movie.rating > avgRating) {
+        score += (movie.rating - avgRating) * 2;
       }
-      
-      // Score based on actor matches
-      if (movie.actors) {
-        const movieActors = movie.actors.split(',').map(a => a.trim());
-        movieActors.forEach(actor => {
-          if (patterns.actors[actor]) {
-            const actorScore = patterns.actors[actor] * 3;
-            score += actorScore;
-            scoreComponents.actorScore += actorScore;
-          }
-        });
-      }
-      
-      // Find similar watched movies to boost relevance - this is critical
-      const similarityBoost = watchedMovies.reduce((boost, watched) => {
-        // Skip if we don't have genre info but not for limited history
-        if (!isLimitedHistory && (!movie.genreNames || !watched.genreNames)) {
-          return boost;
-        }
-        
-        let genreOverlap = 0;
-        
-        // Handle case when genre information is incomplete
-        if (movie.genreNames && watched.genreNames) {
-          // Check for genre overlap - this is the most important similarity factor
-          const movieGenres = movie.genreNames.split(',').map(g => g.trim());
-          const watchedGenres = watched.genreNames.split(',').map(g => g.trim());
-          
-          // Count genre matches
-          const matchingGenres = movieGenres.filter(g => watchedGenres.includes(g));
-          
-          // If no genre matches at all, we can still proceed with limited history
-          if (matchingGenres.length === 0 && !isLimitedHistory) {
-            return boost;
-          }
-          
-          // Calculate genre overlap percentage
-          genreOverlap = movieGenres.length > 0 ? 
-            matchingGenres.length / Math.max(movieGenres.length, watchedGenres.length) : 0;
-          
-          // Only consider substantial genre overlap unless limited history
-          if (genreOverlap < minOverlapThreshold && !isLimitedHistory) {
-            return boost;
-          }
-        } else {
-          // When genre info is missing, use title-based heuristics for similarity
-          const movieTitle = (movie.title || "").toLowerCase();
-          const watchedTitle = (watched.title || "").toLowerCase();
-          
-          // Check for similar keywords
-          const keywords = ['action', 'adventure', 'comedy', 'drama', 'thriller', 'horror', 'fantasy', 'sci-fi'];
-          const commonKeywords = keywords.filter(kw => 
-            movieTitle.includes(kw) && watchedTitle.includes(kw)
-          );
-          
-          genreOverlap = commonKeywords.length > 0 ? 0.2 * commonKeywords.length : 0;
-        }
-        
-        // Year proximity (0-1 scale, 1 being same year)
-        const yearProximity = movie.releaseYear && watched.releaseYear
-          ? Math.max(0, 1 - Math.abs(parseInt(movie.releaseYear) - parseInt(watched.releaseYear)) / 10)
-          : 0;
-        
-        // Calculate similarity score with genre having much more weight
-        const similarity = (genreOverlap * 0.8) + (yearProximity * 0.2);
-        
-        // Apply rating weight if available
-        const ratingWeight = ratings[watched.id] 
-          ? ((ratings[watched.id] - avgRating) / 2) + 1 // Scale to ~0.5-1.5 range
-          : 1;
-        
-        return boost + (similarity * ratingWeight);
-      }, 0);
-      
-      // Add the similarity boost to the score with high weight
-      const similarityScore = similarityBoost * 8;
-      score += similarityScore;
-      scoreComponents.similarityScore += similarityScore;
-      
-      // For limited history, add a minimal base score
-      if (isLimitedHistory && score < 1) {
-        score = Math.max(score, 0.5);
-      }
-      
-      return { 
-        ...movie, 
+
+      // Return movie info with recommendation data
+      return {
+        ...movie,
         recommendationScore: score,
-        scoreComponents 
+        exactTitleMatch: matchData.exactTitle,
+        recommendationReason: generateReason(movie, prefs, matchData)
       };
     })
-    .filter(movie => isLimitedHistory || movie.recommendationScore > 0) // Remove zero-scored movies unless limited history
-    .sort((a, b) => b.recommendationScore - a.recommendationScore); // Sort by score descending
+    // Filter out movies with zero score
+    .filter(m => m.recommendationScore > 0)
+    // Sort by priority:
+    // 1. Exact title matches
+    // 2. Recent genre matches
+    // 3. Overall score
+    .sort((a, b) => {
+      if (a.exactTitleMatch !== b.exactTitleMatch) {
+        return b.exactTitleMatch ? 1 : -1;
+      }
+      if (a.recentGenreMatches !== b.recentGenreMatches) {
+        return b.recentGenreMatches - a.recentGenreMatches;
+      }
+      return b.recommendationScore - a.recommendationScore;
+    });
+};
+
+/**
+ * Generate recommendation reason for a movie
+ * @param {Object} movie - Movie to generate reason for
+ * @param {Object} prefs - User preferences
+ * @param {Object} matchData - Movie match information
+ * @returns {string} Formatted reason string
+ */
+const generateReason = (movie, prefs, matchData) => {
+  const reasons = [];
+
+  // Add reason for title similarity
+  if (matchData.exactTitle) {
+    reasons.push('similar title to a movie you watched');
+  }
+
+  // Add reasons based on genres
+  if (movie.genreNames) {
+    const genres = movie.genreNames.split(',').map(g => g.trim());
+    // Categorize genres into recent and other matches
+    const matchedGenres = genres.reduce((acc, genre) => {
+      if (prefs.recentGenres.has(genre)) {
+        acc.recent.push(genre);
+      } else if (prefs.genres[genre]) {
+        acc.other.push(genre);
+      }
+      return acc;
+    }, { recent: [], other: [] });
+
+    // Prioritize showing recent genre matches
+    if (matchedGenres.recent.length) {
+      reasons.push(`matches your recent interests in ${matchedGenres.recent.join(', ')}`);
+    } else if (matchedGenres.other.length) {
+      reasons.push(`similar genres (${matchedGenres.other.join(', ')})`);
+    }
+  }
+
+  // Add reason for release year similarity
+  if (movie.releaseYear && Object.keys(prefs.years).some(y => Math.abs(movie.releaseYear - y) <= 5)) {
+    reasons.push('from a similar time period');
+  }
+
+  // Combine all reasons into a complete sentence
+  return reasons.length ? reasons.join(' and ') : 'based on your viewing preferences';
 };
 
 export default recommendationService; 
