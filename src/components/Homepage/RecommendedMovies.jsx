@@ -24,7 +24,7 @@ import {
   Info,
 } from "lucide-react";
 import recommendationService from "../../apis/Recommendation/recommendation";
-import { useModal } from "../../hooks";
+import { useModal, useAuth } from "../../hooks";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/navigation";
@@ -727,16 +727,26 @@ const RegularHeader = ({ headingRef, handleRefreshRecommendations }) => (
   </motion.div>
 );
 
+// Main component
 const RecommendedMovies = ({
+  isModal = false,
   showModal: propShowModal,
   setShowModal: propSetShowModal,
-  isModal = false,
+  closeModal: propCloseModal,
 }) => {
-  // Use our custom modal hook if this component is used as a modal
+  // Hook to handle modal state
   const { isVisible, close: closeModalHook } = useModal(
     propShowModal || false,
     () => propSetShowModal && propSetShowModal(false)
   );
+
+  // Get user role from auth hook
+  const { role, ROLES, isAuthenticated } = useAuth();
+
+  // If user is not authenticated or has role MEMBER, don't show recommendations
+  if (!isAuthenticated || role === ROLES.MEMBER) {
+    return null;
+  }
 
   // Internal state
   const [movies, setMovies] = useState([]);
@@ -823,6 +833,13 @@ const RecommendedMovies = ({
     }
   };
 
+  // Initial fetch of recommendations when component mounts or modal opens
+  useEffect(() => {
+    if ((propShowModal && isModal) || !isModal) {
+      fetchRecommendations();
+    }
+  }, [propShowModal, isModal]);
+
   // For compatibility with existing code
   const closeModal = () => {
     if (isModal) {
@@ -836,13 +853,6 @@ const RecommendedMovies = ({
   const handleRefreshRecommendations = () => {
     fetchRecommendations();
   };
-
-  // Initial fetch of recommendations when component mounts or modal opens
-  useEffect(() => {
-    if ((propShowModal && isModal) || !isModal) {
-      fetchRecommendations();
-    }
-  }, [propShowModal, isModal]);
 
   // Render only the modal content
   if (isModal) {

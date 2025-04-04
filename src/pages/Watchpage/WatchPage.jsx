@@ -1699,7 +1699,7 @@ const WatchPage = () => {
                         )}
 
                         {/* Comments Section */}
-                        {isAuthenticated ? (
+                        {isAuthenticated && role !== "MEMBER" ? (
                           <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 shadow-lg">
                             <div className="flex items-center justify-between mb-4">
                               <h3 className="text-xl font-semibold text-white flex items-center gap-2">
@@ -1761,11 +1761,42 @@ const WatchPage = () => {
                                 </div>
                               </div>
                             ) : (
-                              <div className="mb-6">
-                                <UpgradeMessage
-                                  message="Upgrade your account to join the discussion"
-                                  isAuthenticated={isAuthenticated}
-                                />
+                              <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 text-center">
+                                <div className="mb-4">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-6 w-6 mx-auto text-gray-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line
+                                      x1="12"
+                                      y1="16"
+                                      x2="12.01"
+                                      y2="16"
+                                    ></line>
+                                  </svg>
+                                </div>
+                                <p className="text-white mb-2">
+                                  {isAuthenticated
+                                    ? "Upgrade your account to view and post comments"
+                                    : "Please login to access this feature"}
+                                </p>
+                                <Link
+                                  to={
+                                    isAuthenticated
+                                      ? "/subscription-plans"
+                                      : "/login"
+                                  }
+                                  className="inline-block px-6 py-2 bg-[#FF009F] text-white rounded-md hover:bg-[#FF009F]/90 transition-colors mt-2"
+                                >
+                                  {isAuthenticated
+                                    ? "Upgrade Now"
+                                    : "Login Now"}
+                                </Link>
                               </div>
                             )}
 
@@ -1856,63 +1887,35 @@ const WatchPage = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-black/90 backdrop-blur-md rounded-xl overflow-hidden">
-                            <div className="px-4 py-3 flex items-center gap-2">
+                          <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 text-center">
+                            <div className="mb-4">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5 text-[#FF009F]"
-                                viewBox="0 0 24 24"
+                                className="h-6 w-6 mx-auto text-gray-400"
                                 fill="none"
+                                viewBox="0 0 24 24"
                                 stroke="currentColor"
-                                strokeWidth={2}
                               >
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
                               </svg>
-                              <span className="text-white font-bold">
-                                Comments
-                              </span>
                             </div>
-                            <div className="px-4 py-8 bg-[#1c1c1c] flex flex-col items-center justify-center text-center">
-                              <div className="mb-4">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-6 w-6 mx-auto text-gray-400"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <circle cx="12" cy="12" r="10"></circle>
-                                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                                  <line
-                                    x1="12"
-                                    y1="16"
-                                    x2="12.01"
-                                    y2="16"
-                                  ></line>
-                                </svg>
-                              </div>
-                              <p className="text-white mb-2">
-                                Please login to view comments
-                              </p>
-                              <Link
-                                to="/login"
-                                className="inline-flex items-center px-6 py-2 bg-[#FF009F] text-white rounded-md hover:bg-[#FF009F]/90 transition-colors mt-2"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4 mr-2"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={2}
-                                >
-                                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                                  <polyline points="10 17 15 12 10 7"></polyline>
-                                  <line x1="15" y1="12" x2="3" y2="12"></line>
-                                </svg>
-                                Login Now
-                              </Link>
-                            </div>
+                            <p className="text-white mb-2">
+                              {isAuthenticated
+                                ? "Upgrade your account to view and post comments"
+                                : "Please login to access this feature"}
+                            </p>
+                            <Link
+                              to={
+                                isAuthenticated
+                                  ? "/subscription-plans"
+                                  : "/login"
+                              }
+                              className="inline-block px-6 py-2 bg-[#FF009F] text-white rounded-md hover:bg-[#FF009F]/90 transition-colors mt-2"
+                            >
+                              {isAuthenticated ? "Upgrade Now" : "Login Now"}
+                            </Link>
                           </div>
                         )}
                       </div>
