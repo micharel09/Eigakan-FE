@@ -6,6 +6,84 @@ import movieService from "../../apis/Movie/movie.js";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
+// Animation variants for the overlay
+const overlayVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.2 },
+  },
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.2, delay: 0.1 },
+  },
+};
+
+// Animation variants for the search container
+const containerVariants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.95,
+    y: -20,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      damping: 25,
+      stiffness: 300,
+      duration: 0.3,
+      when: "beforeChildren",
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    y: -10,
+    transition: {
+      duration: 0.2,
+      ease: "easeInOut",
+    },
+  },
+};
+
+// Animation variants for the input field
+const inputVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      delay: 0.1,
+      duration: 0.3,
+    },
+  },
+};
+
+// Animation variants for the search results
+const resultsVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+// Animation variants for each search result item
+const resultItemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.3 },
+  },
+};
+
 const SearchBar = ({ onClose }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -21,8 +99,19 @@ const SearchBar = ({ onClose }) => {
       }
     };
 
+    const handleEscKey = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscKey);
+    };
   }, [onClose]);
 
   useEffect(() => {
@@ -59,6 +148,10 @@ const SearchBar = ({ onClose }) => {
 
   const handleClearSearch = () => {
     setSearchTerm("");
+    setSearchResults([]);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   const handleNavigateToMovie = (movieId) => {
@@ -102,14 +195,21 @@ const SearchBar = ({ onClose }) => {
   const displayResults = searchResults.slice(0, 5);
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div
+    <motion.div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      variants={overlayVariants}
+    >
+      <motion.div
         ref={searchRef}
         className="w-full max-w-3xl bg-gray-900/90 rounded-xl border border-gray-700 shadow-2xl overflow-hidden"
+        variants={containerVariants}
       >
         <div className="flex items-center p-4 border-b border-gray-700">
           <Search className="w-5 h-5 text-[#FF009F] mr-3" />
-          <input
+          <motion.input
             ref={inputRef}
             type="text"
             value={searchTerm}
@@ -117,30 +217,38 @@ const SearchBar = ({ onClose }) => {
             placeholder="Search for movies..."
             className="flex-1 bg-transparent outline-none text-white placeholder-gray-400 text-base py-2"
             aria-label="Search for movies"
+            variants={inputVariants}
           />
           {searchTerm && (
-            <button
+            <motion.button
               onClick={handleClearSearch}
               onKeyDown={(e) => handleKeyDown(e, handleClearSearch)}
               className="p-1.5 hover:bg-white/10 rounded-full transition-colors mr-2"
               aria-label="Clear search"
               tabIndex="0"
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
             >
               <X className="w-4 h-4 text-gray-400" />
-            </button>
+            </motion.button>
           )}
-          <button
+          <motion.button
             onClick={onClose}
             onKeyDown={(e) => handleKeyDown(e, onClose)}
             className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
             aria-label="Close search"
             tabIndex="0"
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.15)" }}
           >
             <X className="w-5 h-5 text-white" />
-          </button>
+          </motion.button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto">
+        <motion.div
+          className="max-h-[70vh] overflow-y-auto"
+          variants={resultsVariants}
+        >
           {isLoading ? (
             <div className="p-8 text-center text-gray-400">
               <div className="flex justify-center">
@@ -149,7 +257,12 @@ const SearchBar = ({ onClose }) => {
               <p className="mt-3 text-sm">Searching...</p>
             </div>
           ) : searchTerm && searchResults.length === 0 ? (
-            <div className="p-12 text-center">
+            <motion.div
+              className="p-12 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-800/50 mb-4">
                 <Search className="w-10 h-10 text-gray-500" />
               </div>
@@ -157,15 +270,15 @@ const SearchBar = ({ onClose }) => {
               <p className="text-gray-500 mt-2">
                 Try searching with different keywords
               </p>
-            </div>
+            </motion.div>
           ) : searchTerm ? (
             <div>
               <div className="p-3 text-xs text-gray-400 uppercase tracking-wider font-medium bg-gray-800/50">
                 Search Results
               </div>
 
-              {displayResults.map((movie) => (
-                <div
+              {displayResults.map((movie, index) => (
+                <motion.div
                   key={movie.id}
                   onClick={() => handleNavigateToMovie(movie.id)}
                   onKeyDown={(e) =>
@@ -175,6 +288,9 @@ const SearchBar = ({ onClose }) => {
                   tabIndex="0"
                   role="button"
                   aria-label={`View details for ${movie.title}`}
+                  variants={resultItemVariants}
+                  custom={index}
+                  whileHover={{ backgroundColor: "rgba(31, 41, 55, 0.5)" }}
                 >
                   <div className="w-24 h-36 rounded-md overflow-hidden bg-gray-800 flex-shrink-0 shadow-lg">
                     <img
@@ -254,27 +370,32 @@ const SearchBar = ({ onClose }) => {
                       </p>
                     )}
                   </div>
-                </div>
+                </motion.div>
               ))}
 
               {searchResults.length > 5 && (
                 <div className="p-4 bg-gray-800/30">
-                  <button
+                  <motion.button
                     onClick={handleViewAllResults}
                     onKeyDown={(e) => handleKeyDown(e, handleViewAllResults)}
                     className="w-full py-3 text-center text-sm bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white rounded-lg hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 transition-all font-medium shadow-lg hover:shadow-[#FF009F]/20 hover:shadow-xl"
                     aria-label={`View all ${searchResults.length} search results`}
                     tabIndex="0"
+                    whileHover={{
+                      scale: 1.02,
+                      boxShadow: "0 10px 25px -5px rgba(255, 0, 159, 0.3)",
+                    }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     View all {searchResults.length} results
-                  </button>
+                  </motion.button>
                 </div>
               )}
             </div>
           ) : null}
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 };
 

@@ -105,8 +105,8 @@ NavLink.displayName = "NavLink";
 const ActionButton = React.memo(
   ({ onClick, ariaLabel, icon, label, isSpecial = false }) => {
     const baseClasses = isSpecial
-      ? "bg-[#FF009F]/10 hover:bg-[#FF009F]/20 border-[#FF009F]/30 hover:border-[#FF009F]/50 hover:shadow-[0_0_15px_rgba(255,0,159,0.3)]"
-      : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]";
+      ? "bg-[#FF009F]/10 hover:bg-[#FF009F]/20 border-[#FF009F]/30 hover:border-[#FF009F]/50"
+      : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20";
 
     const handleKeyDown = (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -116,31 +116,59 @@ const ActionButton = React.memo(
     };
 
     return (
-      <button
+      <motion.button
         onClick={onClick}
-        className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full ${baseClasses} text-white transition-all duration-300 border shadow-lg hover:scale-105 relative overflow-hidden group`}
+        className={`
+          flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 
+          rounded-full ${baseClasses} text-white 
+          transition-all duration-300 border 
+          relative overflow-hidden group z-10
+          hover:shadow-lg hover:shadow-[#FF009F]/10
+        `}
         aria-label={ariaLabel}
         tabIndex="0"
         onKeyDown={handleKeyDown}
+        whileHover={{
+          scale: 1.05,
+          transition: {
+            type: "spring",
+            stiffness: 400,
+            damping: 10,
+          },
+        }}
+        whileTap={{ scale: 0.95 }}
       >
         <div
-          className={`absolute inset-0 bg-gradient-to-r ${
+          className={`
+          absolute inset-0 bg-gradient-to-r 
+          ${
             isSpecial
               ? "from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0"
               : "from-white/0 via-white/5 to-white/0"
-          } opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer`}
-        ></div>
+          }
+          opacity-0 group-hover:opacity-100 
+          transition-opacity duration-700 
+          pointer-events-none
+        `}
+        />
         {React.cloneElement(icon, {
-          className: `w-3.5 h-3.5 md:w-4 md:h-4 ${
-            isSpecial ? "text-[#FF009F]" : "text-[#FF009F]"
-          } group-hover:scale-110 transition-transform duration-300`,
+          className: `
+            w-3.5 h-3.5 md:w-4 md:h-4 
+            ${isSpecial ? "text-[#FF009F]" : "text-[#FF009F]"}
+            group-hover:scale-110 transition-transform duration-300 
+            relative z-20
+          `,
         })}
         {label && (
-          <span className="text-xs hidden md:inline relative z-10">
+          <motion.span
+            className="text-xs hidden md:inline relative z-20"
+            initial={{ opacity: 0.9 }}
+            animate={{ opacity: 1 }}
+          >
             {label}
-          </span>
+          </motion.span>
         )}
-      </button>
+      </motion.button>
     );
   }
 );
@@ -202,7 +230,10 @@ const Navbar = () => {
 
   // Use callbacks for event handlers
   const toggleMenu = useCallback(() => setIsOpen((prev) => !prev), []);
-  const toggleSearch = useCallback(() => setShowSearch((prev) => !prev), []);
+  const toggleSearch = useCallback(() => {
+    // Add subtle animation to the search button
+    setShowSearch((prev) => !prev);
+  }, []);
 
   const handleJoinRoom = useCallback(async () => {
     if (isJoining || !roomId.trim()) return;
@@ -230,22 +261,23 @@ const Navbar = () => {
 
       const roomDetails = await roomService.getRoomDetails(roomId.trim());
 
-      if (roomDetails?.status === 403) { 
+      if (roomDetails?.status === 403) {
         notification.error({
           message: "Error",
-          description: "You are not VIP MEMBER - Please buy subscription to join room",
+          description:
+            "You are not VIP MEMBER - Please buy subscription to join room",
         });
         return;
       }
-      
+
       if (roomDetails?.data.success == false) {
         notification.error({
           message: "Error",
-          description: roomDetails?.data?.message || "Room details not available.",
+          description:
+            roomDetails?.data?.message || "Room details not available.",
         });
         return;
       }
-      
 
       let movieId = roomDetails.success ? roomDetails.data?.movieID : null;
 
@@ -690,8 +722,8 @@ const Navbar = () => {
         </div>
       </Modal>
 
-      {/* Search Overlay */}
-      <AnimatePresence>
+      {/* Search Overlay with improved animation */}
+      <AnimatePresence mode="wait">
         {showSearch && <SearchBar onClose={() => setShowSearch(false)} />}
       </AnimatePresence>
     </div>
