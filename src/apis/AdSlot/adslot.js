@@ -143,7 +143,7 @@ const adSlotService = {
         `${BASE_URL}/api/AdPurchaseTransaction`,
         {
           adSlotTimeId,
-          redirectUrl: `${window.location.origin}/payment-success-adslot`,
+          redirectUrl: `https://eigakan-fe.vercel.app/payment-success-adslot`,
         },
         { headers }
       );
