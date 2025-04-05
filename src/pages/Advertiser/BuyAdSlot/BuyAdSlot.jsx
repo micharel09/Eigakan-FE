@@ -122,7 +122,7 @@ const BuyAdSlot = () => {
           adPackageId: selectedPackageId,
           startDate: new Date().toISOString(),
         })),
-        redirectUrl: `${window.location.origin}/payment-success-adslot`,
+        redirectUrl: `https://eigakan-fe.vercel.app/payment-success-adslot`,
       };
 
       // Call API to purchase AdSlots
