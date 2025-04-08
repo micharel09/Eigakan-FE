@@ -6,6 +6,7 @@ import { Rate } from "antd";
 import moment from "moment";
 import Loading from "../../components/Loading/Loading";
 import movieService from "../../apis/Movie/movie";
+import adMediaCountService from "../../apis/AdMedia/adMediaCount";
 import {
   useAuth,
   useVideo,
@@ -17,7 +18,7 @@ import {
 } from "../../hooks";
 
 // Extract AdDisplay as a memoized component
-const AdDisplay = memo(({ ad, className }) => {
+const AdDisplay = memo(({ ad, className, movieId }) => {
   if (!ad) return null;
 
   // Check if it's a header ad or sidebar ad
@@ -150,6 +151,19 @@ const AdDisplay = memo(({ ad, className }) => {
     };
   }, []);
 
+  const handleAdClick = async () => {
+    try {
+      if (ad.id && movieId) {
+        await adMediaCountService.increaseAdMediaCount({
+          adMediaId: ad.id,
+          movieId: movieId,
+        });
+      }
+    } catch (error) {
+      console.error("Error increasing ad view count:", error);
+    }
+  };
+
   return (
     <div
       className={`p-2 bg-black/40 rounded border border-white/10 w-full flex flex-col items-center ${
@@ -170,6 +184,8 @@ const AdDisplay = memo(({ ad, className }) => {
               ? "aspect-[9/16] h-[calc(100vh-220px)] max-h-full flex-1"
               : "aspect-video"
           }`}
+          onClick={handleAdClick}
+          style={{ cursor: "pointer" }}
         >
           <iframe
             ref={adVideoRef}
@@ -195,6 +211,7 @@ const AdDisplay = memo(({ ad, className }) => {
           target="_blank"
           rel="noopener noreferrer"
           className={`block w-full ${isSidebarAd ? "flex-1" : ""}`}
+          onClick={handleAdClick}
         >
           <img
             src={ad.image}
@@ -1014,6 +1031,7 @@ const WatchPage = () => {
             <AdDisplay
               ad={headerAd}
               className="max-w-[900px] max-h-[180px] bg-opacity-70 overflow-hidden"
+              movieId={movieId}
             />
           </div>
         )}
@@ -1029,7 +1047,11 @@ const WatchPage = () => {
             <div className="h-full overflow-hidden z-10">
               {leftSidebarAd ? (
                 <div className="h-full pt-[80px] pb-[60px] pr-2">
-                  <AdDisplay ad={leftSidebarAd} className="sidebar-ad h-full" />
+                  <AdDisplay
+                    ad={leftSidebarAd}
+                    className="sidebar-ad h-full"
+                    movieId={movieId}
+                  />
                 </div>
               ) : (
                 // Empty placeholder to maintain grid
@@ -1096,7 +1118,11 @@ const WatchPage = () => {
             <div className="h-full overflow-hidden z-10">
               {sidebarAd ? (
                 <div className="h-full pt-[80px] pb-[60px] pl-2">
-                  <AdDisplay ad={sidebarAd} className="sidebar-ad h-full" />
+                  <AdDisplay
+                    ad={sidebarAd}
+                    className="sidebar-ad h-full"
+                    movieId={movieId}
+                  />
                 </div>
               ) : (
                 // Empty placeholder to maintain grid
@@ -1118,7 +1144,11 @@ const WatchPage = () => {
         {/* Footer Ad (hide for VIP members) */}
         {footerAd && role !== "VIP MEMBER" && (
           <div className="absolute bottom-[60px] left-0 right-0 z-10 flex justify-center pointer-events-auto">
-            <AdDisplay ad={footerAd} className="max-w-[728px] max-h-[100px]" />
+            <AdDisplay
+              ad={footerAd}
+              className="max-w-[728px] max-h-[100px]"
+              movieId={movieId}
+            />
           </div>
         )}
 

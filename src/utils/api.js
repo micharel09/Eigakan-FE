@@ -51,4 +51,5 @@ export const API_URLS = {
   AD_PACKAGE: `${API_BASE_URL}/AdPackage`,
   AD_PURCHASE_TRANSACTION: `${API_BASE_URL}/AdPurchaseTransaction`,
   VIEW_PAYMENT_POLICY: `${API_BASE_URL}/ViewPaymentPolicy`,
+  AD_MEDIA_COUNT: `${API_BASE_URL}/AdMediaCount`,
 }; 
