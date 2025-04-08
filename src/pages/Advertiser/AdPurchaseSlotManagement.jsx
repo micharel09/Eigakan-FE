@@ -35,10 +35,12 @@ import {
   CalendarOutlined,
   AppstoreOutlined,
   ShoppingOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { format } from "date-fns";
 import adPurchaseSlotService from "../../apis/AdPurchaseSlot/adPurchaseSlot";
 import adMediaService from "../../apis/AdMedia/adMedia";
+import adMediaCountService from "../../apis/AdMedia/adMediaCount";
 import axios from "axios";
 import uploadFileApi from "../../apis/Upload/upload.jsx";
 import cloudinaryConfig from "../../config/cloudinary";
@@ -174,7 +176,11 @@ const AdPurchaseSlotManagement = () => {
   const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
   const [updateForm] = Form.useForm();
   const [selectedAdMediaId, setSelectedAdMediaId] = useState(null);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    total: 0,
+  });
   const [totalSlots, setTotalSlots] = useState(0);
   const [isDirectUrlModalVisible, setIsDirectUrlModalVisible] = useState(false);
   const [directUrlForm] = Form.useForm();
@@ -182,9 +188,31 @@ const AdPurchaseSlotManagement = () => {
   const [detailLoadingMap, setDetailLoadingMap] = useState({});
   const [detailDataMap, setDetailDataMap] = useState({});
   const [fetchTrigger, setFetchTrigger] = useState(0);
+  const [adMediaCounts, setAdMediaCounts] = useState({});
+  const [lastFetchTime, setLastFetchTime] = useState({});
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 phút cache
+  const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 phút auto refresh
+  const [viewStatistics, setViewStatistics] = useState({});
 
   const navigate = useNavigate();
 
+  // Fetch total items
+  const fetchTotalItems = useCallback(async () => {
+    try {
+      const response =
+        await adPurchaseSlotService.getAllAdPurchaseSlotsByUserId();
+      if (response?.success) {
+        setPagination((prev) => ({
+          ...prev,
+          total: response.data?.length || 0,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching total items:", error);
+    }
+  }, []);
+
+  // Fetch paginated data
   const fetchAdPurchaseSlots = useCallback(async () => {
     try {
       setLoading(true);
@@ -194,7 +222,6 @@ const AdPurchaseSlotManagement = () => {
       );
       if (response?.success) {
         setAdPurchaseSlots(response.data || []);
-        setTotalSlots(response.total || (response.data || []).length);
       }
     } catch (error) {
       notification.error({
@@ -202,15 +229,20 @@ const AdPurchaseSlotManagement = () => {
         description: error.message || "Failed to fetch ad purchase slots",
       });
       setAdPurchaseSlots([]);
-      setTotalSlots(0);
     } finally {
       setLoading(false);
     }
-  }, [pagination?.current, pagination?.pageSize]);
+  }, [pagination.current, pagination.pageSize]);
 
+  // Initial fetch
+  useEffect(() => {
+    fetchTotalItems();
+  }, [fetchTotalItems]);
+
+  // Fetch data when pagination changes
   useEffect(() => {
     fetchAdPurchaseSlots();
-  }, [fetchAdPurchaseSlots, fetchTrigger]);
+  }, [fetchAdPurchaseSlots]);
 
   const handleCreateAdClick = async (slotId) => {
     try {
@@ -490,6 +522,20 @@ const AdPurchaseSlotManagement = () => {
           }
         }
 
+        // Fetch view statistics
+        try {
+          const statsResponse =
+            await adMediaCountService.getStatisticAdMediaCount(mediaId);
+          if (statsResponse?.result?.success) {
+            setViewStatistics((prev) => ({
+              ...prev,
+              [mediaId]: statsResponse.result.data || [],
+            }));
+          }
+        } catch (error) {
+          console.error("Error fetching view statistics:", error);
+        }
+
         setSelectedAdMediaDetail(adMediaData);
         setIsAdMediaDetailModalVisible(true);
       } else {
@@ -624,6 +670,76 @@ const AdPurchaseSlotManagement = () => {
     }
   }, []);
 
+  const fetchAdMediaCount = useCallback(
+    async (adMediaId) => {
+      try {
+        // Kiểm tra cache
+        const now = Date.now();
+        if (
+          lastFetchTime[adMediaId] &&
+          now - lastFetchTime[adMediaId] < CACHE_DURATION
+        ) {
+          return; // Nếu data còn trong thời gian cache thì không fetch lại
+        }
+
+        const response = await adMediaCountService.getAdMediaCountByAdMediaId(
+          adMediaId
+        );
+        if (response?.success) {
+          setAdMediaCounts((prev) => ({
+            ...prev,
+            [adMediaId]: response.data?.viewCount || 0,
+          }));
+          setLastFetchTime((prev) => ({
+            ...prev,
+            [adMediaId]: now,
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching ad media count:", error);
+      }
+    },
+    [lastFetchTime]
+  );
+
+  // Fetch ad media counts whenever adPurchaseSlots changes
+  useEffect(() => {
+    const fetchAllAdMediaCounts = async () => {
+      if (adPurchaseSlots.length > 0) {
+        // Lọc ra những ad media cần fetch (hết hạn cache hoặc chưa có data)
+        const now = Date.now();
+        const adMediasToFetch = adPurchaseSlots
+          .filter((slot) => slot.adMedias?.[0]?.id)
+          .filter((slot) => {
+            const adMediaId = slot.adMedias[0].id;
+            return (
+              !lastFetchTime[adMediaId] ||
+              now - lastFetchTime[adMediaId] >= CACHE_DURATION
+            );
+          })
+          .map((slot) => slot.adMedias[0].id);
+
+        // Fetch từng cái một để tránh overload
+        for (const adMediaId of adMediasToFetch) {
+          await fetchAdMediaCount(adMediaId);
+          // Thêm delay nhỏ giữa các request để tránh spam server
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+    };
+
+    fetchAllAdMediaCounts();
+  }, [adPurchaseSlots, fetchTrigger, fetchAdMediaCount]);
+
+  // Refresh view counts every 5 minutes instead of 30 seconds
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setFetchTrigger((prev) => prev + 1);
+    }, AUTO_REFRESH_INTERVAL);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   const columns = [
     {
       title: "Ad Slot Details",
@@ -632,6 +748,11 @@ const AdPurchaseSlotManagement = () => {
         // Move useEffect outside of render function
         const detailData = record?.id ? detailDataMap[record.id] : null;
         const isLoading = record?.id ? detailLoadingMap[record.id] : false;
+        const adMediaId = record.adMedias?.[0]?.id;
+        const viewCount =
+          adMediaId && adMediaCounts[adMediaId] !== undefined
+            ? adMediaCounts[adMediaId]
+            : 0;
 
         return (
           <div className="w-full">
@@ -667,6 +788,13 @@ const AdPurchaseSlotManagement = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
+                      {((detailData?.adMedias || record?.adMedias)?.length ||
+                        0) > 0 && (
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
+                          <EyeOutlined />
+                          <span>{viewCount} views</span>
+                        </div>
+                      )}
                       <div
                         className={`status-badge status-${(
                           detailData?.status ||
@@ -963,13 +1091,19 @@ const AdPurchaseSlotManagement = () => {
 
   // Update pagination handlers
   const handlePaginationChange = useCallback((page, pageSize) => {
-    setPagination((prev) => ({ ...prev, current: page, pageSize }));
-    setFetchTrigger((t) => t + 1);
+    setPagination((prev) => ({
+      ...prev,
+      current: page,
+      pageSize: pageSize,
+    }));
   }, []);
 
   const handleShowSizeChange = useCallback((current, size) => {
-    setPagination({ current: 1, pageSize: size });
-    setFetchTrigger((t) => t + 1);
+    setPagination((prev) => ({
+      ...prev,
+      current: 1,
+      pageSize: size,
+    }));
   }, []);
 
   return (
@@ -994,20 +1128,18 @@ const AdPurchaseSlotManagement = () => {
 
             <Table
               columns={columns}
-              dataSource={adPurchaseSlots || []}
+              dataSource={adPurchaseSlots}
               rowKey={(record) => record?.id || Math.random().toString()}
               loading={loading}
               pagination={{
                 current: pagination.current,
                 pageSize: pagination.pageSize,
+                total: pagination.total,
                 showSizeChanger: true,
                 pageSizeOptions: ["5", "10", "20", "50"],
-                total: Math.min(totalSlots, pagination.pageSize * 6),
                 showTotal: (total) => `Total ${total} items`,
                 onChange: handlePaginationChange,
                 onShowSizeChange: handleShowSizeChange,
-                size: "default",
-                showLessItems: true,
               }}
               locale={{
                 emptyText: (
@@ -1204,159 +1336,188 @@ const AdPurchaseSlotManagement = () => {
           {/* Ad Media Details Modal */}
           <Modal
             title={
-              <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FileTextOutlined />
                 <span>Ad Media Details</span>
-                <div
-                  className={`status-badge status-${selectedAdMediaDetail?.status.toLowerCase()}`}
-                >
-                  <span className="status-icon">
-                    {getIconForStatus(selectedAdMediaDetail?.status)}
-                  </span>
-                  <span className="status-text">
-                    {selectedAdMediaDetail?.status}
-                  </span>
-                </div>
               </div>
             }
             open={isAdMediaDetailModalVisible}
-            onCancel={() => {
-              setIsAdMediaDetailModalVisible(false);
-              setSelectedAdMediaDetail(null);
-            }}
-            footer={[
-              <Button
-                key="close"
-                onClick={() => {
-                  setIsAdMediaDetailModalVisible(false);
-                  setSelectedAdMediaDetail(null);
-                }}
-              >
-                Close
-              </Button>,
-            ]}
-            width={600}
+            onCancel={() => setIsAdMediaDetailModalVisible(false)}
+            footer={null}
+            width={720}
             centered
-            bodyStyle={{ padding: 0 }}
           >
             {selectedAdMediaDetail && (
-              <div className="detail-card">
-                {/* Image display */}
-                {selectedAdMediaDetail.image &&
-                  selectedAdMediaDetail.image !== "string" && (
-                    <div className="detail-image">
-                      <img
-                        src={selectedAdMediaDetail.image}
-                        alt="Ad Media"
-                        className="w-full object-contain"
-                        style={{ maxHeight: "300px" }}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src =
-                            "https://placehold.co/600x400?text=Image+Not+Available";
-                        }}
-                      />
-                    </div>
-                  )}
+              <div className="space-y-4">
+                {/* Top row - Image and basic info */}
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Left: Image/Video */}
+                  <div className="col-span-2">
+                    {/* Image display */}
+                    {selectedAdMediaDetail.image &&
+                      selectedAdMediaDetail.image !== "string" && (
+                        <div className="rounded border border-gray-200 overflow-hidden">
+                          <img
+                            src={selectedAdMediaDetail.image}
+                            alt="Ad Media"
+                            className="w-full object-contain"
+                            style={{ maxHeight: "280px" }}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src =
+                                "https://placehold.co/600x400?text=Image+Not+Available";
+                            }}
+                          />
+                        </div>
+                      )}
 
-                {/* Video display */}
-                {selectedAdMediaDetail.video &&
-                  selectedAdMediaDetail.video !== "string" &&
-                  selectedAdMediaDetail.slotLocation === "CENTER" && (
-                    <div className="detail-image">
-                      <video
-                        controls
-                        className="w-full object-contain"
-                        style={{ maxHeight: "300px" }}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                        }}
-                      >
-                        <source
-                          src={selectedAdMediaDetail.video}
-                          type="video/mp4"
-                        />
-                        <source
-                          src={selectedAdMediaDetail.video}
-                          type="video/webm"
-                        />
-                        <source
-                          src={selectedAdMediaDetail.video}
-                          type="video/ogg"
-                        />
-                        Your browser does not support HTML video.
-                      </video>
-                      <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200">
-                        <a
-                          href={selectedAdMediaDetail.video}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline"
-                        >
-                          Open video in new tab
-                        </a>
-                      </div>
-                    </div>
-                  )}
-
-                <div className="detail-content">
-                  {/* Content section */}
-                  <div className="detail-section">
-                    <div className="detail-label">Content</div>
-                    <div className="detail-value">
-                      {selectedAdMediaDetail.content || "No content provided"}
-                    </div>
+                    {/* Video display */}
+                    {selectedAdMediaDetail.video &&
+                      selectedAdMediaDetail.video !== "string" &&
+                      selectedAdMediaDetail.slotLocation === "CENTER" && (
+                        <div className="rounded border border-gray-200 overflow-hidden">
+                          <video
+                            controls
+                            className="w-full object-contain"
+                            style={{ maxHeight: "280px" }}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                            }}
+                          >
+                            <source
+                              src={selectedAdMediaDetail.video}
+                              type="video/mp4"
+                            />
+                            <source
+                              src={selectedAdMediaDetail.video}
+                              type="video/webm"
+                            />
+                            <source
+                              src={selectedAdMediaDetail.video}
+                              type="video/ogg"
+                            />
+                            Your browser does not support HTML video.
+                          </video>
+                        </div>
+                      )}
                   </div>
 
-                  {/* URL section if available */}
-                  {selectedAdMediaDetail.url && (
-                    <div className="detail-section">
-                      <div className="detail-label">Destination URL</div>
-                      <div className="detail-value">
-                        <a
-                          href={selectedAdMediaDetail.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                  {/* Right: Basic info */}
+                  <div className="col-span-1">
+                    <Descriptions
+                      column={1}
+                      size="small"
+                      bordered
+                      className="h-full"
+                      layout="vertical"
+                    >
+                      <Descriptions.Item label="Status">
+                        <Tag
+                          color={getTagColorForStatus(
+                            selectedAdMediaDetail.status
+                          )}
                         >
-                          {selectedAdMediaDetail.url}
-                        </a>
+                          {selectedAdMediaDetail.status}
+                        </Tag>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="View Count">
+                        <div className="flex items-center gap-1">
+                          <EyeOutlined />
+                          <span className="font-medium">
+                            {adMediaCounts[selectedAdMediaDetail.id] || 0}
+                          </span>
+                        </div>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Created At">
+                        {formatDate(selectedAdMediaDetail.createAt)}
+                      </Descriptions.Item>
+                      {selectedAdMediaDetail.url && (
+                        <Descriptions.Item label="URL">
+                          <a
+                            href={selectedAdMediaDetail.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-500 hover:underline"
+                          >
+                            {selectedAdMediaDetail.url.length > 25
+                              ? selectedAdMediaDetail.url.substring(0, 22) +
+                                "..."
+                              : selectedAdMediaDetail.url}
+                          </a>
+                        </Descriptions.Item>
+                      )}
+                    </Descriptions>
+                  </div>
+                </div>
+
+                {/* Bottom row */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Left column: Content */}
+                  <div>
+                    {/* Content section */}
+                    <div className="mb-3">
+                      <div className="font-medium mb-1">Content</div>
+                      <div className="p-3 bg-gray-50 rounded border border-gray-200 text-sm min-h-[100px]">
+                        {selectedAdMediaDetail.content || "No content provided"}
                       </div>
                     </div>
-                  )}
 
-                  {/* Video URL section if available as text */}
-                  {selectedAdMediaDetail.video &&
-                    selectedAdMediaDetail.slotLocation === "CENTER" && (
-                      <div className="detail-section">
-                        <div className="detail-label">Video URL</div>
-                        <div className="detail-value">
-                          <a
-                            href={selectedAdMediaDetail.video}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {selectedAdMediaDetail.video}
-                          </a>
+                    {/* Rejection reason if applicable */}
+                    {selectedAdMediaDetail.reasonForRejection && (
+                      <div>
+                        <div className="font-medium mb-1 text-red-500">
+                          Rejection Reason
+                        </div>
+                        <div className="p-3 bg-red-50 text-red-700 rounded border border-red-200 text-sm">
+                          {selectedAdMediaDetail.reasonForRejection}
                         </div>
                       </div>
                     )}
-
-                  {/* Created at info */}
-                  <div className="detail-section">
-                    <div className="detail-label">Created At</div>
-                    <div className="detail-value">
-                      {formatDate(selectedAdMediaDetail.createAt)}
-                    </div>
                   </div>
 
-                  {/* Show rejection reason if applicable */}
-                  {selectedAdMediaDetail.reasonForRejection && (
-                    <div className="detail-section">
-                      <div className="detail-label">Rejection Reason</div>
-                      <div className="rejection-box">
-                        {selectedAdMediaDetail.reasonForRejection}
+                  {/* Right column: View Statistics */}
+                  <div>
+                    {/* View Statistics by Date */}
+                    <div>
+                      <div className="font-medium mb-1">View Statistics</div>
+                      <div className="bg-gray-50 rounded border border-gray-200 p-2 max-h-[180px] overflow-auto">
+                        {viewStatistics[selectedAdMediaDetail.id] &&
+                        viewStatistics[selectedAdMediaDetail.id].length > 0 ? (
+                          <Table
+                            dataSource={
+                              viewStatistics[selectedAdMediaDetail.id]
+                            }
+                            pagination={false}
+                            size="small"
+                            bordered
+                          >
+                            <Table.Column
+                              title="Date"
+                              dataIndex="viewDate"
+                              key="viewDate"
+                              render={(date) => (
+                                <span>
+                                  {new Date(date).toLocaleDateString()}
+                                </span>
+                              )}
+                            />
+                            <Table.Column
+                              title="Views"
+                              dataIndex="totalViews"
+                              key="totalViews"
+                              render={(views) => (
+                                <Tag color="blue">{views}</Tag>
+                              )}
+                            />
+                          </Table>
+                        ) : (
+                          <div className="text-center py-4 text-gray-500">
+                            No view statistics available
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}

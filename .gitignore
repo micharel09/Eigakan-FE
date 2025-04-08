@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 yarn.lock
 .cursorrules
+
+# windsurf rules
+.windsurfrules
+
