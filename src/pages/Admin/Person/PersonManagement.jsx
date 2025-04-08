@@ -46,25 +46,23 @@ const PersonManagement = () => {
   const [searchText, setSearchText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [abortController, setAbortController] = useState(null);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
-  const [totalPersons, setTotalPersons] = useState(100);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    total: 0,
+  });
 
   // Fetch data
-  const fetchData = async (page = 1, pageSize = 5, name = "") => {
+  const fetchData = async (page = 1) => {
     try {
       setLoading(true);
-      const [personsRes, totalRes] = await Promise.all([
-        personService.getAllPerson(page, pageSize, name),
-        personService.getTotalPersons(),
-      ]);
-
-      if (personsRes.success) {
-        setPersons(personsRes.data);
-        setPagination((prev) => ({ ...prev, current: page, pageSize }));
-      }
-
-      if (totalRes.success) {
-        setTotalPersons(totalRes.total || 100);
+      const response = await personService.getAllPerson(page, 5, searchText);
+      if (response.success) {
+        setPersons(response.data);
+        setPagination({
+          ...pagination,
+          current: page,
+          total: response.total || 0,
+        });
       }
     } catch (error) {
       notification.error({
@@ -79,14 +77,14 @@ const PersonManagement = () => {
   // Search debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchData(1, pagination.pageSize, searchText);
+      fetchData(1);
     }, 500);
     return () => clearTimeout(timer);
   }, [searchText]);
 
   // Initial load
   useEffect(() => {
-    fetchData(pagination.pageSize, pagination.pageSize);
+    fetchData(1);
     return () => abortController?.abort();
   }, []);
 
@@ -145,7 +143,7 @@ const PersonManagement = () => {
           description: response.message,
         });
         handleCancel();
-        fetchData(pagination.current, pagination.pageSize, searchText);
+        fetchData(pagination.current);
       }
     } catch (error) {
       notification.error({ message: "Error", description: error.message });
@@ -167,7 +165,7 @@ const PersonManagement = () => {
             message: "Deleted Successfully",
             description: response.message,
           });
-          fetchData(pagination.current, pagination.pageSize, searchText);
+          fetchData(pagination.current);
         }
       },
     });
@@ -311,17 +309,9 @@ const PersonManagement = () => {
           loading={loading}
           scroll={{ x: 1300 }}
           pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            showSizeChanger: true,
-            pageSizeOptions: ["5", "10", "20", "50"],
-            total: Math.min(totalPersons, pagination.pageSize * 6),
-            showTotal: (total) => `Total ${total} persons`,
-            onChange: (page, pageSize) => fetchData(page, pageSize, searchText),
-            onShowSizeChange: (current, size) =>
-              fetchData(current, size, searchText),
-            size: "default",
-            showLessItems: true,
+            ...pagination,
+            pageSize: 5,
+            onChange: (page) => fetchData(page),
           }}
         />
 

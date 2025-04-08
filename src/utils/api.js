@@ -1,10 +1,5 @@
 import axios from "axios";
 
-/**
- * Helper function to make authenticated API requests
- * @param {Function} apiCall - The API call function to execute
- * @returns {Promise} - The API response
- */
 export const makeAuthenticatedRequest = async (apiCall) => {
   try {
     const token = localStorage.getItem("token");
@@ -21,11 +16,6 @@ export const makeAuthenticatedRequest = async (apiCall) => {
   }
 };
 
-/**
- * Helper function to make public API requests (no authentication required)
- * @param {Function} apiCall - The API call function to execute 
- * @returns {Promise} - The API response
- */
 export const makePublicRequest = async (apiCall) => {
   try {
     const response = await apiCall();
@@ -53,7 +43,6 @@ export const API_URLS = {
   COMMENT: `${API_BASE_URL}/Comment`,
   GENRE: `${API_BASE_URL}/Genre`,
   PERSON: `${API_BASE_URL}/Person`,
-  // Ad related endpoints
   AD_MEDIA: `${API_BASE_URL}/AdMedia`,
   AD_PURCHASE_SLOT: `${API_BASE_URL}/AdPurchaseSlot`,
   AD_SLOT: `${API_BASE_URL}/AdSlot`,
@@ -61,5 +50,5 @@ export const API_URLS = {
   AD_SLOT_TIME_RANGE: `${API_BASE_URL}/AdSlotTimeRange`,
   AD_PACKAGE: `${API_BASE_URL}/AdPackage`,
   AD_PURCHASE_TRANSACTION: `${API_BASE_URL}/AdPurchaseTransaction`,
-  // ... thêm các endpoint khác
+  VIEW_PAYMENT_POLICY: `${API_BASE_URL}/ViewPaymentPolicy`,
 }; 

@@ -2,9 +2,14 @@ import { useNavigate, Link } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 import React, { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
-import { HistoryOutlined,YoutubeOutlined, FundOutlined, AuditOutlined,IdcardOutlined } from "@ant-design/icons";
+import {
+  HistoryOutlined,
+  YoutubeOutlined,
+  FundOutlined,
+  AuditOutlined,
+  IdcardOutlined,
+} from "@ant-design/icons";
 import { motion } from "framer-motion";
-
 
 function AdminSidebar() {
   const [user, setUser] = useState(authService.getCurrentUser());
@@ -30,20 +35,20 @@ function AdminSidebar() {
   return (
     <div className="min-h-screen flex flex-row bg-gray-100">
       <div className="flex flex-col w-56 bg-white rounded-r-3xl overflow-hidden">
-      <div className="relative flex items-center justify-center h-20 shadow-md">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="eigakan-gradient text-[#FF009F] font-bold text-2xl"
-        >
-          EIGAKAN
-        </motion.div>
+        <div className="relative flex items-center justify-center h-20 shadow-md">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="eigakan-gradient text-[#FF009F] font-bold text-2xl"
+          >
+            EIGAKAN
+          </motion.div>
 
-        <h2 className="absolute bottom-1 right-2 text-gray-500 text-xs">
-          ADMIN
-        </h2>
-      </div>
+          <h2 className="absolute bottom-1 right-2 text-gray-500 text-xs">
+            ADMIN
+          </h2>
+        </div>
         {/* avatar + name  */}
         <ul className=" flex flex-col py-4 h-full">
           <li className="flex justify-center items-center">
@@ -58,19 +63,19 @@ function AdminSidebar() {
               </span>
             </div>
           </li>
-          
+
           <li>
             <Link
               to="/dashboard"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-              <FundOutlined />
+                <FundOutlined />
               </span>
               <span className="ml-3 text-sm font-medium">Dashboard</span>
             </Link>
           </li>
-     
+
           <li>
             <Link
               to="/user"
@@ -95,14 +100,14 @@ function AdminSidebar() {
               <span className="ml-3 text-sm font-medium">User</span>
             </Link>
           </li>
-          
+
           <li>
             <Link
               to="/userRegister"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-              <IdcardOutlined />
+                <IdcardOutlined />
               </span>
               <span className="ml-3 text-sm font-medium">User Register</span>
             </Link>
@@ -110,28 +115,28 @@ function AdminSidebar() {
 
           <li>
             <Link
-              to="/admin/contract"  
+              to="/admin/contract"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-              <AuditOutlined />
+                <AuditOutlined />
               </span>
               <span className="ml-3 text-sm font-medium">Contract</span>
             </Link>
           </li>
-      
+
           <li>
             <Link
               to="/admin/movieAdmin"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-              <YoutubeOutlined />
+                <YoutubeOutlined />
               </span>
               <span className="ml-3 text-sm font-medium">Movie </span>
             </Link>
           </li>
-          
+
           <li>
             <Link
               to="/admin/genres"
@@ -156,7 +161,7 @@ function AdminSidebar() {
               <span className="ml-3 text-sm font-medium">Gernes </span>
             </Link>
           </li>
-          
+
           <li>
             <Link
               to="/admin/persons"
@@ -181,7 +186,7 @@ function AdminSidebar() {
               <span className="ml-3 text-sm font-medium">Actor </span>
             </Link>
           </li>
-          
+
           <li>
             <Link
               to="/admin/subscription-orders"
@@ -195,6 +200,32 @@ function AdminSidebar() {
               </span>
             </Link>
           </li>
+
+          <li>
+            <Link
+              to="/admin/payment-policy"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            >
+              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="size-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"
+                  />
+                </svg>
+              </span>
+              <span className="ml-3 text-sm font-medium">Payment Policy</span>
+            </Link>
+          </li>
+
           <li>
             <Link
               to="#"
@@ -222,7 +253,7 @@ function AdminSidebar() {
               </span>
             </Link>
           </li>
-          
+
           <li>
             <button
               onClick={handleLogout}
@@ -234,7 +265,7 @@ function AdminSidebar() {
               <span className="ml-3 text-sm font-medium">Logout</span>
             </button>
           </li>
-          
+
           <li>
             <Link
               to="/homescreen"
@@ -261,7 +292,6 @@ function AdminSidebar() {
               </span>
             </Link>
           </li>
-          
         </ul>
       </div>
     </div>
