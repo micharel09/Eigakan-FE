@@ -12,6 +12,9 @@ import {
   InputNumber,
   Select,
   Tag,
+  Row,
+  Col,
+  Statistic,
 } from "antd";
 import {
   EditOutlined,
@@ -19,6 +22,7 @@ import {
   PlusOutlined,
   SearchOutlined,
   StopOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import subscriptionService from "../../../apis/Subscription/subscription";
 import { Helmet } from "react-helmet";
@@ -33,6 +37,8 @@ const SubscriptionManagement = () => {
   const [editingPackage, setEditingPackage] = useState(null);
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState("");
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [totalAllAmount, setTotalAllAmount] = useState(0);
 
   // Fetch packages
   const fetchPackages = async () => {
@@ -42,6 +48,11 @@ const SubscriptionManagement = () => {
       if (response.success) {
         const packagesData = response.data?.subscriptionpackage || [];
         setPackages(packagesData);
+
+        // Calculate total amount of active packages
+        calculateTotalAmount(packagesData);
+        // Calculate total amount of all packages
+        calculateTotalAllAmount(packagesData);
       }
     } catch (error) {
       notification.error({
@@ -52,6 +63,18 @@ const SubscriptionManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateTotalAmount = (data) => {
+    const total = data
+      .filter((pkg) => pkg.status === "Active")
+      .reduce((sum, item) => sum + (item.price || 0), 0);
+    setTotalAmount(total);
+  };
+
+  const calculateTotalAllAmount = (data) => {
+    const total = data.reduce((sum, item) => sum + (item.price || 0), 0);
+    setTotalAllAmount(total);
   };
 
   useEffect(() => {
@@ -242,6 +265,29 @@ const SubscriptionManagement = () => {
           </Button>
         </div>
 
+        <Row gutter={[16, 16]} className="mb-4">
+          <Col xs={24} md={12}>
+            <Card>
+              <Statistic
+                title="Total Active Package Price"
+                value={formatVND(totalAmount)}
+                prefix={<DollarOutlined />}
+                precision={0}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} md={12}>
+            <Card>
+              <Statistic
+                title="Total All Packages Price"
+                value={formatVND(totalAllAmount)}
+                prefix={<DollarOutlined />}
+                precision={0}
+              />
+            </Card>
+          </Col>
+        </Row>
+
         <div className="mb-4">
           <Input
             placeholder="Search packages..."
@@ -264,6 +310,7 @@ const SubscriptionManagement = () => {
           }
           rowKey="id"
           loading={loading}
+          pagination={{ pageSize: 5 }}
         />
       </Card>
 

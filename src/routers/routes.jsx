@@ -62,6 +62,10 @@ import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory";
 import PaymentDetails from "../pages/Advertiser/PaymentHistory/PaymentDetails";
 import WaitingRoom from "../pages/WatchTogether/WaitingRoom.jsx";
 import PaymentPolicyManagement from "../pages/Admin/PaymentPolicy/PaymentPolicyManagement.jsx";
+import AdHistory from "../pages/Admin/Ad/AdHistory.jsx";
+import MovieEarning from "../pages/Admin/Movie/MovieEarning.jsx";
+import UserEarning from "../pages/Admin/User/UserEarning.jsx";
+import ManagerUserEarning from "../pages/Manager/UserEarning/ManagerUserEarning.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -223,6 +227,36 @@ const routes = [
   },
 
   {
+    path: "/admin/ad-history",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <AdHistory />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/movie-earning",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <MovieEarning />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/user-earning",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <UserEarning />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
     path: "/admin/updateMovie/:id",
     element: (
       <PrivateRoute requiredRole="ADMIN">
@@ -364,6 +398,17 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="MANAGER">
         <AdSlotTimeManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/user-earning",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <ManagerUserEarning />
       </PrivateRoute>
     ),
     layout: "ManagerLayout",

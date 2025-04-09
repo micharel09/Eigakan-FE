@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Card, Input } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { Table, Tag, Card, Input, Row, Col, Statistic, Typography } from "antd";
+import { SearchOutlined, DollarOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { Helmet } from "react-helmet";
 import UserApi from "../../../apis/User/user";
 import { notification } from "antd";
+
+const { Title, Text } = Typography;
 
 const SubscriptionOrderManagement = () => {
   const [loading, setLoading] = useState(true);
@@ -13,6 +15,8 @@ const SubscriptionOrderManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [totalOrders, setTotalOrders] = useState(100);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [totalActiveAmount, setTotalActiveAmount] = useState(0);
 
   const fetchAllOrders = async () => {
     try {
@@ -61,6 +65,9 @@ const SubscriptionOrderManagement = () => {
           ...prev,
           total: ordersWithUserDetails.length,
         }));
+
+        // Calculate total amounts
+        calculateTotalAmounts(ordersWithUserDetails);
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -68,6 +75,19 @@ const SubscriptionOrderManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateTotalAmounts = (orders) => {
+    const total = orders.reduce(
+      (sum, order) => sum + (order.totalPrice || 0),
+      0
+    );
+    const activeTotal = orders
+      .filter((order) => order.status === "Active")
+      .reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+
+    setTotalAmount(total);
+    setTotalActiveAmount(activeTotal);
   };
 
   const fetchOrders = async (page = 1, pageSize = 5) => {
@@ -234,6 +254,33 @@ const SubscriptionOrderManagement = () => {
       </Helmet>
 
       <Card title="Subscription Orders" className="shadow-md">
+        <div className="mb-4">
+          <Row gutter={[16, 16]} className="mb-6">
+            <Col xs={24} md={12}>
+              <Card className="border-l-4 border-l-blue-500">
+                <Statistic
+                  title="Total Orders Amount"
+                  value={loading ? "-" : formatVND(totalAmount)}
+                  prefix={<DollarOutlined className="text-blue-500" />}
+                  precision={0}
+                  loading={loading}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} md={12}>
+              <Card className="border-l-4 border-l-green-500">
+                <Statistic
+                  title="Total Active Orders Amount"
+                  value={loading ? "-" : formatVND(totalActiveAmount)}
+                  prefix={<DollarOutlined className="text-green-500" />}
+                  precision={0}
+                  loading={loading}
+                />
+              </Card>
+            </Col>
+          </Row>
+        </div>
+
         <div className="flex justify-center mb-6">
           <Input
             placeholder="Search by Transaction ID, User name, Email or Package ID..."
