@@ -2,14 +2,20 @@ import axios from "axios";
 import { makeAuthenticatedRequest, API_URLS } from "../../utils/api";
 
 const adPurchaseSlotService = {
-  getAdPurchaseSlotsByUserId: (page = 1, pageSize = 10) =>
+  getAdPurchaseSlotsByUserId: (page = 1, pageSize = 5) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_SLOT}/AdPurchaseByUserId`,
-        {
-          params: { page, pageSize },
-          headers
-        }
+        `${API_URLS.AD_PURCHASE_SLOT}/AdPurchaseByUserId?page=${page}&pageSize=${pageSize}`,
+        { headers }
+      );
+      return response.data;
+    }),
+
+  getAllAdPurchaseSlotsByUserId: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${API_URLS.AD_PURCHASE_SLOT}/AdPurchaseByUserId?page=1&pageSize=1000`,
+        { headers }
       );
       return response.data;
     }),

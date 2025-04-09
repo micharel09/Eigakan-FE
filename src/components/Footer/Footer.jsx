@@ -1,6 +1,15 @@
 import { GithubOutlined, LinkedinOutlined } from "@ant-design/icons";
 
 const Footer = () => {
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.currentTarget.click();
+    }
+  };
+
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="w-full bg-black text-gray-400 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -25,6 +34,9 @@ const Footer = () => {
                 <a
                   href="/movies"
                   className="hover:text-blue-500 transition-colors"
+                  aria-label="Go to Movies page"
+                  tabIndex="0"
+                  onKeyDown={handleKeyDown}
                 >
                   Movies
                 </a>
@@ -33,6 +45,9 @@ const Footer = () => {
                 <a
                   href="/news"
                   className="hover:text-blue-500 transition-colors"
+                  aria-label="Go to News page"
+                  tabIndex="0"
+                  onKeyDown={handleKeyDown}
                 >
                   News
                 </a>
@@ -41,6 +56,9 @@ const Footer = () => {
                 <a
                   href="/about"
                   className="hover:text-blue-500 transition-colors"
+                  aria-label="Go to About Us page"
+                  tabIndex="0"
+                  onKeyDown={handleKeyDown}
                 >
                   About Us
                 </a>
@@ -57,6 +75,9 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-blue-500 transition-colors"
+                aria-label="View GitHub repository"
+                tabIndex="0"
+                onKeyDown={handleKeyDown}
               >
                 <GithubOutlined className="text-xl" />
               </a>
@@ -65,6 +86,9 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-blue-500 transition-colors"
+                aria-label="View LinkedIn profile"
+                tabIndex="0"
+                onKeyDown={handleKeyDown}
               >
                 <LinkedinOutlined className="text-xl" />
               </a>
@@ -76,7 +100,7 @@ const Footer = () => {
         <div className="pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm">
-              © {new Date().getFullYear()} Eigakan. All rights reserved.
+              © {currentYear} Eigakan. All rights reserved.
             </p>
             <p className="text-sm mt-2 md:mt-0">
               Built with ❤️ by{" "}
@@ -85,6 +109,9 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:text-blue-400 transition-colors"
+                aria-label="View project GitHub repository"
+                tabIndex="0"
+                onKeyDown={handleKeyDown}
               >
                 SP25-group5-475
               </a>

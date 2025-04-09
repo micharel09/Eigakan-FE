@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Table,
   Button,
@@ -18,6 +18,7 @@ import {
   TimePicker,
   Image,
   Popconfirm,
+  Spin,
 } from "antd";
 import {
   EditOutlined,
@@ -33,6 +34,10 @@ import {
   FileImageOutlined,
   LinkOutlined,
   InfoCircleOutlined,
+  VideoCameraOutlined,
+  ReloadOutlined,
+  AudioMutedOutlined,
+  SoundOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -102,6 +107,12 @@ const AdSlotTimeManagement = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [previewImage, setPreviewImage] = useState("");
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [previewVideo, setPreviewVideo] = useState("");
+  const [isVideoPreviewVisible, setIsVideoPreviewVisible] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [isVideoBuffering, setIsVideoBuffering] = useState(false);
+  const videoRef = useRef(null);
 
   const fetchAdSlotTimes = async () => {
     setLoading(true);
@@ -207,6 +218,110 @@ const AdSlotTimeManagement = () => {
     fetchAdSlots();
     fetchAdMedias();
   }, []);
+
+  useEffect(() => {
+    // Reset video element when previewVideo changes
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+        videoRef.current.load();
+      } catch (err) {
+        console.error("Error resetting video element:", err);
+      }
+    }
+  }, [previewVideo]);
+
+  // Add new useEffect to handle autoplay when modal is opened
+  useEffect(() => {
+    // Autoplay video when modal is visible and video is loaded
+    if (isVideoPreviewVisible && videoRef.current && previewVideo) {
+      const videoElement = videoRef.current;
+
+      // Setup event handlers for all relevant video events
+      const handleCanPlay = () => {
+        console.log("Video can play now");
+        // Video is ready to play without buffering
+        setIsVideoLoading(false);
+        setIsVideoBuffering(false);
+
+        try {
+          // Reset video to beginning
+          videoElement.currentTime = 0;
+
+          // Ensure video is muted before attempting autoplay (most browsers require this)
+          videoElement.muted = true;
+          setIsVideoMuted(true);
+
+          // Small delay before playing to allow UI to update
+          setTimeout(() => {
+            // Attempt to play the video
+            const playPromise = videoElement.play();
+
+            // Handle autoplay promise (browsers might block autoplay)
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  console.log("Autoplay started successfully");
+                })
+                .catch((error) => {
+                  console.warn("Autoplay prevented:", error);
+                  // Only show notification if autoplay is blocked by browser policy
+                  if (error.name !== "AbortError") {
+                    notification.info({
+                      message: "Autoplay Note",
+                      description:
+                        "Click play to start the video. You can unmute after playback begins.",
+                      duration: 3,
+                    });
+                  }
+                });
+            }
+          }, 100);
+        } catch (err) {
+          console.error("Error autoplaying video:", err);
+          setIsVideoLoading(false);
+        }
+      };
+
+      // Handle buffering state
+      const handleWaiting = () => {
+        console.log("Video is waiting for more data");
+        setIsVideoBuffering(true);
+      };
+
+      // Handle when video starts playing after buffering
+      const handlePlaying = () => {
+        console.log("Video is playing now");
+        setIsVideoBuffering(false);
+      };
+
+      // Handle errors
+      const handleError = (e) => {
+        console.error("Video playback error:", e);
+        setIsVideoLoading(false);
+        setIsVideoBuffering(false);
+        notification.warning({
+          message: "Video Playback Error",
+          description:
+            "There was an issue playing the video. Try opening it in a new tab instead.",
+        });
+      };
+
+      // Add all event listeners
+      videoElement.addEventListener("canplay", handleCanPlay, { once: true });
+      videoElement.addEventListener("waiting", handleWaiting);
+      videoElement.addEventListener("playing", handlePlaying);
+      videoElement.addEventListener("error", handleError);
+
+      // Clean up all event listeners
+      return () => {
+        videoElement.removeEventListener("canplay", handleCanPlay);
+        videoElement.removeEventListener("waiting", handleWaiting);
+        videoElement.removeEventListener("playing", handlePlaying);
+        videoElement.removeEventListener("error", handleError);
+      };
+    }
+  }, [isVideoPreviewVisible, previewVideo]);
 
   const handleSubmit = async (values) => {
     try {
@@ -357,6 +472,72 @@ const AdSlotTimeManagement = () => {
 
   const handleClosePreview = () => {
     setIsPreviewVisible(false);
+  };
+
+  const handleShowVideoPreview = (video) => {
+    console.log(`Loading video preview: ${video}`);
+
+    // Ensure video is paused if currently playing
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+
+    // Clear the video state first to force a complete remount
+    setPreviewVideo("");
+
+    // Show loading and reset buffering states
+    setIsVideoLoading(true);
+    setIsVideoBuffering(false);
+
+    // Show the modal first for better perceived performance
+    setIsVideoPreviewVisible(true);
+
+    // Force muted state for autoplay to work in most browsers
+    setIsVideoMuted(true);
+
+    // Use a longer delay to ensure modal is fully rendered before loading video
+    // This helps reduce the initial stutter
+    setTimeout(() => {
+      // Add a cache-busting parameter for non-Cloudinary URLs
+      const videoUrl = video.includes("cloudinary")
+        ? video
+        : `${video}${video.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+      setPreviewVideo(videoUrl);
+    }, 250); // Increased timeout further
+  };
+
+  const handleCloseVideoPreview = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+
+      // Clear all video-related states
+      try {
+        // Remove all event listeners
+        videoRef.current.oncanplay = null;
+        videoRef.current.onwaiting = null;
+        videoRef.current.onplaying = null;
+        videoRef.current.onerror = null;
+      } catch (err) {
+        console.error("Error cleaning up video element:", err);
+      }
+    }
+
+    setIsVideoPreviewVisible(false);
+    setIsVideoLoading(false);
+    setIsVideoBuffering(false);
+
+    // Reset the video state when closing the modal to prevent caching issues
+    setTimeout(() => {
+      setPreviewVideo("");
+      setIsVideoMuted(true); // Reset to muted state when closing
+    }, 300);
+  };
+
+  const handleToggleMute = () => {
+    if (videoRef.current) {
+      setIsVideoMuted(!isVideoMuted);
+      videoRef.current.muted = !isVideoMuted;
+    }
   };
 
   const handleShowRejectModal = (id) => {
@@ -994,6 +1175,21 @@ const AdSlotTimeManagement = () => {
                 }}
               />
             </div>
+          ) : record.video ? (
+            <div
+              className="cursor-pointer w-16 h-16 rounded overflow-hidden border border-gray-200 flex items-center justify-center bg-gray-100"
+              onClick={() => handleShowVideoPreview(record.video)}
+              role="button"
+              tabIndex="0"
+              aria-label="Preview ad video"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  handleShowVideoPreview(record.video);
+                }
+              }}
+            >
+              <VideoCameraOutlined className="text-pink-500 text-2xl" />
+            </div>
           ) : (
             <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded">
               <FileImageOutlined className="text-gray-400 text-2xl" />
@@ -1033,10 +1229,13 @@ const AdSlotTimeManagement = () => {
           )}
           {record.video && (
             <div className="flex items-center space-x-1">
-              <FileImageOutlined className="text-pink-500" />
-              <span className="truncate max-w-[150px] text-gray-500">
-                {record.video}
-              </span>
+              <VideoCameraOutlined className="text-pink-500" />
+              <a
+                className="truncate max-w-[150px] text-pink-500 hover:underline cursor-pointer"
+                onClick={() => handleShowVideoPreview(record.video)}
+              >
+                Preview video
+              </a>
             </div>
           )}
         </div>
@@ -1155,6 +1354,28 @@ const AdSlotTimeManagement = () => {
               Manage all advertising slot times
             </Text>
           </div>
+          {activeTab !== "4" && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                if (activeTab === "1") {
+                  handleOpenModal();
+                } else if (activeTab === "2") {
+                  handleOpenRangeModal();
+                } else if (activeTab === "3") {
+                  handleOpenSlotModal();
+                }
+              }}
+              className="bg-pink-500 hover:bg-pink-600"
+            >
+              {activeTab === "1"
+                ? "Add Slot Time"
+                : activeTab === "2"
+                ? "Add Time Range"
+                : "Add Slot Location"}
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -1550,6 +1771,165 @@ const AdSlotTimeManagement = () => {
         getContainer={false}
       >
         <img alt="Ad Preview" style={{ width: "100%" }} src={previewImage} />
+      </Modal>
+
+      <Modal
+        open={isVideoPreviewVisible}
+        title={
+          <div className="flex justify-between items-center">
+            <span>Video Preview</span>
+            <Tag color="blue" className="ml-2">
+              {previewVideo
+                ? new URL(previewVideo).pathname.split("/").pop()
+                : ""}
+            </Tag>
+          </div>
+        }
+        footer={[
+          <Button key="close" onClick={handleCloseVideoPreview}>
+            Close
+          </Button>,
+          <Button
+            key="external"
+            type="primary"
+            href={previewVideo}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-pink-500 hover:bg-pink-600"
+          >
+            Open in New Tab
+          </Button>,
+        ]}
+        onCancel={handleCloseVideoPreview}
+        centered
+        width={800}
+        getContainer={false}
+        destroyOnClose={true}
+      >
+        <div
+          className="video-container"
+          style={{ width: "100%", maxHeight: "70vh", overflow: "hidden" }}
+        >
+          {previewVideo && (
+            <div key={`container-${previewVideo}`}>
+              {isVideoLoading && (
+                <div className="flex justify-center items-center py-8">
+                  <div className="text-center">
+                    <div className="mb-3">
+                      <Spin size="large" />
+                    </div>
+                    <p className="text-gray-500">Chuẩn bị video...</p>
+                  </div>
+                </div>
+              )}
+
+              {isVideoBuffering && !isVideoLoading && (
+                <div className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-40 z-10">
+                  <div className="text-center text-white p-3 rounded bg-black bg-opacity-60">
+                    <div className="mb-2">
+                      <Spin size="small" />
+                    </div>
+                    <p className="text-xs">Đang tải video...</p>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className="relative"
+                style={{ display: isVideoLoading ? "none" : "block" }}
+              >
+                <video
+                  ref={videoRef}
+                  key={`video-${previewVideo}`}
+                  controls
+                  autoPlay={false} // Don't use HTML autoplay attribute - we'll control this via JS
+                  muted={isVideoMuted}
+                  preload="auto"
+                  playsInline
+                  crossOrigin="anonymous"
+                  controlsList="nodownload"
+                  disablePictureInPicture
+                  style={{
+                    width: "100%",
+                    maxHeight: "70vh",
+                    objectFit: "contain",
+                  }}
+                  className="rounded shadow"
+                >
+                  <source
+                    src={previewVideo}
+                    type="video/mp4"
+                    key={`mp4-${previewVideo}`}
+                  />
+                  <source
+                    src={previewVideo}
+                    type="video/webm"
+                    key={`webm-${previewVideo}`}
+                  />
+                  <source
+                    src={previewVideo}
+                    type="video/ogg"
+                    key={`ogg-${previewVideo}`}
+                  />
+                  <p className="p-3 bg-gray-100 text-center">
+                    Trình duyệt của bạn không hỗ trợ video HTML5.{" "}
+                    <a
+                      href={previewVideo}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-pink-500 hover:underline"
+                    >
+                      Nhấn vào đây
+                    </a>{" "}
+                    để xem video.
+                  </p>
+                </video>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-xs text-gray-500 mb-2">
+                  <InfoCircleOutlined className="mr-1" /> Gặp vấn đề khi phát?
+                  Hãy thử:
+                </p>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => {
+                      if (videoRef.current) {
+                        // Reset all states
+                        setIsVideoLoading(true);
+                        setIsVideoBuffering(false);
+
+                        // Pause current playback
+                        videoRef.current.pause();
+
+                        // Force reload by changing the currentSrc
+                        videoRef.current.src = `${previewVideo}${
+                          previewVideo.includes("?") ? "&" : "?"
+                        }t=${Date.now()}`;
+
+                        // Apply and load the new source
+                        videoRef.current.load();
+
+                        // Playback will be handled by the canplay event
+                      }
+                    }}
+                    icon={<ReloadOutlined />}
+                  >
+                    Tải lại Video
+                  </Button>
+                  <Button
+                    onClick={handleToggleMute}
+                    icon={
+                      isVideoMuted ? <AudioMutedOutlined /> : <SoundOutlined />
+                    }
+                  >
+                    {isVideoMuted ? "Bật tiếng" : "Tắt tiếng"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </Modal>
 
       <Modal

@@ -18,8 +18,6 @@ import {
   TrendingUp,
   LayoutDashboard,
   UsersRound,
-  Sparkles,
-  BrainCircuit,
   ChevronDown,
 } from "lucide-react";
 
@@ -27,7 +25,6 @@ import authService from "../../apis/Auth/auth";
 import roomService from "../../apis/Room/room";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
-import RecommendedMovies from "../Homepage/RecommendedMovies";
 import { useAuth, useScrollEffect, usePath } from "../../hooks";
 
 const ROLES = {
@@ -56,6 +53,13 @@ const NAV_LINKS = [
 
 // NavLink component extracted and memoized to prevent re-renders
 const NavLink = React.memo(({ path, label, icon, isActive }) => {
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.currentTarget.click();
+    }
+  };
+
   return (
     <Link
       to={path}
@@ -64,6 +68,7 @@ const NavLink = React.memo(({ path, label, icon, isActive }) => {
       }`}
       aria-label={label}
       tabIndex="0"
+      onKeyDown={handleKeyDown}
     >
       <div
         className={`transition-colors duration-300 ${
@@ -100,34 +105,70 @@ NavLink.displayName = "NavLink";
 const ActionButton = React.memo(
   ({ onClick, ariaLabel, icon, label, isSpecial = false }) => {
     const baseClasses = isSpecial
-      ? "bg-[#FF009F]/10 hover:bg-[#FF009F]/20 border-[#FF009F]/30 hover:border-[#FF009F]/50 hover:shadow-[0_0_15px_rgba(255,0,159,0.3)]"
-      : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]";
+      ? "bg-[#FF009F]/10 hover:bg-[#FF009F]/20 border-[#FF009F]/30 hover:border-[#FF009F]/50"
+      : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20";
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    };
 
     return (
-      <button
+      <motion.button
         onClick={onClick}
-        className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-full ${baseClasses} text-white transition-all duration-300 border shadow-lg hover:scale-105 relative overflow-hidden group`}
+        className={`
+          flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 
+          rounded-full ${baseClasses} text-white 
+          transition-all duration-300 border 
+          relative overflow-hidden group z-10
+          hover:shadow-lg hover:shadow-[#FF009F]/10
+        `}
         aria-label={ariaLabel}
         tabIndex="0"
+        onKeyDown={handleKeyDown}
+        whileHover={{
+          scale: 1.05,
+          transition: {
+            type: "spring",
+            stiffness: 400,
+            damping: 10,
+          },
+        }}
+        whileTap={{ scale: 0.95 }}
       >
         <div
-          className={`absolute inset-0 bg-gradient-to-r ${
+          className={`
+          absolute inset-0 bg-gradient-to-r 
+          ${
             isSpecial
               ? "from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0"
               : "from-white/0 via-white/5 to-white/0"
-          } opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-shimmer`}
-        ></div>
+          }
+          opacity-0 group-hover:opacity-100 
+          transition-opacity duration-700 
+          pointer-events-none
+        `}
+        />
         {React.cloneElement(icon, {
-          className: `w-3.5 h-3.5 md:w-4 md:h-4 ${
-            isSpecial ? "text-[#FF009F]" : "text-[#FF009F]"
-          } group-hover:scale-110 transition-transform duration-300`,
+          className: `
+            w-3.5 h-3.5 md:w-4 md:h-4 
+            ${isSpecial ? "text-[#FF009F]" : "text-[#FF009F]"}
+            group-hover:scale-110 transition-transform duration-300 
+            relative z-20
+          `,
         })}
         {label && (
-          <span className="text-xs hidden md:inline relative z-10">
+          <motion.span
+            className="text-xs hidden md:inline relative z-20"
+            initial={{ opacity: 0.9 }}
+            animate={{ opacity: 1 }}
+          >
             {label}
-          </span>
+          </motion.span>
         )}
-      </button>
+      </motion.button>
     );
   }
 );
@@ -162,8 +203,6 @@ const Navbar = () => {
   const [roomId, setRoomId] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [hostedRooms, setHostedRooms] = useState([]);
-  const [showRecommendationsModal, setShowRecommendationsModal] =
-    useState(false);
 
   // Memoized values
   const isMoviePage = useMemo(
@@ -191,15 +230,10 @@ const Navbar = () => {
 
   // Use callbacks for event handlers
   const toggleMenu = useCallback(() => setIsOpen((prev) => !prev), []);
-  const toggleSearch = useCallback(() => setShowSearch((prev) => !prev), []);
-  const openRecommendationsModal = useCallback(
-    () => setShowRecommendationsModal(true),
-    []
-  );
-  const closeRecommendationsModal = useCallback(
-    () => setShowRecommendationsModal(false),
-    []
-  );
+  const toggleSearch = useCallback(() => {
+    // Add subtle animation to the search button
+    setShowSearch((prev) => !prev);
+  }, []);
 
   const handleJoinRoom = useCallback(async () => {
     if (isJoining || !roomId.trim()) return;
@@ -227,22 +261,23 @@ const Navbar = () => {
 
       const roomDetails = await roomService.getRoomDetails(roomId.trim());
 
-      if (roomDetails?.status === 403) { 
+      if (roomDetails?.status === 403) {
         notification.error({
           message: "Error",
-          description: "You are not VIP MEMBER - Please buy subscription to join room",
+          description:
+            "You are not VIP MEMBER - Please buy subscription to join room",
         });
         return;
       }
-      
+
       if (roomDetails?.data.success == false) {
         notification.error({
           message: "Error",
-          description: roomDetails?.data?.message || "Room details not available.",
+          description:
+            roomDetails?.data?.message || "Room details not available.",
         });
         return;
       }
-      
 
       let movieId = roomDetails.success ? roomDetails.data?.movieID : null;
 
@@ -412,17 +447,6 @@ const Navbar = () => {
                   ariaLabel="Join Room"
                   icon={<UsersRound />}
                   label="Join Room"
-                  isSpecial={true}
-                />
-              )}
-
-              {/* AI Recommendations Button - Only for VIP MEMBER, ADMIN or MANAGER*/}
-              {(isVipMember || isAdmin || isManager) && (
-                <ActionButton
-                  onClick={openRecommendationsModal}
-                  ariaLabel="AI Recommendations"
-                  icon={<BrainCircuit />}
-                  label="AI Picks"
                   isSpecial={true}
                 />
               )}
@@ -605,23 +629,6 @@ const Navbar = () => {
               </nav>
 
               <div className="mt-6 border-t border-white/10 pt-6">
-                {/* AI Picks Button in Mobile Menu - Only for VIP MEMBER, ADMIN or MANAGER */}
-                {(isVipMember || isAdmin || isManager) && (
-                  <button
-                    onClick={() => {
-                      openRecommendationsModal();
-                      setIsOpen(false);
-                    }}
-                    className="flex items-center gap-3 w-full p-3 mb-3 rounded-lg bg-[#FF009F]/10 hover:bg-[#FF009F]/20 text-white transition-all duration-300 hover:scale-102 border border-[#FF009F]/30"
-                    aria-label="AI Recommendations"
-                    tabIndex="0"
-                  >
-                    <BrainCircuit className="w-5 h-5 text-[#FF009F]" />
-                    <span className="text-base font-medium">AI Picks</span>
-                    <Sparkles className="w-3 h-3 text-[#FF009F] ml-1" />
-                  </button>
-                )}
-
                 <button
                   onClick={() => {
                     toggleSearch();
@@ -715,17 +722,8 @@ const Navbar = () => {
         </div>
       </Modal>
 
-      {/* AI Recommendations Modal */}
-      {showRecommendationsModal && (
-        <RecommendedMovies
-          showModal={showRecommendationsModal}
-          setShowModal={setShowRecommendationsModal}
-          isModal={true}
-        />
-      )}
-
-      {/* Search Overlay */}
-      <AnimatePresence>
+      {/* Search Overlay with improved animation */}
+      <AnimatePresence mode="wait">
         {showSearch && <SearchBar onClose={() => setShowSearch(false)} />}
       </AnimatePresence>
     </div>

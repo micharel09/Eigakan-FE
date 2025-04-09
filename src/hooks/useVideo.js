@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 
 /**
  * Custom hook to handle video player functionality
@@ -26,6 +26,8 @@ export const useVideo = ({
   const playerRef = useRef(null);
   const iframeRef = useRef(null);
   const timeUpdateIntervalRef = useRef(null);
+  const previousUrlRef = useRef(videoUrl);
+  const initializedRef = useRef(false);
 
   /**
    * Format seconds into MM:SS display format
@@ -81,14 +83,37 @@ export const useVideo = ({
       return;
     }
 
+    // Skip initialization if player already exists and URL hasn't changed
+    if (playerRef.current && previousUrlRef.current === videoUrl && initializedRef.current) {
+      console.log("Player already initialized for URL:", videoUrl);
+      return;
+    }
+
     try {
       await loadPlayerScript();
       
-      // Clean up existing player
+      // Store new URL
+      previousUrlRef.current = videoUrl;
+      
+      // Clean up existing player if needed
       if (playerRef.current) {
-        console.log("Clearing existing player reference");
+        console.log("Clearing existing player reference for new URL");
+        try {
+          // Remove event handlers before creating a new instance
+          playerRef.current.off("ready");
+          playerRef.current.off("play");
+          playerRef.current.off("pause");
+          playerRef.current.off("timeupdate");
+          playerRef.current.off("ended");
+          playerRef.current.off("error");
+        } catch (err) {
+          console.warn("Error cleaning up player events:", err);
+        }
         playerRef.current = null;
       }
+      
+      // Reset state
+      setPlayerReady(false);
       
       // Create new player
       console.log("Creating new player instance for:", videoUrl);
@@ -98,6 +123,7 @@ export const useVideo = ({
       playerRef.current.on("ready", () => {
         console.log("✅ Player ready");
         setPlayerReady(true);
+        initializedRef.current = true;
         if (onReady) onReady();
       });
       
@@ -123,6 +149,7 @@ export const useVideo = ({
       
       playerRef.current.on("ended", () => {
         console.log("Video ended");
+        setIsPlaying(false);
         if (onEnded) onEnded();
       });
       
@@ -133,7 +160,7 @@ export const useVideo = ({
     } catch (error) {
       console.error("Error initializing player:", error);
     }
-  }, [videoUrl, onTimeUpdate, onPlay, onPause, onEnded, onReady, loadPlayerScript]);
+  }, [videoUrl, onTimeUpdate, onPlay, onPause, onEnded, onReady, loadPlayerScript, currentTime]);
 
   /**
    * Set up regular interval to poll player time
@@ -192,7 +219,33 @@ export const useVideo = ({
     };
   }, [videoUrl, initializePlayer, playerReady, onPause]);
 
-  // Player control functions
+  // Clean up player completely on unmount
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        try {
+          // Remove all event listeners
+          playerRef.current.off("ready");
+          playerRef.current.off("play");
+          playerRef.current.off("pause");
+          playerRef.current.off("timeupdate");
+          playerRef.current.off("ended");
+          playerRef.current.off("error");
+        } catch (err) {
+          console.warn("Error cleaning up player on unmount:", err);
+        }
+        
+        playerRef.current = null;
+        initializedRef.current = false;
+      }
+      
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Player control functions - use memoized versions to prevent unnecessary rerenders
   const playVideo = useCallback(() => {
     if (playerRef.current && playerReady) {
       playerRef.current.play();
@@ -233,7 +286,8 @@ export const useVideo = ({
     }
   }, [playerReady]);
 
-  return {
+  // Return memoized object to prevent unnecessary re-renders in consuming components
+  return useMemo(() => ({
     iframeRef,
     playerRef,
     playerReady,
@@ -246,5 +300,16 @@ export const useVideo = ({
     seekTo,
     togglePlay,
     toggleFullscreen,
-  };
+  }), [
+    playerReady, 
+    isPlaying, 
+    currentTime, 
+    duration, 
+    formatTime, 
+    playVideo, 
+    pauseVideo, 
+    seekTo, 
+    togglePlay, 
+    toggleFullscreen
+  ]);
 }; 

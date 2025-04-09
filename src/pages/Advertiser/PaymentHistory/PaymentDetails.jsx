@@ -302,190 +302,132 @@ const PaymentDetails = () => {
     </Card>
   );
 
-  // New function to render package details separately
-  const renderPackageDetails = () => {
-    // Get the package info from the first slot as all slots have the same package
-    const packageInfo = payment.adPurchaseSlots?.[0]?.adPackage;
-
-    if (!packageInfo) {
-      return (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="No package information available"
-        />
-      );
-    }
-
-    return (
-      <Card
-        className="shadow-sm"
-        title={
-          <div className="flex items-center">
-            <FileTextOutlined className="mr-2 text-[#FF009F]" />
-            <span>Package Details</span>
-          </div>
-        }
-      >
-        <Descriptions
-          bordered
-          column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
-        >
-          <Descriptions.Item label="Package Name">
-            <Text strong>{packageInfo.packageName}</Text>
-          </Descriptions.Item>
-          <Descriptions.Item label="Price">
-            {formatVND(packageInfo.packPrice)}
-          </Descriptions.Item>
-          <Descriptions.Item label="Duration">
-            {packageInfo.duration} day(s)
-          </Descriptions.Item>
-          <Descriptions.Item label="Status">
-            {getStatusTag(packageInfo.status)}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
-    );
-  };
-
   const renderPurchasedSlots = () => (
     <Card className="shadow-sm">
       {payment.adPurchaseSlots?.length > 0 ? (
-        <Collapse
-          className="ad-slots-collapse"
-          defaultActiveKey={[payment.adPurchaseSlots[0].id]}
-        >
-          {payment.adPurchaseSlots.map((slot) => (
-            <Panel
-              key={slot.id}
-              header={
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <AppstoreOutlined className="mr-2 text-[#FF009F]" />
-                    <span className="font-medium">
-                      Slot ID: {slot.id.substring(0, 8)}...
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="mr-3">
-                      {formatVND(slot.purchaseSlotPrice)}
-                    </span>
-                    {getStatusTag(slot.status)}
-                  </div>
+        <>
+          {/* Package Info Section */}
+          {payment.adPurchaseSlots[0]?.adPackage && (
+            <Card
+              className="mb-4"
+              title={
+                <div className="flex items-center">
+                  <FileTextOutlined className="mr-2 text-[#FF009F]" />
+                  <span>Package Details</span>
                 </div>
               }
             >
-              <Row gutter={[16, 16]}>
-                {/* Slot Purchase Details */}
-                <Col span={24}>
-                  <Card
-                    title={
-                      <div className="flex items-center">
-                        <InfoCircleOutlined className="mr-2 text-[#FF009F]" />
-                        <span>Slot Purchase Details</span>
-                      </div>
-                    }
-                    size="small"
-                  >
-                    <Descriptions column={1} size="small">
-                      <Descriptions.Item label="Price">
+              <Descriptions
+                bordered
+                column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }}
+              >
+                <Descriptions.Item label="Package Name">
+                  <Text strong>
+                    {payment.adPurchaseSlots[0].adPackage.packageName}
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Price">
+                  {formatVND(payment.adPurchaseSlots[0].adPackage.packPrice)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Duration">
+                  {payment.adPurchaseSlots[0].adPackage.duration} day(s)
+                </Descriptions.Item>
+                <Descriptions.Item label="Status">
+                  {getStatusTag(payment.adPurchaseSlots[0].adPackage.status)}
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          )}
+
+          {/* Slots Section */}
+          <Collapse
+            className="ad-slots-collapse"
+            defaultActiveKey={[payment.adPurchaseSlots[0].id]}
+          >
+            {payment.adPurchaseSlots.map((slot) => (
+              <Panel
+                key={slot.id}
+                header={
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <AppstoreOutlined className="mr-2 text-[#FF009F]" />
+                      <span className="font-medium">
+                        Slot ID: {slot.id.substring(0, 8)}...
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="mr-3">
                         {formatVND(slot.purchaseSlotPrice)}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Start Date">
-                        {formatDate(slot.startDate)}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Expiry Date">
-                        {formatDate(slot.expiredDate)}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Status">
-                        {getStatusTag(slot.status)}
-                      </Descriptions.Item>
-                    </Descriptions>
-                  </Card>
-                </Col>
+                      </span>
+                      {getStatusTag(slot.status)}
+                    </div>
+                  </div>
+                }
+              >
+                <Row gutter={[16, 16]}>
+                  {/* Slot Purchase Details */}
+                  <Col span={12}>
+                    <Card
+                      title={
+                        <div className="flex items-center">
+                          <InfoCircleOutlined className="mr-2 text-[#FF009F]" />
+                          <span>Slot Purchase Details</span>
+                        </div>
+                      }
+                      size="small"
+                      className="h-full"
+                    >
+                      <Descriptions column={1} size="small">
+                        <Descriptions.Item label="Price">
+                          {formatVND(slot.purchaseSlotPrice)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Start Date">
+                          {formatDate(slot.startDate)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Expiry Date">
+                          {formatDate(slot.expiredDate)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Status">
+                          {getStatusTag(slot.status)}
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Card>
+                  </Col>
 
-                {/* Slot Time Information */}
-                <Col span={24}>
-                  <Card
-                    title={
-                      <div className="flex items-center">
-                        <ClockCircleOutlined className="mr-2 text-blue-500" />
-                        <span>Slot Time Information</span>
-                      </div>
-                    }
-                    size="small"
-                  >
+                  {/* Location and Time Range Information */}
+                  <Col span={12}>
                     <Row gutter={[16, 16]}>
-                      {/* Slot Time Details */}
-                      <Col span={24}>
-                        <Card
-                          type="inner"
-                          title={
-                            <div className="flex items-center">
-                              <InfoCircleOutlined className="mr-2 text-blue-500" />
-                              <span>Slot Time Details</span>
-                            </div>
-                          }
-                          size="small"
-                        >
-                          <Descriptions column={1} size="small">
-                            <Descriptions.Item label="Slot Time ID">
-                              {slot.adSlotTime?.id}
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Price">
-                              {formatVND(slot.adSlotTime?.slotTimePrice || 0)}
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Status">
-                              {getStatusTag(slot.adSlotTime?.status)}
-                            </Descriptions.Item>
-                          </Descriptions>
-                        </Card>
-                      </Col>
-
                       {/* Ad Slot Location */}
                       {slot.adSlotTime?.adSlotID &&
                         adSlotDetails[slot.adSlotTime.adSlotID] && (
-                          <Col span={12}>
+                          <Col span={24} className="mb-4">
                             <Card
                               type="inner"
                               title={
                                 <div className="flex items-center">
                                   <EnvironmentOutlined className="mr-2 text-green-500" />
-                                  <span>Ad Slot Location</span>
+                                  <span>Location</span>
                                 </div>
                               }
                               size="small"
-                              className="h-full"
+                              bodyStyle={{ padding: "8px 12px" }}
                             >
-                              <Descriptions column={1} size="small">
-                                <Descriptions.Item label="Location">
-                                  {
-                                    adSlotDetails[slot.adSlotTime.adSlotID]
-                                      .slotLocation
-                                  }
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Base Price">
-                                  {formatVND(
-                                    adSlotDetails[slot.adSlotTime.adSlotID]
-                                      .slotPrice || 0
-                                  )}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Status">
-                                  {getStatusTag(
-                                    adSlotDetails[slot.adSlotTime.adSlotID]
-                                      .status
-                                  )}
-                                </Descriptions.Item>
-                              </Descriptions>
+                              <div>
+                                {
+                                  adSlotDetails[slot.adSlotTime.adSlotID]
+                                    .slotLocation
+                                }
+                              </div>
                             </Card>
                           </Col>
                         )}
 
-                      {/* Time Range Details */}
+                      {/* Time Range */}
                       {slot.adSlotTime?.adSlotTimeRangeID &&
                         adSlotTimeRangeDetails[
                           slot.adSlotTime.adSlotTimeRangeID
                         ] && (
-                          <Col span={12}>
+                          <Col span={24}>
                             <Card
                               type="inner"
                               title={
@@ -495,43 +437,27 @@ const PaymentDetails = () => {
                                 </div>
                               }
                               size="small"
-                              className="h-full"
+                              bodyStyle={{ padding: "8px 12px" }}
                             >
-                              <Descriptions column={1} size="small">
-                                <Descriptions.Item label="Time Range">
-                                  {adSlotTimeRangeDetails[
-                                    slot.adSlotTime.adSlotTimeRangeID
-                                  ].startTime.substring(0, 5)}{" "}
-                                  -{" "}
-                                  {adSlotTimeRangeDetails[
-                                    slot.adSlotTime.adSlotTimeRangeID
-                                  ].endTime.substring(0, 5)}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Price">
-                                  {formatVND(
-                                    adSlotTimeRangeDetails[
-                                      slot.adSlotTime.adSlotTimeRangeID
-                                    ].slotTimeRangePrice || 0
-                                  )}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Status">
-                                  {getStatusTag(
-                                    adSlotTimeRangeDetails[
-                                      slot.adSlotTime.adSlotTimeRangeID
-                                    ].status
-                                  )}
-                                </Descriptions.Item>
-                              </Descriptions>
+                              <div>
+                                {adSlotTimeRangeDetails[
+                                  slot.adSlotTime.adSlotTimeRangeID
+                                ].startTime.substring(0, 5)}{" "}
+                                -{" "}
+                                {adSlotTimeRangeDetails[
+                                  slot.adSlotTime.adSlotTimeRangeID
+                                ].endTime.substring(0, 5)}
+                              </div>
                             </Card>
                           </Col>
                         )}
                     </Row>
-                  </Card>
-                </Col>
-              </Row>
-            </Panel>
-          ))}
-        </Collapse>
+                  </Col>
+                </Row>
+              </Panel>
+            ))}
+          </Collapse>
+        </>
       ) : (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -662,19 +588,6 @@ const PaymentDetails = () => {
               >
                 {renderPurchasedSlots()}
               </TabPane>
-
-              {payment.adPurchaseSlots?.[0]?.adPackage && (
-                <TabPane
-                  tab={
-                    <span>
-                      <FileTextOutlined /> Package Details
-                    </span>
-                  }
-                  key="3"
-                >
-                  {renderPackageDetails()}
-                </TabPane>
-              )}
 
               <TabPane
                 tab={

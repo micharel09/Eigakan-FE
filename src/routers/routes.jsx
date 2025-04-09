@@ -61,6 +61,7 @@ import AdPurchaseSlotManagement from "../pages/Advertiser/AdPurchaseSlotManageme
 import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory";
 import PaymentDetails from "../pages/Advertiser/PaymentHistory/PaymentDetails";
 import WaitingRoom from "../pages/WatchTogether/WaitingRoom.jsx";
+import PaymentPolicyManagement from "../pages/Admin/PaymentPolicy/PaymentPolicyManagement.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -212,6 +213,16 @@ const routes = [
   },
 
   {
+    path: "/admin/payment-policy",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <PaymentPolicyManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
     path: "/admin/updateMovie/:id",
     element: (
       <PrivateRoute requiredRole="ADMIN">
@@ -238,13 +249,14 @@ const routes = [
 
   {
     path: "/watch-together/:movieId",
-    element: 
+    element: (
       <PrivateRoute requiredRoles="VIP MEMBER">
         <WatchTogether />
-      </PrivateRoute>,
+      </PrivateRoute>
+    ),
     layout: "UserLayout",
   },
-  { 
+  {
     path: "/waiting",
     element: (
       <PrivateRoute requiredRoles="VIP MEMBER">
