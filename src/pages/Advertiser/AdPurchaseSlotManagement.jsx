@@ -18,6 +18,7 @@ import {
   Divider,
   Upload,
   Collapse,
+  Tabs,
 } from "antd";
 import {
   PlusOutlined,
@@ -36,6 +37,7 @@ import {
   AppstoreOutlined,
   ShoppingOutlined,
   EyeOutlined,
+  EyeInvisibleOutlined,
 } from "@ant-design/icons";
 import { format } from "date-fns";
 import adPurchaseSlotService from "../../apis/AdPurchaseSlot/adPurchaseSlot";
@@ -44,10 +46,12 @@ import adMediaCountService from "../../apis/AdMedia/adMediaCount";
 import axios from "axios";
 import uploadFileApi from "../../apis/Upload/upload.jsx";
 import cloudinaryConfig from "../../config/cloudinary";
+import WatchPagePreview from "../../components/AdPreview/WatchPagePreview";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Panel } = Collapse;
+const { TabPane } = Tabs;
 
 // Custom theme with brand color
 const theme = {
@@ -193,6 +197,7 @@ const AdPurchaseSlotManagement = () => {
   const CACHE_DURATION = 5 * 60 * 1000; // 5 phút cache
   const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 phút auto refresh
   const [viewStatistics, setViewStatistics] = useState({});
+  const [activeTab, setActiveTab] = useState("form");
 
   const navigate = useNavigate();
 
@@ -260,6 +265,7 @@ const AdPurchaseSlotManagement = () => {
       }
 
       setIsModalVisible(true);
+      setActiveTab("form");
     } catch (error) {
       notification.error({
         message: "Error",
@@ -1170,167 +1176,227 @@ const AdPurchaseSlotManagement = () => {
               setVideoUrl("");
               setCurrentSlotLocation(null);
               form.resetFields();
+              setActiveTab("form");
             }}
             footer={null}
+            width={1020}
+            style={{
+              top: 20,
+            }}
+            bodyStyle={{
+              padding: 24,
+            }}
           >
-            <Form form={form} layout="vertical" onFinish={handleCreateMedia}>
-              <Form.Item name="content" label="Ad Content">
-                <TextArea
-                  placeholder="Enter your ad content or message"
-                  rows={4}
-                  maxLength={500}
-                  showCount
-                />
-              </Form.Item>
-
-              <Form.Item name="image" label="Image">
-                <Input.Group compact>
-                  <Upload
-                    customRequest={handleUpload}
-                    showUploadList={false}
-                    maxCount={1}
-                    accept="image/*"
-                  >
-                    <Button icon={<UploadOutlined />} className="mr-2">
-                      Upload Image
-                    </Button>
-                  </Upload>
-                  <Input
-                    className="flex-1"
-                    placeholder="Or enter image URL"
-                    value={form.getFieldValue("image")}
-                    onChange={(e) => {
-                      form.setFieldsValue({ image: e.target.value });
-                      setImageUrl(e.target.value);
-                    }}
-                  />
-                </Input.Group>
-              </Form.Item>
-
-              {/* Display image preview if available */}
-              {imageUrl && (
-                <Form.Item label="Image Preview">
-                  <div className="mt-2">
-                    <img
-                      src={imageUrl}
-                      alt="Preview"
-                      className="max-w-full h-auto max-h-[200px] rounded border border-gray-200"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src =
-                          "https://placehold.co/400x300?text=Invalid+Image";
-                        notification.warning({
-                          message: "Image Preview Error",
-                          description:
-                            "Could not load image preview. URL may be invalid.",
-                        });
-                      }}
+            <Tabs activeKey={activeTab} onChange={setActiveTab}>
+              <TabPane tab="Form" key="form">
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleCreateMedia}
+                >
+                  <Form.Item name="content" label="Ad Content">
+                    <TextArea
+                      placeholder="Enter your ad content or message"
+                      rows={4}
+                      maxLength={500}
+                      showCount
                     />
-                  </div>
-                </Form.Item>
-              )}
+                  </Form.Item>
 
-              {/* Only show video upload for CENTER slots */}
-              {currentSlotLocation === "CENTER" && (
-                <Form.Item name="video" label="Video">
-                  <Input.Group compact>
-                    <Upload
-                      customRequest={handleVideoUpload}
-                      showUploadList={false}
-                      maxCount={1}
-                      accept="video/*"
-                    >
-                      <Button icon={<UploadOutlined />} className="mr-2">
-                        Upload Video
-                      </Button>
-                    </Upload>
-                    <Input
-                      className="flex-1"
-                      prefix={
-                        <VideoCameraOutlined className="site-form-item-icon" />
-                      }
-                      placeholder="Or enter video URL"
-                      value={form.getFieldValue("video")}
-                      onChange={(e) => {
-                        form.setFieldsValue({ video: e.target.value });
-                        setVideoUrl(e.target.value);
-                      }}
-                    />
-                  </Input.Group>
-                  <div className="mt-1 text-xs text-gray-500">
-                    (Video will be uploaded to Cloudinary. Supports MP4, WebM,
-                    Ogg. Maximum 100MB)
-                  </div>
-                </Form.Item>
-              )}
-
-              {/* Video preview if available */}
-              {currentSlotLocation === "CENTER" && videoUrl && (
-                <Form.Item label="Video Preview">
-                  <div className="mt-2 border border-gray-200 rounded overflow-hidden">
-                    <video
-                      controls
-                      className="max-w-full h-auto max-h-[250px]"
-                      style={{ display: "block", margin: "0 auto" }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        notification.warning({
-                          message: "Video Preview Error",
-                          description:
-                            "Could not load video preview. The URL may be invalid or the format is not supported by your browser.",
-                        });
-                      }}
-                    >
-                      <source src={videoUrl} type="video/mp4" />
-                      <source src={videoUrl} type="video/webm" />
-                      <source src={videoUrl} type="video/ogg" />
-                      <source src={videoUrl} type="video/quicktime" />
-                      Your browser does not support HTML video.
-                    </video>
-                    <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex items-center justify-between">
-                      <div>
-                        {videoUrl.length > 60
-                          ? videoUrl.substring(0, 57) + "..."
-                          : videoUrl}
-                      </div>
-                      <a
-                        href={videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
+                  <Form.Item name="image" label="Image">
+                    <Input.Group compact>
+                      <Upload
+                        customRequest={handleUpload}
+                        showUploadList={false}
+                        maxCount={1}
+                        accept="image/*"
                       >
-                        Open in new tab
-                      </a>
+                        <Button icon={<UploadOutlined />} className="mr-2">
+                          Upload Image
+                        </Button>
+                      </Upload>
+                      <Input
+                        className="flex-1"
+                        placeholder="Or enter image URL"
+                        value={form.getFieldValue("image")}
+                        onChange={(e) => {
+                          form.setFieldsValue({ image: e.target.value });
+                          setImageUrl(e.target.value);
+                        }}
+                      />
+                    </Input.Group>
+                  </Form.Item>
+
+                  {/* Display image preview if available */}
+                  {imageUrl && (
+                    <Form.Item label="Image Preview">
+                      <div className="mt-2">
+                        <img
+                          src={imageUrl}
+                          alt="Preview"
+                          className="max-w-full h-auto max-h-[200px] rounded border border-gray-200"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://placehold.co/400x300?text=Invalid+Image";
+                            notification.warning({
+                              message: "Image Preview Error",
+                              description:
+                                "Could not load image preview. URL may be invalid.",
+                            });
+                          }}
+                        />
+                      </div>
+                    </Form.Item>
+                  )}
+
+                  {/* Only show video upload for CENTER slots */}
+                  {currentSlotLocation === "CENTER" && (
+                    <Form.Item name="video" label="Video">
+                      <Input.Group compact>
+                        <Upload
+                          customRequest={handleVideoUpload}
+                          showUploadList={false}
+                          maxCount={1}
+                          accept="video/*"
+                        >
+                          <Button icon={<UploadOutlined />} className="mr-2">
+                            Upload Video
+                          </Button>
+                        </Upload>
+                        <Input
+                          className="flex-1"
+                          prefix={
+                            <VideoCameraOutlined className="site-form-item-icon" />
+                          }
+                          placeholder="Or enter video URL"
+                          value={form.getFieldValue("video")}
+                          onChange={(e) => {
+                            form.setFieldsValue({ video: e.target.value });
+                            setVideoUrl(e.target.value);
+                          }}
+                        />
+                      </Input.Group>
+                      <div className="mt-1 text-xs text-gray-500">
+                        (Video will be uploaded to Cloudinary. Supports MP4,
+                        WebM, Ogg. Maximum 100MB)
+                      </div>
+                    </Form.Item>
+                  )}
+
+                  {/* Video preview if available */}
+                  {currentSlotLocation === "CENTER" && videoUrl && (
+                    <Form.Item label="Video Preview">
+                      <div className="mt-2 border border-gray-200 rounded overflow-hidden">
+                        <video
+                          controls
+                          className="max-w-full h-auto max-h-[250px]"
+                          style={{ display: "block", margin: "0 auto" }}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            notification.warning({
+                              message: "Video Preview Error",
+                              description:
+                                "Could not load video preview. The URL may be invalid or the format is not supported by your browser.",
+                            });
+                          }}
+                        >
+                          <source src={videoUrl} type="video/mp4" />
+                          <source src={videoUrl} type="video/webm" />
+                          <source src={videoUrl} type="video/ogg" />
+                          <source src={videoUrl} type="video/quicktime" />
+                          Your browser does not support HTML video.
+                        </video>
+                        <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex items-center justify-between">
+                          <div>
+                            {videoUrl.length > 60
+                              ? videoUrl.substring(0, 57) + "..."
+                              : videoUrl}
+                          </div>
+                          <a
+                            href={videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline"
+                          >
+                            Open in new tab
+                          </a>
+                        </div>
+                      </div>
+                    </Form.Item>
+                  )}
+
+                  <Form.Item name="url" label="Destination URL">
+                    <Input
+                      prefix={<LinkOutlined className="site-form-item-icon" />}
+                      placeholder="https://example.com"
+                    />
+                  </Form.Item>
+
+                  <Form.Item className="mb-0">
+                    <Space className="w-full justify-end">
+                      <Button
+                        onClick={() => {
+                          setIsModalVisible(false);
+                          setImageUrl("");
+                          setVideoUrl("");
+                          form.resetFields();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="primary" htmlType="submit">
+                        Create Ad Media
+                      </Button>
+                    </Space>
+                  </Form.Item>
+                </Form>
+              </TabPane>
+
+              <TabPane tab="Preview" key="preview">
+                <div className="flex flex-col">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center">
+                      <Tag color="#FF009F">
+                        {currentSlotLocation || "Unknown"} POSITION
+                      </Tag>
+                      <span className="text-gray-500 ml-2 text-sm">
+                        Xem trước quảng cáo trên Watch Page
+                      </span>
                     </div>
                   </div>
-                </Form.Item>
-              )}
 
-              <Form.Item name="url" label="Destination URL">
-                <Input
-                  prefix={<LinkOutlined className="site-form-item-icon" />}
-                  placeholder="https://example.com"
-                />
-              </Form.Item>
-
-              <Form.Item className="mb-0">
-                <Space className="w-full justify-end">
-                  <Button
-                    onClick={() => {
-                      setIsModalVisible(false);
-                      setImageUrl("");
-                      setVideoUrl("");
-                      form.resetFields();
+                  <div
+                    className="h-[500px]"
+                    style={{
+                      overflow: "hidden",
+                      border: "1px solid rgba(0,0,0,0.1)",
+                      borderRadius: "8px",
+                      width: "100%",
+                      aspectRatio: "16/9",
+                      maxHeight: "500px",
                     }}
                   >
-                    Cancel
-                  </Button>
-                  <Button type="primary" htmlType="submit">
-                    Create Ad Media
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
+                    <WatchPagePreview
+                      slotLocation={currentSlotLocation || "CENTER"}
+                      image={imageUrl}
+                      video={videoUrl}
+                      content={form.getFieldValue("content")}
+                      url={form.getFieldValue("url")}
+                    />
+                  </div>
+
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <Button onClick={() => setActiveTab("form")}>
+                      Quay lại form
+                    </Button>
+                    <Button type="primary" onClick={() => form.submit()}>
+                      Tạo quảng cáo
+                    </Button>
+                  </div>
+                </div>
+              </TabPane>
+            </Tabs>
           </Modal>
 
           {/* Ad Media Details Modal */}
@@ -1558,171 +1624,229 @@ const AdPurchaseSlotManagement = () => {
               setVideoUrl("");
               setCurrentSlotLocation(null);
               updateForm.resetFields();
+              setActiveTab("form");
             }}
             footer={null}
+            width={1020}
+            style={{
+              top: 20,
+            }}
+            bodyStyle={{
+              padding: 24,
+            }}
           >
-            <Form
-              form={updateForm}
-              layout="vertical"
-              onFinish={handleUpdateMedia}
-            >
-              <Form.Item name="content" label="Ad Content">
-                <TextArea
-                  placeholder="Enter your ad content or message"
-                  rows={4}
-                  maxLength={500}
-                  showCount
-                />
-              </Form.Item>
-
-              <Form.Item name="image" label="Image">
-                <Input.Group compact>
-                  <Upload
-                    customRequest={handleUpload}
-                    showUploadList={false}
-                    maxCount={1}
-                    accept="image/*"
-                  >
-                    <Button icon={<UploadOutlined />} className="mr-2">
-                      Upload Image
-                    </Button>
-                  </Upload>
-                  <Input
-                    className="flex-1"
-                    placeholder="Or enter image URL"
-                    value={updateForm.getFieldValue("image")}
-                    onChange={(e) => {
-                      updateForm.setFieldsValue({ image: e.target.value });
-                      setImageUrl(e.target.value);
-                    }}
-                  />
-                </Input.Group>
-              </Form.Item>
-
-              {/* Display image preview if available */}
-              {imageUrl && (
-                <Form.Item label="Image Preview">
-                  <div className="mt-2">
-                    <img
-                      src={imageUrl}
-                      alt="Preview"
-                      className="max-w-full h-auto max-h-[200px] rounded border border-gray-200"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src =
-                          "https://placehold.co/400x300?text=Invalid+Image";
-                        notification.warning({
-                          message: "Image Preview Error",
-                          description:
-                            "Could not load image preview. URL may be invalid.",
-                        });
-                      }}
+            <Tabs activeKey={activeTab} onChange={setActiveTab}>
+              <TabPane tab="Form" key="form">
+                <Form
+                  form={updateForm}
+                  layout="vertical"
+                  onFinish={handleUpdateMedia}
+                >
+                  <Form.Item name="content" label="Ad Content">
+                    <TextArea
+                      placeholder="Enter your ad content or message"
+                      rows={4}
+                      maxLength={500}
+                      showCount
                     />
-                  </div>
-                </Form.Item>
-              )}
+                  </Form.Item>
 
-              {/* Only show video upload for CENTER slots in update form */}
-              {currentSlotLocation === "CENTER" && (
-                <Form.Item name="video" label="Video">
-                  <Input.Group compact>
-                    <Upload
-                      customRequest={handleVideoUpload}
-                      showUploadList={false}
-                      maxCount={1}
-                      accept="video/*"
-                    >
-                      <Button icon={<UploadOutlined />} className="mr-2">
-                        Upload Video
-                      </Button>
-                    </Upload>
-                    <Input
-                      className="flex-1"
-                      prefix={
-                        <VideoCameraOutlined className="site-form-item-icon" />
-                      }
-                      placeholder="Or enter video URL"
-                      value={updateForm.getFieldValue("video")}
-                      onChange={(e) => {
-                        updateForm.setFieldsValue({ video: e.target.value });
-                        setVideoUrl(e.target.value);
-                      }}
-                    />
-                  </Input.Group>
-                  <div className="mt-1 text-xs text-gray-500">
-                    (Video will be uploaded to Cloudinary. Supports MP4, WebM,
-                    Ogg. Maximum 100MB)
-                  </div>
-                </Form.Item>
-              )}
-
-              {/* Video preview if available for CENTER slots */}
-              {currentSlotLocation === "CENTER" && videoUrl && (
-                <Form.Item label="Video Preview">
-                  <div className="mt-2 border border-gray-200 rounded overflow-hidden">
-                    <video
-                      controls
-                      className="max-w-full h-auto max-h-[250px]"
-                      style={{ display: "block", margin: "0 auto" }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        notification.warning({
-                          message: "Video Preview Error",
-                          description:
-                            "Could not load video preview. The URL may be invalid or the format is not supported by your browser.",
-                        });
-                      }}
-                    >
-                      <source src={videoUrl} type="video/mp4" />
-                      <source src={videoUrl} type="video/webm" />
-                      <source src={videoUrl} type="video/ogg" />
-                      <source src={videoUrl} type="video/quicktime" />
-                      Your browser does not support HTML video.
-                    </video>
-                    <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex items-center justify-between">
-                      <div>
-                        {videoUrl.length > 60
-                          ? videoUrl.substring(0, 57) + "..."
-                          : videoUrl}
-                      </div>
-                      <a
-                        href={videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
+                  <Form.Item name="image" label="Image">
+                    <Input.Group compact>
+                      <Upload
+                        customRequest={handleUpload}
+                        showUploadList={false}
+                        maxCount={1}
+                        accept="image/*"
                       >
-                        Open in new tab
-                      </a>
+                        <Button icon={<UploadOutlined />} className="mr-2">
+                          Upload Image
+                        </Button>
+                      </Upload>
+                      <Input
+                        className="flex-1"
+                        placeholder="Or enter image URL"
+                        value={updateForm.getFieldValue("image")}
+                        onChange={(e) => {
+                          updateForm.setFieldsValue({ image: e.target.value });
+                          setImageUrl(e.target.value);
+                        }}
+                      />
+                    </Input.Group>
+                  </Form.Item>
+
+                  {/* Display image preview if available */}
+                  {imageUrl && (
+                    <Form.Item label="Image Preview">
+                      <div className="mt-2">
+                        <img
+                          src={imageUrl}
+                          alt="Preview"
+                          className="max-w-full h-auto max-h-[200px] rounded border border-gray-200"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://placehold.co/400x300?text=Invalid+Image";
+                            notification.warning({
+                              message: "Image Preview Error",
+                              description:
+                                "Could not load image preview. URL may be invalid.",
+                            });
+                          }}
+                        />
+                      </div>
+                    </Form.Item>
+                  )}
+
+                  {/* Only show video upload for CENTER slots in update form */}
+                  {currentSlotLocation === "CENTER" && (
+                    <Form.Item name="video" label="Video">
+                      <Input.Group compact>
+                        <Upload
+                          customRequest={handleVideoUpload}
+                          showUploadList={false}
+                          maxCount={1}
+                          accept="video/*"
+                        >
+                          <Button icon={<UploadOutlined />} className="mr-2">
+                            Upload Video
+                          </Button>
+                        </Upload>
+                        <Input
+                          className="flex-1"
+                          prefix={
+                            <VideoCameraOutlined className="site-form-item-icon" />
+                          }
+                          placeholder="Or enter video URL"
+                          value={updateForm.getFieldValue("video")}
+                          onChange={(e) => {
+                            updateForm.setFieldsValue({
+                              video: e.target.value,
+                            });
+                            setVideoUrl(e.target.value);
+                          }}
+                        />
+                      </Input.Group>
+                      <div className="mt-1 text-xs text-gray-500">
+                        (Video will be uploaded to Cloudinary. Supports MP4,
+                        WebM, Ogg. Maximum 100MB)
+                      </div>
+                    </Form.Item>
+                  )}
+
+                  {/* Video preview if available for CENTER slots */}
+                  {currentSlotLocation === "CENTER" && videoUrl && (
+                    <Form.Item label="Video Preview">
+                      <div className="mt-2 border border-gray-200 rounded overflow-hidden">
+                        <video
+                          controls
+                          className="max-w-full h-auto max-h-[250px]"
+                          style={{ display: "block", margin: "0 auto" }}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            notification.warning({
+                              message: "Video Preview Error",
+                              description:
+                                "Could not load video preview. The URL may be invalid or the format is not supported by your browser.",
+                            });
+                          }}
+                        >
+                          <source src={videoUrl} type="video/mp4" />
+                          <source src={videoUrl} type="video/webm" />
+                          <source src={videoUrl} type="video/ogg" />
+                          <source src={videoUrl} type="video/quicktime" />
+                          Your browser does not support HTML video.
+                        </video>
+                        <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex items-center justify-between">
+                          <div>
+                            {videoUrl.length > 60
+                              ? videoUrl.substring(0, 57) + "..."
+                              : videoUrl}
+                          </div>
+                          <a
+                            href={videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline"
+                          >
+                            Open in new tab
+                          </a>
+                        </div>
+                      </div>
+                    </Form.Item>
+                  )}
+
+                  <Form.Item name="url" label="Destination URL">
+                    <Input
+                      prefix={<LinkOutlined className="site-form-item-icon" />}
+                      placeholder="https://example.com"
+                    />
+                  </Form.Item>
+
+                  <Form.Item className="mb-0">
+                    <Space className="w-full justify-end">
+                      <Button
+                        onClick={() => {
+                          setIsUpdateModalVisible(false);
+                          setImageUrl("");
+                          setVideoUrl("");
+                          updateForm.resetFields();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="primary" htmlType="submit">
+                        Update Ad Media
+                      </Button>
+                    </Space>
+                  </Form.Item>
+                </Form>
+              </TabPane>
+
+              <TabPane tab="Preview" key="preview">
+                <div className="flex flex-col">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center">
+                      <Tag color="#FF009F">
+                        {currentSlotLocation || "Unknown"} POSITION
+                      </Tag>
+                      <span className="text-gray-500 ml-2 text-sm">
+                        Xem trước quảng cáo trên Watch Page
+                      </span>
                     </div>
                   </div>
-                </Form.Item>
-              )}
 
-              <Form.Item name="url" label="Destination URL">
-                <Input
-                  prefix={<LinkOutlined className="site-form-item-icon" />}
-                  placeholder="https://example.com"
-                />
-              </Form.Item>
-
-              <Form.Item className="mb-0">
-                <Space className="w-full justify-end">
-                  <Button
-                    onClick={() => {
-                      setIsUpdateModalVisible(false);
-                      setImageUrl("");
-                      setVideoUrl("");
-                      updateForm.resetFields();
+                  <div
+                    className="h-[500px]"
+                    style={{
+                      overflow: "hidden",
+                      border: "1px solid rgba(0,0,0,0.1)",
+                      borderRadius: "8px",
+                      width: "100%",
+                      aspectRatio: "16/9",
+                      maxHeight: "500px",
                     }}
                   >
-                    Cancel
-                  </Button>
-                  <Button type="primary" htmlType="submit">
-                    Update Ad Media
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
+                    <WatchPagePreview
+                      slotLocation={currentSlotLocation || "CENTER"}
+                      image={imageUrl}
+                      video={videoUrl}
+                      content={updateForm.getFieldValue("content")}
+                      url={updateForm.getFieldValue("url")}
+                    />
+                  </div>
+
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <Button onClick={() => setActiveTab("form")}>
+                      Quay lại form
+                    </Button>
+                    <Button type="primary" onClick={() => updateForm.submit()}>
+                      Cập nhật quảng cáo
+                    </Button>
+                  </div>
+                </div>
+              </TabPane>
+            </Tabs>
           </Modal>
 
           {/* Direct URL Input Modal */}

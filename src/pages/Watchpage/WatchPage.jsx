@@ -165,11 +165,7 @@ const AdDisplay = memo(({ ad, className, movieId }) => {
   };
 
   return (
-    <div
-      className={`p-2 bg-black/40 rounded border border-white/10 w-full flex flex-col items-center ${
-        isSidebarAd ? "h-full" : "h-auto"
-      } ${className}`}
-    >
+    <div className={`relative w-full h-full ${className}`}>
       <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
         SPONSORED
       </div>
@@ -210,19 +206,13 @@ const AdDisplay = memo(({ ad, className, movieId }) => {
           href={ad.url || "#"}
           target="_blank"
           rel="noopener noreferrer"
-          className={`block w-full ${isSidebarAd ? "flex-1" : ""}`}
+          className="block w-full h-full"
           onClick={handleAdClick}
         >
           <img
             src={ad.image}
             alt="Advertisement"
-            className={`w-full hover:opacity-90 transition-opacity rounded ${
-              isHeaderAd
-                ? "max-h-[60px] object-contain"
-                : isSidebarAd
-                ? "h-[calc(100vh-220px)] max-h-full object-cover"
-                : "max-h-[400px] object-contain"
-            }`}
+            className="w-full h-full object-cover"
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = "https://placehold.co/200x400?text=Ad";
@@ -1027,12 +1017,16 @@ const WatchPage = () => {
       <div className="fixed inset-0 bg-black">
         {/* Header Ad */}
         {headerAd && role !== "VIP MEMBER" && (
-          <div className="absolute top-2 left-0 right-0 z-10 flex justify-center">
-            <AdDisplay
-              ad={headerAd}
-              className="max-w-[900px] max-h-[180px] bg-opacity-70 overflow-hidden"
-              movieId={movieId}
-            />
+          <div className="absolute top-2 left-0 right-0 z-10 flex justify-center items-center pointer-events-auto px-4">
+            <div className="w-full max-w-7xl bg-black/40 rounded overflow-hidden">
+              <div className="relative w-full aspect-[10/1]">
+                <AdDisplay
+                  ad={headerAd}
+                  className="w-full h-full"
+                  movieId={movieId}
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -1141,14 +1135,18 @@ const WatchPage = () => {
           />
         )}
 
-        {/* Footer Ad (hide for VIP members) */}
+        {/* Footer Ad */}
         {footerAd && role !== "VIP MEMBER" && (
-          <div className="absolute bottom-[60px] left-0 right-0 z-10 flex justify-center pointer-events-auto">
-            <AdDisplay
-              ad={footerAd}
-              className="max-w-[728px] max-h-[100px]"
-              movieId={movieId}
-            />
+          <div className="absolute bottom-10 left-0 right-0 z-10 flex justify-center items-center pointer-events-auto px-4">
+            <div className="w-full max-w-7xl bg-black/40 rounded overflow-hidden">
+              <div className="relative w-full aspect-[10/1]">
+                <AdDisplay
+                  ad={footerAd}
+                  className="w-full h-full"
+                  movieId={movieId}
+                />
+              </div>
+            </div>
           </div>
         )}
 
