@@ -15,6 +15,7 @@ import {
   Tabs,
   Tag,
   Tooltip,
+  Spin,
 } from "antd";
 import {
   EditOutlined,
@@ -22,6 +23,7 @@ import {
   PlusOutlined,
   SearchOutlined,
   InfoCircleOutlined,
+  CloseCircleFilled,
 } from "@ant-design/icons";
 import viewPaymentPolicyService from "../../../apis/ViewPaymentPolicy/viewPaymentPolicy";
 import { Helmet } from "react-helmet";
@@ -32,6 +34,8 @@ const { TabPane } = Tabs;
 
 const PaymentPolicyManagement = () => {
   const [policies, setPolicies] = useState([]);
+  const [allPolicies, setAllPolicies] = useState([]);
+  const [displayedPolicies, setDisplayedPolicies] = useState([]);
   const [activePolicy, setActivePolicy] = useState(null);
   const [pendingPolicies, setPendingPolicies] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,10 +48,17 @@ const PaymentPolicyManagement = () => {
     total: 0,
   });
 
+  const [policiesLoading, setPoliciesLoading] = useState(false);
+  const [activePolicyLoading, setActivePolicyLoading] = useState(false);
+  const [pendingPoliciesLoading, setPendingPoliciesLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [allPoliciesLoading, setAllPoliciesLoading] = useState(false);
+
   // Fetch all policies
   const fetchPolicies = async (page = 1) => {
     try {
-      setLoading(true);
+      setPoliciesLoading(true);
       const response = await viewPaymentPolicyService.getAllViewPaymentPolicies(
         page
       );
@@ -64,13 +75,32 @@ const PaymentPolicyManagement = () => {
       });
       setPolicies([]);
     } finally {
-      setLoading(false);
+      setPoliciesLoading(false);
+    }
+  };
+
+  const fetchAllPoliciesForSearch = async () => {
+    try {
+      setAllPoliciesLoading(true);
+      const response = await viewPaymentPolicyService.getAllViewPaymentPolicies(
+        1,
+        1000
+      );
+      setAllPolicies(response.policies || []);
+      setDisplayedPolicies(response.policies || []);
+    } catch (error) {
+      console.error("Error fetching all policies for search:", error);
+      setAllPolicies([]);
+      setDisplayedPolicies([]);
+    } finally {
+      setAllPoliciesLoading(false);
     }
   };
 
   // Fetch active policy
   const fetchActivePolicy = async () => {
     try {
+      setActivePolicyLoading(true);
       const response =
         await viewPaymentPolicyService.getViewPaymentPolicyActive();
       if (response.success && response.data) {
@@ -78,12 +108,15 @@ const PaymentPolicyManagement = () => {
       }
     } catch (error) {
       console.error("Error fetching active policy:", error);
+    } finally {
+      setActivePolicyLoading(false);
     }
   };
 
   // Fetch pending policies
   const fetchPendingPolicies = async () => {
     try {
+      setPendingPoliciesLoading(true);
       const response =
         await viewPaymentPolicyService.getListPolicyPendingAndWaiting();
       if (response.success && response.data) {
@@ -91,14 +124,55 @@ const PaymentPolicyManagement = () => {
       }
     } catch (error) {
       console.error("Error fetching pending policies:", error);
+    } finally {
+      setPendingPoliciesLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPolicies(1);
-    fetchActivePolicy();
-    fetchPendingPolicies();
+    // Set loading to true at component mount
+    setLoading(true);
+
+    // Create promises for all data fetching operations
+    const fetchPromises = [
+      fetchPolicies(1),
+      fetchActivePolicy(),
+      fetchPendingPolicies(),
+      fetchAllPoliciesForSearch(),
+    ];
+
+    // Wait for all fetches to complete
+    Promise.all(fetchPromises).finally(() => {
+      setLoading(false);
+    });
   }, []);
+
+  // Handle search functionality for all policies
+  useEffect(() => {
+    if (searchText.trim() === "") {
+      setDisplayedPolicies(allPolicies);
+      return;
+    }
+
+    const searchLower = searchText.toLowerCase();
+    const filtered = allPolicies.filter((policy) => {
+      return (
+        policy.id.toLowerCase().includes(searchLower) ||
+        dayjs(policy.effectiveDate)
+          .format("DD/MM/YYYY")
+          .includes(searchLower) ||
+        policy.pricePerView.toString().includes(searchLower) ||
+        policy.webSharePercentage.toString().includes(searchLower) ||
+        (policy.status && policy.status.toLowerCase().includes(searchLower))
+      );
+    });
+    setDisplayedPolicies(filtered);
+  }, [searchText, allPolicies]);
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchText(e.target.value);
+  };
 
   // Handle Modal
   const showModal = (record = null) => {
@@ -123,6 +197,7 @@ const PaymentPolicyManagement = () => {
   // Handle form submit
   const handleSubmit = async (values) => {
     try {
+      setSubmitLoading(true);
       setLoading(true);
       const formattedValues = {
         effectiveDate: values.effectiveDate.format("YYYY-MM-DD"),
@@ -153,6 +228,7 @@ const PaymentPolicyManagement = () => {
         fetchPolicies();
         fetchActivePolicy();
         fetchPendingPolicies();
+        fetchAllPoliciesForSearch(); // Refresh search data
       } else {
         throw new Error(response.message || "Failed to save payment policy");
       }
@@ -163,6 +239,7 @@ const PaymentPolicyManagement = () => {
           error.message || "Error occurred while saving payment policy",
       });
     } finally {
+      setSubmitLoading(false);
       setLoading(false);
     }
   };
@@ -177,20 +254,34 @@ const PaymentPolicyManagement = () => {
         okType: "danger",
         cancelText: "No",
         onOk: async () => {
-          const response = await viewPaymentPolicyService.cancelPolicy();
-          if (response.success) {
-            notification.success({
-              message: "Cancelled Successfully",
+          setCancelLoading(true);
+          setLoading(true);
+          try {
+            const response = await viewPaymentPolicyService.cancelPolicy();
+            if (response.success) {
+              notification.success({
+                message: "Cancelled Successfully",
+                description:
+                  response.message || "Payment policy has been cancelled",
+              });
+              fetchPolicies();
+              fetchActivePolicy();
+              fetchPendingPolicies();
+              fetchAllPoliciesForSearch(); // Refresh search data
+            } else {
+              throw new Error(
+                response.message || "Failed to cancel payment policy"
+              );
+            }
+          } catch (error) {
+            notification.error({
+              message: "Error",
               description:
-                response.message || "Payment policy has been cancelled",
+                error.message || "Error occurred while cancelling policy",
             });
-            fetchPolicies();
-            fetchActivePolicy();
-            fetchPendingPolicies();
-          } else {
-            throw new Error(
-              response.message || "Failed to cancel payment policy"
-            );
+          } finally {
+            setCancelLoading(false);
+            setLoading(false);
           }
         },
       });
@@ -276,6 +367,91 @@ const PaymentPolicyManagement = () => {
         );
       },
     },
+  ];
+
+  // Enhanced columns for the overview with better rendering
+  const enhancedColumns = [
+    {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: "15%",
+      ellipsis: true,
+      render: (id) => (
+        <span className="font-mono text-xs text-gray-600">{id}</span>
+      ),
+    },
+    {
+      title: "Effective Date",
+      dataIndex: "effectiveDate",
+      key: "effectiveDate",
+      width: "15%",
+      render: (date) => (
+        <span className="font-medium">{dayjs(date).format("DD/MM/YYYY")}</span>
+      ),
+    },
+    {
+      title: "Price Per View",
+      dataIndex: "pricePerView",
+      key: "pricePerView",
+      width: "15%",
+      render: (price) => (
+        <span className="font-medium">{formatVND(price)}</span>
+      ),
+    },
+    {
+      title: "Web Share Percentage",
+      dataIndex: "webSharePercentage",
+      key: "webSharePercentage",
+      width: "15%",
+      render: (percentage) => (
+        <span className="font-medium">{percentage}%</span>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: "15%",
+      render: (status) => {
+        let color = "";
+        let text = "";
+        switch (status) {
+          case "ACTIVE":
+            color = "green";
+            text = "Active";
+            break;
+          case "PENDING":
+            color = "gold";
+            text = "Pending";
+            break;
+          case "WAITING-FOR-INACTIVE":
+            color = "blue";
+            text = "Waiting For Inactive";
+            break;
+          case "INACTIVE":
+            color = "red";
+            text = "Inactive";
+            break;
+          default:
+            color = "default";
+            text = status;
+        }
+        return (
+          <Tag
+            color={color}
+            className="px-3 py-1 text-xs font-medium uppercase"
+          >
+            {text}
+          </Tag>
+        );
+      },
+    },
+  ];
+
+  // Overview table columns with only delete action
+  const overviewColumns = [
+    ...enhancedColumns,
     {
       title: "Actions",
       key: "actions",
@@ -284,71 +460,131 @@ const PaymentPolicyManagement = () => {
         <Space>
           <Button
             type="text"
-            icon={<EditOutlined />}
-            onClick={() => showModal(record)}
-            disabled={
-              record.status === "ACTIVE" ||
-              record.status === "WAITING-FOR-INACTIVE"
-            }
-          />
-          <Button
-            type="text"
             danger
             icon={<DeleteOutlined />}
             onClick={() => handleCancelPolicy(record.id)}
             disabled={
               record.status === "ACTIVE" ||
-              record.status === "WAITING-FOR-INACTIVE"
+              record.status === "WAITING-FOR-INACTIVE" ||
+              loading ||
+              cancelLoading
             }
+            loading={loading || cancelLoading}
+            className="flex items-center justify-center hover:bg-[#FF009F1A] transition-colors"
           />
         </Space>
       ),
     },
   ];
 
-  // Handle table change
-  const handleTableChange = (newPagination) => {
-    fetchPolicies(newPagination.current);
-  };
-
   // Active Policy Card
   const ActivePolicyCard = () => {
+    if (loading || activePolicyLoading) {
+      return (
+        <Card className="mb-6 shadow-sm rounded-lg border border-gray-100">
+          <div className="flex items-center justify-center p-8">
+            <Spin size="large" />
+          </div>
+        </Card>
+      );
+    }
+
     if (!activePolicy) {
       return (
-        <Card className="mb-4">
-          <div className="flex items-center justify-center p-4">
-            <Text type="secondary">No active policy found</Text>
+        <Card className="mb-6 shadow-sm rounded-lg border border-gray-100">
+          <div className="flex items-center justify-center p-8 py-12">
+            <div className="text-center">
+              <InfoCircleOutlined className="text-gray-300 text-4xl mb-2" />
+              <Text type="secondary" className="block text-base">
+                No active policy found
+              </Text>
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => showModal()}
+                className="mt-4 bg-[#FF009F] hover:bg-[#D1007F] border-none"
+                style={{ backgroundColor: "#FF009F" }}
+              >
+                Add Policy
+              </Button>
+            </div>
           </div>
         </Card>
       );
     }
 
     return (
-      <Card className="mb-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <Title level={4} className="!mb-1">
-              Active Policy
-            </Title>
-            <Text type="secondary">Currently active payment policy</Text>
+      <Card
+        className="mb-6 shadow-sm rounded-lg border-l-4 border-green-500 border-t-gray-100 border-r-gray-100 border-b-gray-100"
+        title={
+          <div className="flex justify-between items-center">
+            <div>
+              <Title level={4} className="!mb-0 flex items-center">
+                <span className="mr-2">Active Policy</span>
+                <Tag
+                  color="green"
+                  className="px-3 py-1 text-xs uppercase font-medium"
+                >
+                  Active
+                </Tag>
+              </Title>
+              <Text type="secondary" className="text-sm">
+                Currently active payment policy
+              </Text>
+            </div>
+            <div className="text-right">
+              <Text strong className="block text-xl">
+                {formatVND(activePolicy.pricePerView)}
+              </Text>
+              <Text type="secondary" className="text-xs">
+                Price Per View
+              </Text>
+            </div>
           </div>
-          <Tag color="green" className="px-3 py-1 text-sm">
-            ACTIVE
-          </Tag>
+        }
+        bodyStyle={{ padding: "24px" }}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <Text
+              type="secondary"
+              className="block text-xs uppercase mb-1 font-medium"
+            >
+              Effective Date
+            </Text>
+            <Text strong className="text-lg">
+              {dayjs(activePolicy.effectiveDate).format("DD/MM/YYYY")}
+            </Text>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <Text
+              type="secondary"
+              className="block text-xs uppercase mb-1 font-medium"
+            >
+              Price Per View
+            </Text>
+            <Text strong className="text-lg">
+              {formatVND(activePolicy.pricePerView)}
+            </Text>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <Text
+              type="secondary"
+              className="block text-xs uppercase mb-1 font-medium"
+            >
+              Web Share Percentage
+            </Text>
+            <Text strong className="text-lg">
+              {activePolicy.webSharePercentage}%
+            </Text>
+          </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Text strong>Effective Date:</Text>
-            <div>{dayjs(activePolicy.effectiveDate).format("DD/MM/YYYY")}</div>
-          </div>
-          <div>
-            <Text strong>Price Per View:</Text>
-            <div>{formatVND(activePolicy.pricePerView)}</div>
-          </div>
-          <div>
-            <Text strong>Web Share Percentage:</Text>
-            <div>{activePolicy.webSharePercentage}%</div>
-          </div>
+
+        <div className="mt-6 text-right">
+          <Text type="secondary" className="text-xs">
+            Policy ID: <span className="font-mono">{activePolicy.id}</span>
+          </Text>
         </div>
       </Card>
     );
@@ -356,49 +592,76 @@ const PaymentPolicyManagement = () => {
 
   // Pending Policies Card
   const PendingPoliciesCard = () => {
+    if (loading || pendingPoliciesLoading) {
+      return (
+        <Card className="mb-6 shadow-sm rounded-lg border border-gray-100">
+          <div className="flex items-center justify-center p-8">
+            <Spin size="large" />
+          </div>
+        </Card>
+      );
+    }
+
     if (!pendingPolicies || pendingPolicies.length === 0) {
       return (
-        <Card className="mb-4">
-          <div className="flex items-center justify-center p-4">
-            <Text type="secondary">No pending or waiting policies found</Text>
+        <Card className="mb-6 shadow-sm rounded-lg border border-gray-100">
+          <div className="flex items-center justify-center p-8 py-12">
+            <div className="text-center">
+              <InfoCircleOutlined className="text-gray-300 text-4xl mb-2" />
+              <Text type="secondary" className="block text-base">
+                No pending or waiting policies found
+              </Text>
+            </div>
           </div>
         </Card>
       );
     }
 
     return (
-      <Card className="mb-4">
-        <div className="flex justify-between items-center mb-4">
+      <Card
+        className="mb-6 shadow-sm rounded-lg border-l-4 border-yellow-400 border-t-gray-100 border-r-gray-100 border-b-gray-100"
+        title={
           <div>
-            <Title level={4} className="!mb-1">
+            <Title level={4} className="!mb-0">
               Pending & Waiting Policies
             </Title>
-            <Text type="secondary">
+            <Text type="secondary" className="text-sm">
               Policies that are pending or waiting to be inactive
             </Text>
           </div>
-        </div>
+        }
+        bodyStyle={{ padding: "16px" }}
+      >
         <Table
-          columns={columns}
+          columns={overviewColumns}
           dataSource={pendingPolicies}
           rowKey="id"
           pagination={false}
-          size="small"
+          size="middle"
+          loading={loading}
+          className="border-separate border-spacing-0"
+          rowClassName={(record) =>
+            record.status === "PENDING"
+              ? "bg-amber-50"
+              : record.status === "WAITING-FOR-INACTIVE"
+              ? "bg-blue-50"
+              : ""
+          }
         />
       </Card>
     );
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-50 min-h-screen">
       <Helmet>
         <title>Payment Policy Management</title>
       </Helmet>
 
-      <Card className="mb-4">
+      <Card className="mb-4 shadow-sm rounded-lg border border-gray-100">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <Title level={3} className="!mb-1">
+            <Title level={3} className="!mb-1 text-gray-800">
               Payment Policy Management
             </Title>
             <Text type="secondary">Manage payment policies for users</Text>
@@ -411,36 +674,88 @@ const PaymentPolicyManagement = () => {
             style={{
               backgroundColor: "#FF009F",
             }}
+            loading={loading || submitLoading}
+            disabled={loading || submitLoading}
           >
             Add Policy
           </Button>
         </div>
 
         <div className="mb-4">
-          <Input
-            placeholder="Search policies..."
-            prefix={<SearchOutlined />}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="max-w-xs"
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search policies..."
+              prefix={<SearchOutlined className="text-gray-400" />}
+              onChange={handleSearchChange}
+              value={searchText}
+              className="max-w-xs"
+              onPressEnter={() => {
+                // Trigger search on Enter key
+                const searchLower = searchText.toLowerCase();
+                const filtered = allPolicies.filter((policy) => {
+                  return (
+                    policy.id.toLowerCase().includes(searchLower) ||
+                    dayjs(policy.effectiveDate)
+                      .format("DD/MM/YYYY")
+                      .includes(searchLower) ||
+                    policy.pricePerView.toString().includes(searchLower) ||
+                    policy.webSharePercentage
+                      .toString()
+                      .includes(searchLower) ||
+                    (policy.status &&
+                      policy.status.toLowerCase().includes(searchLower))
+                  );
+                });
+                setDisplayedPolicies(filtered);
+              }}
+            />
+            {searchText && (
+              <Button
+                icon={<CloseCircleFilled />}
+                onClick={() => setSearchText("")}
+                type="text"
+                className="text-gray-500 hover:text-[#FF009F]"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
 
-        <Tabs defaultActiveKey="1">
+        <Tabs
+          defaultActiveKey="1"
+          className="custom-tabs"
+          tabBarStyle={{ marginBottom: 24 }}
+        >
           <TabPane tab="Overview" key="1">
             <ActivePolicyCard />
             <PendingPoliciesCard />
           </TabPane>
           <TabPane tab="All Policies" key="2">
+            <div className="mb-4">
+              {allPoliciesLoading ? (
+                <div className="flex justify-center py-2">
+                  <Spin size="small" />
+                </div>
+              ) : (
+                <Text type="secondary">
+                  {displayedPolicies.length} policies found
+                  {searchText && ` for "${searchText}"`}
+                </Text>
+              )}
+            </div>
             <Table
               columns={columns}
-              dataSource={policies}
+              dataSource={displayedPolicies}
               rowKey="id"
-              loading={loading}
+              loading={loading || allPoliciesLoading}
               pagination={{
-                ...pagination,
                 pageSize: 5,
+                showSizeChanger: true,
+                pageSizeOptions: ["5", "10", "20", "50"],
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`,
               }}
-              onChange={handleTableChange}
             />
           </TabPane>
         </Tabs>
@@ -451,16 +766,20 @@ const PaymentPolicyManagement = () => {
         open={isModalVisible}
         onCancel={handleCancel}
         footer={null}
+        width={600}
+        className="policy-form-modal"
+        centered
       >
         <Form
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
           initialValues={editingPolicy || {}}
+          className="mt-4"
         >
           <Form.Item
             name="effectiveDate"
-            label="Effective Date"
+            label={<span className="font-medium">Effective Date</span>}
             rules={[
               { required: true, message: "Please select effective date" },
             ]}
@@ -479,7 +798,7 @@ const PaymentPolicyManagement = () => {
 
           <Form.Item
             name="pricePerView"
-            label="Price Per View (VND)"
+            label={<span className="font-medium">Price Per View (VND)</span>}
             rules={[{ required: true, message: "Please enter price per view" }]}
           >
             <InputNumber
@@ -495,7 +814,9 @@ const PaymentPolicyManagement = () => {
 
           <Form.Item
             name="webSharePercentage"
-            label="Web Share Percentage (%)"
+            label={
+              <span className="font-medium">Web Share Percentage (%)</span>
+            }
             rules={[
               { required: true, message: "Please enter web share percentage" },
             ]}
@@ -510,13 +831,13 @@ const PaymentPolicyManagement = () => {
             />
           </Form.Item>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 mt-6">
             <Button onClick={handleCancel}>Cancel</Button>
             <Button
               type="primary"
               htmlType="submit"
-              loading={loading}
-              className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
+              loading={loading || submitLoading}
+              className="bg-[#FF009F] hover:bg-[#D1007F] border-none shadow-sm hover:shadow-md transition-all"
               style={{
                 backgroundColor: "#FF009F",
               }}
