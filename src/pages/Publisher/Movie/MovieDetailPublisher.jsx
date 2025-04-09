@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
 import {
   Breadcrumb,
   Layout,
@@ -14,17 +14,14 @@ import {
   notification,
   Typography,
   Statistic,
-  Rate,
   Input,
   Select,
   Form,
   Avatar,
-  Upload,
-  Progress,
   Row,
   Col,
-  Divider 
-} from "antd";
+  Divider,
+} from "antd"
 import {
   PlayCircleOutlined,
   PictureOutlined,
@@ -34,177 +31,93 @@ import {
   EyeOutlined,
   UploadOutlined,
   CalendarOutlined,
-  BarChartOutlined ,
-  CloseCircleOutlined 
-} from "@ant-design/icons";
-import { useParams } from "react-router-dom";
-import movieService from "../../../apis/Movie/movie";
-import genreService from "../../../apis/Genre/genre";
-import personService from "../../../apis/Person/person";
-import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow";
-import uploadFileApi from "../../../apis/Upload/upload";
-import { extractUrl } from "../../../utils/extractUrl";
-import { Link } from "react-router-dom";
-import MovieCount from "../../Admin/Movie/MovieCount";
+  BarChartOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons"
+import { useParams } from "react-router-dom"
+import movieService from "../../../apis/Movie/movie"
+import genreService from "../../../apis/Genre/genre"
+import personService from "../../../apis/Person/person"
+import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow"
+import uploadFileApi from "../../../apis/Upload/upload"
+import { extractUrl } from "../../../utils/extractUrl"
+import { Link } from "react-router-dom"
+import MovieCount from "../../Admin/Movie/MovieCount"
 
-const { Content } = Layout;
-const { TabPane } = Tabs;
-const { Title, Text, Paragraph } = Typography;
-const hiddenStatuses = [
-  "ACTIVE",
-  "ACCEPTED_NEGOTIATING",
-  "WAITING_FOR_UPLOADING",
-  "ARCHIVED",
-];
+const { Content } = Layout
+const { TabPane } = Tabs
+const { Title, Text, Paragraph } = Typography
+const hiddenStatuses = ["ACTIVE", "ACCEPTED_NEGOTIATING", "WAITING_FOR_UPLOADING", "ARCHIVED"]
 
 const MovieDetailPublisher = () => {
-  const [movie, setMovie] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState({ visible: false, type: "" });
-  const [editMovie, setEditMovie] = useState(null);
-  const [genres, setGenres] = useState([]);
-  const [persons, setPersons] = useState([]);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [videoId, setVideoId] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [videoUrl, setVideoUrl] = useState("");
-  const [progress, setProgress] = useState(0);
+  const [movie, setMovie] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [modal, setModal] = useState({ visible: false, type: "" })
+  const [editMovie, setEditMovie] = useState(null)
+  const [genres, setGenres] = useState([])
+  const [persons, setPersons] = useState([])
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [videoId, setVideoId] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [videoUrl, setVideoUrl] = useState("")
+  const [progress, setProgress] = useState(0)
 
-  const { id } = useParams();
+  const { id } = useParams()
 
   useEffect(() => {
-    fetchMovieDetails(), fetchGenres(), fetchPersons();
-  }, []);
+    fetchMovieDetails()
+    fetchGenres()
+    fetchPersons()
+  }, [])
 
   const fetchMovieDetails = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await movieService.getMovieById(id);
-      setMovie(response.data);
+      const response = await movieService.getMovieById(id)
+      setMovie(response.data)
     } catch (error) {
-      notification.error({ message: "Failed to fetch movie details" });
+      notification.error({ message: "Failed to fetch movie details" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const fetchGenres = async () => {
     try {
-      const response = await genreService.getGenres();
-      setGenres(response.data);
+      const response = await genreService.getGenres()
+      setGenres(response.data)
     } catch (error) {
-      console.error("Error fetching genres:", error);
-      notification.error({ message: "Failed to fetch genres" });
+      console.error("Error fetching genres:", error)
+      notification.error({ message: "Failed to fetch genres" })
     }
-  };
+  }
 
   const fetchPersons = async () => {
     try {
-      const response = await personService.getAllPerson();
-      console.log("Persons:", response.data);
-      setPersons(response.data);
+      const response = await personService.getAllPerson()
+      console.log("Persons:", response.data)
+      setPersons(response.data)
     } catch (error) {
-      console.error("Error fetching persons:", error);
-      notification.error({ message: "Failed to fetch persons" });
+      console.error("Error fetching persons:", error)
+      notification.error({ message: "Failed to fetch persons" })
     }
-  };
+  }
 
   const handleUpdate = async () => {
     try {
-      await movieService.updateMovie(id, editMovie);
-      notification.success({ message: "Movie updated successfully" });
-      setModal({ visible: false, type: "" });
-      fetchMovieDetails();
+      await movieService.updateMovie(id, editMovie)
+      notification.success({ message: "Movie updated successfully" })
+      setModal({ visible: false, type: "" })
+      fetchMovieDetails()
     } catch (error) {
-      notification.error({ message: "Failed to update movie" });
+      notification.error({ message: "Failed to update movie" })
     }
-  };
+  }
 
-  const openUpdateModal = () => {
-    setEditMovie({ ...movie });
-    setModal({ visible: true, type: "update" });
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      return notification.error({ message: "Chọn file trước!" });
-    }
-
-    setUploading(true);
-    setProgress(0);
-
-    try {
-      // 🟢 Gửi yêu cầu tạo video trước (API backend)
-      const createResponse = await fetch(
-        "https://eigakan2222-001-site1.jtempurl.com/api/Upload/upload_VideoBunny",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: selectedFile.name }),
-        }
-      );
-
-      const createData = await createResponse.json();
-      if (!createResponse.ok) {
-        throw new Error("Không thể tạo video");
-      }
-
-      const videoId = createData.videoUrl;
-      console.log("Video ID:", videoId);
-
-      // 🟢 Upload video sau khi tạo thành công
-      const xhr = new XMLHttpRequest();
-      xhr.open(
-        "PUT",
-        `https://video.bunnycdn.com/library/384568/videos/${videoId}`,
-        true
-      );
-      xhr.setRequestHeader(
-        "AccessKey",
-        "5dd7b859-f5cf-4d94-a0b71073f51a-3048-4dfd"
-      );
-      xhr.setRequestHeader("Content-Type", "application/octet-stream");
-
-      // 🟢 Cập nhật tiến trình upload
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round(
-            (event.loaded / event.total) * 100
-          );
-          setProgress(percentComplete);
-        }
-      };
-
-      xhr.onload = () => {
-        setUploading(false);
-        if (xhr.status === 200) {
-          const newVideoUrl = `https://iframe.mediadelivery.net/embed/384568/${videoId}`;
-          setVideoUrl(newVideoUrl);
-          notification.success({ message: "Upload thành công!" });
-        } else {
-          notification.error({ message: "Upload thất bại!" });
-        }
-      };
-
-      xhr.onerror = () => {
-        setUploading(false);
-        notification.error({ message: "Có lỗi xảy ra khi upload!" });
-      };
-
-      // 🟢 Bắt đầu gửi file
-      xhr.send(selectedFile);
-    } catch (error) {
-      setUploading(false);
-      console.error(error);
-      notification.error({ message: "Lỗi khi upload video!" });
-    }
-  };
-
-  const getMediaUrl = (type) =>
-    movie?.medias?.find((m) => m.type === type)?.url || "";
+  const getMediaUrl = (type) => movie?.medias?.find((m) => m.type === type)?.url || ""
 
   const renderMedia = (type) => {
-    const url = getMediaUrl(type);
+    const url = getMediaUrl(type)
 
     if (type === "DASHBOARD") {
       return (
@@ -215,7 +128,7 @@ const MovieDetailPublisher = () => {
             </Title>
             <Text className="text-gray-500">Comprehensive analytics and information</Text>
           </div>
-  
+
           <Row gutter={[24, 24]}>
             {/* Left Column - Movie Information */}
             <Col xs={24} lg={12}>
@@ -241,7 +154,7 @@ const MovieDetailPublisher = () => {
                       <Paragraph className="text-gray-800 m-0">{movie?.submissionDate || "Not available"}</Paragraph>
                     </div>
                   </div>
-  
+
                   <div>
                     <div className="flex items-center mb-2">
                       <CloseCircleOutlined className="text-red-500 mr-2" />
@@ -253,11 +166,10 @@ const MovieDetailPublisher = () => {
                       <Paragraph className="text-gray-800 m-0">{movie?.reasonForRejection || "No rejection"}</Paragraph>
                     </div>
                   </div>
-
                 </div>
               </Card>
             </Col>
-  
+
             {/* Right Column - Statistics */}
             <Col xs={24} lg={12}>
               <Card
@@ -286,7 +198,7 @@ const MovieDetailPublisher = () => {
                         />
                       </Card>
                     </Col>
-  
+
                     <Col xs={12}>
                       <Card className="bg-green-50 border-0">
                         <Statistic
@@ -303,9 +215,9 @@ const MovieDetailPublisher = () => {
                       </Card>
                     </Col>
                   </Row>
-  
+
                   <Divider className="my-4" />
-  
+
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="mb-2 flex items-center">
                       <BarChartOutlined className="text-purple-500 mr-2" />
@@ -336,29 +248,17 @@ const MovieDetailPublisher = () => {
             </div>
           ))}
         </div>
-      );
+      )
     }
-    if (!url) return <p>No {type.toLowerCase()} available</p>;
+    if (!url) return <p>No {type.toLowerCase()} available</p>
     if (type === "POSTER")
       return (
         <div className="flex justify-center">
-          <Image
-            width="30%"
-            src={url || "/placeholder.svg"}
-            alt={`Movie ${type}`}
-          />
+          <Image width="30%" src={url || "/placeholder.svg"} alt={`Movie ${type}`} />
         </div>
-      );
-    if (type === "BANNER")
-      return (
-        <Image
-          width="100%"
-          src={url || "/placeholder.svg"}
-          alt={`Movie ${type}`}
-        />
-      );
-    if (type === "TRAILER")
-      return <iframe width="100%" height="400" src={url} allowFullScreen />;
+      )
+    if (type === "BANNER") return <Image width="100%" src={url || "/placeholder.svg"} alt={`Movie ${type}`} />
+    if (type === "TRAILER") return <iframe width="100%" height="400" src={url} allowFullScreen />
     if (type === "FILMVIP" && url.includes("iframe.mediadelivery.net")) {
       return (
         <iframe
@@ -371,7 +271,7 @@ const MovieDetailPublisher = () => {
           allow="autoplay; encrypted-media"
           allowFullScreen
         />
-      );
+      )
     }
     if (["FILM", "FILMVIP"].includes(type)) {
       return (
@@ -379,60 +279,55 @@ const MovieDetailPublisher = () => {
           <source src={url} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-      );
+      )
     }
-  };
+  }
 
   const handleGetPreUrl = async () => {
     try {
-      const extractLink = extractUrl(movie?.fileUrl);
+      const extractLink = extractUrl(movie?.fileUrl)
       if (extractLink === null) {
-        notification.error({ message: error.message || "An error occurred!" });
+        notification.error({ message: "An error occurred!" })
+        return
       }
 
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
+        throw new Error("Failed to extract userId or fileName from URL")
       }
-      const response = await uploadFileApi.getPreFileUrlMovie(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      console.log("PreUrl:", response.data);
-      //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
+      const response = await uploadFileApi.getPreFileUrlMovie(extractLink.userId, extractLink.fileName)
+      console.log("PreUrl:", response.data)
+      window.open(response.data.url, "_blank")
     } catch (error) {
-      notification.error({ message: error.message || "Not found" });
-      console.error("Error fetching preUrl:", error);
+      notification.error({ message: error.message || "Not found" })
+      console.error("Error fetching preUrl:", error)
     }
-  };
+  }
 
   const handleGetPreUrlTemp = async () => {
     try {
-      const extractLink = extractUrl(movie?.fileUrl);
+      const extractLink = extractUrl(movie?.fileUrl)
       if (extractLink === null) {
-        notification.error({ message: error.message || "An error occurred!" });
+        notification.error({ message: "An error occurred!" })
+        return
       }
 
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
+        throw new Error("Failed to extract userId or fileName from URL")
       }
-      const response = await uploadFileApi.getPreFileUrlTemp(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      console.log("PreUrl:", response.data);
-      //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
+      const response = await uploadFileApi.getPreFileUrlTemp(extractLink.userId, extractLink.fileName)
+      console.log("PreUrl:", response.data)
+      window.open(response.data.url, "_blank")
     } catch (error) {
-      notification.error({ message: error.message || "Not found" });
-      console.error("Error fetching preUrl:", error);
+      notification.error({ message: error.message || "Not found" })
+      console.error("Error fetching preUrl:", error)
     }
-  };
+  }
 
   return (
     <Layout className="min-h-screen bg-gray-50">
-      <ProcessStatus movieStatus={movie?.status} />
       <Content className="p-6 md:p-8 max-w-7xl mx-auto w-full">
+        {movie?.status && <ProcessStatus movieStatus={movie.status} />}
+
         <Breadcrumb className="mb-6">
           <Breadcrumb.Item>Movies</Breadcrumb.Item>
           <Breadcrumb.Item>{movie?.title || "Movie Detail"}</Breadcrumb.Item>
@@ -444,38 +339,34 @@ const MovieDetailPublisher = () => {
           </div>
         ) : (
           <>
-            <Card className="mb-6 shadow-sm">
+            <Card className="mb-6 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="flex flex-col md:flex-row gap-8 items-start">
-                <Image
-                  width={300}
-                  src={getMediaUrl("POSTER") || "/placeholder.svg"}
-                  className="rounded-lg"
-                />
-                <div className="flex flex-col gap-4 w-full">
-                  <div className="flex justify-between items-start">
+                <div className="md:w-1/4 w-full flex justify-center">
+                  <Image
+                    width={300}
+                    src={getMediaUrl("POSTER") || "/placeholder.svg"}
+                    className="rounded-lg shadow-md"
+                  />
+                </div>
+                <div className="flex flex-col gap-4 md:w-3/4 w-full">
+                  <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                     <div>
-                      <Title level={2}>{movie?.title}</Title>
-                      <Text type="secondary">{movie?.originName}</Text>
-                      <div className="flex gap-2 my-2">
+                      <Title level={2} className="mb-1">
+                        {movie?.title}
+                      </Title>
+                      <Text type="secondary" className="block mb-3">
+                        {movie?.originName}
+                      </Text>
+                      <div className="flex flex-wrap gap-2 my-2">
                         <Tag color="blue">{movie?.releaseYear}</Tag>
                         <Tag color="green">{movie?.genreNames}</Tag>
-                        <Tag
-                          color={
-                            movie?.status === "ACTIVE" ? "success" : "warning"
-                          }
-                        >
-                          {movie?.status}
-                        </Tag>
-                        <Tag
-                          color={movie?.isContract === true ? "success" : "red"}
-                        >
+                        <Tag color={movie?.status === "ACTIVE" ? "success" : "warning"}>{movie?.status}</Tag>
+                        <Tag color={movie?.isContract === true ? "success" : "red"}>
                           {movie?.isContract ? "Contracted" : "Not Contracted"}
                         </Tag>
                       </div>
                     </div>
-                    {/* UPLOAD VIDEO */}
-                    <div className="flex gap-2">
-                      {/* 🟢 Upload Video - Hide if trailer or filmvip URL exists */}
+                    <div className="flex gap-2 flex-wrap">
                       {!getMediaUrl("TRAILER") &&
                         !getMediaUrl("FILMVIP") &&
                         movie.status === "WAITING_FOR_UPLOADING" && (
@@ -487,33 +378,19 @@ const MovieDetailPublisher = () => {
                           </Link>
                         )}
 
-                      <button
-                        onClick={
-                          movie?.status === "WAITING_FOR_REVIEWING"
-                            ? handleGetPreUrlTemp
-                            : handleGetPreUrl
-                        }
-                        style={{
-                          padding: "5px 10px",
-                          background: "blue",
-                          color: "white",
-                          border: "none",
-                          cursor: "pointer",
-                        }}
+                      <Button
+                        onClick={movie?.status === "WAITING_FOR_REVIEWING" ? handleGetPreUrlTemp : handleGetPreUrl}
+                        type="primary"
+                        className="bg-blue-500 hover:bg-blue-600"
                       >
                         View File
-                      </button>
+                      </Button>
 
-                      {/* 🟡 Update Button */}
                       {!hiddenStatuses.includes(movie?.status) && (
-                        <Link
-                          key={movie.id}
-                          to={`/publisher/updateMovie/${movie.id}`}
-                        >
+                        <Link key={movie.id} to={`/publisher/updateMovie/${movie.id}`}>
                           <Button
                             type="primary"
                             icon={<EditOutlined />}
-                            size="large"
                             className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold"
                           >
                             Update
@@ -522,54 +399,46 @@ const MovieDetailPublisher = () => {
                       )}
                     </div>
                   </div>
-                  <Paragraph>{movie?.description}</Paragraph>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    {["Director", "Duration", "Nation", "Rating"].map(
-                      (field, index) => (
-                        <div key={index}>
-                          <Text type="secondary">{field}</Text>
-                          <Paragraph strong>
-                            {movie?.[field.toLowerCase().replace(/ /g, "")] ||
-                              "N/A"}
-                          </Paragraph>
-                        </div>
-                      )
-                    )}
+                  <Paragraph className="text-gray-700 my-4">{movie?.description}</Paragraph>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                    {["Director", "Duration", "Nation", "Rating"].map((field, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                        <Text type="secondary" className="block mb-1">
+                          {field}
+                        </Text>
+                        <Paragraph strong className="m-0">
+                          {movie?.[field.toLowerCase().replace(/ /g, "")] || "N/A"}
+                        </Paragraph>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </Card>
-            <Card className="shadow-sm">
-              <Tabs defaultActiveKey="dashboard">
-                {[
-                  "DASHBOARD",
-                  "POSTER",
-                  "BANNER",
-                  "TRAILER",
-                  "FILM",
-                  "FILMVIP",
-                  "Actor/Acstress",
-                ].map((key) => (
+
+            <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+              <Tabs defaultActiveKey="dashboard" className="w-full">
+                {["DASHBOARD", "POSTER", "BANNER", "TRAILER", "FILM", "FILMVIP", "Actor/Acstress"].map((key) => (
                   <TabPane
                     key={key.toLowerCase()}
                     tab={
-                      <span>
+                      <span className="flex items-center">
                         {key === "DASHBOARD" ? (
-                          <EyeOutlined />
+                          <EyeOutlined className="mr-2" />
                         ) : key === "TRAILER" ? (
-                          <PlayCircleOutlined />
+                          <PlayCircleOutlined className="mr-2" />
                         ) : key === "FILM" ? (
-                          <VideoCameraOutlined />
+                          <VideoCameraOutlined className="mr-2" />
                         ) : key === "FILMVIP" ? (
-                          <StarOutlined />
+                          <StarOutlined className="mr-2" />
                         ) : (
-                          <PictureOutlined />
-                        )}{" "}
+                          <PictureOutlined className="mr-2" />
+                        )}
                         {key}
                       </span>
                     }
                   >
-                    {renderMedia(key)}
+                    <div className="py-4">{renderMedia(key)}</div>
                   </TabPane>
                 ))}
               </Tabs>
@@ -582,16 +451,15 @@ const MovieDetailPublisher = () => {
           visible={modal.type === "update" && modal.visible}
           onOk={handleUpdate}
           onCancel={() => setModal({ visible: false, type: "" })}
-          width={800} // Tăng chiều rộng modal
+          width={800}
+          className="update-movie-modal"
         >
           <Form layout="vertical">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item label="Title">
                 <Input
                   value={editMovie?.title}
-                  onChange={(e) =>
-                    setEditMovie((prev) => ({ ...prev, title: e.target.value }))
-                  }
+                  onChange={(e) => setEditMovie((prev) => ({ ...prev, title: e.target.value }))}
                 />
               </Form.Item>
 
@@ -674,15 +542,13 @@ const MovieDetailPublisher = () => {
                 mode="multiple"
                 placeholder="Select Genres"
                 value={editMovie?.genres}
-                onChange={(values) =>
-                  setEditMovie((prev) => ({ ...prev, genres: values }))
-                }
+                onChange={(values) => setEditMovie((prev) => ({ ...prev, genres: values }))}
                 className="w-full"
               >
                 {genres.map((genre) => (
-                  <Option key={genre.id} value={genre.id}>
+                  <Select.Option key={genre.id} value={genre.id}>
                     {genre.name}
-                  </Option>
+                  </Select.Option>
                 ))}
               </Select>
             </Form.Item>
@@ -692,18 +558,16 @@ const MovieDetailPublisher = () => {
                 mode="multiple"
                 placeholder="Select Persons"
                 value={editMovie?.persons}
-                onChange={(values) =>
-                  setEditMovie((prev) => ({ ...prev, persons: values }))
-                }
+                onChange={(values) => setEditMovie((prev) => ({ ...prev, persons: values }))}
                 className="w-full"
               >
                 {persons.map((person) => (
-                  <Option key={person.id} value={person.id}>
+                  <Select.Option key={person.id} value={person.id}>
                     <div className="flex items-center gap-2">
                       <Avatar src={person.picture} alt={person.name} />
                       <span>{person.name}</span>
                     </div>
-                  </Option>
+                  </Select.Option>
                 ))}
               </Select>
             </Form.Item>
@@ -711,7 +575,8 @@ const MovieDetailPublisher = () => {
         </Modal>
       </Content>
     </Layout>
-  );
-};
+  )
+}
 
-export default MovieDetailPublisher;
+export default MovieDetailPublisher
+

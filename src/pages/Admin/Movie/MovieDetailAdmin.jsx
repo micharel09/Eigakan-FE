@@ -425,8 +425,8 @@ const MovieDetail = () => {
 
   return (
     <Layout className="min-h-screen bg-gray-50">
-      <ProcessStatus movieStatus={movie?.status} />
       <Content className="p-6 md:p-8 max-w-7xl mx-auto w-full">
+      <ProcessStatus movieStatus={movie?.status} />
         <Breadcrumb className="mb-6">
           <Breadcrumb.Item>Movies</Breadcrumb.Item>
           <Breadcrumb.Item>{movie?.title || "Movie Detail"}</Breadcrumb.Item>
