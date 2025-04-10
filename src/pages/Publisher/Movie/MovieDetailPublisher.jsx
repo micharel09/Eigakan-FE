@@ -21,6 +21,8 @@ import {
   Row,
   Col,
   Divider,
+  Table,
+  Pagination,
 } from "antd"
 import {
   PlayCircleOutlined,
@@ -43,6 +45,7 @@ import uploadFileApi from "../../../apis/Upload/upload"
 import { extractUrl } from "../../../utils/extractUrl"
 import { Link } from "react-router-dom"
 import MovieCount from "../../Admin/Movie/MovieCount"
+import movieEarningService from "../../../apis/MovieEarning/MovieEarning"
 
 const { Content } = Layout
 const { TabPane } = Tabs
@@ -56,18 +59,20 @@ const MovieDetailPublisher = () => {
   const [editMovie, setEditMovie] = useState(null)
   const [genres, setGenres] = useState([])
   const [persons, setPersons] = useState([])
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [videoId, setVideoId] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const [videoUrl, setVideoUrl] = useState("")
-  const [progress, setProgress] = useState(0)
+  const [movieEarnings, setMovieEarnings] = useState([])
+  const [totalEarnings, setTotalEarnings] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(5)
 
+  
   const { id } = useParams()
 
   useEffect(() => {
     fetchMovieDetails()
     fetchGenres()
     fetchPersons()
+    fetchMovieEarningByMovieId(currentPage, pageSize);
   }, [])
 
   const fetchMovieDetails = async () => {
@@ -81,6 +86,23 @@ const MovieDetailPublisher = () => {
       setLoading(false)
     }
   }
+
+  const fetchMovieEarningByMovieId = async (page = 1, pageSize = 5) => {
+      setLoading(true);
+      try {
+        
+        const result = await movieEarningService.getMovieEarningByMovieId(id, page, pageSize);
+        
+        setMovieEarnings(result.movieEarningMovieId); 
+        setTotalEarnings(result.totalEarnings); 
+        setTotal(result.totalItems);
+  
+      } catch (error) {
+        notification.error({ message: "Failed to fetch movie earnings" });
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const fetchGenres = async () => {
     try {
@@ -119,93 +141,76 @@ const MovieDetailPublisher = () => {
   const renderMedia = (type) => {
     const url = getMediaUrl(type)
 
-    if (type === "DASHBOARD") {
-      return (
-        <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg p-6">
-          <div className="mb-6">
-            <Title level={3} className="text-gray-800 mb-1">
-              Movie Dashboard
-            </Title>
-            <Text className="text-gray-500">Comprehensive analytics and information</Text>
-          </div>
-
-          <Row gutter={[24, 24]}>
-            {/* Left Column - Movie Information */}
-            <Col xs={24} lg={12}>
-              <Card
-                className="h-full shadow-md hover:shadow-lg transition-shadow duration-300"
-                title={
-                  <div className="flex items-center">
-                    <div className="bg-blue-500 w-1 h-6 mr-3 rounded-full"></div>
-                    <span>Movie Information</span>
-                  </div>
-                }
-                bordered={false}
-              >
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <CalendarOutlined className="text-blue-500 mr-2" />
-                      <Text strong className="text-gray-700">
-                        Submission Date
-                      </Text>
+     if (type === "DASHBOARD") {
+          return (
+            <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg p-6">
+              <div className="mb-6">
+                <Title level={3} className="text-gray-800 mb-1">
+                  Movie Dashboard
+                </Title>
+                <Text className="text-gray-500">Comprehensive analytics and information</Text>
+              </div>
+    
+              {/* Movie Information - Top Row */}
+              <div className="mb-6">
+                <Card
+                  className="shadow-md hover:shadow-lg transition-shadow duration-300"
+                  title={
+                    <div className="flex items-center">
+                      <div className="bg-blue-500 w-1 h-6 mr-3 rounded-full"></div>
+                      <span>Movie Information</span>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <Paragraph className="text-gray-800 m-0">{movie?.submissionDate || "Not available"}</Paragraph>
+                  }
+                  bordered={false}
+                >
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex items-center mb-2">
+                        <CalendarOutlined className="text-blue-500 mr-2" />
+                        <Text strong className="text-gray-700">
+                          Submission Date
+                        </Text>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <Paragraph className="text-gray-800 m-0">{movie?.submissionDate || "Not available"}</Paragraph>
+                      </div>
+                    </div>
+    
+                    <div>
+                      <div className="flex items-center mb-2">
+                        <CloseCircleOutlined className="text-red-500 mr-2" />
+                        <Text strong className="text-gray-700">
+                          Reason For Rejection
+                        </Text>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <Paragraph className="text-gray-800 m-0">{movie?.reasonForRejection || "No rejection"}</Paragraph>
+                      </div>
                     </div>
                   </div>
-
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <CloseCircleOutlined className="text-red-500 mr-2" />
-                      <Text strong className="text-gray-700">
-                        Reason For Rejection
-                      </Text>
+                </Card>
+              </div>
+    
+              {/* Performance Metrics - Bottom Row */}
+              <div className="mb-6">
+                <Card
+                  className="shadow-md hover:shadow-lg transition-shadow duration-300"
+                  title={
+                    <div className="flex items-center">
+                      <div className="bg-green-500 w-1 h-6 mr-3 rounded-full"></div>
+                      <span>Performance Metrics</span>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <Paragraph className="text-gray-800 m-0">{movie?.reasonForRejection || "No rejection"}</Paragraph>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-
-            {/* Right Column - Statistics */}
-            <Col xs={24} lg={12}>
-              <Card
-                className="h-full shadow-md hover:shadow-lg transition-shadow duration-300"
-                title={
-                  <div className="flex items-center">
-                    <div className="bg-green-500 w-1 h-6 mr-3 rounded-full"></div>
-                    <span>Performance Metrics</span>
-                  </div>
-                }
-                bordered={false}
-              >
-                <div className="space-y-6">
-                  <Row gutter={[16, 16]}>
-                    <Col xs={12}>
-                      <Card className="bg-blue-50 border-0">
-                        <Statistic
-                          title={
-                            <div className="flex items-center text-blue-700">
-                              <EyeOutlined className="mr-1" />
-                              <span>Views</span>
-                            </div>
-                          }
-                          value={movie?.viewCount || 0}
-                          valueStyle={{ color: "#1890ff", fontWeight: "bold" }}
-                        />
-                      </Card>
-                    </Col>
-
-                    <Col xs={12}>
+                  }
+                  bordered={false}
+                >
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Card className="bg-green-50 border-0">
                         <Statistic
                           title={
                             <div className="flex items-center text-green-700">
                               <StarOutlined className="mr-1" />
-                              <span>Rating</span>
+                              <span>User Rating</span>
                             </div>
                           }
                           value={movie?.userRating || 0}
@@ -213,27 +218,59 @@ const MovieDetailPublisher = () => {
                           valueStyle={{ color: "#52c41a", fontWeight: "bold" }}
                         />
                       </Card>
-                    </Col>
-                  </Row>
-
-                  <Divider className="my-4" />
-
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="mb-2 flex items-center">
-                      <BarChartOutlined className="text-purple-500 mr-2" />
-                      <Text strong className="text-gray-700">
-                        View Statistics
-                      </Text>
                     </div>
-                    <MovieCount />
+    
+                    <Divider className="my-4" />
+    
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="mb-2 flex items-center">
+                        <BarChartOutlined className="text-purple-500 mr-2" />
+                        <Text strong className="text-gray-700">
+                          View Statistics
+                        </Text>
+                      </div>
+                      <MovieCount />
+                    </div>
                   </div>
+                </Card>
+              </div>
+    
+              {/* Movie List with Pagination - New Section */}
+              <Card
+                title={
+                  <div className="flex items-center">
+                    <div className="bg-purple-500 w-1 h-6 mr-3 rounded-full"></div>
+                    <span>Movie Earnings - Total Earnings: {totalEarnings} VND</span>
+                  </div>
+                }
+                bordered={false}
+                className="shadow-md hover:shadow-lg transition-shadow duration-300"
+                >
+                <Table
+                  columns={columns}
+                  dataSource={movieEarnings}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={false}
+                />
+    
+                <div className="flex justify-end mt-4">
+                  <Pagination
+                    current={currentPage}
+                    onChange={(page) => setCurrentPage(page)}  // Cập nhật currentPage khi thay đổi trang
+                    total={total}
+                    pageSize={pageSize}
+                    showSizeChanger={false}
+                  />
                 </div>
               </Card>
-            </Col>
-          </Row>
-        </div>
-      )
-    }
+            
+            </div>
+          )
+        }
+    
+    
+    
     if (["Actor/Acstress"].includes(type)) {
       return (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -322,6 +359,32 @@ const MovieDetailPublisher = () => {
       console.error("Error fetching preUrl:", error)
     }
   }
+
+  const columns = [
+    {
+      title: 'Week (from - to)',
+      dataIndex: 'startWeek',
+      key: 'startWeek',
+      render: (_, record) => `${record.startWeek} - ${record.endWeek}`
+    },
+    {
+      title: 'Views',
+      dataIndex: 'totalView',
+      key: 'totalView',
+    },
+    {
+      title: 'Earnings',
+      dataIndex: 'totalEarnings',
+      key: 'totalEarnings',
+      render: (value) => parseFloat(value).toLocaleString() + ' VND'
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'createDate',
+      key: 'createDate',
+      render: (value) => new Date(value).toLocaleString()
+    }
+  ];
 
   return (
     <Layout className="min-h-screen bg-gray-50">
@@ -573,6 +636,7 @@ const MovieDetailPublisher = () => {
             </Form.Item>
           </Form>
         </Modal>
+      
       </Content>
     </Layout>
   )

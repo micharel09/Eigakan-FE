@@ -45,6 +45,7 @@ import { Link } from "react-router-dom"
 import MovieCount from "./MovieCount.jsx"
 import movieEarningService from "../../../apis/MovieEarning/MovieEarning.js"
 
+
 const { Content } = Layout
 const { TabPane } = Tabs
 const { Title, Text, Paragraph } = Typography
@@ -343,36 +344,39 @@ const MovieDetail = () => {
 
           {/* Movie List with Pagination - New Section */}
           <Card
-      title={
-        <div className="flex items-center">
-          <div className="bg-purple-500 w-1 h-6 mr-3 rounded-full"></div>
-          <span>Movie Earnings - Total Earnings: {totalEarnings}</span>
-        </div>
-      }
-      bordered={false}
-      className="shadow-md hover:shadow-lg transition-shadow duration-300"
-    >
-      <Table
-        columns={columns}
-        dataSource={movieEarnings}
-        rowKey="id"
-        loading={loading}
-        pagination={false}
-      />
+            title={
+              <div className="flex items-center">
+                <div className="bg-purple-500 w-1 h-6 mr-3 rounded-full"></div>
+                <span>Movie Earnings - Total Earnings: {totalEarnings}</span>
+              </div>
+            }
+            bordered={false}
+            className="shadow-md hover:shadow-lg transition-shadow duration-300"
+            >
+            <Table
+              columns={columns}
+              dataSource={movieEarnings}
+              rowKey="id"
+              loading={loading}
+              pagination={false}
+            />
 
-      <div className="flex justify-end mt-4">
-        <Pagination
-          current={currentPage}
-          onChange={(page) => setCurrentPage(page)}  // Cập nhật currentPage khi thay đổi trang
-          total={total}
-          pageSize={pageSize}
-          showSizeChanger={false}
-        />
-      </div>
-    </Card>
+            <div className="flex justify-end mt-4">
+              <Pagination
+                current={currentPage}
+                onChange={(page) => setCurrentPage(page)}  // Cập nhật currentPage khi thay đổi trang
+                total={total}
+                pageSize={pageSize}
+                showSizeChanger={false}
+              />
+            </div>
+          </Card>
+        
         </div>
       )
     }
+
+    
     if (["Actor/Acstress"].includes(type)) {
       return (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -750,6 +754,7 @@ const MovieDetail = () => {
         >
           <h1>Are you sure to active this movie and publish on website?</h1>
         </Modal>
+      
       </Content>
     </Layout>
   )
