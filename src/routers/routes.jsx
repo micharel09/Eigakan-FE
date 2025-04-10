@@ -65,7 +65,7 @@ import PaymentPolicyManagement from "../pages/Admin/PaymentPolicy/PaymentPolicyM
 import AdHistory from "../pages/Admin/Ad/AdHistory.jsx";
 import MovieEarning from "../pages/Admin/Movie/MovieEarning.jsx";
 import UserEarning from "../pages/Admin/User/UserEarning.jsx";
-import PublisherUserEarning from "../pages/Publisher/UserEarning/PublisherUserEarning.jsx";
+import PublisherEarning from "../pages/Publisher/UserEarning/PublisherEarning.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -534,7 +534,7 @@ const routes = [
     path: "/publisher/userearning",
     element: (
       <PrivateRoute requiredRole="PUBLISHER">
-        <PublisherUserEarning />
+        <PublisherEarning />
       </PrivateRoute>
     ),
     layout: "PublisherLayout",
