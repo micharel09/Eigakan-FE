@@ -78,7 +78,14 @@ function AdminSidebar() {
 
   // Check if current path is active
   const isActive = (path) => {
-    return location.pathname === path || location.pathname.startsWith(path);
+    if (location.pathname === path) return true;
+    if (path === "/user") {
+      return (
+        location.pathname.startsWith("/user/") || location.pathname === "/user"
+      );
+    }
+
+    return location.pathname.startsWith(path);
   };
 
   return (
