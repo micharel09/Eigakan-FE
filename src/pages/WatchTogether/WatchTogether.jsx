@@ -702,46 +702,62 @@ const WatchTogetherPage = () => {
 
   useEffect(() => {
     if (!socket) return;
-    const handleToggleAudio = (userId) => {
-      console.log(`user with id ${userId} toggled audio`);
+
+    const handleToggleAudio = (data) => {
+      console.log(
+        `user with id ${data.userId} toggled audio to ${data.isMuted}`
+      );
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
-        if (copy[userId]) {
-          copy[userId].muted = !copy[userId].muted;
+        if (copy[data.userId]) {
+          copy[data.userId].muted = data.isMuted;
         }
         return { ...copy };
       });
     };
 
-    const handleToggleVideo = (userId) => {
-      console.log(`user with id ${userId} toggled video`);
+    const handleToggleVideo = (data) => {
+      console.log(
+        `user with id ${data.userId} toggled video to ${data.isVideoOff}`
+      );
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
-        if (copy[userId]) {
-          copy[userId].playing = !copy[userId].playing;
+        if (copy[data.userId]) {
+          copy[data.userId].playing = !data.isVideoOff;
         }
         return { ...copy };
       });
     };
 
-    const handleUserLeave = (userId) => {
-      console.log(`user ${userId} is leaving the room`);
-      users[userId]?.close();
-      const playersCopy = cloneDeep(players);
-      if (playersCopy[userId]) {
-        delete playersCopy[userId];
-      }
-      setPlayers(playersCopy);
+    // Xử lý khi nhận danh sách participants với trạng thái
+    const handleRoomParticipants = (data) => {
+      console.log("Received room participants with states:", data.participants);
+
+      // Cập nhật trạng thái cho mỗi participant
+      data.participants.forEach((participant) => {
+        if (participant.id !== myId && players[participant.id]) {
+          setPlayers((prev) => ({
+            ...prev,
+            [participant.id]: {
+              ...prev[participant.id],
+              muted: participant.isMuted || false,
+              playing: !(participant.isVideoOff || false),
+            },
+          }));
+        }
+      });
     };
+
     socket.on("user-toggle-audio", handleToggleAudio);
     socket.on("user-toggle-video", handleToggleVideo);
-    socket.on("user-leave", handleUserLeave);
+    socket.on("room-participants", handleRoomParticipants);
+
     return () => {
       socket.off("user-toggle-audio", handleToggleAudio);
       socket.off("user-toggle-video", handleToggleVideo);
-      socket.off("user-leave", handleUserLeave);
+      socket.off("room-participants", handleRoomParticipants);
     };
-  }, [players, setPlayers, socket, users]);
+  }, [players, setPlayers, socket, myId]);
 
   useEffect(() => {
     if (!peer || !stream) return;

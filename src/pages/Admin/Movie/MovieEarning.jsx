@@ -11,9 +11,10 @@ import {
   Statistic,
 } from "antd";
 import { SearchOutlined, EyeOutlined, DollarOutlined } from "@ant-design/icons";
-import movieEarningService from "../../../apis/MovieEarning/movieEarning";
+import movieEarningService from "../../../apis/MovieEarning/MovieEarning";
 import { Helmet } from "react-helmet";
 import dayjs from "dayjs";
+import { Link } from "react-router-dom";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -28,35 +29,34 @@ const MovieEarning = () => {
     pageSize: 5,
     total: 0,
   });
-  const [statistics, setStatistics] = useState({
-    totalEarnings: 0,
-    totalViews: 0,
-  });
+  const [totalViews, setTotalViews] = useState(0);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [totalEarningsMovieContract, setTotalEarningsMovieContract] = useState(0);
 
   const fetchMovieEarnings = async (page = 1, pageSize = 5) => {
     try {
       setLoading(true);
-      const response = await movieEarningService.getMovieEarning(
-        page,
-        pageSize
-      );
-
-      if (response) {
-        const formattedData = response.item1.map((item) => ({
+      const response = await movieEarningService.getMovieEarning(page, pageSize);
+  
+      if (response?.success && response.data) {
+        const formattedData = response.data.movieEarning.map((item) => ({
           ...item,
           key: item.id,
         }));
-
+  
         setMovieEarnings(formattedData);
+  
         setPagination({
           ...pagination,
           current: page,
           pageSize: pageSize,
-          total: response.item2 || 0,
+          total: response.data.totalItems || 0,
         });
 
-        // Calculate total earnings and views
-        calculateStatistics(formattedData);
+        setTotalViews(response.data.totalView || 0);
+        setTotalEarnings(response.data.totalEarnings || 0);
+        setTotalEarningsMovieContract(response.data.totalEarningsMovieContract || 0); 
+
       }
     } catch (error) {
       notification.error({
@@ -68,19 +68,7 @@ const MovieEarning = () => {
       setLoading(false);
     }
   };
-
-  const calculateStatistics = (data) => {
-    const totalEarnings = data.reduce(
-      (sum, item) => sum + item.totalEarnings,
-      0
-    );
-    const totalViews = data.reduce((sum, item) => sum + item.totalView, 0);
-
-    setStatistics({
-      totalEarnings,
-      totalViews,
-    });
-  };
+  
 
   useEffect(() => {
     fetchMovieEarnings(pagination.current, pagination.pageSize);
@@ -119,6 +107,11 @@ const MovieEarning = () => {
       dataIndex: "movieName",
       key: "movieName",
       width: "25%",
+      render: (text, record) => (
+        <Link to={`/admin/movie/${record.movieId}`}>
+          {text}
+        </Link>
+      ),
     },
     {
       title: "Start Date",
@@ -179,7 +172,7 @@ const MovieEarning = () => {
             <Card className="border-l-4 border-l-purple-500">
               <Statistic
                 title="Total Views"
-                value={loading ? "-" : statistics.totalViews}
+                value={loading ? "-" : totalViews}
                 prefix={<EyeOutlined className="text-purple-500" />}
                 loading={loading}
               />
@@ -188,9 +181,20 @@ const MovieEarning = () => {
           <Col xs={24} md={12} lg={6}>
             <Card className="border-l-4 border-l-red-500">
               <Statistic
-                title="Total Earnings"
-                value={loading ? "-" : formatVND(statistics.totalEarnings)}
+                title="Total Earnings (all movies)"
+                value={loading ? "-" : formatVND(totalEarnings)}
                 prefix={<DollarOutlined className="text-red-500" />}
+                precision={0}
+                loading={loading}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} md={12} lg={6}>
+            <Card className="border-l-4 border-l-blue-500">
+              <Statistic
+                title="Total Earnings (movies have contract)"
+                value={loading ? "-" : formatVND(totalEarningsMovieContract)}
+                prefix={<DollarOutlined className="text-blue-500" />}
                 precision={0}
                 loading={loading}
               />

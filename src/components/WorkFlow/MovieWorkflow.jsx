@@ -37,7 +37,7 @@ const ProcessStatus = ({ movieStatus, contractStatus, isFilmVipOrTrailer }) => {
   ];
 
   return (
-    <Steps current={deniedStep !== null ? deniedStep : currentStep} className="px-4 py-6">
+    <Steps current={deniedStep !== null ? deniedStep : currentStep} className="px-4 py-10">
       {steps.map((step, index) => (
         <Step
           key={index}

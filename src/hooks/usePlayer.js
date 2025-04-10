@@ -38,66 +38,47 @@ const usePlayer = (myId, roomId, peer) => {
 
   // Toggle audio
   const toggleAudio = useCallback(() => {
-    if (!socket || !isConnected) return;
+    if (!socket || !myId || !roomId) return;
 
-    console.log("Toggling audio");
-    setPlayers((prev) => {
-      const copy = cloneDeep(prev);
-      if (copy[myId]) {
-        copy[myId].muted = !copy[myId].muted;
+    const newMutedState = !players[myId]?.muted;
 
-        // Cập nhật trạng thái thực tế của audio tracks
-        if (copy[myId].url) {
-          const audioTracks = copy[myId].url.getAudioTracks();
-          audioTracks.forEach((track) => {
-            track.enabled = !copy[myId].muted;
-            console.log(`Audio track enabled: ${track.enabled}`);
-          });
-        }
-      }
-      return copy;
+    setPlayers((prev) => ({
+      ...prev,
+      [myId]: {
+        ...prev[myId],
+        muted: newMutedState,
+      },
+    }));
+
+    // Gửi trạng thái mới đến server
+    socket.emit("user-toggle-audio", {
+      userId: myId,
+      roomId,
+      isMuted: newMutedState,
     });
-
-    socket.emit("user-toggle-audio", { userId: myId, roomId });
-  }, [socket, myId, roomId, isConnected]);
+  }, [socket, myId, roomId, players]);
 
   // Toggle video
   const toggleVideo = useCallback(() => {
-    if (!socket || !isConnected) return;
+    if (!socket || !myId || !roomId) return;
 
-    console.log("Toggling video");
-    setPlayers((prev) => {
-      const copy = cloneDeep(prev);
-      if (copy[myId]) {
-        // Đảo ngược trạng thái playing
-        copy[myId].playing = !copy[myId].playing;
+    const newVideoState = !players[myId]?.playing;
 
-        // Cập nhật trạng thái thực tế của video tracks
-        if (copy[myId].url) {
-          const videoTracks = copy[myId].url.getVideoTracks();
-          if (videoTracks.length > 0) {
-            videoTracks.forEach((track) => {
-              track.enabled = copy[myId].playing;
-              console.log(`Video track enabled: ${track.enabled}`);
-            });
-          } else {
-            console.warn("No video tracks found to toggle");
-          }
+    setPlayers((prev) => ({
+      ...prev,
+      [myId]: {
+        ...prev[myId],
+        playing: newVideoState,
+      },
+    }));
 
-          // QUAN TRỌNG: Đảm bảo audio tracks vẫn giữ nguyên trạng thái
-          const audioTracks = copy[myId].url.getAudioTracks();
-          audioTracks.forEach((track) => {
-            // Giữ nguyên trạng thái audio dựa trên muted
-            track.enabled = !copy[myId].muted;
-            console.log(`Preserving audio track state: ${track.enabled}`);
-          });
-        }
-      }
-      return copy;
+    // Gửi trạng thái mới đến server
+    socket.emit("user-toggle-video", {
+      userId: myId,
+      roomId,
+      isVideoOff: !newVideoState,
     });
-
-    socket.emit("user-toggle-video", { userId: myId, roomId });
-  }, [socket, myId, roomId, isConnected]);
+  }, [socket, myId, roomId, players]);
 
   return {
     players,

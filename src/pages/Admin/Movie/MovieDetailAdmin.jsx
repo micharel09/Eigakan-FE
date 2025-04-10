@@ -14,14 +14,13 @@ import {
   notification,
   Typography,
   Statistic,
-  Rate,
   Input,
   Form,
   DatePicker,
   InputNumber,
-  Row,
-  Col,
-  Divider 
+  Divider,
+  Table,
+  Pagination,
 } from "antd"
 import {
   PlayCircleOutlined,
@@ -33,7 +32,8 @@ import {
   EyeOutlined,
   EditOutlined,
   CalendarOutlined,
-  BarChartOutlined  
+  BarChartOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons"
 import { useParams, useNavigate } from "react-router-dom"
 import movieService from "../../../apis/Movie/movie"
@@ -43,6 +43,7 @@ import uploadFileApi from "../../../apis/Upload/upload.jsx"
 import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow.jsx"
 import { Link } from "react-router-dom"
 import MovieCount from "./MovieCount.jsx"
+import movieEarningService from "../../../apis/MovieEarning/MovieEarning.js"
 
 const { Content } = Layout
 const { TabPane } = Tabs
@@ -56,13 +57,21 @@ const MovieDetail = () => {
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false)
   const [isActiveModalVisible, setIsActiveModalVisible] = useState(false)
   const [reason, setReason] = useState("")
+  const [movieEarnings, setMovieEarnings] = useState([]);
+  const [total, setTotal] = useState(0);
   const navigate = useNavigate()
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 5
+
+
 
   const { id } = useParams()
   const [form] = Form.useForm()
 
   useEffect(() => {
     fetchMovieDetails()
+    fetchMovieEarningByMovieId(currentPage, pageSize);
   }, [])
 
   const fetchMovieDetails = async () => {
@@ -76,6 +85,26 @@ const MovieDetail = () => {
       setLoading(false)
     }
   }
+
+  const fetchMovieEarningByMovieId = async (page = 1, pageSize = 5) => {
+    setLoading(true);
+    try {
+      
+      const result = await movieEarningService.getMovieEarningByMovieId(id, page, pageSize);
+      
+      setMovieEarnings(result.movieEarningMovieId); 
+      setTotalEarnings(result.totalEarnings); 
+      setTotal(result.totalItems);
+
+    } catch (error) {
+      notification.error({ message: "Failed to fetch movie earnings" });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  
+  
 
   const handleActive = async () => {
     setLoading(true)
@@ -144,10 +173,10 @@ const MovieDetail = () => {
 
   const handleAcceptNoContract = async () => {
     try {
-      setLoading(true) 
+      setLoading(true)
 
       const data = { Id: movie?.id }
-     
+
       const response = await movieService.acceptedMovieNotContract(data)
 
       if (response.status === 200) {
@@ -227,110 +256,120 @@ const MovieDetail = () => {
             </Title>
             <Text className="text-gray-500">Comprehensive analytics and information</Text>
           </div>
-  
-          <Row gutter={[24, 24]}>
-            {/* Left Column - Movie Information */}
-            <Col xs={24} lg={12}>
-              <Card
-                className="h-full shadow-md hover:shadow-lg transition-shadow duration-300"
-                title={
-                  <div className="flex items-center">
-                    <div className="bg-blue-500 w-1 h-6 mr-3 rounded-full"></div>
-                    <span>Movie Information</span>
-                  </div>
-                }
-                bordered={false}
-              >
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <CalendarOutlined className="text-blue-500 mr-2" />
-                      <Text strong className="text-gray-700">
-                        Submission Date
-                      </Text>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <Paragraph className="text-gray-800 m-0">{movie?.submissionDate || "Not available"}</Paragraph>
-                    </div>
-                  </div>
-  
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <CloseCircleOutlined className="text-red-500 mr-2" />
-                      <Text strong className="text-gray-700">
-                        Reason For Rejection
-                      </Text>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <Paragraph className="text-gray-800 m-0">{movie?.reasonForRejection || "No rejection"}</Paragraph>
-                    </div>
-                  </div>
 
+          {/* Movie Information - Top Row */}
+          <div className="mb-6">
+            <Card
+              className="shadow-md hover:shadow-lg transition-shadow duration-300"
+              title={
+                <div className="flex items-center">
+                  <div className="bg-blue-500 w-1 h-6 mr-3 rounded-full"></div>
+                  <span>Movie Information</span>
                 </div>
-              </Card>
-            </Col>
-  
-            {/* Right Column - Statistics */}
-            <Col xs={24} lg={12}>
-              <Card
-                className="h-full shadow-md hover:shadow-lg transition-shadow duration-300"
-                title={
-                  <div className="flex items-center">
-                    <div className="bg-green-500 w-1 h-6 mr-3 rounded-full"></div>
-                    <span>Performance Metrics</span>
+              }
+              bordered={false}
+            >
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center mb-2">
+                    <CalendarOutlined className="text-blue-500 mr-2" />
+                    <Text strong className="text-gray-700">
+                      Submission Date
+                    </Text>
                   </div>
-                }
-                bordered={false}
-              >
-                <div className="space-y-6">
-                  <Row gutter={[16, 16]}>
-                    <Col xs={12}>
-                      <Card className="bg-blue-50 border-0">
-                        <Statistic
-                          title={
-                            <div className="flex items-center text-blue-700">
-                              <EyeOutlined className="mr-1" />
-                              <span>Views</span>
-                            </div>
-                          }
-                          value={movie?.viewCount || 0}
-                          valueStyle={{ color: "#1890ff", fontWeight: "bold" }}
-                        />
-                      </Card>
-                    </Col>
-  
-                    <Col xs={12}>
-                      <Card className="bg-green-50 border-0">
-                        <Statistic
-                          title={
-                            <div className="flex items-center text-green-700">
-                              <StarOutlined className="mr-1" />
-                              <span>Rating</span>
-                            </div>
-                          }
-                          value={movie?.userRating || 0}
-                          suffix="/5"
-                          valueStyle={{ color: "#52c41a", fontWeight: "bold" }}
-                        />
-                      </Card>
-                    </Col>
-                  </Row>
-  
-                  <Divider className="my-4" />
-  
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="mb-2 flex items-center">
-                      <BarChartOutlined className="text-purple-500 mr-2" />
-                      <Text strong className="text-gray-700">
-                        View Statistics
-                      </Text>
-                    </div>
-                    <MovieCount />
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <Paragraph className="text-gray-800 m-0">{movie?.submissionDate || "Not available"}</Paragraph>
                   </div>
                 </div>
-              </Card>
-            </Col>
-          </Row>
+
+                <div>
+                  <div className="flex items-center mb-2">
+                    <CloseCircleOutlined className="text-red-500 mr-2" />
+                    <Text strong className="text-gray-700">
+                      Reason For Rejection
+                    </Text>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <Paragraph className="text-gray-800 m-0">{movie?.reasonForRejection || "No rejection"}</Paragraph>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Performance Metrics - Bottom Row */}
+          <div className="mb-6">
+            <Card
+              className="shadow-md hover:shadow-lg transition-shadow duration-300"
+              title={
+                <div className="flex items-center">
+                  <div className="bg-green-500 w-1 h-6 mr-3 rounded-full"></div>
+                  <span>Performance Metrics</span>
+                </div>
+              }
+              bordered={false}
+            >
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="bg-green-50 border-0">
+                    <Statistic
+                      title={
+                        <div className="flex items-center text-green-700">
+                          <StarOutlined className="mr-1" />
+                          <span>User Rating</span>
+                        </div>
+                      }
+                      value={movie?.userRating || 0}
+                      suffix="/5"
+                      valueStyle={{ color: "#52c41a", fontWeight: "bold" }}
+                    />
+                  </Card>
+                </div>
+
+                <Divider className="my-4" />
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="mb-2 flex items-center">
+                    <BarChartOutlined className="text-purple-500 mr-2" />
+                    <Text strong className="text-gray-700">
+                      View Statistics
+                    </Text>
+                  </div>
+                  <MovieCount />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Movie List with Pagination - New Section */}
+          <Card
+      title={
+        <div className="flex items-center">
+          <div className="bg-purple-500 w-1 h-6 mr-3 rounded-full"></div>
+          <span>Movie Earnings - Total Earnings: {totalEarnings}</span>
+        </div>
+      }
+      bordered={false}
+      className="shadow-md hover:shadow-lg transition-shadow duration-300"
+    >
+      <Table
+        columns={columns}
+        dataSource={movieEarnings}
+        rowKey="id"
+        loading={loading}
+        pagination={false}
+      />
+
+      <div className="flex justify-end mt-4">
+        <Pagination
+          current={currentPage}
+          onChange={(page) => setCurrentPage(page)}  // Cập nhật currentPage khi thay đổi trang
+          total={total}
+          pageSize={pageSize}
+          showSizeChanger={false}
+        />
+      </div>
+    </Card>
         </div>
       )
     }
@@ -423,10 +462,38 @@ const MovieDetail = () => {
     }
   }
 
+
+  const columns = [
+    {
+      title: 'Week (from - to)',
+      dataIndex: 'startWeek',
+      key: 'startWeek',
+      render: (_, record) => `${record.startWeek} - ${record.endWeek}`
+    },
+    {
+      title: 'Views',
+      dataIndex: 'totalView',
+      key: 'totalView',
+    },
+    {
+      title: 'Earnings',
+      dataIndex: 'totalEarnings',
+      key: 'totalEarnings',
+      render: (value) => parseFloat(value).toLocaleString() + ' VND'
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'createDate',
+      key: 'createDate',
+      render: (value) => new Date(value).toLocaleString()
+    }
+  ];
+  
+
   return (
     <Layout className="min-h-screen bg-gray-50">
-      <ProcessStatus movieStatus={movie?.status} />
       <Content className="p-6 md:p-8 max-w-7xl mx-auto w-full">
+        <ProcessStatus movieStatus={movie?.status} />
         <Breadcrumb className="mb-6">
           <Breadcrumb.Item>Movies</Breadcrumb.Item>
           <Breadcrumb.Item>{movie?.title || "Movie Detail"}</Breadcrumb.Item>
@@ -527,7 +594,6 @@ const MovieDetail = () => {
                         </>
                       )}
 
-
                       {(movie?.status === "WAITING_FOR_UPLOADING" ||
                         movie?.status === "ACTIVE" ||
                         movie?.status === "ARCHIVED") && (
@@ -542,7 +608,7 @@ const MovieDetail = () => {
                           >
                             Activate
                           </Button>
-                          
+
                           <Button
                             type="primary"
                             danger
@@ -553,7 +619,7 @@ const MovieDetail = () => {
                             className="hover:bg-red-600 hover:border-red-600"
                           >
                             Deactivate
-                          </Button>                   
+                          </Button>
                         </>
                       )}
                     </div>
@@ -683,12 +749,10 @@ const MovieDetail = () => {
           confirmLoading={loading}
         >
           <h1>Are you sure to active this movie and publish on website?</h1>
-        </Modal> 
-             
+        </Modal>
       </Content>
     </Layout>
   )
 }
 
 export default MovieDetail
-
