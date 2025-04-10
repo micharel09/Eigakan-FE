@@ -484,7 +484,8 @@ const AdPurchaseSlotManagement = () => {
                                   <img
                                     src={slotDetail.adMedias[0].image}
                                     alt="Ad Media"
-                                    className="max-w-full h-auto max-h-[150px] rounded-lg border border-gray-200"
+                                    className="max-w-full h-auto rounded-lg border border-gray-200"
+                                    style={{ maxHeight: "150px" }}
                                     onError={(e) => {
                                       e.target.onerror = null;
                                       e.target.src =
@@ -641,7 +642,7 @@ const AdPurchaseSlotManagement = () => {
         <div className="p-6">
           <Card bordered={false} className="shadow-sm">
             <div className="flex justify-between items-center mb-6">
-              <Title level={2} className="m-0 text-gray-800">
+              <Title level={2} style={{ margin: 0, color: "#333" }}>
                 Ads Management
               </Title>
               <Button
@@ -699,8 +700,13 @@ const AdPurchaseSlotManagement = () => {
               setActiveTab("form");
             }}
             footer={null}
-            className="top-5 max-w-[1020px] w-full"
-            bodyProps={{ className: "p-6" }}
+            width={1020}
+            style={{
+              top: 20,
+            }}
+            bodyStyle={{
+              padding: 24,
+            }}
           >
             <Tabs activeKey={activeTab} onChange={setActiveTab}>
               <TabPane tab="Form" key="form">
@@ -856,7 +862,17 @@ const AdPurchaseSlotManagement = () => {
                     </div>
                   </div>
 
-                  <div className="h-[500px] overflow-hidden border border-opacity-10 border-black rounded-lg w-full aspect-video max-h-[500px]">
+                  <div
+                    className="h-[500px]"
+                    style={{
+                      overflow: "hidden",
+                      border: "1px solid rgba(0,0,0,0.1)",
+                      borderRadius: "8px",
+                      width: "100%",
+                      aspectRatio: "16/9",
+                      maxHeight: "500px",
+                    }}
+                  >
                     <WatchPagePreview
                       slotLocation={currentSlotLocation || "CENTER"}
                       image={imageUrl}
@@ -934,7 +950,8 @@ const AdPurchaseSlotManagement = () => {
             open={isAdMediaDetailModalVisible}
             onCancel={() => setIsAdMediaDetailModalVisible(false)}
             footer={null}
-            className="max-w-[720px] w-full mx-auto"
+            width={720}
+            centered
           >
             {selectedAdMediaDetail && (
               <div className="space-y-4">
@@ -950,7 +967,8 @@ const AdPurchaseSlotManagement = () => {
                           <img
                             src={selectedAdMediaDetail.image}
                             alt="Ad Media"
-                            className="w-full object-contain max-h-[280px]"
+                            className="w-full object-contain"
+                            style={{ maxHeight: "280px" }}
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src =
@@ -967,7 +985,8 @@ const AdPurchaseSlotManagement = () => {
                         <div className="rounded border border-gray-200 overflow-hidden">
                           <video
                             controls
-                            className="w-full object-contain max-h-[280px]"
+                            className="w-full object-contain"
+                            style={{ maxHeight: "280px" }}
                             onError={(e) => {
                               e.target.onerror = null;
                             }}
@@ -1116,8 +1135,13 @@ const AdPurchaseSlotManagement = () => {
               setActiveTab("form");
             }}
             footer={null}
-            className="top-5 max-w-[1020px] w-full"
-            bodyProps={{ className: "p-6" }}
+            width={1020}
+            style={{
+              top: 20,
+            }}
+            bodyStyle={{
+              padding: 24,
+            }}
           >
             <Tabs activeKey={activeTab} onChange={setActiveTab}>
               <TabPane tab="Form" key="form">
@@ -1275,7 +1299,17 @@ const AdPurchaseSlotManagement = () => {
                     </div>
                   </div>
 
-                  <div className="h-[500px] overflow-hidden border border-opacity-10 border-black rounded-lg w-full aspect-video max-h-[500px]">
+                  <div
+                    className="h-[500px]"
+                    style={{
+                      overflow: "hidden",
+                      border: "1px solid rgba(0,0,0,0.1)",
+                      borderRadius: "8px",
+                      width: "100%",
+                      aspectRatio: "16/9",
+                      maxHeight: "500px",
+                    }}
+                  >
                     <WatchPagePreview
                       slotLocation={currentSlotLocation || "CENTER"}
                       image={imageUrl}
