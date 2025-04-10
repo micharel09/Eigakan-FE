@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Card, Input, Row, Col, Statistic, Typography } from "antd";
+import { Table, Card, Input, Row, Col, Statistic, Typography } from "antd";
 import { SearchOutlined, DollarOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { Helmet } from "react-helmet";
-import UserApi from "../../../apis/User/user";
 import { notification } from "antd";
 
 const { Title, Text } = Typography;
@@ -13,10 +12,11 @@ const SubscriptionOrderManagement = () => {
   const [data, setData] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [totalOrders, setTotalOrders] = useState(100);
+  const [totalOrders, setTotalOrders] = useState(0);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 5 });
   const [totalAmount, setTotalAmount] = useState(0);
   const [totalActiveAmount, setTotalActiveAmount] = useState(0);
+  const [activeSubscriptionCount, setActiveSubscriptionCount] = useState(0);
 
   const fetchAllOrders = async () => {
     try {
@@ -33,41 +33,25 @@ const SubscriptionOrderManagement = () => {
 
       if (response.data.success) {
         const orderData = response.data.data.subscriptionPurchase || [];
+        const total = response.data.data.total || 0;
+        const totalEarnings = response.data.data.totalEarnings || 0;
+        const activeCount = response.data.data.activeSubscriptionCount || 0;
 
-        const ordersWithUserDetails = await Promise.all(
-          orderData.map(async (order) => {
-            try {
-              const userResponse = await UserApi.getUserDetail(order.userId);
-              return {
-                ...order,
-                key: order.id,
-                userName: userResponse.data.fullName || "Unknown User",
-                userEmail: userResponse.data.email || "N/A",
-              };
-            } catch (error) {
-              console.error(
-                `Error fetching user details for ID ${order.userId}:`,
-                error
-              );
-              return {
-                ...order,
-                key: order.id,
-                userName: "Unknown User",
-                userEmail: "N/A",
-              };
-            }
-          })
-        );
-
-        setAllOrders(ordersWithUserDetails);
-        setData(ordersWithUserDetails);
-        setPagination((prev) => ({
-          ...prev,
-          total: ordersWithUserDetails.length,
+        // Sử dụng dữ liệu từ API mà không cần xử lý thêm
+        const formattedOrders = orderData.map((order) => ({
+          ...order,
+          key: order.id,
         }));
 
-        // Calculate total amounts
-        calculateTotalAmounts(ordersWithUserDetails);
+        setAllOrders(formattedOrders);
+        setData(formattedOrders);
+        setTotalOrders(total);
+        setTotalAmount(totalEarnings);
+        setActiveSubscriptionCount(activeCount);
+        setPagination((prev) => ({
+          ...prev,
+          total: total,
+        }));
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -75,19 +59,6 @@ const SubscriptionOrderManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const calculateTotalAmounts = (orders) => {
-    const total = orders.reduce(
-      (sum, order) => sum + (order.totalPrice || 0),
-      0
-    );
-    const activeTotal = orders
-      .filter((order) => order.status === "Active")
-      .reduce((sum, order) => sum + (order.totalPrice || 0), 0);
-
-    setTotalAmount(total);
-    setTotalActiveAmount(activeTotal);
   };
 
   const fetchOrders = async (page = 1, pageSize = 5) => {
@@ -106,39 +77,25 @@ const SubscriptionOrderManagement = () => {
       if (response?.data?.success) {
         const orderData = response?.data?.data?.subscriptionPurchase ?? [];
         const total = response?.data?.data?.total ?? 0;
+        const totalEarnings = response?.data?.data?.totalEarnings ?? 0;
+        const activeCount = response?.data?.data?.activeSubscriptionCount ?? 0;
 
-        const ordersWithUserDetails = await Promise.all(
-          orderData.map(async (order) => {
-            try {
-              const userResponse = await UserApi.getUserDetail(order.userId);
-              return {
-                ...order,
-                key: order.id,
-                userName: userResponse?.data?.fullName ?? "Unknown User",
-                userEmail: userResponse?.data?.email ?? "N/A",
-              };
-            } catch (error) {
-              console.error(
-                `Error fetching user details for ID ${order.userId}:`,
-                error
-              );
-              return {
-                ...order,
-                key: order.id,
-                userName: "Unknown User",
-                userEmail: "N/A",
-              };
-            }
-          })
-        );
+        // Sử dụng dữ liệu từ API mà không cần xử lý thêm
+        const formattedOrders = orderData.map((order) => ({
+          ...order,
+          key: order.id,
+        }));
 
-        setData(ordersWithUserDetails);
+        setData(formattedOrders);
+        setTotalOrders(total);
+        setTotalAmount(totalEarnings);
+        setActiveSubscriptionCount(activeCount);
         setPagination((prev) => ({
           ...prev,
           current: page,
           pageSize: pageSize,
+          total: total,
         }));
-        setTotalOrders(total);
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -162,8 +119,7 @@ const SubscriptionOrderManagement = () => {
         (order) =>
           order.id?.toString().includes(searchTerm) ||
           order.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.packageId?.toString().includes(searchTerm)
+          order.subscriptionId?.toString().includes(searchTerm)
       );
       setData(filteredResults);
       setPagination((prev) => ({
@@ -192,14 +148,9 @@ const SubscriptionOrderManagement = () => {
     },
     {
       title: "User",
-      key: "user",
-      width: "20%",
-      render: (record) => (
-        <div>
-          <div className="font-medium">{record.userName}</div>
-          <div className="text-gray-500 text-sm">{record.userEmail}</div>
-        </div>
-      ),
+      dataIndex: "userName",
+      key: "userName",
+      width: "15%",
     },
     {
       title: "Subscription ID",
@@ -245,6 +196,12 @@ const SubscriptionOrderManagement = () => {
         </span>
       ),
     },
+    {
+      title: "Payment Method",
+      dataIndex: "paymentMethod",
+      key: "paymentMethod",
+      width: "10%",
+    },
   ];
 
   return (
@@ -270,8 +227,8 @@ const SubscriptionOrderManagement = () => {
             <Col xs={24} md={12}>
               <Card className="border-l-4 border-l-green-500">
                 <Statistic
-                  title="Total Active Orders Amount"
-                  value={loading ? "-" : formatVND(totalActiveAmount)}
+                  title="Active Subscriptions"
+                  value={loading ? "-" : activeSubscriptionCount}
                   prefix={<DollarOutlined className="text-green-500" />}
                   precision={0}
                   loading={loading}
@@ -283,7 +240,7 @@ const SubscriptionOrderManagement = () => {
 
         <div className="flex justify-center mb-6">
           <Input
-            placeholder="Search by Transaction ID, User name, Email or Package ID..."
+            placeholder="Search by Transaction ID, User name, or Subscription ID..."
             prefix={<SearchOutlined className="text-gray-400" />}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="min-w-[400px]"
@@ -299,7 +256,7 @@ const SubscriptionOrderManagement = () => {
             pageSize: pagination.pageSize,
             showSizeChanger: true,
             pageSizeOptions: ["5", "10", "20", "50"],
-            total: Math.min(totalOrders, pagination.pageSize * 6),
+            total: totalOrders,
             showTotal: (total) => `Total ${total} orders`,
             onChange: (page, pageSize) => {
               if (!searchTerm) {
