@@ -7,17 +7,11 @@ import authService from "../../apis/Auth/auth";
 import Navbar from "../../components/Header/Navbar";
 import { useAuth } from "../../hooks";
 
-/**
- * Initial form state
- */
 const initialFormState = {
   email: "",
   password: "",
 };
 
-/**
- * Quick login credentials for different roles
- */
 const QUICK_LOGIN_CREDENTIALS = {
   ADMIN: { email: "admin@gmail.com", password: "2" },
   VIPMEMBER: { email: "user5@gmail.com", password: "123" },
@@ -27,10 +21,6 @@ const QUICK_LOGIN_CREDENTIALS = {
   ADVERTISER: { email: "minhquan.riotgs@gmail.com", password: "123" },
 };
 
-/**
- * Login Page Component
- * Handles user authentication functionality
- */
 const LoginPage = () => {
   // Form state
   const [formData, setFormData] = useState(initialFormState);
@@ -55,10 +45,6 @@ const LoginPage = () => {
     }));
   };
 
-  /**
-   * Handle successful login
-   * @param {Object} response - Login response from API
-   */
   const handleLoginSuccess = (response) => {
     const { data, message } = response;
 
@@ -70,7 +56,6 @@ const LoginPage = () => {
     localStorage.setItem("role", data.roleName);
     localStorage.setItem("userId", data.userId);
 
-    // Update auth state
     setUser(data);
 
     toast.success("Login successful!");
@@ -103,10 +88,6 @@ const LoginPage = () => {
     console.error("Login error:", error);
   };
 
-  /**
-   * Handle form submission
-   * @param {Object} e - Event object
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");

@@ -25,6 +25,14 @@ function PaymentSuccess() {
       if (apiCalled.current) return;
 
       try {
+        // Kiểm tra nếu người dùng hủy thanh toán từ VNPAY
+        const vnpResponseCode = searchParams.get("vnp_ResponseCode");
+        if (vnpResponseCode === "24") {
+          // Mã 24 là mã hủy giao dịch từ VNPAY
+          navigate("/subscription-plans", { replace: true });
+          return;
+        }
+
         apiCalled.current = true;
         const queryString = Array.from(searchParams.entries())
           .map(([key, value]) => `${key}=${value}`)
@@ -53,7 +61,7 @@ function PaymentSuccess() {
     };
 
     verifyPayment();
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("en-US", {
