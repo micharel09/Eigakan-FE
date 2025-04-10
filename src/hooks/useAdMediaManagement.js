@@ -103,6 +103,7 @@ const useAdMediaManagement = () => {
       const { onSuccess, onError } = options;
       
       try {
+        console.log("Sending update request with data:", mediaData);
         const response = await adMediaService.updateAdMedia(mediaId, mediaData);
 
         if (response.success) {
@@ -116,9 +117,10 @@ const useAdMediaManagement = () => {
           throw new Error(response.message || "Failed to update ad media");
         }
       } catch (error) {
+        console.error("Error updating ad media:", error);
         notification.error({
           message: "Error",
-          description: error.message || "Failed to update ad media",
+          description: error.message || "Failed to update ad media. Please check if you've filled all required fields correctly.",
         });
         if (onError) onError(error);
         return null;
