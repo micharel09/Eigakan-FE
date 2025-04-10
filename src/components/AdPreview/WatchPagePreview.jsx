@@ -27,11 +27,11 @@ const WatchPagePreview = ({
   const [hovered, setHovered] = useState(false);
   const [canClose, setCanClose] = useState(false);
 
-  // Giả lập video player với hình ảnh tĩnh (Joker movie screenshot)
+  // Mock video player with static image (Joker movie screenshot)
   const mockMovieFrame =
     "https://i.pinimg.com/736x/a4/8c/3e/a48c3eddd75956b8cdf9f6b465df605d.jpg";
 
-  // Tạo ad object
+  // Create ad object
   const adObject = {
     image,
     video,
@@ -40,7 +40,7 @@ const WatchPagePreview = ({
     id: "preview-ad-id",
   };
 
-  // Hiệu ứng đếm ngược cho quảng cáo
+  // Countdown effect for advertisement
   useEffect(() => {
     let timer;
     if (showAd && countDown > 0) {
@@ -347,7 +347,7 @@ const WatchPagePreview = ({
         </div>
       )}
 
-      {/* Main Content - Giữ kích thước cố định không phụ thuộc vào sidebar */}
+      {/* Main Content - Keep fixed size independent of sidebar */}
       <div className="flex bg-black absolute inset-0 pt-[40px]">
         {/* Left Sidebar */}
         <div
@@ -358,7 +358,7 @@ const WatchPagePreview = ({
           {slotLocation === "SIDEBAR-LEFT" && <SidebarAd />}
         </div>
 
-        {/* Video Area - Luôn giữ vị trí và kích thước cố định */}
+        {/* Video Area - Always maintain fixed position and size */}
         <div className="flex-1 flex flex-col justify-center items-center relative overflow-hidden">
           <div className="relative w-full max-w-[600px] aspect-video mx-auto">
             {/* Video Content */}
@@ -456,7 +456,7 @@ const WatchPagePreview = ({
         </div>
       )}
 
-      {/* Movie Info Button - Đảm bảo hiển thị trên cùng so với footer ad */}
+      {/* Movie Info Button - Ensure it appears above footer ad */}
       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 z-20">
         <div className="w-20 h-5 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] rounded-t-lg flex items-center justify-center cursor-pointer">
           <span className="text-white text-[10px]">Movie Info</span>
