@@ -58,7 +58,6 @@ const { TextArea } = Input;
 const { Panel } = Collapse;
 const { TabPane } = Tabs;
 
-// Custom theme with brand color
 const theme = {
   token: {
     colorPrimary: "#FF009F",
@@ -66,108 +65,6 @@ const theme = {
     colorLinkHover: "#d1007f",
   },
 };
-
-const statusStyles = `
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 12px;
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.5;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.02);
-  }
-  
-  .status-active {
-    background-color: #f6ffed;
-    border: 1px solid #b7eb8f;
-    color: #52c41a;
-  }
-  
-  .status-rejected {
-    background-color: #fff2f0;
-    border: 1px solid #ffccc7;
-    color: #ff4d4f;
-  }
-  
-  .status-pending {
-    background-color: #fffbe6;
-    border: 1px solid #ffe58f;
-    color: #faad14;
-  }
-  
-  .status-expired {
-    background-color: #f5f5f5;
-    border: 1px solid #d9d9d9;
-    color: #8c8c8c;
-  }
-  
-  .status-icon {
-    margin-right: 6px;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-  }
-  
-  .status-text {
-    text-transform: capitalize;
-  }
-  
-  .detail-card {
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-    overflow: hidden;
-  }
-  
-  .detail-header {
-    padding: 16px;
-    border-bottom: 1px solid #f0f0f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .detail-content {
-    padding: 16px;
-  }
-  
-  .detail-section {
-    margin-bottom: 20px;
-  }
-  
-  .detail-section:last-child {
-    margin-bottom: 0;
-  }
-  
-  .detail-label {
-    font-size: 13px;
-    color: #8c8c8c;
-    margin-bottom: 8px;
-  }
-  
-  .detail-value {
-    background-color: #fafafa;
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid #f0f0f0;
-  }
-  
-  .detail-image {
-    width: 100%;
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid #f0f0f0;
-  }
-  
-  .rejection-box {
-    background-color: #fff1f0;
-    border: 1px solid #ffa39e;
-    border-radius: 6px;
-    padding: 12px;
-    color: #cf1322;
-  }
-`;
 
 const AdPurchaseSlotManagement = () => {
   // Sử dụng custom hooks
@@ -272,6 +169,9 @@ const AdPurchaseSlotManagement = () => {
       adPurchaseSlotId: selectedSlotId,
     };
 
+    // Ensure image URL is included
+    mediaData.image = values.image || imageUrl;
+
     // Only include video for CENTER slot location
     if (currentSlotLocation === "CENTER") {
       mediaData.video = values.video || videoUrl;
@@ -304,6 +204,9 @@ const AdPurchaseSlotManagement = () => {
       ...values,
     };
 
+    // Ensure image URL is included
+    mediaData.image = values.image || imageUrl;
+
     // Only include video for CENTER slot location
     if (currentSlotLocation === "CENTER") {
       mediaData.video = values.video || videoUrl;
@@ -311,12 +214,18 @@ const AdPurchaseSlotManagement = () => {
       mediaData.video = null;
     }
 
+    console.log("Updating ad media with data:", mediaData);
+
     await updateAdMedia(selectedAdMediaId, mediaData, {
       onSuccess: () => {
         setIsUpdateModalVisible(false);
         resetUpload();
         updateForm.resetFields();
-        fetchAdPurchaseSlots();
+
+        // Refresh data
+        setTimeout(() => {
+          fetchAdPurchaseSlots();
+        }, 500);
       },
     });
   };
@@ -351,46 +260,6 @@ const AdPurchaseSlotManagement = () => {
       title: "Ad Slot Details",
       key: "details",
       render: (_, record) => {
-        const renderActionButton = () => {
-          // Nếu đã có ad media thì hiển thị View Ad
-          if (record?.adMedias?.length > 0) {
-            return (
-              <Button
-                type="link"
-                className="flex items-center p-0 m-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleViewAdMediaDetails(record.adMedias[0].id);
-                }}
-                icon={<FileImageOutlined />}
-              >
-                <span>View Ad</span>
-              </Button>
-            );
-          }
-
-          // Kiểm tra trạng thái record trước khi kiểm tra canCreateAd
-          // Đảm bảo chỉ hiển thị nút Create Ad cho slot có trạng thái ACTIVE
-          if (record?.status === "ACTIVE" && canCreateAd(record)) {
-            return (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCreateAdClick(record);
-                }}
-                size="small"
-              >
-                Create Ad
-              </Button>
-            );
-          }
-
-          return null;
-        };
-
-        // Sử dụng slotDetail
         const slotDetail = slotDetails[record?.id];
         const viewCount = slotDetail?.adMedias?.[0]?.id
           ? adMediaCounts[slotDetail.adMedias[0].id] || 0
@@ -433,19 +302,40 @@ const AdPurchaseSlotManagement = () => {
                           <span>{viewCount} views</span>
                         </div>
                       )}
-                      <div
-                        className={`status-badge status-${(
-                          record?.status || "pending"
-                        ).toLowerCase()}`}
-                      >
-                        <span className="status-icon">
-                          {getIconForStatus(record?.status || "pending")}
-                        </span>
-                        <span className="status-text">
-                          {record?.status || "Pending"}
-                        </span>
+                      <div className="flex items-center gap-2 bg-gray-50 px-1.5 py-1 rounded border border-gray-200">
+                        {renderStatusBadge(record?.status, "Slot")}
+
+                        {/* Hiển thị trạng thái của Ad Media nếu có */}
+                        {record?.adMedias?.length > 0 &&
+                          renderStatusBadge(record.adMedias[0].status, "Ad")}
                       </div>
-                      {renderActionButton()}
+
+                      {/* Nút hành động */}
+                      {record?.adMedias?.length > 0 ? (
+                        <Button
+                          type="link"
+                          className="flex items-center p-0 m-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewAdMediaDetails(record.adMedias[0].id);
+                          }}
+                          icon={<FileImageOutlined />}
+                        >
+                          <span>View Ad</span>
+                        </Button>
+                      ) : record?.status === "ACTIVE" && canCreateAd(record) ? (
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCreateAdClick(record);
+                          }}
+                          size="small"
+                        >
+                          Create Ad
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 }
@@ -479,13 +369,7 @@ const AdPurchaseSlotManagement = () => {
                             {slotDetail?.adPackage?.duration} month
                           </Descriptions.Item>
                           <Descriptions.Item label="Package Status">
-                            <Tag
-                              color={getTagColorForStatus(
-                                slotDetail?.adPackage?.status
-                              )}
-                            >
-                              {slotDetail?.adPackage?.status}
-                            </Tag>
+                            {renderStatusBadge(slotDetail?.adPackage?.status)}
                           </Descriptions.Item>
                         </Descriptions>
                       </Panel>
@@ -510,9 +394,10 @@ const AdPurchaseSlotManagement = () => {
                             )}
                           </Descriptions.Item>
                           <Descriptions.Item label="Slot Location">
-                            <Tag color="blue">
-                              {slotDetail?.adSlotTime?.adSlot?.slotLocation}
-                            </Tag>
+                            {renderColoredBadge(
+                              slotDetail?.adSlotTime?.adSlot?.slotLocation,
+                              "blue"
+                            )}
                           </Descriptions.Item>
                           <Descriptions.Item label="Slot Price">
                             {formatCurrency(
@@ -520,13 +405,9 @@ const AdPurchaseSlotManagement = () => {
                             )}
                           </Descriptions.Item>
                           <Descriptions.Item label="Slot Status">
-                            <Tag
-                              color={getTagColorForStatus(
-                                slotDetail?.adSlotTime?.adSlot?.status
-                              )}
-                            >
-                              {slotDetail?.adSlotTime?.adSlot?.status}
-                            </Tag>
+                            {renderStatusBadge(
+                              slotDetail?.adSlotTime?.adSlot?.status
+                            )}
                           </Descriptions.Item>
                         </Descriptions>
                       </Panel>
@@ -569,13 +450,9 @@ const AdPurchaseSlotManagement = () => {
                             )}
                           </Descriptions.Item>
                           <Descriptions.Item label="Time Range Status">
-                            <Tag
-                              color={getTagColorForStatus(
-                                slotDetail?.adSlotTime?.adSlotTimeRange?.status
-                              )}
-                            >
-                              {slotDetail?.adSlotTime?.adSlotTimeRange?.status}
-                            </Tag>
+                            {renderStatusBadge(
+                              slotDetail?.adSlotTime?.adSlotTimeRange?.status
+                            )}
                           </Descriptions.Item>
                         </Descriptions>
                       </Panel>
@@ -590,25 +467,33 @@ const AdPurchaseSlotManagement = () => {
                                 <FileImageOutlined className="mr-2 text-purple-500" />
                                 <span className="font-medium">Ad Media</span>
                               </div>
-                              <div
-                                className={`status-badge status-${slotDetail.adMedias[0].status.toLowerCase()}`}
-                              >
-                                {slotDetail.adMedias[0].status}
+                              <div className="flex items-center gap-2 bg-gray-50 px-1.5 py-1 rounded border border-gray-200">
+                                {renderStatusBadge(
+                                  slotDetail.adMedias[0].status,
+                                  "Status"
+                                )}
                               </div>
                             </div>
                           }
                         >
                           <div className="space-y-4">
-                            {slotDetail.adMedias[0].image && (
-                              <div>
-                                <img
-                                  src={slotDetail.adMedias[0].image}
-                                  alt="Ad Media"
-                                  className="max-w-full h-auto rounded-lg border border-gray-200"
-                                  style={{ maxHeight: "150px" }}
-                                />
-                              </div>
-                            )}
+                            {slotDetail.adMedias[0].image &&
+                              slotDetail.adMedias[0].image !== "string" &&
+                              slotDetail.adMedias[0].image !== "null" && (
+                                <div>
+                                  <img
+                                    src={slotDetail.adMedias[0].image}
+                                    alt="Ad Media"
+                                    className="max-w-full h-auto rounded-lg border border-gray-200"
+                                    style={{ maxHeight: "150px" }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src =
+                                        "https://placehold.co/400x300?text=Invalid+Image";
+                                    }}
+                                  />
+                                </div>
+                              )}
                             {slotDetail.adMedias[0].content && (
                               <div className="p-3 bg-white rounded-lg border border-gray-200">
                                 {slotDetail.adMedias[0].content}
@@ -666,21 +551,6 @@ const AdPurchaseSlotManagement = () => {
     }
   };
 
-  const getTagColorForStatus = (status) => {
-    switch (status) {
-      case "ACTIVE":
-        return "success";
-      case "REJECTED":
-        return "error";
-      case "PENDING":
-        return "warning";
-      case "EXPIRED":
-        return "default";
-      default:
-        return "default";
-    }
-  };
-
   const getIconForStatus = (status) => {
     switch (status) {
       case "ACTIVE":
@@ -696,9 +566,78 @@ const AdPurchaseSlotManagement = () => {
     }
   };
 
+  // Hàm render status badge - giúp tránh lặp code
+  const renderStatusBadge = (status, label = null) => {
+    const statusLower = (status || "pending").toLowerCase();
+    const bgColorClass =
+      statusLower === "active"
+        ? "bg-green-50 text-green-600 border border-green-200"
+        : statusLower === "rejected"
+        ? "bg-red-50 text-red-600 border border-red-200"
+        : statusLower === "pending"
+        ? "bg-yellow-50 text-yellow-600 border border-yellow-200"
+        : "bg-gray-100 text-gray-600 border border-gray-200";
+
+    return (
+      <div className="flex items-center gap-1">
+        {label && (
+          <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+            {label}
+          </div>
+        )}
+        <div
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all ${bgColorClass}`}
+        >
+          <span className="flex items-center mr-1 text-[10px]">
+            {getIconForStatus(status)}
+          </span>
+          <span className="capitalize tracking-wide">
+            {status || "Pending"}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // Hàm render badge màu - dùng cho các vị trí, số lượt xem, v.v.
+  const renderColoredBadge = (content, color = "blue") => {
+    const colorClass =
+      color === "blue"
+        ? "bg-blue-50 text-blue-600 border border-blue-200"
+        : color === "pink"
+        ? "bg-pink-50 text-pink-600 border border-pink-200"
+        : color === "purple"
+        ? "bg-purple-50 text-purple-600 border border-purple-200"
+        : "bg-gray-100 text-gray-600 border border-gray-200";
+
+    return (
+      <div
+        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}
+      >
+        <span className="capitalize tracking-wide">{content}</span>
+      </div>
+    );
+  };
+
+  // Chuẩn bị form cho việc cập nhật ad media
+  useEffect(() => {
+    if (selectedAdMediaDetail && isUpdateModalVisible) {
+      updateForm.setFieldsValue({
+        content: selectedAdMediaDetail.content,
+        image: selectedAdMediaDetail.image,
+        video: selectedAdMediaDetail.video,
+        url: selectedAdMediaDetail.url,
+      });
+
+      // Cập nhật URL ảnh và video cho preview
+      setImageUrl(selectedAdMediaDetail.image || "");
+      setVideoUrl(selectedAdMediaDetail.video || "");
+      setCurrentSlotLocation(selectedAdMediaDetail.slotLocation);
+    }
+  }, [selectedAdMediaDetail, isUpdateModalVisible, updateForm]);
+
   return (
     <>
-      <style>{statusStyles}</style>
       <ConfigProvider theme={theme}>
         <div className="p-6">
           <Card bordered={false} className="shadow-sm">
@@ -913,11 +852,12 @@ const AdPurchaseSlotManagement = () => {
                 <div className="flex flex-col">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center">
-                      <Tag color="#FF009F">
-                        {currentSlotLocation || "Unknown"} POSITION
-                      </Tag>
+                      {renderColoredBadge(
+                        `${currentSlotLocation || "Unknown"} POSITION`,
+                        "pink"
+                      )}
                       <span className="text-gray-500 ml-2 text-sm">
-                        Xem trước quảng cáo trên Watch Page
+                        Preview ad on Watch Page
                       </span>
                     </div>
                   </div>
@@ -944,10 +884,10 @@ const AdPurchaseSlotManagement = () => {
 
                   <div className="mt-4 flex justify-end space-x-2">
                     <Button onClick={() => setActiveTab("form")}>
-                      Quay lại form
+                      Back to form
                     </Button>
                     <Button type="primary" onClick={() => form.submit()}>
-                      Tạo quảng cáo
+                      Create Ad
                     </Button>
                   </div>
                 </div>
@@ -1021,7 +961,8 @@ const AdPurchaseSlotManagement = () => {
                   <div className="col-span-2">
                     {/* Image display */}
                     {selectedAdMediaDetail.image &&
-                      selectedAdMediaDetail.image !== "string" && (
+                      selectedAdMediaDetail.image !== "string" &&
+                      selectedAdMediaDetail.image !== "null" && (
                         <div className="rounded border border-gray-200 overflow-hidden">
                           <img
                             src={selectedAdMediaDetail.image}
@@ -1078,13 +1019,7 @@ const AdPurchaseSlotManagement = () => {
                       layout="vertical"
                     >
                       <Descriptions.Item label="Status">
-                        <Tag
-                          color={getTagColorForStatus(
-                            selectedAdMediaDetail.status
-                          )}
-                        >
-                          {selectedAdMediaDetail.status}
-                        </Tag>
+                        {renderStatusBadge(selectedAdMediaDetail.status)}
                       </Descriptions.Item>
                       <Descriptions.Item label="View Count">
                         <div className="flex items-center gap-1">
@@ -1171,9 +1106,9 @@ const AdPurchaseSlotManagement = () => {
                               title="Views"
                               dataIndex="totalViews"
                               key="totalViews"
-                              render={(views) => (
-                                <Tag color="blue">{views}</Tag>
-                              )}
+                              render={(views) =>
+                                renderColoredBadge(views, "blue")
+                              }
                             />
                           </Table>
                         ) : (
@@ -1354,11 +1289,12 @@ const AdPurchaseSlotManagement = () => {
                 <div className="flex flex-col">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center">
-                      <Tag color="#FF009F">
-                        {currentSlotLocation || "Unknown"} POSITION
-                      </Tag>
+                      {renderColoredBadge(
+                        `${currentSlotLocation || "Unknown"} POSITION`,
+                        "pink"
+                      )}
                       <span className="text-gray-500 ml-2 text-sm">
-                        Xem trước quảng cáo trên Watch Page
+                        Preview ad on Watch Page
                       </span>
                     </div>
                   </div>
@@ -1385,10 +1321,10 @@ const AdPurchaseSlotManagement = () => {
 
                   <div className="mt-4 flex justify-end space-x-2">
                     <Button onClick={() => setActiveTab("form")}>
-                      Quay lại form
+                      Back to form
                     </Button>
                     <Button type="primary" onClick={() => updateForm.submit()}>
-                      Cập nhật quảng cáo
+                      Update Ad
                     </Button>
                   </div>
                 </div>
