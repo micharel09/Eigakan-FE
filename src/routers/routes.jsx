@@ -65,7 +65,7 @@ import PaymentPolicyManagement from "../pages/Admin/PaymentPolicy/PaymentPolicyM
 import AdHistory from "../pages/Admin/Ad/AdHistory.jsx";
 import MovieEarning from "../pages/Admin/Movie/MovieEarning.jsx";
 import UserEarning from "../pages/Admin/User/UserEarning.jsx";
-import ManagerUserEarning from "../pages/Manager/UserEarning/ManagerUserEarning.jsx";
+import PublisherUserEarning from "../pages/Publisher/UserEarning/PublisherUserEarning.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -405,17 +405,6 @@ const routes = [
   },
 
   {
-    path: "/manager/user-earning",
-    element: (
-      <PrivateRoute requiredRole="MANAGER">
-        <ManagerUserEarning />
-      </PrivateRoute>
-    ),
-    layout: "ManagerLayout",
-    private: true,
-  },
-
-  {
     path: "/manager/subscriptions",
     element: (
       <PrivateRoute requiredRole="MANAGER">
@@ -536,6 +525,16 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="PUBLISHER">
         <UpdateMoviePublisher />
+      </PrivateRoute>
+    ),
+    layout: "PublisherLayout",
+  },
+
+  {
+    path: "/publisher/userearning",
+    element: (
+      <PrivateRoute requiredRole="PUBLISHER">
+        <PublisherUserEarning />
       </PrivateRoute>
     ),
     layout: "PublisherLayout",

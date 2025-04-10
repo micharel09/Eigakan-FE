@@ -21,7 +21,7 @@ const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-const ManagerUserEarning = () => {
+const PublisherUserEarning = () => {
   const [userEarnings, setUserEarnings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -39,59 +39,64 @@ const ManagerUserEarning = () => {
   const fetchUserEarnings = async () => {
     try {
       setLoading(true);
-      const response = await userEarningService.getUserEarningByLogin(
-        yearFilter,
-        monthFilter,
-        dayFilter,
-        dayOfWeekFilter
-      );
+      const response = await userEarningService.getUserEarningByLogin();
 
-      if (response && response.success) {
-        const formattedData = response.data.map((item) => ({
+      if (!response || !response.data) {
+        throw new Error("No response received from server");
+      }
+
+      const { data } = response;
+
+      if (data.total > 0 && Array.isArray(data.userEarnings)) {
+        const formattedData = data.userEarnings.map((item) => ({
           ...item,
           key: item.id,
+          totalEarnings: Number(item.totalEarnings || 0),
+          webEarnings: Number(item.webEarnings || 0),
+          finalEarnings: Number(item.finalEarnings || 0),
+          totalView: Number(item.totalView || 0),
         }));
 
         setUserEarnings(formattedData);
+        setStatistics({
+          totalEarnings: Number(data.totalEarnings || 0),
+          finalEarnings: Number(data.finalEarnings || 0),
+          totalViews: Number(data.totalViews || data.total || 0),
+        });
+      } else {
+        setUserEarnings([]);
+        setStatistics({
+          totalEarnings: 0,
+          finalEarnings: 0,
+          totalViews: 0,
+        });
 
-        // Calculate total earnings and views
-        calculateStatistics(formattedData);
+        if (data.total === 0) {
+          notification.info({
+            message: "No Data",
+            description: "No earnings data found for the selected filters",
+          });
+        }
       }
     } catch (error) {
       notification.error({
         message: "Error",
-        description: error.message || "Could not load user earnings data",
+        description: error.message || "Could not load earnings data",
       });
       setUserEarnings([]);
+      setStatistics({
+        totalEarnings: 0,
+        finalEarnings: 0,
+        totalViews: 0,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateStatistics = (data) => {
-    const totalEarnings = data.reduce(
-      (sum, item) => sum + (item.totalEarnings || 0),
-      0
-    );
-    const finalEarnings = data.reduce(
-      (sum, item) => sum + (item.finalEarnings || 0),
-      0
-    );
-    const totalViews = data.reduce(
-      (sum, item) => sum + (item.totalView || 0),
-      0
-    );
-
-    setStatistics({
-      totalEarnings,
-      finalEarnings,
-      totalViews,
-    });
-  };
-
   useEffect(() => {
     fetchUserEarnings();
-  }, [yearFilter, monthFilter, dayFilter, dayOfWeekFilter]);
+  }, []);
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -112,8 +117,68 @@ const ManagerUserEarning = () => {
           dayjs(item.endWeek).isSame(dateRange[1], "day"))
       : true;
 
-    return matchesSearch && matchesDate;
+    const matchesYear =
+      yearFilter !== 0
+        ? dayjs(item.startWeek).year() === yearFilter ||
+          dayjs(item.endWeek).year() === yearFilter
+        : true;
+
+    const matchesMonth =
+      monthFilter !== 0
+        ? dayjs(item.startWeek).month() + 1 === monthFilter ||
+          dayjs(item.endWeek).month() + 1 === monthFilter
+        : true;
+
+    const matchesDay =
+      dayFilter !== 0
+        ? dayjs(item.startWeek).date() === dayFilter ||
+          dayjs(item.endWeek).date() === dayFilter
+        : true;
+
+    const matchesDayOfWeek =
+      dayOfWeekFilter !== 0
+        ? dayjs(item.startWeek).day() === dayOfWeekFilter % 7 ||
+          dayjs(item.endWeek).day() === dayOfWeekFilter % 7
+        : true;
+
+    return (
+      matchesSearch &&
+      matchesDate &&
+      matchesYear &&
+      matchesMonth &&
+      matchesDay &&
+      matchesDayOfWeek
+    );
   });
+
+  useEffect(() => {
+    if (filteredData.length > 0) {
+      const totalEarnings = filteredData.reduce(
+        (sum, item) => sum + (item.totalEarnings || 0),
+        0
+      );
+      const finalEarnings = filteredData.reduce(
+        (sum, item) => sum + (item.finalEarnings || 0),
+        0
+      );
+      const totalViews = filteredData.reduce(
+        (sum, item) => sum + (item.totalView || 0),
+        0
+      );
+
+      setStatistics({
+        totalEarnings,
+        finalEarnings,
+        totalViews,
+      });
+    } else if (userEarnings.length > 0 && filteredData.length === 0) {
+      setStatistics({
+        totalEarnings: 0,
+        finalEarnings: 0,
+        totalViews: 0,
+      });
+    }
+  }, [filteredData, userEarnings]);
 
   const columns = [
     {
@@ -121,10 +186,10 @@ const ManagerUserEarning = () => {
       dataIndex: "id",
       key: "id",
       ellipsis: true,
-      width: "15%",
+      width: "10%",
     },
     {
-      title: "UserName",
+      title: "User Name",
       dataIndex: "userName",
       key: "userName",
       ellipsis: true,
@@ -135,41 +200,42 @@ const ManagerUserEarning = () => {
       dataIndex: "startWeek",
       key: "startWeek",
       render: (date) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
-      width: "10%",
+      width: "12%",
     },
     {
       title: "End Week",
       dataIndex: "endWeek",
       key: "endWeek",
       render: (date) => (date ? dayjs(date).format("DD/MM/YYYY") : "-"),
-      width: "10%",
+      width: "12%",
     },
     {
       title: "Total View",
       dataIndex: "totalView",
       key: "totalView",
       width: "10%",
+      render: (value) => value?.toLocaleString() || 0,
     },
     {
       title: "Total Earnings",
       dataIndex: "totalEarnings",
       key: "totalEarnings",
       render: (earnings) => formatVND(earnings || 0),
-      width: "10%",
+      width: "12%",
     },
     {
       title: "Web Earnings",
       dataIndex: "webEarnings",
       key: "webEarnings",
       render: (earnings) => formatVND(earnings || 0),
-      width: "10%",
+      width: "12%",
     },
     {
       title: "Final Earnings",
       dataIndex: "finalEarnings",
       key: "finalEarnings",
       render: (earnings) => formatVND(earnings || 0),
-      width: "10%",
+      width: "12%",
     },
     {
       title: "Payment Status",
@@ -188,7 +254,7 @@ const ManagerUserEarning = () => {
   return (
     <div className="p-6">
       <Helmet>
-        <title>User Earnings</title>
+        <title>Publisher Earnings</title>
       </Helmet>
 
       <Card className="mb-4">
@@ -198,7 +264,7 @@ const ManagerUserEarning = () => {
               My Earnings
             </Title>
             <Text type="secondary">
-              Manage your earnings across the platform
+              Track your earnings from published movies
             </Text>
           </div>
         </div>
@@ -310,7 +376,7 @@ const ManagerUserEarning = () => {
         <Row gutter={[16, 16]} className="mb-4">
           <Col xs={24} md={12}>
             <Input
-              placeholder="Search by name..."
+              placeholder="Search by user name..."
               prefix={<SearchOutlined />}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
@@ -338,4 +404,4 @@ const ManagerUserEarning = () => {
   );
 };
 
-export default ManagerUserEarning;
+export default PublisherUserEarning;

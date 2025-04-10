@@ -45,28 +45,23 @@ export const useVideo = ({
   const loadPlayerScript = useCallback(() => {
     return new Promise((resolve, reject) => {
       if (typeof window.playerjs !== "undefined") {
-        console.log("Player.js already loaded");
         resolve();
         return;
       }
       
-      console.log("Loading Player.js from CDN");
       const script = document.createElement("script");
       script.src = "https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js";
       script.async = true;
       
       script.onload = () => {
         if (typeof window.playerjs !== "undefined") {
-          console.log("✅ Player.js loaded successfully");
           resolve();
         } else {
-          console.error("⚠️ Player.js script loaded but window.playerjs is undefined");
           reject(new Error("Player.js not available after loading"));
         }
       };
       
       script.onerror = (error) => {
-        console.error("❌ Failed to load Player.js script:", error);
         reject(error);
       };
       
@@ -78,26 +73,17 @@ export const useVideo = ({
    * Initialize the player instance
    */
   const initializePlayer = useCallback(async () => {
-    if (!iframeRef.current || !videoUrl) {
-      console.error("Cannot initialize player: iframe or video URL missing");
-      return;
-    }
+    if (!iframeRef.current || !videoUrl) return;
 
     // Skip initialization if player already exists and URL hasn't changed
-    if (playerRef.current && previousUrlRef.current === videoUrl && initializedRef.current) {
-      console.log("Player already initialized for URL:", videoUrl);
-      return;
-    }
+    if (playerRef.current && previousUrlRef.current === videoUrl && initializedRef.current) return;
 
     try {
       await loadPlayerScript();
-      
-      // Store new URL
       previousUrlRef.current = videoUrl;
       
       // Clean up existing player if needed
       if (playerRef.current) {
-        console.log("Clearing existing player reference for new URL");
         try {
           // Remove event handlers before creating a new instance
           playerRef.current.off("ready");
@@ -116,25 +102,21 @@ export const useVideo = ({
       setPlayerReady(false);
       
       // Create new player
-      console.log("Creating new player instance for:", videoUrl);
       playerRef.current = new window.playerjs.Player(iframeRef.current);
       
       // Set up event listeners
       playerRef.current.on("ready", () => {
-        console.log("✅ Player ready");
         setPlayerReady(true);
         initializedRef.current = true;
         if (onReady) onReady();
       });
       
       playerRef.current.on("play", () => {
-        console.log("Video is playing");
         setIsPlaying(true);
         if (onPlay) onPlay();
       });
       
       playerRef.current.on("pause", () => {
-        console.log("Video is paused");
         setIsPlaying(false);
         if (onPause) onPause(currentTime);
       });
@@ -148,7 +130,6 @@ export const useVideo = ({
       });
       
       playerRef.current.on("ended", () => {
-        console.log("Video ended");
         setIsPlaying(false);
         if (onEnded) onEnded();
       });
@@ -166,31 +147,31 @@ export const useVideo = ({
    * Set up regular interval to poll player time
    */
   useEffect(() => {
-    if (playerReady && playerRef.current) {
+    if (!playerReady || !playerRef.current) return;
+    
+    if (timeUpdateIntervalRef.current) {
+      clearInterval(timeUpdateIntervalRef.current);
+    }
+    
+    timeUpdateIntervalRef.current = setInterval(() => {
+      if (playerRef.current && isPlaying) {
+        try {
+          playerRef.current.getCurrentTime((seconds) => {
+            if (typeof seconds === "number") {
+              setCurrentTime(seconds);
+            }
+          });
+        } catch (error) {
+          console.warn("Error in timer:", error);
+        }
+      }
+    }, 1000);
+    
+    return () => {
       if (timeUpdateIntervalRef.current) {
         clearInterval(timeUpdateIntervalRef.current);
       }
-      
-      timeUpdateIntervalRef.current = setInterval(() => {
-        if (playerRef.current && isPlaying) {
-          try {
-            playerRef.current.getCurrentTime((seconds) => {
-              if (typeof seconds === "number") {
-                setCurrentTime(seconds);
-              }
-            });
-          } catch (error) {
-            console.warn("Error in timer:", error);
-          }
-        }
-      }, 1000);
-      
-      return () => {
-        if (timeUpdateIntervalRef.current) {
-          clearInterval(timeUpdateIntervalRef.current);
-        }
-      };
-    }
+    };
   }, [playerReady, isPlaying]);
 
   // Initialize player when video URL changes
@@ -265,25 +246,20 @@ export const useVideo = ({
   }, [playerReady]);
 
   const togglePlay = useCallback(() => {
-    if (playerRef.current && playerReady) {
-      if (isPlaying) {
-        playerRef.current.pause();
-      } else {
-        playerRef.current.play();
-      }
-    }
+    if (!playerRef.current || !playerReady) return;
+    isPlaying ? playerRef.current.pause() : playerRef.current.play();
   }, [playerReady, isPlaying]);
 
   const toggleFullscreen = useCallback(() => {
-    if (playerRef.current && playerReady) {
-      playerRef.current.getFullscreen((isFullscreen) => {
-        if (isFullscreen) {
-          playerRef.current.exitFullscreen();
-        } else {
-          playerRef.current.requestFullscreen();
-        }
-      });
-    }
+    if (!playerRef.current || !playerReady) return;
+    
+    playerRef.current.getFullscreen((isFullscreen) => {
+      if (isFullscreen) {
+        playerRef.current.exitFullscreen();
+      } else {
+        playerRef.current.requestFullscreen();
+      }
+    });
   }, [playerReady]);
 
   // Return memoized object to prevent unnecessary re-renders in consuming components

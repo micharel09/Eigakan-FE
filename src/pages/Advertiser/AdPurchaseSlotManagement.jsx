@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Table,
@@ -47,6 +47,11 @@ import axios from "axios";
 import uploadFileApi from "../../apis/Upload/upload.jsx";
 import cloudinaryConfig from "../../config/cloudinary";
 import WatchPagePreview from "../../components/AdPreview/WatchPagePreview";
+import {
+  useAdSlotManagement,
+  useAdMediaManagement,
+  useFileUpload,
+} from "../../hooks";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -165,600 +170,231 @@ const statusStyles = `
 `;
 
 const AdPurchaseSlotManagement = () => {
-  const [adPurchaseSlots, setAdPurchaseSlots] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Sử dụng custom hooks
+  const {
+    adPurchaseSlots,
+    slotDetails,
+    loading,
+    adMediaCounts,
+    pagination,
+    canCreateAd,
+    fetchSlotDetails,
+    fetchAdPurchaseSlots,
+    handlePaginationChange,
+    handleShowSizeChange,
+  } = useAdSlotManagement();
+
+  const {
+    selectedAdMediaDetail,
+    selectedAdMediaId,
+    viewStatistics,
+    isAdMediaDetailModalVisible,
+    isUpdateModalVisible,
+    setIsAdMediaDetailModalVisible,
+    setIsUpdateModalVisible,
+    handleViewAdMediaDetails,
+    handleUpdateAdMedia,
+    createAdMedia,
+    updateAdMedia,
+  } = useAdMediaManagement();
+
+  const {
+    imageUrl,
+    videoUrl,
+    isDirectUrlModalVisible,
+    setImageUrl,
+    setVideoUrl,
+    setIsDirectUrlModalVisible,
+    handleImageUpload,
+    handleVideoUpload,
+    setManualVideoUrl,
+    resetUpload,
+  } = useFileUpload();
+
+  // Component-specific states
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedAdMedia, setSelectedAdMedia] = useState(null);
   const [form] = Form.useForm();
-  const [imageUrl, setImageUrl] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [isAdMediaDetailModalVisible, setIsAdMediaDetailModalVisible] =
-    useState(false);
-  const [selectedAdMediaDetail, setSelectedAdMediaDetail] = useState(null);
-  const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
   const [updateForm] = Form.useForm();
-  const [selectedAdMediaId, setSelectedAdMediaId] = useState(null);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 5,
-    total: 0,
-  });
-  const [totalSlots, setTotalSlots] = useState(0);
-  const [isDirectUrlModalVisible, setIsDirectUrlModalVisible] = useState(false);
   const [directUrlForm] = Form.useForm();
   const [currentSlotLocation, setCurrentSlotLocation] = useState(null);
   const [detailLoadingMap, setDetailLoadingMap] = useState({});
   const [detailDataMap, setDetailDataMap] = useState({});
-  const [fetchTrigger, setFetchTrigger] = useState(0);
-  const [adMediaCounts, setAdMediaCounts] = useState({});
-  const [lastFetchTime, setLastFetchTime] = useState({});
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 phút cache
-  const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 phút auto refresh
-  const [viewStatistics, setViewStatistics] = useState({});
   const [activeTab, setActiveTab] = useState("form");
 
   const navigate = useNavigate();
 
-  // Fetch total items
-  const fetchTotalItems = useCallback(async () => {
+  // Xử lý click button Create Ad
+  const handleCreateAdClick = async (record) => {
     try {
-      const response =
-        await adPurchaseSlotService.getAllAdPurchaseSlotsByUserId();
-      if (response?.success) {
-        setPagination((prev) => ({
-          ...prev,
-          total: response.data?.length || 0,
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching total items:", error);
-    }
-  }, []);
+      // Refresh slot detail trước khi cho phép tạo
+      await fetchSlotDetails(record.id);
 
-  // Fetch paginated data
-  const fetchAdPurchaseSlots = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await adPurchaseSlotService.getAdPurchaseSlotsByUserId(
-        pagination.current,
-        pagination.pageSize
-      );
-      if (response?.success) {
-        setAdPurchaseSlots(response.data || []);
-      }
-    } catch (error) {
-      notification.error({
-        message: "Error",
-        description: error.message || "Failed to fetch ad purchase slots",
-      });
-      setAdPurchaseSlots([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.current, pagination.pageSize]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchTotalItems();
-  }, [fetchTotalItems]);
-
-  // Fetch data when pagination changes
-  useEffect(() => {
-    fetchAdPurchaseSlots();
-  }, [fetchAdPurchaseSlots]);
-
-  const handleCreateAdClick = async (slotId) => {
-    try {
-      setSelectedSlotId(slotId);
-
-      // Fetch slot details to determine location
-      const response = await adPurchaseSlotService.getAdPurchaseSlotById(
-        slotId
-      );
-      if (response.success && response.data) {
-        const slotLocation = response.data.adSlotTime?.adSlot?.slotLocation;
-        setCurrentSlotLocation(slotLocation);
-      } else {
-        setCurrentSlotLocation(null);
+      if (!canCreateAd(record)) {
+        notification.warning({
+          message: "Cannot Create Ad",
+          description:
+            "You can only create ads for active slots without existing ads.",
+        });
+        return;
       }
 
+      const slotDetail = slotDetails[record.id];
+      const slotLocation = slotDetail?.adSlotTime?.adSlot?.slotLocation;
+      setCurrentSlotLocation(slotLocation);
+      setSelectedSlotId(record.id);
       setIsModalVisible(true);
       setActiveTab("form");
     } catch (error) {
       notification.error({
         message: "Error",
-        description: error.message || "Failed to fetch slot details",
+        description: error.message || "Failed to process request",
       });
       setCurrentSlotLocation(null);
     }
   };
 
+  // Xử lý tạo ad media mới
   const handleCreateMedia = async (values) => {
-    try {
-      if (!selectedSlotId) {
-        notification.error({
-          message: "Error",
-          description: "No slot selected for creating ad media",
-        });
-        return;
-      }
+    if (!selectedSlotId) {
+      notification.error({
+        message: "Error",
+        description: "No slot selected for creating ad media",
+      });
+      return;
+    }
 
-      // Create the media data object
-      const mediaData = {
-        ...values,
-        adPurchaseSlotId: selectedSlotId,
-      };
+    // Create the media data object
+    const mediaData = {
+      ...values,
+      adPurchaseSlotId: selectedSlotId,
+    };
 
-      // Only include video for CENTER slot location
-      if (currentSlotLocation === "CENTER") {
-        mediaData.video = values.video || videoUrl;
-      } else {
-        mediaData.video = null;
-      }
+    // Only include video for CENTER slot location
+    if (currentSlotLocation === "CENTER") {
+      mediaData.video = values.video || videoUrl;
+    } else {
+      mediaData.video = null;
+    }
 
-      const response = await adMediaService.createAdMedia(mediaData);
-
-      if (response.success) {
-        notification.success({
-          message: "Success",
-          description: "Ad media created successfully",
-        });
+    await createAdMedia(mediaData, {
+      onSuccess: () => {
         setIsModalVisible(false);
-        setImageUrl("");
-        setVideoUrl("");
+        resetUpload();
         form.resetFields();
         fetchAdPurchaseSlots();
-      } else {
-        throw new Error(response.message || "Failed to create ad media");
-      }
-    } catch (error) {
-      notification.error({
-        message: "Error",
-        description: error.message || "Failed to create ad media",
-      });
-    }
+      },
+    });
   };
 
-  const handleUpload = async (options) => {
-    const { file, onSuccess, onError } = options;
-
-    try {
-      if (!file) throw new Error("No file selected");
-
-      const response = await uploadFileApi.UploadPicture(file);
-      console.log("Upload response:", response);
-
-      if (response.status === true) {
-        const uploadedUrl = response.data[0].url;
-        setImageUrl(uploadedUrl);
-        form.setFieldsValue({ image: uploadedUrl });
-
-        notification.success({
-          message: "Upload Successful",
-          description: "Image has been uploaded successfully.",
-        });
-        onSuccess("Ok");
-      } else {
-        throw new Error(response.message || "Upload failed");
-      }
-    } catch (err) {
-      console.error("Upload error:", err);
-      onError({ error: err });
-      notification.error({
-        message: "Upload Failed",
-        description:
-          err.message || "An error occurred while uploading the image.",
-      });
-    }
-  };
-
-  const handleVideoUpload = async (options) => {
-    const { file, onSuccess, onError } = options;
-
-    try {
-      // Validate file type and size before uploading
-      const validVideoTypes = [
-        "video/mp4",
-        "video/webm",
-        "video/ogg",
-        "video/quicktime",
-      ];
-
-      if (!file) throw new Error("No file selected");
-
-      if (!validVideoTypes.includes(file.type)) {
-        notification.warning({
-          message: "Unsupported Format",
-          description: `File format ${file.type} may not be supported. Try using MP4, WebM, or Ogg.`,
-        });
-        // Continue anyway, just a warning
-      }
-
-      if (file.size > 100 * 1024 * 1024) {
-        // 100MB limit
-        throw new Error("File exceeds 100MB limit");
-      }
-
-      console.log("Uploading video:", file.name, file.type, file.size);
-
-      // Show immediate notification
-      notification.info({
-        message: "Upload Started",
-        description:
-          "Video upload in progress. This process may take some time depending on the file size.",
-        duration: 3,
-      });
-
-      // Using direct Cloudinary upload method
-      try {
-        console.log("Uploading directly to Cloudinary");
-        const response = await uploadFileApi.UploadVideoToCloudinary(file);
-        console.log("Cloudinary video upload result:", response);
-
-        if (
-          response.status === true &&
-          response.data &&
-          response.data[0] &&
-          response.data[0].url
-        ) {
-          const uploadedUrl = response.data[0].url;
-          console.log("Cloudinary video URL:", uploadedUrl);
-          setVideoUrl(uploadedUrl);
-          form.setFieldsValue({ video: uploadedUrl });
-          updateForm.setFieldsValue({ video: uploadedUrl });
-
-          notification.success({
-            message: "Upload Successful",
-            description: "Video has been uploaded successfully.",
-          });
-          onSuccess("Ok");
-        } else {
-          throw new Error("Could not retrieve video URL from response");
-        }
-      } catch (err) {
-        console.error("Error uploading to Cloudinary:", err);
-
-        // Display manual URL input form if upload fails
-        setIsDirectUrlModalVisible(true);
-        directUrlForm.resetFields();
-
-        notification.error({
-          message: "Upload Failed",
-          description:
-            "Could not upload the video. Please enter the video URL manually.",
-        });
-
-        onError({ error: err });
-      }
-    } catch (err) {
-      console.error("Video upload error:", err);
-      onError({ error: err });
-      notification.error({
-        message: "Upload Failed",
-        description:
-          err.message || "An error occurred while uploading the video.",
-      });
-    }
-  };
-
-  const handleDirectUrlSubmit = (values) => {
-    const { videoUrl: directUrl } = values;
-
-    if (directUrl && directUrl.trim()) {
-      setVideoUrl(directUrl.trim());
-      form.setFieldsValue({ video: directUrl.trim() });
-      updateForm.setFieldsValue({ video: directUrl.trim() });
-
-      setIsDirectUrlModalVisible(false);
-
-      notification.success({
-        message: "Video URL Set",
-        description: "Video URL has been manually set.",
-      });
-    }
-  };
-
-  // Helper function to find URLs in a response object
-  const findUrlInObject = (obj) => {
-    // If it's a string that looks like a URL, return it
-    if (typeof obj === "string" && obj.match(/^https?:\/\//)) {
-      return obj;
-    }
-
-    // If it's an array, check each element
-    if (Array.isArray(obj)) {
-      for (const item of obj) {
-        const found = findUrlInObject(item);
-        if (found) return found;
-      }
-    }
-
-    // If it's an object, check each property
-    if (typeof obj === "object" && obj !== null) {
-      for (const key in obj) {
-        const found = findUrlInObject(obj[key]);
-        if (found) return found;
-      }
-    }
-
-    return null;
-  };
-
-  const handleViewDetails = async (id) => {
-    try {
-      const response = await adPurchaseSlotService.getAdPurchaseSlotById(id);
-      if (response.success) {
-        setSelectedAdMedia(response.data);
-        setIsDetailModalVisible(true);
-      } else {
-        notification.error({
-          message: "Error",
-          description:
-            response.message || "Failed to fetch ad purchase slot details",
-        });
-      }
-    } catch (error) {
-      notification.error({
-        message: "Error",
-        description:
-          error.message || "Failed to fetch ad purchase slot details",
-      });
-    }
-  };
-
-  const handleViewAdMediaDetails = async (mediaId) => {
-    try {
-      const response = await adMediaService.getAdMediaById(mediaId);
-      if (response.success) {
-        const adMediaData = response.data;
-
-        // Fetch the slot location for this ad media
-        if (adMediaData.adPurchaseSlotId) {
-          const slotResponse =
-            await adPurchaseSlotService.getAdPurchaseSlotById(
-              adMediaData.adPurchaseSlotId
-            );
-          if (slotResponse.success && slotResponse.data) {
-            const slotLocation =
-              slotResponse.data.adSlotTime?.adSlot?.slotLocation;
-            // Add slot location to the selected ad media details
-            adMediaData.slotLocation = slotLocation;
-          }
-        }
-
-        // Fetch view statistics
-        try {
-          const statsResponse =
-            await adMediaCountService.getStatisticAdMediaCount(mediaId);
-          if (statsResponse?.result?.success) {
-            setViewStatistics((prev) => ({
-              ...prev,
-              [mediaId]: statsResponse.result.data || [],
-            }));
-          }
-        } catch (error) {
-          console.error("Error fetching view statistics:", error);
-        }
-
-        setSelectedAdMediaDetail(adMediaData);
-        setIsAdMediaDetailModalVisible(true);
-      } else {
-        notification.error({
-          message: "Error",
-          description: response.message || "Failed to fetch ad media details",
-        });
-      }
-    } catch (error) {
-      notification.error({
-        message: "Error",
-        description: error.message || "Failed to fetch ad media details",
-      });
-    }
-  };
-
-  const handleUpdateAdMedia = async (mediaId) => {
-    try {
-      const response = await adMediaService.getAdMediaById(mediaId);
-      if (response.success) {
-        const adMedia = response.data;
-        setSelectedAdMediaId(mediaId);
-
-        // Fetch the slot location for this ad media
-        if (adMedia.adPurchaseSlotId) {
-          const slotResponse =
-            await adPurchaseSlotService.getAdPurchaseSlotById(
-              adMedia.adPurchaseSlotId
-            );
-          if (slotResponse.success && slotResponse.data) {
-            const slotLocation =
-              slotResponse.data.adSlotTime?.adSlot?.slotLocation;
-            setCurrentSlotLocation(slotLocation);
-
-            // Clear video field if it exists but we're not in CENTER position
-            if (slotLocation !== "CENTER" && adMedia.video) {
-              adMedia.video = null;
-            }
-          }
-        }
-
-        updateForm.setFieldsValue({
-          content: adMedia.content,
-          image: adMedia.image,
-          video: adMedia.video,
-          url: adMedia.url,
-        });
-        setImageUrl(adMedia.image);
-        setVideoUrl(adMedia.video || "");
-        setIsUpdateModalVisible(true);
-      }
-    } catch (error) {
-      notification.error({
-        message: "Error",
-        description:
-          error.message || "Failed to fetch ad media details for update",
-      });
-    }
-  };
-
+  // Cập nhật ad media
   const handleUpdateMedia = async (values) => {
-    try {
-      if (!selectedAdMediaId) {
-        notification.error({
-          message: "Error",
-          description: "No ad media selected for update",
-        });
-        return;
-      }
+    if (!selectedAdMediaId) {
+      notification.error({
+        message: "Error",
+        description: "No ad media selected for update",
+      });
+      return;
+    }
 
-      // Create the media data object
-      const mediaData = {
-        ...values,
-      };
+    // Create the media data object
+    const mediaData = {
+      ...values,
+    };
 
-      // Only include video for CENTER slot location
-      if (currentSlotLocation === "CENTER") {
-        mediaData.video = values.video || videoUrl;
-      } else {
-        mediaData.video = null;
-      }
+    // Only include video for CENTER slot location
+    if (currentSlotLocation === "CENTER") {
+      mediaData.video = values.video || videoUrl;
+    } else {
+      mediaData.video = null;
+    }
 
-      const response = await adMediaService.updateAdMedia(
-        selectedAdMediaId,
-        mediaData
-      );
-
-      if (response.success) {
-        notification.success({
-          message: "Success",
-          description: "Ad media updated successfully",
-        });
+    await updateAdMedia(selectedAdMediaId, mediaData, {
+      onSuccess: () => {
         setIsUpdateModalVisible(false);
-        setImageUrl("");
-        setVideoUrl("");
+        resetUpload();
         updateForm.resetFields();
         fetchAdPurchaseSlots();
-      } else {
-        throw new Error(response.message || "Failed to update ad media");
-      }
-    } catch (error) {
-      notification.error({
-        message: "Error",
-        description: error.message || "Failed to update ad media",
-      });
+      },
+    });
+  };
+
+  // Xử lý nhập URL trực tiếp
+  const handleDirectUrlSubmit = (values) => {
+    const result = setManualVideoUrl(values.videoUrl);
+    if (result) {
+      form.setFieldsValue({ video: result });
+      updateForm.setFieldsValue({ video: result });
     }
   };
 
-  const fetchDetailData = useCallback(async (id) => {
+  const fetchDetailData = async (id) => {
     if (!id) return;
 
     try {
       setDetailLoadingMap((prev) => ({ ...prev, [id]: true }));
-      const response = await adPurchaseSlotService.getPublicAdPurchaseSlotById(
-        id
-      );
-      if (response?.success) {
-        setDetailDataMap((prev) => ({ ...prev, [id]: response.data }));
-      } else {
-        notification.error({
-          message: "Error",
-          description: response?.message || "Failed to fetch details",
-        });
+      const data = await fetchSlotDetails(id);
+      if (data) {
+        setDetailDataMap((prev) => ({ ...prev, [id]: data }));
       }
     } catch (error) {
-      notification.error({
-        message: "Error",
-        description: error.message || "Failed to fetch details",
-      });
+      console.error("Error fetching details:", error);
     } finally {
       setDetailLoadingMap((prev) => ({ ...prev, [id]: false }));
     }
-  }, []);
-
-  const fetchAdMediaCount = useCallback(
-    async (adMediaId) => {
-      try {
-        // Kiểm tra cache
-        const now = Date.now();
-        if (
-          lastFetchTime[adMediaId] &&
-          now - lastFetchTime[adMediaId] < CACHE_DURATION
-        ) {
-          return; // Nếu data còn trong thời gian cache thì không fetch lại
-        }
-
-        const response = await adMediaCountService.getAdMediaCountByAdMediaId(
-          adMediaId
-        );
-        if (response?.success) {
-          setAdMediaCounts((prev) => ({
-            ...prev,
-            [adMediaId]: response.data?.viewCount || 0,
-          }));
-          setLastFetchTime((prev) => ({
-            ...prev,
-            [adMediaId]: now,
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching ad media count:", error);
-      }
-    },
-    [lastFetchTime]
-  );
-
-  // Fetch ad media counts whenever adPurchaseSlots changes
-  useEffect(() => {
-    const fetchAllAdMediaCounts = async () => {
-      if (adPurchaseSlots.length > 0) {
-        // Lọc ra những ad media cần fetch (hết hạn cache hoặc chưa có data)
-        const now = Date.now();
-        const adMediasToFetch = adPurchaseSlots
-          .filter((slot) => slot.adMedias?.[0]?.id)
-          .filter((slot) => {
-            const adMediaId = slot.adMedias[0].id;
-            return (
-              !lastFetchTime[adMediaId] ||
-              now - lastFetchTime[adMediaId] >= CACHE_DURATION
-            );
-          })
-          .map((slot) => slot.adMedias[0].id);
-
-        // Fetch từng cái một để tránh overload
-        for (const adMediaId of adMediasToFetch) {
-          await fetchAdMediaCount(adMediaId);
-          // Thêm delay nhỏ giữa các request để tránh spam server
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      }
-    };
-
-    fetchAllAdMediaCounts();
-  }, [adPurchaseSlots, fetchTrigger, fetchAdMediaCount]);
-
-  // Refresh view counts every 5 minutes instead of 30 seconds
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setFetchTrigger((prev) => prev + 1);
-    }, AUTO_REFRESH_INTERVAL);
-
-    return () => clearInterval(intervalId);
-  }, []);
+  };
 
   const columns = [
     {
       title: "Ad Slot Details",
       key: "details",
       render: (_, record) => {
-        // Move useEffect outside of render function
-        const detailData = record?.id ? detailDataMap[record.id] : null;
-        const isLoading = record?.id ? detailLoadingMap[record.id] : false;
-        const adMediaId = record.adMedias?.[0]?.id;
-        const viewCount =
-          adMediaId && adMediaCounts[adMediaId] !== undefined
-            ? adMediaCounts[adMediaId]
-            : 0;
+        const renderActionButton = () => {
+          // Nếu đã có ad media thì hiển thị View Ad
+          if (record?.adMedias?.length > 0) {
+            return (
+              <Button
+                type="link"
+                className="flex items-center p-0 m-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewAdMediaDetails(record.adMedias[0].id);
+                }}
+                icon={<FileImageOutlined />}
+              >
+                <span>View Ad</span>
+              </Button>
+            );
+          }
+
+          // Kiểm tra trạng thái record trước khi kiểm tra canCreateAd
+          // Đảm bảo chỉ hiển thị nút Create Ad cho slot có trạng thái ACTIVE
+          if (record?.status === "ACTIVE" && canCreateAd(record)) {
+            return (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCreateAdClick(record);
+                }}
+                size="small"
+              >
+                Create Ad
+              </Button>
+            );
+          }
+
+          return null;
+        };
+
+        // Sử dụng slotDetail
+        const slotDetail = slotDetails[record?.id];
+        const viewCount = slotDetail?.adMedias?.[0]?.id
+          ? adMediaCounts[slotDetail.adMedias[0].id] || 0
+          : 0;
 
         return (
           <div className="w-full">
@@ -779,22 +415,18 @@ const AdPurchaseSlotManagement = () => {
                       <FileTextOutlined className="text-[#FF009F]" />
                       <div>
                         <div className="font-medium">
-                          {detailData?.adPackage?.packageName ||
-                            record?.adPackage?.packageName ||
-                            "N/A"}
+                          {slotDetail?.adPackage?.packageName || "N/A"}
                         </div>
                         <div className="text-gray-500 text-sm">
                           Price:{" "}
                           {formatCurrency(
-                            detailData?.adPackage?.packPrice ||
-                              record?.adPackage?.packPrice ||
-                              0
+                            slotDetail?.adPackage?.packPrice || 0
                           )}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {((detailData?.adMedias || record?.adMedias)?.length ||
+                      {((slotDetail?.adMedias || record?.adMedias)?.length ||
                         0) > 0 && (
                         <div className="flex items-center gap-2 text-gray-500 text-sm">
                           <EyeOutlined />
@@ -803,48 +435,17 @@ const AdPurchaseSlotManagement = () => {
                       )}
                       <div
                         className={`status-badge status-${(
-                          detailData?.status ||
-                          record?.status ||
-                          "pending"
+                          record?.status || "pending"
                         ).toLowerCase()}`}
                       >
                         <span className="status-icon">
-                          {getIconForStatus(
-                            detailData?.status || record?.status || "pending"
-                          )}
+                          {getIconForStatus(record?.status || "pending")}
                         </span>
                         <span className="status-text">
-                          {detailData?.status || record?.status || "Pending"}
+                          {record?.status || "Pending"}
                         </span>
                       </div>
-                      {((detailData?.adMedias || record?.adMedias)?.length ||
-                        0) > 0 ? (
-                        <Button
-                          type="link"
-                          className="flex items-center p-0 m-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewAdMediaDetails(
-                              (detailData?.adMedias || record?.adMedias)[0]?.id
-                            );
-                          }}
-                          icon={<FileImageOutlined />}
-                        >
-                          <span>View Ad</span>
-                        </Button>
-                      ) : (
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCreateAdClick(detailData?.id || record?.id);
-                          }}
-                          size="small"
-                        >
-                          Create Ad
-                        </Button>
-                      )}
+                      {renderActionButton()}
                     </div>
                   </div>
                 }
@@ -868,22 +469,22 @@ const AdPurchaseSlotManagement = () => {
                         <Descriptions column={1} size="small">
                           <Descriptions.Item label="Package Name">
                             <Text strong>
-                              {detailData?.adPackage?.packageName}
+                              {slotDetail?.adPackage?.packageName}
                             </Text>
                           </Descriptions.Item>
                           <Descriptions.Item label="Package Price">
-                            {formatCurrency(detailData?.adPackage?.packPrice)}
+                            {formatCurrency(slotDetail?.adPackage?.packPrice)}
                           </Descriptions.Item>
                           <Descriptions.Item label="Duration">
-                            {detailData?.adPackage?.duration} month
+                            {slotDetail?.adPackage?.duration} month
                           </Descriptions.Item>
                           <Descriptions.Item label="Package Status">
                             <Tag
                               color={getTagColorForStatus(
-                                detailData?.adPackage?.status
+                                slotDetail?.adPackage?.status
                               )}
                             >
-                              {detailData?.adPackage?.status}
+                              {slotDetail?.adPackage?.status}
                             </Tag>
                           </Descriptions.Item>
                         </Descriptions>
@@ -901,30 +502,30 @@ const AdPurchaseSlotManagement = () => {
                       >
                         <Descriptions column={1} size="small">
                           <Descriptions.Item label="Purchase Price">
-                            {formatCurrency(detailData?.purchaseSlotPrice)}
+                            {formatCurrency(slotDetail?.purchaseSlotPrice)}
                           </Descriptions.Item>
                           <Descriptions.Item label="Slot Time Price">
                             {formatCurrency(
-                              detailData?.adSlotTime?.slotTimePrice
+                              slotDetail?.adSlotTime?.slotTimePrice
                             )}
                           </Descriptions.Item>
                           <Descriptions.Item label="Slot Location">
                             <Tag color="blue">
-                              {detailData?.adSlotTime?.adSlot?.slotLocation}
+                              {slotDetail?.adSlotTime?.adSlot?.slotLocation}
                             </Tag>
                           </Descriptions.Item>
                           <Descriptions.Item label="Slot Price">
                             {formatCurrency(
-                              detailData?.adSlotTime?.adSlot?.slotPrice
+                              slotDetail?.adSlotTime?.adSlot?.slotPrice
                             )}
                           </Descriptions.Item>
                           <Descriptions.Item label="Slot Status">
                             <Tag
                               color={getTagColorForStatus(
-                                detailData?.adSlotTime?.adSlot?.status
+                                slotDetail?.adSlotTime?.adSlot?.status
                               )}
                             >
-                              {detailData?.adSlotTime?.adSlot?.status}
+                              {slotDetail?.adSlotTime?.adSlot?.status}
                             </Tag>
                           </Descriptions.Item>
                         </Descriptions>
@@ -949,38 +550,38 @@ const AdPurchaseSlotManagement = () => {
                       >
                         <Descriptions column={1} size="small">
                           <Descriptions.Item label="Time Range">
-                            {detailData?.adSlotTime?.adSlotTimeRange?.startTime}{" "}
-                            - {detailData?.adSlotTime?.adSlotTimeRange?.endTime}
+                            {slotDetail?.adSlotTime?.adSlotTimeRange?.startTime}{" "}
+                            - {slotDetail?.adSlotTime?.adSlotTimeRange?.endTime}
                           </Descriptions.Item>
                           <Descriptions.Item label="Start Date">
-                            {formatDate(detailData?.startDate)}
+                            {formatDate(slotDetail?.startDate)}
                           </Descriptions.Item>
                           <Descriptions.Item label="Expired Date">
-                            {formatDate(detailData?.expiredDate)}
+                            {formatDate(slotDetail?.expiredDate)}
                           </Descriptions.Item>
                           <Descriptions.Item label="Created At">
-                            {formatDate(detailData?.createAt)}
+                            {formatDate(slotDetail?.createAt)}
                           </Descriptions.Item>
                           <Descriptions.Item label="Time Range Price">
                             {formatCurrency(
-                              detailData?.adSlotTime?.adSlotTimeRange
+                              slotDetail?.adSlotTime?.adSlotTimeRange
                                 ?.slotTimeRangePrice
                             )}
                           </Descriptions.Item>
                           <Descriptions.Item label="Time Range Status">
                             <Tag
                               color={getTagColorForStatus(
-                                detailData?.adSlotTime?.adSlotTimeRange?.status
+                                slotDetail?.adSlotTime?.adSlotTimeRange?.status
                               )}
                             >
-                              {detailData?.adSlotTime?.adSlotTimeRange?.status}
+                              {slotDetail?.adSlotTime?.adSlotTimeRange?.status}
                             </Tag>
                           </Descriptions.Item>
                         </Descriptions>
                       </Panel>
 
                       {/* Ad Media Preview if exists */}
-                      {detailData?.adMedias?.length > 0 && (
+                      {slotDetail?.adMedias?.length > 0 && (
                         <Panel
                           key="2"
                           header={
@@ -990,42 +591,42 @@ const AdPurchaseSlotManagement = () => {
                                 <span className="font-medium">Ad Media</span>
                               </div>
                               <div
-                                className={`status-badge status-${detailData.adMedias[0].status.toLowerCase()}`}
+                                className={`status-badge status-${slotDetail.adMedias[0].status.toLowerCase()}`}
                               >
-                                {detailData.adMedias[0].status}
+                                {slotDetail.adMedias[0].status}
                               </div>
                             </div>
                           }
                         >
                           <div className="space-y-4">
-                            {detailData.adMedias[0].image && (
+                            {slotDetail.adMedias[0].image && (
                               <div>
                                 <img
-                                  src={detailData.adMedias[0].image}
+                                  src={slotDetail.adMedias[0].image}
                                   alt="Ad Media"
                                   className="max-w-full h-auto rounded-lg border border-gray-200"
                                   style={{ maxHeight: "150px" }}
                                 />
                               </div>
                             )}
-                            {detailData.adMedias[0].content && (
+                            {slotDetail.adMedias[0].content && (
                               <div className="p-3 bg-white rounded-lg border border-gray-200">
-                                {detailData.adMedias[0].content}
+                                {slotDetail.adMedias[0].content}
                               </div>
                             )}
-                            {detailData.adMedias[0].reasonForRejection && (
+                            {slotDetail.adMedias[0].reasonForRejection && (
                               <div className="p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
-                                {detailData.adMedias[0].reasonForRejection}
+                                {slotDetail.adMedias[0].reasonForRejection}
                               </div>
                             )}
-                            {detailData.adMedias[0].status === "REJECTED" && (
+                            {slotDetail.adMedias[0].status === "REJECTED" && (
                               <Button
                                 type="primary"
                                 icon={<EditOutlined />}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleUpdateAdMedia(
-                                    detailData.adMedias[0].id
+                                    slotDetail.adMedias[0].id
                                   );
                                 }}
                               >
@@ -1095,23 +696,6 @@ const AdPurchaseSlotManagement = () => {
     }
   };
 
-  // Update pagination handlers
-  const handlePaginationChange = useCallback((page, pageSize) => {
-    setPagination((prev) => ({
-      ...prev,
-      current: page,
-      pageSize: pageSize,
-    }));
-  }, []);
-
-  const handleShowSizeChange = useCallback((current, size) => {
-    setPagination((prev) => ({
-      ...prev,
-      current: 1,
-      pageSize: size,
-    }));
-  }, []);
-
   return (
     <>
       <style>{statusStyles}</style>
@@ -1172,9 +756,7 @@ const AdPurchaseSlotManagement = () => {
             open={isModalVisible}
             onCancel={() => {
               setIsModalVisible(false);
-              setImageUrl("");
-              setVideoUrl("");
-              setCurrentSlotLocation(null);
+              resetUpload();
               form.resetFields();
               setActiveTab("form");
             }}
@@ -1206,7 +788,7 @@ const AdPurchaseSlotManagement = () => {
                   <Form.Item name="image" label="Image">
                     <Input.Group compact>
                       <Upload
-                        customRequest={handleUpload}
+                        customRequest={handleImageUpload}
                         showUploadList={false}
                         maxCount={1}
                         accept="image/*"
@@ -1239,11 +821,6 @@ const AdPurchaseSlotManagement = () => {
                             e.target.onerror = null;
                             e.target.src =
                               "https://placehold.co/400x300?text=Invalid+Image";
-                            notification.warning({
-                              message: "Image Preview Error",
-                              description:
-                                "Could not load image preview. URL may be invalid.",
-                            });
                           }}
                         />
                       </div>
@@ -1294,11 +871,6 @@ const AdPurchaseSlotManagement = () => {
                           style={{ display: "block", margin: "0 auto" }}
                           onError={(e) => {
                             e.target.onerror = null;
-                            notification.warning({
-                              message: "Video Preview Error",
-                              description:
-                                "Could not load video preview. The URL may be invalid or the format is not supported by your browser.",
-                            });
                           }}
                         >
                           <source src={videoUrl} type="video/mp4" />
@@ -1307,21 +879,6 @@ const AdPurchaseSlotManagement = () => {
                           <source src={videoUrl} type="video/quicktime" />
                           Your browser does not support HTML video.
                         </video>
-                        <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex items-center justify-between">
-                          <div>
-                            {videoUrl.length > 60
-                              ? videoUrl.substring(0, 57) + "..."
-                              : videoUrl}
-                          </div>
-                          <a
-                            href={videoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline"
-                          >
-                            Open in new tab
-                          </a>
-                        </div>
                       </div>
                     </Form.Item>
                   )}
@@ -1338,8 +895,7 @@ const AdPurchaseSlotManagement = () => {
                       <Button
                         onClick={() => {
                           setIsModalVisible(false);
-                          setImageUrl("");
-                          setVideoUrl("");
+                          resetUpload();
                           form.resetFields();
                         }}
                       >
@@ -1397,6 +953,50 @@ const AdPurchaseSlotManagement = () => {
                 </div>
               </TabPane>
             </Tabs>
+          </Modal>
+
+          {/* Direct URL Input Modal */}
+          <Modal
+            title="Enter Video URL"
+            open={isDirectUrlModalVisible}
+            onCancel={() => setIsDirectUrlModalVisible(false)}
+            footer={null}
+          >
+            <Form
+              form={directUrlForm}
+              layout="vertical"
+              onFinish={handleDirectUrlSubmit}
+            >
+              <Form.Item
+                label="Video URL"
+                name="videoUrl"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter the video URL",
+                  },
+                  {
+                    type: "url",
+                    message: "Please enter a valid URL",
+                  },
+                ]}
+              >
+                <Input
+                  prefix={<VideoCameraOutlined />}
+                  placeholder="https://example.com/video.mp4"
+                />
+              </Form.Item>
+              <Form.Item>
+                <div className="flex justify-between">
+                  <Button onClick={() => setIsDirectUrlModalVisible(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="primary" htmlType="submit">
+                    Confirm
+                  </Button>
+                </div>
+              </Form.Item>
+            </Form>
           </Modal>
 
           {/* Ad Media Details Modal */}
@@ -1589,40 +1189,13 @@ const AdPurchaseSlotManagement = () => {
             )}
           </Modal>
 
-          {/* Add Purchase Slot Details Modal */}
-          <Modal
-            title="Purchase Slot Details"
-            open={isDetailModalVisible}
-            onCancel={() => {
-              setIsDetailModalVisible(false);
-              setSelectedAdMedia(null);
-            }}
-            footer={[
-              <Button
-                key="close"
-                onClick={() => {
-                  setIsDetailModalVisible(false);
-                  setSelectedAdMedia(null);
-                }}
-              >
-                Close
-              </Button>,
-            ]}
-            width={700}
-            centered
-          >
-            {selectedAdMedia && <expandedRowRender record={selectedAdMedia} />}
-          </Modal>
-
           {/* Update Ad Media Modal */}
           <Modal
             title="Update Ad Media"
             open={isUpdateModalVisible}
             onCancel={() => {
               setIsUpdateModalVisible(false);
-              setImageUrl("");
-              setVideoUrl("");
-              setCurrentSlotLocation(null);
+              resetUpload();
               updateForm.resetFields();
               setActiveTab("form");
             }}
@@ -1654,7 +1227,7 @@ const AdPurchaseSlotManagement = () => {
                   <Form.Item name="image" label="Image">
                     <Input.Group compact>
                       <Upload
-                        customRequest={handleUpload}
+                        customRequest={handleImageUpload}
                         showUploadList={false}
                         maxCount={1}
                         accept="image/*"
@@ -1687,11 +1260,6 @@ const AdPurchaseSlotManagement = () => {
                             e.target.onerror = null;
                             e.target.src =
                               "https://placehold.co/400x300?text=Invalid+Image";
-                            notification.warning({
-                              message: "Image Preview Error",
-                              description:
-                                "Could not load image preview. URL may be invalid.",
-                            });
                           }}
                         />
                       </div>
@@ -1744,11 +1312,6 @@ const AdPurchaseSlotManagement = () => {
                           style={{ display: "block", margin: "0 auto" }}
                           onError={(e) => {
                             e.target.onerror = null;
-                            notification.warning({
-                              message: "Video Preview Error",
-                              description:
-                                "Could not load video preview. The URL may be invalid or the format is not supported by your browser.",
-                            });
                           }}
                         >
                           <source src={videoUrl} type="video/mp4" />
@@ -1757,21 +1320,6 @@ const AdPurchaseSlotManagement = () => {
                           <source src={videoUrl} type="video/quicktime" />
                           Your browser does not support HTML video.
                         </video>
-                        <div className="p-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex items-center justify-between">
-                          <div>
-                            {videoUrl.length > 60
-                              ? videoUrl.substring(0, 57) + "..."
-                              : videoUrl}
-                          </div>
-                          <a
-                            href={videoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline"
-                          >
-                            Open in new tab
-                          </a>
-                        </div>
                       </div>
                     </Form.Item>
                   )}
@@ -1788,8 +1336,7 @@ const AdPurchaseSlotManagement = () => {
                       <Button
                         onClick={() => {
                           setIsUpdateModalVisible(false);
-                          setImageUrl("");
-                          setVideoUrl("");
+                          resetUpload();
                           updateForm.resetFields();
                         }}
                       >
@@ -1847,50 +1394,6 @@ const AdPurchaseSlotManagement = () => {
                 </div>
               </TabPane>
             </Tabs>
-          </Modal>
-
-          {/* Direct URL Input Modal */}
-          <Modal
-            title="Enter Video URL"
-            open={isDirectUrlModalVisible}
-            onCancel={() => setIsDirectUrlModalVisible(false)}
-            footer={null}
-          >
-            <Form
-              form={directUrlForm}
-              layout="vertical"
-              onFinish={handleDirectUrlSubmit}
-            >
-              <Form.Item
-                label="Video URL"
-                name="videoUrl"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please enter the video URL",
-                  },
-                  {
-                    type: "url",
-                    message: "Please enter a valid URL",
-                  },
-                ]}
-              >
-                <Input
-                  prefix={<VideoCameraOutlined />}
-                  placeholder="https://example.com/video.mp4"
-                />
-              </Form.Item>
-              <Form.Item>
-                <div className="flex justify-between">
-                  <Button onClick={() => setIsDirectUrlModalVisible(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="primary" htmlType="submit">
-                    Confirm
-                  </Button>
-                </div>
-              </Form.Item>
-            </Form>
           </Modal>
         </div>
       </ConfigProvider>

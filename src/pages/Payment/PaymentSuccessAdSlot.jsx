@@ -21,6 +21,12 @@ const PaymentSuccessAdSlot = () => {
   const navigate = useNavigate();
   const apiCalled = useRef(false);
 
+  const vnpResponseCode = searchParams.get("vnp_ResponseCode");
+  if (vnpResponseCode === "24") {
+    navigate("/advertiser/select-adpackage", { replace: true });
+    return null;
+  }
+
   const handleVerifyPayment = async () => {
     if (apiCalled.current) return;
 
