@@ -43,7 +43,7 @@ import uploadFileApi from "../../../apis/Upload/upload.jsx"
 import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow.jsx"
 import { Link } from "react-router-dom"
 import MovieCount from "./MovieCount.jsx"
-import movieEarningService from "../../../apis/MovieEarning/MovieEarning.js"
+import movieEarningService from "../../../apis/MovieEarning/movieEarning.js"
 
 
 const { Content } = Layout

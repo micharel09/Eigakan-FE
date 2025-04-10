@@ -45,7 +45,7 @@ import uploadFileApi from "../../../apis/Upload/upload"
 import { extractUrl } from "../../../utils/extractUrl"
 import { Link } from "react-router-dom"
 import MovieCount from "../../Admin/Movie/MovieCount"
-import movieEarningService from "../../../apis/MovieEarning/MovieEarning"
+import movieEarningService from "../../../apis/MovieEarning/movieEarning"
 
 const { Content } = Layout
 const { TabPane } = Tabs
