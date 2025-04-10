@@ -1,4 +1,4 @@
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 import React, { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
@@ -8,14 +8,36 @@ import {
   FundOutlined,
   AuditOutlined,
   IdcardOutlined,
+  DownOutlined,
+  UpOutlined,
+  DollarOutlined,
+  PieChartOutlined,
+  BarChartOutlined,
+  LineChartOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 function AdminSidebar() {
   const [user, setUser] = useState(authService.getCurrentUser());
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Auto-open dashboard menu if we're on one of its child routes
+    const isDashboardChildRoute = [
+      "/dashboard",
+      "/admin/subscription-orders",
+      "/admin/ad-history",
+      "/admin/movie-earning",
+      "/admin/user-earning",
+    ].some((route) => location.pathname.includes(route));
+
+    if (isDashboardChildRoute) {
+      setDashboardOpen(true);
+    }
+
     const updateUser = () => {
       setUser(authService.getCurrentUser());
     };
@@ -25,16 +47,43 @@ function AdminSidebar() {
     return () => {
       authService.removeListener(updateUser);
     };
-  }, []);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     authService.logout();
     navigate("/login");
   };
 
+  const toggleDashboard = () => {
+    setDashboardOpen(!dashboardOpen);
+  };
+
+  // Animation variants for dropdown menu
+  const menuItemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0 },
+  };
+
+  const menuVariants = {
+    hidden: { height: 0, opacity: 0 },
+    visible: {
+      height: "auto",
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        when: "beforeChildren",
+      },
+    },
+  };
+
+  // Check if current path is active
+  const isActive = (path) => {
+    return location.pathname === path || location.pathname.startsWith(path);
+  };
+
   return (
     <div className="min-h-screen flex flex-row bg-gray-100">
-      <div className="flex flex-col w-56 bg-white rounded-r-3xl overflow-hidden">
+      <div className="flex flex-col w-56 bg-white rounded-r-3xl overflow-hidden shadow-lg">
         <div className="relative flex items-center justify-center h-20 shadow-md">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -50,14 +99,17 @@ function AdminSidebar() {
           </h2>
         </div>
         {/* avatar + name  */}
-        <ul className=" flex flex-col py-4 h-full">
-          <li className="flex justify-center items-center">
+        <ul className="flex flex-col py-4 h-full">
+          <li className="flex justify-center items-center mb-4">
             <div className="flex flex-col items-center gap-2">
-              <img
-                src={user.picture || "/avatar2.jpg"}
-                alt="Avatar"
-                className="h-16 w-16 rounded-full cursor-pointer border-2 border-gray-300"
-              />
+              <div className="relative">
+                <img
+                  src={user.picture || "/avatar2.jpg"}
+                  alt="Avatar"
+                  className="h-16 w-16 rounded-full cursor-pointer border-2 border-gray-300 object-cover shadow-md hover:shadow-lg transition-all duration-200"
+                />
+                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+              </div>
               <span className="text-indigo-800 text-sm sm:text-base font-medium mt-2">
                 {user.fullName}
               </span>
@@ -65,23 +117,130 @@ function AdminSidebar() {
           </li>
 
           <li>
-            <Link
-              to="/dashboard"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            <button
+              onClick={toggleDashboard}
+              className={`flex w-full flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 ${
+                isActive("/dashboard") ||
+                isActive("/admin/subscription-orders") ||
+                isActive("/admin/ad-history") ||
+                isActive("/admin/movie-earning") ||
+                isActive("/admin/user-earning")
+                  ? "bg-purple-50 text-purple-600 font-medium"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <FundOutlined />
               </span>
               <span className="ml-3 text-sm font-medium">Dashboard</span>
-            </Link>
+              <span
+                className="ml-auto transition-transform duration-300"
+                style={{
+                  transform: dashboardOpen ? "rotate(90deg)" : "rotate(0deg)",
+                }}
+              >
+                <RightOutlined />
+              </span>
+            </button>
+            <AnimatePresence>
+              {dashboardOpen && (
+                <motion.ul
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  variants={menuVariants}
+                  className="ml-6 overflow-hidden"
+                >
+                  <motion.li variants={menuItemVariants}>
+                    <Link
+                      to="/dashboard"
+                      className={`flex items-center text-sm py-3 px-4 rounded-lg my-1 ${
+                        isActive("/dashboard")
+                          ? "bg-purple-100 text-purple-600 font-medium"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-500 mr-3">
+                        <PieChartOutlined />
+                      </div>
+                      <span>Overview</span>
+                    </Link>
+                  </motion.li>
+                  <motion.li variants={menuItemVariants}>
+                    <Link
+                      to="/admin/subscription-orders"
+                      className={`flex items-center text-sm py-3 px-4 rounded-lg my-1 ${
+                        isActive("/admin/subscription-orders")
+                          ? "bg-blue-100 text-blue-600 font-medium"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-500 mr-3">
+                        <BarChartOutlined />
+                      </div>
+                      <span>Subscription Orders</span>
+                    </Link>
+                  </motion.li>
+                  <motion.li variants={menuItemVariants}>
+                    <Link
+                      to="/admin/ad-history"
+                      className={`flex items-center text-sm py-3 px-4 rounded-lg my-1 ${
+                        isActive("/admin/ad-history")
+                          ? "bg-orange-100 text-orange-600 font-medium"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-500 mr-3">
+                        <HistoryOutlined />
+                      </div>
+                      <span>Ad History</span>
+                    </Link>
+                  </motion.li>
+                  <motion.li variants={menuItemVariants}>
+                    <Link
+                      to="/admin/movie-earning"
+                      className={`flex items-center text-sm py-3 px-4 rounded-lg my-1 ${
+                        isActive("/admin/movie-earning")
+                          ? "bg-green-100 text-green-600 font-medium"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-500 mr-3">
+                        <DollarOutlined />
+                      </div>
+                      <span>Movie Earning</span>
+                    </Link>
+                  </motion.li>
+                  <motion.li variants={menuItemVariants}>
+                    <Link
+                      to="/admin/user-earning"
+                      className={`flex items-center text-sm py-3 px-4 rounded-lg my-1 ${
+                        isActive("/admin/user-earning")
+                          ? "bg-red-100 text-red-600 font-medium"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-500 mr-3">
+                        <LineChartOutlined />
+                      </div>
+                      <span>User Earning</span>
+                    </Link>
+                  </motion.li>
+                </motion.ul>
+              )}
+            </AnimatePresence>
           </li>
 
           <li>
             <Link
               to="/user"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className={`flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 ${
+                isActive("/user")
+                  ? "bg-blue-50 text-blue-600 font-medium"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -104,9 +263,13 @@ function AdminSidebar() {
           <li>
             <Link
               to="/userRegister"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className={`flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 ${
+                isActive("/userRegister")
+                  ? "bg-blue-50 text-blue-600 font-medium"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <IdcardOutlined />
               </span>
               <span className="ml-3 text-sm font-medium">User Register</span>
@@ -116,9 +279,13 @@ function AdminSidebar() {
           <li>
             <Link
               to="/admin/contract"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className={`flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 ${
+                isActive("/admin/contract")
+                  ? "bg-blue-50 text-blue-600 font-medium"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <AuditOutlined />
               </span>
               <span className="ml-3 text-sm font-medium">Contract</span>
@@ -128,21 +295,29 @@ function AdminSidebar() {
           <li>
             <Link
               to="/admin/movieAdmin"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className={`flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 ${
+                isActive("/admin/movieAdmin")
+                  ? "bg-blue-50 text-blue-600 font-medium"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <YoutubeOutlined />
               </span>
-              <span className="ml-3 text-sm font-medium">Movie </span>
+              <span className="ml-3 text-sm font-medium">Movie</span>
             </Link>
           </li>
 
           <li>
             <Link
               to="/admin/genres"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className={`flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 ${
+                isActive("/admin/genres")
+                  ? "bg-blue-50 text-blue-600 font-medium"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -158,16 +333,20 @@ function AdminSidebar() {
                   />
                 </svg>
               </span>
-              <span className="ml-3 text-sm font-medium">Gernes </span>
+              <span className="ml-3 text-sm font-medium">Genres</span>
             </Link>
           </li>
 
           <li>
             <Link
               to="/admin/persons"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className={`flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 ${
+                isActive("/admin/persons")
+                  ? "bg-blue-50 text-blue-600 font-medium"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -183,30 +362,20 @@ function AdminSidebar() {
                   />
                 </svg>
               </span>
-              <span className="ml-3 text-sm font-medium">Actor </span>
-            </Link>
-          </li>
-
-          <li>
-            <Link
-              to="/admin/subscription-orders"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
-            >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-                <HistoryOutlined />
-              </span>
-              <span className="ml-3 text-sm font-medium">
-                Subscription Orders
-              </span>
+              <span className="ml-3 text-sm font-medium">Actor</span>
             </Link>
           </li>
 
           <li>
             <Link
               to="/admin/payment-policy"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className={`flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 ${
+                isActive("/admin/payment-policy")
+                  ? "bg-blue-50 text-blue-600 font-medium"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -226,40 +395,12 @@ function AdminSidebar() {
             </Link>
           </li>
 
-          <li>
-            <Link
-              to="#"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
-            >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.5"
-                  stroke="currentColor"
-                  className="size-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5"
-                  />
-                </svg>
-              </span>
-              <span className="ml-3 text-sm font-medium">Notifications</span>
-              <span className="ml-auto mr-6 text-sm bg-red-100 rounded-full px-2 py-px text-red-500">
-                5
-              </span>
-            </Link>
-          </li>
-
-          <li>
+          <li className="mt-auto">
             <button
               onClick={handleLogout}
-              className="flex w-full flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className="flex w-full flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 text-gray-600 hover:text-red-500 group"
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg group-hover:text-red-500">
                 <LogOut className="size-5" />
               </span>
               <span className="ml-3 text-sm font-medium">Logout</span>
@@ -269,9 +410,9 @@ function AdminSidebar() {
           <li>
             <Link
               to="/homescreen"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 px-4 rounded-lg my-1 text-gray-600 hover:text-gray-800"
             >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <span className="inline-flex items-center justify-center h-8 w-8 text-lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
