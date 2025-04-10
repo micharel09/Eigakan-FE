@@ -52,21 +52,20 @@ const movieEarningService = {
         const token = localStorage.getItem('token');
       
         try {
-          const res = await axios.get(`${API_URL}/GetMovieEarningByMovieId`, {
+          const res = await axios.get(`${API_URL}/GetMovieEarningByMovieId/${movieId}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             },
             params: {
               page,
               pageSize,
-              movieId,
               ...(startDate && { startDate }),
               ...(endDate && { endDate })
             }
           });
       
           // ✅ Trả trực tiếp res.data, không bọc .result nữa
-          return res.data;
+          return res.data.data;
       
         } catch (err) {
           console.error("Fetch movie earning error:", err);
