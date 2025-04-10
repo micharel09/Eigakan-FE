@@ -28,17 +28,17 @@ export const useMovieRating = ({
     try {
       const response = await ratingService.createMovieRating(value, movieId);
       
-      if (response.success) {
-        setUserRating(value);
-        setHasUserRated(true);
-        
-        notification.success({
-          message: "Success",
-          description: "Rating submitted successfully",
-        });
-      } else {
+      if (!response.success) {
         throw new Error(response.message || "Failed to submit rating");
       }
+      
+      setUserRating(value);
+      setHasUserRated(true);
+      
+      notification.success({
+        message: "Success",
+        description: "Rating submitted successfully",
+      });
     } catch (error) {
       notification.error({
         message: "Error",
@@ -61,9 +61,9 @@ export const useMovieRating = ({
    * Check if user has already rated this movie
    */
   useEffect(() => {
-    const fetchUserRating = async () => {
-      if (!isAuthenticated || !movieId) return;
+    if (!isAuthenticated || !movieId) return;
 
+    const fetchUserRating = async () => {
       try {
         const response = await ratingService.getUserRatingForMovie(movieId);
         
@@ -76,9 +76,7 @@ export const useMovieRating = ({
       }
     };
 
-    if (movieId && isAuthenticated) {
-      fetchUserRating();
-    }
+    fetchUserRating();
   }, [movieId, isAuthenticated]);
 
   return {

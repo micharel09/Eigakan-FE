@@ -11,7 +11,6 @@ const userEarningService = {
       return response.data;
     }),
 
-  // Method for getting user earnings by login for manager
   getUserEarningByLogin: (year = 0, month = 0, day = 0, dayOfWeek = 0) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(

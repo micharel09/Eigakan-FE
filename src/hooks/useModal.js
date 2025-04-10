@@ -1,12 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
 
-/**
- * Custom hook for modal management with animation support
- * @param {boolean} initialState - Initial visibility state of the modal
- * @param {function} onClose - Optional callback function to execute on close
- * @param {number} animationDuration - Duration of the animation in milliseconds
- * @returns {object} Modal controls and state
- */
 const useModal = (initialState = false, onClose = null, animationDuration = 300) => {
   const [isVisible, setIsVisible] = useState(initialState);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -40,11 +33,7 @@ const useModal = (initialState = false, onClose = null, animationDuration = 300)
   
   // Function to toggle the modal state
   const toggle = useCallback(() => {
-    if (isVisible) {
-      close();
-    } else {
-      open();
-    }
+    isVisible ? close() : open();
   }, [isVisible, open, close]);
   
   // Effect to handle escape key for modal closing

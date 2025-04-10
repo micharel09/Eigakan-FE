@@ -26,31 +26,22 @@ export const useMovieComments = ({
    */
   const handleCommentSubmit = useCallback(async (e) => {
     if (e) e.preventDefault();
-    if (!commentInput.trim() || !isAuthenticated || !movieId) return;
+    if (!commentInput.trim() || !isAuthenticated || !movieId) return null;
 
     try {
       const response = await ratingService.createComment(commentInput, movieId);
-
-      if (response.success) {
-        // Refresh movie data to get updated comments
-        const movieResponse = await movieService.getMovieById(movieId);
-        
-        if (movieResponse.success) {
-          // This hook doesn't update the movie state directly
-          // The consumer component should handle this
-          const updatedMovie = movieResponse.data;
-          
-          setCommentInput("");
-          notification.success({
-            message: "Success",
-            description: "Comment posted successfully",
-          });
-          
-          return updatedMovie;
-        }
-      } else {
-        throw new Error(response.message || "Failed to post comment");
-      }
+      if (!response.success) throw new Error(response.message || "Failed to post comment");
+      
+      const movieResponse = await movieService.getMovieById(movieId);
+      if (!movieResponse.success) throw new Error("Failed to refresh movie data");
+      
+      setCommentInput("");
+      notification.success({
+        message: "Success",
+        description: "Comment posted successfully",
+      });
+      
+      return movieResponse.data;
     } catch (error) {
       notification.error({
         message: "Error",
@@ -64,9 +55,12 @@ export const useMovieComments = ({
    * Fetch user details for comment authors
    */
   useEffect(() => {
+    if (!isAuthenticated || !movie?.comments?.length) {
+      setLoadingComments(false);
+      return;
+    }
+    
     const fetchUserDetails = async () => {
-      if (!isAuthenticated || !movie?.comments) return;
-      
       setLoadingComments(true);
 
       try {

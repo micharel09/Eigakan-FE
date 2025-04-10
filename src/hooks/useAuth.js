@@ -29,16 +29,14 @@ const useAuth = () => {
   const role = useMemo(() => user?.roleName || localStorage.getItem("role"), [user]);
   
   // Memoize role checks to prevent unnecessary recalculations
-  const userRoles = useMemo(() => {
-    return {
-      isAdmin: role === ROLES.ADMIN,
-      isManager: role === ROLES.MANAGER,
-      isPublisher: role === ROLES.PUBLISHER,
-      isAdvertiser: role === ROLES.ADVERTISER,
-      isVipMember: role === ROLES.VIP_MEMBER,
-      isMember: role === ROLES.MEMBER,
-    };
-  }, [role, ROLES]);
+  const userRoles = useMemo(() => ({
+    isAdmin: role === ROLES.ADMIN,
+    isManager: role === ROLES.MANAGER,
+    isPublisher: role === ROLES.PUBLISHER,
+    isAdvertiser: role === ROLES.ADVERTISER,
+    isVipMember: role === ROLES.VIP_MEMBER,
+    isMember: role === ROLES.MEMBER,
+  }), [role, ROLES]);
   
   // Memoize user authentication status
   const isAuthenticated = useMemo(() => !!token && !!user, [token, user]);
