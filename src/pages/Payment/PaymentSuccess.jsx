@@ -20,19 +20,18 @@ function PaymentSuccess() {
   const navigate = useNavigate();
   const apiCalled = useRef(false);
 
+  // Kiểm tra hủy thanh toán ngay lập tức
+  const vnpResponseCode = searchParams.get("vnp_ResponseCode");
+  if (vnpResponseCode === "24") {
+    navigate("/subscription-plans", { replace: true });
+    return null; // Return null để không render gì cả
+  }
+
   useEffect(() => {
     const verifyPayment = async () => {
       if (apiCalled.current) return;
 
       try {
-        // Kiểm tra nếu người dùng hủy thanh toán từ VNPAY
-        const vnpResponseCode = searchParams.get("vnp_ResponseCode");
-        if (vnpResponseCode === "24") {
-          // Mã 24 là mã hủy giao dịch từ VNPAY
-          navigate("/subscription-plans", { replace: true });
-          return;
-        }
-
         apiCalled.current = true;
         const queryString = Array.from(searchParams.entries())
           .map(([key, value]) => `${key}=${value}`)
