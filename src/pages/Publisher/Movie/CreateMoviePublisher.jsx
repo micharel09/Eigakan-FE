@@ -273,8 +273,6 @@ const CreateMoviePublisher = () => {
                           >
                             <Option value="POSTER">Poster</Option>
                             <Option value="BANNER">Banner</Option>
-                            <Option value="TRAILER">Trailer</Option>
-                            <Option value="FILMVIP">Film VIP</Option>
                           </Select>
                         </div>
 

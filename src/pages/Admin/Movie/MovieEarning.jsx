@@ -11,10 +11,11 @@ import {
   Statistic,
 } from "antd";
 import { SearchOutlined, EyeOutlined, DollarOutlined } from "@ant-design/icons";
-import movieEarningService from "../../../apis/MovieEarning/MovieEarning";
+
 import { Helmet } from "react-helmet";
 import dayjs from "dayjs";
 import { Link } from "react-router-dom";
+import movieEarningService from "../../../apis/MovieEarning/movieEarning";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -31,44 +32,32 @@ const MovieEarning = () => {
   });
   const [totalViews, setTotalViews] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
-  const [totalEarningsMovieContract, setTotalEarningsMovieContract] =
-    useState(0);
+  const [totalEarningsMovieContract, setTotalEarningsMovieContract] = useState(0);
 
   const fetchMovieEarnings = async (page = 1, pageSize = 5) => {
     try {
       setLoading(true);
-      const response = await movieEarningService.getAllMovieEarning(
-        page,
-        pageSize
-      );
-
-      if (response?.data?.data) {
-        const formattedData = response.data.data.movieEarning.map((item) => ({
+      const response = await movieEarningService.getMovieEarning(page, pageSize);
+  
+      if (response?.success && response.data) {
+        const formattedData = response.data.movieEarning.map((item) => ({
           ...item,
           key: item.id,
         }));
-
+  
         setMovieEarnings(formattedData);
-
+  
         setPagination({
           ...pagination,
           current: page,
           pageSize: pageSize,
-          total: response.data.data.totalItems || 0,
+          total: response.data.totalItems || 0,
         });
 
-        setTotalViews(response.data.data.totalView || 0);
-        setTotalEarnings(response.data.data.totalEarnings || 0);
-        setTotalEarningsMovieContract(
-          response.data.data.totalEarningsMovieContract || 0
-        );
-      } else {
-        // Xử lý khi không có dữ liệu hoặc response không như mong đợi
-        setMovieEarnings([]);
-        notification.warning({
-          message: "No Data",
-          description: "No movie earnings data found",
-        });
+        setTotalViews(response.data.totalView || 0);
+        setTotalEarnings(response.data.totalEarnings || 0);
+        setTotalEarningsMovieContract(response.data.totalEarningsMovieContract || 0); 
+
       }
     } catch (error) {
       notification.error({
@@ -80,6 +69,7 @@ const MovieEarning = () => {
       setLoading(false);
     }
   };
+  
 
   useEffect(() => {
     fetchMovieEarnings(pagination.current, pagination.pageSize);
@@ -119,7 +109,9 @@ const MovieEarning = () => {
       key: "movieName",
       width: "25%",
       render: (text, record) => (
-        <Link to={`/admin/movie/${record.movieId}`}>{text}</Link>
+        <Link to={`/admin/movie/${record.movieId}`}>
+          {text}
+        </Link>
       ),
     },
     {

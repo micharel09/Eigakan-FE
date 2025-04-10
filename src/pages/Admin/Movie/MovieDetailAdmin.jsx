@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
 import {
   Breadcrumb,
   Layout,
@@ -21,7 +21,7 @@ import {
   Divider,
   Table,
   Pagination,
-} from "antd";
+} from "antd"
 import {
   PlayCircleOutlined,
   PictureOutlined,
@@ -34,125 +34,109 @@ import {
   CalendarOutlined,
   BarChartOutlined,
   ClockCircleOutlined,
-} from "@ant-design/icons";
-import { useParams, useNavigate } from "react-router-dom";
-import dayjs from "dayjs";
-import movieService from "../../../apis/Movie/movie";
-import contractApi from "../../../apis/Contract/contract";
-import { extractUrl } from "../../../utils/extractUrl";
-import uploadFileApi from "../../../apis/Upload/upload.jsx";
-import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow.jsx";
-import { Link } from "react-router-dom";
-import MovieCount from "./MovieCount.jsx";
-import movieEarningService from "../../../apis/MovieEarning/MovieEarning.js";
+} from "@ant-design/icons"
+import { useParams, useNavigate } from "react-router-dom"
+import movieService from "../../../apis/Movie/movie"
+import contractApi from "../../../apis/Contract/contract"
+import { extractUrl } from "../../../utils/extractUrl"
+import uploadFileApi from "../../../apis/Upload/upload.jsx"
+import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow.jsx"
+import { Link } from "react-router-dom"
+import MovieCount from "./MovieCount.jsx"
+import movieEarningService from "../../../apis/MovieEarning/movieEarning.js"
 
-const { Content } = Layout;
-const { TabPane } = Tabs;
-const { Title, Text, Paragraph } = Typography;
+
+const { Content } = Layout
+const { TabPane } = Tabs
+const { Title, Text, Paragraph } = Typography
 
 const MovieDetail = () => {
-  const [movie, setMovie] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState({ visible: false, type: "" });
-  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false);
-  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
-  const [isActiveModalVisible, setIsActiveModalVisible] = useState(false);
-  const [reason, setReason] = useState("");
+  const [movie, setMovie] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [modal, setModal] = useState({ visible: false, type: "" })
+  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false)
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false)
+  const [isActiveModalVisible, setIsActiveModalVisible] = useState(false)
+  const [reason, setReason] = useState("")
   const [movieEarnings, setMovieEarnings] = useState([]);
   const [total, setTotal] = useState(0);
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   const [totalEarnings, setTotalEarnings] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 5
 
-  const { id } = useParams();
-  const [form] = Form.useForm();
 
-  // Hàm format số tiền sang định dạng VND
-  const formatVND = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price || 0);
-  };
+
+  const { id } = useParams()
+  const [form] = Form.useForm()
 
   useEffect(() => {
-    fetchMovieDetails();
+    fetchMovieDetails()
     fetchMovieEarningByMovieId(currentPage, pageSize);
-  }, [id, currentPage]);
+  }, [])
 
   const fetchMovieDetails = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await movieService.getMovieById(id);
-      setMovie(response.data);
+      const response = await movieService.getMovieById(id)
+      setMovie(response.data)
     } catch (error) {
-      notification.error({ message: "Failed to fetch movie details" });
+      notification.error({ message: "Failed to fetch movie details" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const fetchMovieEarningByMovieId = async (page = 1, pageSize = 5) => {
     setLoading(true);
     try {
-      const result = await movieEarningService.getMovieEarningByMovieId(
-        page,
-        pageSize,
-        id
-      );
+      
+      const result = await movieEarningService.getMovieEarningByMovieId(id, page, pageSize);
+      
+      setMovieEarnings(result.movieEarningMovieId); 
+      setTotalEarnings(result.totalEarnings); 
+      setTotal(result.totalItems);
 
-      if (result && result.movieEarningMovieId) {
-        setMovieEarnings(result.movieEarningMovieId);
-        setTotalEarnings(result.totalEarnings || 0);
-        setTotal(result.totalItems || 0);
-      } else {
-        setMovieEarnings([]);
-      }
     } catch (error) {
-      console.error("Error fetching movie earnings:", error);
-      if (error.response && error.response.status !== 404) {
-        notification.error({
-          message: "Failed to fetch movie earnings",
-          description: error.message || "Could not load movie earnings data",
-        });
-      }
-      setMovieEarnings([]);
+      notification.error({ message: "Failed to fetch movie earnings" });
     } finally {
       setLoading(false);
     }
   };
+  
+  
+  
 
   const handleActive = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const data = { id: movie?.id };
-      const response = await movieService.acceptedMovie(data);
+      const data = { id: movie?.id }
+      const response = await movieService.acceptedMovie(data)
       if (response.status === 200) {
         notification.success({
           message: response.data.message || "Active successfully!",
-        });
-        await fetchMovieDetails(); // Reload data after successful update
+        })
+        await fetchMovieDetails() // Reload data after successful update
       } else {
         notification.error({
           message: response.data.message || "Failed to active user.",
-        });
+        })
       }
     } catch (error) {
-      console.error("Error rejecting user:", error);
-      notification.error({ message: error.message || "An error occurred!" });
+      console.error("Error rejecting user:", error)
+      notification.error({ message: error.message || "An error occurred!" })
     } finally {
-      setLoading(false);
-      setIsActiveModalVisible(false);
+      setLoading(false)
+      setIsActiveModalVisible(false)
     }
-  };
+  }
 
   const handleAccept = async () => {
     try {
-      setLoading(true); // 🔹 Bật trạng thái loading
+      setLoading(true) // 🔹 Bật trạng thái loading
 
-      const data = { Id: movie?.id };
-      const values = await form.validateFields(); // Lấy giá trị từ form
+      const data = { Id: movie?.id }
+      const values = await form.validateFields() // Lấy giá trị từ form
 
       const contractData = {
         startDate: values.startDate.format("DD/MM/YYYY"),
@@ -161,113 +145,108 @@ const MovieDetail = () => {
         publisherName: values.publisherName,
         distributorName: values.distributorName,
         movieId: movie?.id,
-      };
+      }
 
       // Gọi API accept movie
-      const response = await movieService.acceptedMovie(data);
+      const response = await movieService.acceptedMovie(data)
 
       if (response.status === 200) {
-        notification.success({ message: "Just one more minus........" });
+        notification.success({ message: "Just one more minus........" })
 
         // Gọi API tạo contract
-        await contractApi.createContract(contractData);
-        notification.success({ message: "Contract generated successfully!" });
+        await contractApi.createContract(contractData)
+        notification.success({ message: "Contract generated successfully!" })
 
-        setIsAcceptModalVisible(false);
+        setIsAcceptModalVisible(false)
         // Fetch movie details again to update the status
-        await fetchMovieDetails();
+        await fetchMovieDetails()
       } else {
         notification.error({
           message: response.data.message || "Failed to accept movie",
-        });
+        })
       }
     } catch (error) {
-      notification.error({
-        message: error.data?.message || "An error occurred",
-      });
+      notification.error({ message: error.data?.message || "An error occurred" })
     } finally {
-      setLoading(false); // 🔹 Luôn tắt loading khi xử lý xong
+      setLoading(false) // 🔹 Luôn tắt loading khi xử lý xong
     }
-  };
+  }
 
   const handleAcceptNoContract = async () => {
     try {
-      setLoading(true);
+      setLoading(true)
 
-      const data = { Id: movie?.id };
+      const data = { Id: movie?.id }
 
-      const response = await movieService.acceptedMovieNotContract(data);
+      const response = await movieService.acceptedMovieNotContract(data)
 
       if (response.status === 200) {
-        notification.success({ message: "Accepted successfull!!!" });
+        notification.success({ message: "Accepted successfull!!!" })
 
-        await fetchMovieDetails();
+        await fetchMovieDetails()
       } else {
         notification.error({
           message: response.data.message || "Failed to accept movie",
-        });
+        })
       }
     } catch (error) {
-      notification.error({
-        message: error.data?.message || "An error occurred",
-      });
+      notification.error({ message: error.data?.message || "An error occurred" })
     } finally {
-      setLoading(false); // 🔹 Luôn tắt loading khi xử lý xong
+      setLoading(false) // 🔹 Luôn tắt loading khi xử lý xong
     }
-  };
+  }
 
   const handleReject = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const data = { id: movie?.id, reasonForRejection: reason };
-      const response = await movieService.rejectedMovie(data);
+      const data = { id: movie?.id, reasonForRejection: reason }
+      const response = await movieService.rejectedMovie(data)
       if (response.status === 200) {
         notification.success({
           message: response.data.message || "Rejected successfully!",
-        });
-        await fetchMovieDetails(); // Reload data after successful update
+        })
+        await fetchMovieDetails() // Reload data after successful update
       } else {
         notification.error({
           message: response.data.message || "Failed to reject user.",
-        });
+        })
       }
     } catch (error) {
-      console.error("Error rejecting user:", error);
-      notification.error({ message: error.message || "An error occurred!" });
+      console.error("Error rejecting user:", error)
+      notification.error({ message: error.message || "An error occurred!" })
     } finally {
-      setLoading(false);
-      setIsRejectModalVisible(false);
-      setReason("");
+      setLoading(false)
+      setIsRejectModalVisible(false)
+      setReason("")
     }
-  };
+  }
 
   const handleArchived = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await movieService.archivedMovie(id);
+      const response = await movieService.archivedMovie(id)
       if (response.status === 200) {
         notification.success({
           message: response.data.message || "Archived successfully!",
-        });
-        await fetchMovieDetails(); // Reload data after successful update
+        })
+        await fetchMovieDetails() // Reload data after successful update
       } else {
         notification.error({
           message: response.data.message || "Failed to archived.",
-        });
+        })
       }
     } catch (error) {
-      console.error("Error archived movie:", error);
-      notification.error({ message: error.message || "An error occurred!" });
+      console.error("Error archived movie:", error)
+      notification.error({ message: error.message || "An error occurred!" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const getMediaUrl = (type) =>
-    movie?.medias?.find((m) => m.type === type)?.url || "";
+  const getMediaUrl = (type) => movie?.medias?.find((m) => m.type === type)?.url || ""
 
   const renderMedia = (type) => {
-    const url = getMediaUrl(type);
+    const url = getMediaUrl(type)
 
     if (type === "DASHBOARD") {
       return (
@@ -276,9 +255,7 @@ const MovieDetail = () => {
             <Title level={3} className="text-gray-800 mb-1">
               Movie Dashboard
             </Title>
-            <Text className="text-gray-500">
-              Comprehensive analytics and information
-            </Text>
+            <Text className="text-gray-500">Comprehensive analytics and information</Text>
           </div>
 
           {/* Movie Information - Top Row */}
@@ -302,9 +279,7 @@ const MovieDetail = () => {
                     </Text>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-lg">
-                    <Paragraph className="text-gray-800 m-0">
-                      {movie?.submissionDate || "Not available"}
-                    </Paragraph>
+                    <Paragraph className="text-gray-800 m-0">{movie?.submissionDate || "Not available"}</Paragraph>
                   </div>
                 </div>
 
@@ -316,9 +291,7 @@ const MovieDetail = () => {
                     </Text>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-lg">
-                    <Paragraph className="text-gray-800 m-0">
-                      {movie?.reasonForRejection || "No rejection"}
-                    </Paragraph>
+                    <Paragraph className="text-gray-800 m-0">{movie?.reasonForRejection || "No rejection"}</Paragraph>
                   </div>
                 </div>
               </div>
@@ -374,14 +347,12 @@ const MovieDetail = () => {
             title={
               <div className="flex items-center">
                 <div className="bg-purple-500 w-1 h-6 mr-3 rounded-full"></div>
-                <span>
-                  Movie Earnings - Total Earnings: {formatVND(totalEarnings)}
-                </span>
+                <span>Movie Earnings - Total Earnings: {totalEarnings}</span>
               </div>
             }
             bordered={false}
             className="shadow-md hover:shadow-lg transition-shadow duration-300"
-          >
+            >
             <Table
               columns={columns}
               dataSource={movieEarnings}
@@ -393,16 +364,19 @@ const MovieDetail = () => {
             <div className="flex justify-end mt-4">
               <Pagination
                 current={currentPage}
-                onChange={handlePaginationChange}
+                onChange={(page) => setCurrentPage(page)}  // Cập nhật currentPage khi thay đổi trang
                 total={total}
                 pageSize={pageSize}
                 showSizeChanger={false}
               />
             </div>
           </Card>
+        
         </div>
-      );
+      )
     }
+
+    
     if (["Actor/Acstress"].includes(type)) {
       return (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -417,29 +391,17 @@ const MovieDetail = () => {
             </div>
           ))}
         </div>
-      );
+      )
     }
-    if (!url) return <p>No {type.toLowerCase()} available</p>;
+    if (!url) return <p>No {type.toLowerCase()} available</p>
     if (type === "POSTER")
       return (
         <div className="flex justify-center">
-          <Image
-            width="30%"
-            src={url || "/placeholder.svg"}
-            alt={`Movie ${type}`}
-          />
+          <Image width="30%" src={url || "/placeholder.svg"} alt={`Movie ${type}`} />
         </div>
-      );
-    if (type === "BANNER")
-      return (
-        <Image
-          width="100%"
-          src={url || "/placeholder.svg"}
-          alt={`Movie ${type}`}
-        />
-      );
-    if (type === "TRAILER")
-      return <iframe width="100%" height="400" src={url} allowFullScreen />;
+      )
+    if (type === "BANNER") return <Image width="100%" src={url || "/placeholder.svg"} alt={`Movie ${type}`} />
+    if (type === "TRAILER") return <iframe width="100%" height="400" src={url} allowFullScreen />
     if (type === "FILMVIP" && url.includes("iframe.mediadelivery.net")) {
       return (
         <iframe
@@ -452,7 +414,7 @@ const MovieDetail = () => {
           allow="autoplay; encrypted-media"
           allowFullScreen
         />
-      );
+      )
     }
     if (["FILM", "FILMVIP"].includes(type)) {
       return (
@@ -460,89 +422,77 @@ const MovieDetail = () => {
           <source src={url} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-      );
+      )
     }
-  };
+  }
 
   const handleGetPreUrl = async () => {
     try {
-      const extractLink = extractUrl(movie?.fileUrl);
+      const extractLink = extractUrl(movie?.fileUrl)
       if (extractLink === null) {
-        notification.error({ message: error.message || "An error occurred!" });
+        notification.error({ message: error.message || "An error occurred!" })
       }
 
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
+        throw new Error("Failed to extract userId or fileName from URL")
       }
-      const response = await uploadFileApi.getPreFileUrlMovie(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      console.log("PreUrl:", response.data);
+      const response = await uploadFileApi.getPreFileUrlMovie(extractLink.userId, extractLink.fileName)
+      console.log("PreUrl:", response.data)
       //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
+      window.open(response.data.url, "_blank")
     } catch (error) {
-      notification.error({ message: error.message || "Not found" });
-      console.error("Error fetching preUrl:", error);
+      notification.error({ message: error.message || "Not found" })
+      console.error("Error fetching preUrl:", error)
     }
-  };
+  }
 
   const handleGetPreUrlTemp = async () => {
     try {
-      const extractLink = extractUrl(movie?.fileUrl);
+      const extractLink = extractUrl(movie?.fileUrl)
       if (extractLink === null) {
-        notification.error({ message: error.message || "An error occurred!" });
+        notification.error({ message: error.message || "An error occurred!" })
       }
 
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
+        throw new Error("Failed to extract userId or fileName from URL")
       }
-      const response = await uploadFileApi.getPreFileUrlTemp(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      console.log("PreUrl:", response.data);
+      const response = await uploadFileApi.getPreFileUrlTemp(extractLink.userId, extractLink.fileName)
+      console.log("PreUrl:", response.data)
       //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
+      window.open(response.data.url, "_blank")
     } catch (error) {
-      notification.error({ message: error.message || "Not found" });
-      console.error("Error fetching preUrl:", error);
+      notification.error({ message: error.message || "Not found" })
+      console.error("Error fetching preUrl:", error)
     }
-  };
+  }
+
 
   const columns = [
     {
-      title: "Week (from - to)",
-      dataIndex: "startWeek",
-      key: "startWeek",
-      render: (_, record) =>
-        `${dayjs(record.startWeek).format("DD/MM/YYYY")} - ${dayjs(
-          record.endWeek
-        ).format("DD/MM/YYYY")}`,
+      title: 'Week (from - to)',
+      dataIndex: 'startWeek',
+      key: 'startWeek',
+      render: (_, record) => `${record.startWeek} - ${record.endWeek}`
     },
     {
-      title: "Views",
-      dataIndex: "totalView",
-      key: "totalView",
+      title: 'Views',
+      dataIndex: 'totalView',
+      key: 'totalView',
     },
     {
-      title: "Earnings",
-      dataIndex: "totalEarnings",
-      key: "totalEarnings",
-      render: (value) => formatVND(value),
+      title: 'Earnings',
+      dataIndex: 'totalEarnings',
+      key: 'totalEarnings',
+      render: (value) => parseFloat(value).toLocaleString() + ' VND'
     },
     {
-      title: "Created At",
-      dataIndex: "createDate",
-      key: "createDate",
-      render: (value) => dayjs(value).format("DD/MM/YYYY HH:mm"),
-    },
+      title: 'Created At',
+      dataIndex: 'createDate',
+      key: 'createDate',
+      render: (value) => new Date(value).toLocaleString()
+    }
   ];
-
-  // Thêm hàm xử lý khi thay đổi trang
-  const handlePaginationChange = (page) => {
-    setCurrentPage(page);
-  };
+  
 
   return (
     <Layout className="min-h-screen bg-gray-50">
@@ -561,11 +511,7 @@ const MovieDetail = () => {
           <>
             <Card className="mb-6 shadow-sm">
               <div className="flex flex-col md:flex-row gap-8 items-start">
-                <Image
-                  width={300}
-                  src={getMediaUrl("POSTER") || "/placeholder.svg"}
-                  className="rounded-lg"
-                />
+                <Image width={300} src={getMediaUrl("POSTER") || "/placeholder.svg"} className="rounded-lg" />
                 <div className="flex flex-col gap-4 w-full">
                   <div className="flex justify-between items-start">
                     <div>
@@ -574,25 +520,14 @@ const MovieDetail = () => {
                       <div className="flex gap-2 my-2">
                         <Tag color="blue">{movie?.releaseYear}</Tag>
                         <Tag color="green">{movie?.genreNames}</Tag>
-                        <Tag
-                          color={
-                            movie?.status === "ACTIVE" ? "success" : "warning"
-                          }
-                        >
-                          {movie?.status}
-                        </Tag>
-                        <Tag
-                          color={movie?.isContract === true ? "success" : "red"}
-                        >
+                        <Tag color={movie?.status === "ACTIVE" ? "success" : "warning"}>{movie?.status}</Tag>
+                        <Tag color={movie?.isContract === true ? "success" : "red"}>
                           {movie?.isContract ? "Contracted" : "Not Contracted"}
                         </Tag>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Link
-                        key={movie?.id}
-                        to={`/admin/updateMovie/${movie?.id}`}
-                      >
+                      <Link key={movie?.id} to={`/admin/updateMovie/${movie?.id}`}>
                         <Button
                           type="primary"
                           icon={<EditOutlined />}
@@ -607,67 +542,61 @@ const MovieDetail = () => {
                         type="primary"
                         icon={<EyeOutlined />}
                         size="large"
-                        onClick={
-                          movie?.status === "WAITING_FOR_REVIEWING"
-                            ? handleGetPreUrlTemp
-                            : handleGetPreUrl
-                        }
+                        onClick={movie?.status === "WAITING_FOR_REVIEWING" ? handleGetPreUrlTemp : handleGetPreUrl}
                         className="bg-blue-500 hover:bg-blue-600 border-blue-500 hover:border-blue-600"
                       >
                         View File
                       </Button>
 
-                      {movie?.status === "WAITING_FOR_REVIEWING" &&
-                        movie?.isContract === true && (
-                          <>
-                            <Button
-                              type="primary"
-                              icon={<CheckCircleOutlined />}
-                              size="large"
-                              onClick={() => setIsAcceptModalVisible(true)}
-                              className="bg-green-500 hover:bg-green-600 border-green-500 hover:border-green-600"
-                            >
-                              Accept
-                            </Button>
-                            <Button
-                              type="primary"
-                              danger
-                              icon={<CloseCircleOutlined />}
-                              size="large"
-                              onClick={() => setIsRejectModalVisible(true)}
-                              loading={loading}
-                              className="hover:bg-red-600 hover:border-red-600"
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        )}
+                      {movie?.status === "WAITING_FOR_REVIEWING" && movie?.isContract === true && (
+                        <>
+                          <Button
+                            type="primary"
+                            icon={<CheckCircleOutlined />}
+                            size="large"
+                            onClick={() => setIsAcceptModalVisible(true)}
+                            className="bg-green-500 hover:bg-green-600 border-green-500 hover:border-green-600"
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            type="primary"
+                            danger
+                            icon={<CloseCircleOutlined />}
+                            size="large"
+                            onClick={() => setIsRejectModalVisible(true)}
+                            loading={loading}
+                            className="hover:bg-red-600 hover:border-red-600"
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      )}
 
-                      {movie?.status === "WAITING_FOR_REVIEWING" &&
-                        movie?.isContract === false && (
-                          <>
-                            <Button
-                              type="primary"
-                              icon={<CheckCircleOutlined />}
-                              size="large"
-                              onClick={handleAcceptNoContract}
-                              className="bg-green-500 hover:bg-green-600 border-green-500 hover:border-green-600"
-                            >
-                              Acceptee
-                            </Button>
-                            <Button
-                              type="primary"
-                              danger
-                              icon={<CloseCircleOutlined />}
-                              size="large"
-                              onClick={() => setIsRejectModalVisible(true)}
-                              loading={loading}
-                              className="hover:bg-red-600 hover:border-red-600"
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        )}
+                      {movie?.status === "WAITING_FOR_REVIEWING" && movie?.isContract === false && (
+                        <>
+                          <Button
+                            type="primary"
+                            icon={<CheckCircleOutlined />}
+                            size="large"
+                            onClick={handleAcceptNoContract}
+                            className="bg-green-500 hover:bg-green-600 border-green-500 hover:border-green-600"
+                          >
+                            Acceptee
+                          </Button>
+                          <Button
+                            type="primary"
+                            danger
+                            icon={<CloseCircleOutlined />}
+                            size="large"
+                            onClick={() => setIsRejectModalVisible(true)}
+                            loading={loading}
+                            className="hover:bg-red-600 hover:border-red-600"
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      )}
 
                       {(movie?.status === "WAITING_FOR_UPLOADING" ||
                         movie?.status === "ACTIVE" ||
@@ -701,17 +630,12 @@ const MovieDetail = () => {
                   </div>
                   <Paragraph>{movie?.description}</Paragraph>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    {["Director", "Duration", "Nation", "Rating"].map(
-                      (field, index) => (
-                        <div key={index}>
-                          <Text type="secondary">{field}</Text>
-                          <Paragraph strong>
-                            {movie?.[field.toLowerCase().replace(/ /g, "")] ||
-                              "N/A"}
-                          </Paragraph>
-                        </div>
-                      )
-                    )}
+                    {["Director", "Duration", "Nation", "Rating"].map((field, index) => (
+                      <div key={index}>
+                        <Text type="secondary">{field}</Text>
+                        <Paragraph strong>{movie?.[field.toLowerCase().replace(/ /g, "")] || "N/A"}</Paragraph>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -719,15 +643,7 @@ const MovieDetail = () => {
 
             <Card className="shadow-sm">
               <Tabs defaultActiveKey="dashboard">
-                {[
-                  "DASHBOARD",
-                  "POSTER",
-                  "BANNER",
-                  "TRAILER",
-                  "FILM",
-                  "FILMVIP",
-                  "Actor/Acstress",
-                ].map((key) => (
+                {["DASHBOARD", "POSTER", "BANNER", "TRAILER", "FILM", "FILMVIP", "Actor/Acstress"].map((key) => (
                   <TabPane
                     key={key.toLowerCase()}
                     tab={
@@ -769,9 +685,7 @@ const MovieDetail = () => {
             <Form.Item
               name="startDate"
               label="Start Date"
-              rules={[
-                { required: true, message: "Please select a start date" },
-              ]}
+              rules={[{ required: true, message: "Please select a start date" }]}
             >
               <DatePicker style={{ width: "100%" }} />
             </Form.Item>
@@ -784,17 +698,11 @@ const MovieDetail = () => {
               <InputNumber style={{ width: "100%" }} min={1} />
             </Form.Item>
 
-            <Form.Item
-              name="price"
-              label="Price (VND)"
-              rules={[{ required: true, message: "Please enter a price" }]}
-            >
+            <Form.Item name="price" label="Price (VND)" rules={[{ required: true, message: "Please enter a price" }]}>
               <InputNumber
                 style={{ width: "100%" }}
                 min={0}
-                formatter={(value) =>
-                  value ? new Intl.NumberFormat("en-US").format(value) : ""
-                }
+                formatter={(value) => (value ? new Intl.NumberFormat("en-US").format(value) : "")}
                 parser={(value) => value.replace(/,/g, "")}
               />
             </Form.Item>
@@ -802,9 +710,7 @@ const MovieDetail = () => {
             <Form.Item
               name="publisherName"
               label="Publisher Name"
-              rules={[
-                { required: true, message: "Please enter publisher name" },
-              ]}
+              rules={[{ required: true, message: "Please enter publisher name" }]}
             >
               <Input />
             </Form.Item>
@@ -812,9 +718,7 @@ const MovieDetail = () => {
             <Form.Item
               name="distributorName"
               label="Distributor Name"
-              rules={[
-                { required: true, message: "Please enter distributor name" },
-              ]}
+              rules={[{ required: true, message: "Please enter distributor name" }]}
             >
               <Input />
             </Form.Item>
@@ -850,9 +754,10 @@ const MovieDetail = () => {
         >
           <h1>Are you sure to active this movie and publish on website?</h1>
         </Modal>
+      
       </Content>
     </Layout>
-  );
-};
+  )
+}
 
-export default MovieDetail;
+export default MovieDetail
