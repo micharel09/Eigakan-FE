@@ -71,7 +71,7 @@ const MovieDetail = () => {
 
   useEffect(() => {
     fetchMovieDetails()
-    fetchMovieEarningByMovieId();
+    fetchMovieEarningByMovieId(currentPage, pageSize);
   }, [])
 
   const fetchMovieDetails = async () => {
@@ -86,18 +86,23 @@ const MovieDetail = () => {
     }
   }
 
-  const fetchMovieEarningByMovieId = async () => {
+  const fetchMovieEarningByMovieId = async (page = 1, pageSize = 5) => {
     setLoading(true);
     try {
-      const result = await movieEarningService.getMovieEarningByMovieId(currentPage, pageSize, id);
-      setMovieEarnings(result.items); // ✅ sẽ lấy đúng
-      setTotalEarnings(result.totalEarnings);
+      
+      const result = await movieEarningService.getMovieEarningByMovieId(id, page, pageSize);
+      
+      setMovieEarnings(result.movieEarningMovieId); 
+      setTotalEarnings(result.totalEarnings); 
+      setTotal(result.totalItems);
+
     } catch (error) {
-      notification.error({ message: "Failed to fetch movie earnings" }); 
+      notification.error({ message: "Failed to fetch movie earnings" });
     } finally {
       setLoading(false);
     }
   };
+  
   
   
 
@@ -306,25 +311,12 @@ const MovieDetail = () => {
             >
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="bg-blue-50 border-0">
-                    <Statistic
-                      title={
-                        <div className="flex items-center text-blue-700">
-                          <EyeOutlined className="mr-1" />
-                          <span>Views</span>
-                        </div>
-                      }
-                      value={movie?.viewCount || 0}
-                      valueStyle={{ color: "#1890ff", fontWeight: "bold" }}
-                    />
-                  </Card>
-
                   <Card className="bg-green-50 border-0">
                     <Statistic
                       title={
                         <div className="flex items-center text-green-700">
                           <StarOutlined className="mr-1" />
-                          <span>Rating</span>
+                          <span>User Rating</span>
                         </div>
                       }
                       value={movie?.userRating || 0}
@@ -351,33 +343,33 @@ const MovieDetail = () => {
 
           {/* Movie List with Pagination - New Section */}
           <Card
-            title={
-              <div className="flex items-center">
-                <div className="bg-purple-500 w-1 h-6 mr-3 rounded-full"></div>
-                <span>Movie Earnings - Total Earnings: {totalEarnings}</span>
-              </div>
-            }
-            bordered={false}
-            className="shadow-md hover:shadow-lg transition-shadow duration-300"
-          >
-          <Table
-            columns={columns}
-            dataSource={movieEarnings}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-          />
+      title={
+        <div className="flex items-center">
+          <div className="bg-purple-500 w-1 h-6 mr-3 rounded-full"></div>
+          <span>Movie Earnings - Total Earnings: {totalEarnings}</span>
+        </div>
+      }
+      bordered={false}
+      className="shadow-md hover:shadow-lg transition-shadow duration-300"
+    >
+      <Table
+        columns={columns}
+        dataSource={movieEarnings}
+        rowKey="id"
+        loading={loading}
+        pagination={false}
+      />
 
-            <div className="flex justify-end">
-              <Pagination
-                current={currentPage}
-                onChange={setCurrentPage}
-                total={total}
-                pageSize={pageSize}
-                showSizeChanger={false}
-              />
-            </div>
-          </Card>
+      <div className="flex justify-end mt-4">
+        <Pagination
+          current={currentPage}
+          onChange={(page) => setCurrentPage(page)}  // Cập nhật currentPage khi thay đổi trang
+          total={total}
+          pageSize={pageSize}
+          showSizeChanger={false}
+        />
+      </div>
+    </Card>
         </div>
       )
     }

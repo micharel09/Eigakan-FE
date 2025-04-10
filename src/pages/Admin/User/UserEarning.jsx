@@ -29,11 +29,9 @@ const UserEarning = () => {
     pageSize: 10,
     total: 0,
   });
-  const [statistics, setStatistics] = useState({
-    totalEarnings: 0,
-    finalEarnings: 0,
-    totalViews: 0,
-  });
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [finalEarnings, setFinalEarnings] = useState(0);
+  const [webEarnings, setWebEarnings] = useState(0);
 
   const fetchUserEarnings = async (page = 1, pageSize = 10) => {
     try {
@@ -41,7 +39,7 @@ const UserEarning = () => {
       const response = await userEarningService.getUserEarnings(page, pageSize);
 
       if (response) {
-        const formattedData = response.users.map((item) => ({
+        const formattedData = response.data.userEarnings.map((item) => ({
           ...item,
           key: item.id,
         }));
@@ -51,11 +49,13 @@ const UserEarning = () => {
           ...pagination,
           current: page,
           pageSize: pageSize,
-          total: response.total || 0,
+          total: response.data.totalItems || 0,
         });
 
-        // Calculate total earnings and views
-        calculateStatistics(formattedData);
+        setTotalEarnings(response.data.totalEarnings || 0);
+        setFinalEarnings(response.data.finalEarning || 0);
+        setWebEarnings(response.data.webEarnings || 0);
+
       }
     } catch (error) {
       notification.error({
@@ -68,23 +68,6 @@ const UserEarning = () => {
     }
   };
 
-  const calculateStatistics = (data) => {
-    const totalEarnings = data.reduce(
-      (sum, item) => sum + item.totalEarnings,
-      0
-    );
-    const finalEarnings = data.reduce(
-      (sum, item) => sum + item.finalEarnings,
-      0
-    );
-    const totalViews = data.reduce((sum, item) => sum + item.totalView, 0);
-
-    setStatistics({
-      totalEarnings,
-      finalEarnings,
-      totalViews,
-    });
-  };
 
   useEffect(() => {
     fetchUserEarnings(pagination.current, pagination.pageSize);
@@ -118,18 +101,16 @@ const UserEarning = () => {
 
   const columns = [
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      ellipsis: true,
-      width: "15%",
-    },
-    {
       title: "UserName",
       dataIndex: "userName",
       key: "userName",
       ellipsis: true,
       width: "15%",
+      render: (fullName, record) => (
+        <a href={`/user/${record.id}`} className="text-blue-400">
+          {fullName}
+        </a>
+      ),
     },
     {
       title: "Start Week",
@@ -208,8 +189,8 @@ const UserEarning = () => {
           <Col xs={24} md={8}>
             <Card className="border-l-4 border-l-purple-500">
               <Statistic
-                title="Total Views"
-                value={loading ? "-" : statistics.totalViews}
+                title="Total Earnings"
+                value={loading ? "-" : formatVND(totalEarnings)}
                 prefix={<EyeOutlined className="text-purple-500" />}
                 loading={loading}
               />
@@ -218,8 +199,8 @@ const UserEarning = () => {
           <Col xs={24} md={8}>
             <Card className="border-l-4 border-l-red-500">
               <Statistic
-                title="Total Earnings"
-                value={loading ? "-" : formatVND(statistics.totalEarnings)}
+                title="Website Earnings"
+                value={loading ? "-" : formatVND(webEarnings)}
                 prefix={<DollarOutlined className="text-red-500" />}
                 precision={0}
                 loading={loading}
@@ -229,8 +210,8 @@ const UserEarning = () => {
           <Col xs={24} md={8}>
             <Card className="border-l-4 border-l-green-500">
               <Statistic
-                title="Web Earnings"
-                value={loading ? "-" : formatVND(statistics.finalEarnings)}
+                title="Final Earnings"
+                value={loading ? "-" : formatVND(finalEarnings)}
                 prefix={<DollarOutlined className="text-green-500" />}
                 precision={0}
                 loading={loading}

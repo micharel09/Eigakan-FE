@@ -6,12 +6,12 @@ import { BarChart, Bar, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import movieCountService from "../../../apis/MovieCount/MovieCount";
 
 export default function MovieCount() {
-  const { id } = useParams(); // 🛠️ Đưa useParams vào trong function component
+  const { id } = useParams(); 
   const [data, setData] = useState({
     today: 0,
     thisWeek: 0,
     thisMonth: 0,
-    thisYear: 0,
+    total: 0,
   });
   const [loading, setLoading] = useState(false);
 
@@ -34,9 +34,9 @@ export default function MovieCount() {
   // Transform data for charts
   const chartData = [
     { name: "Today", views: data.today },
-    { name: "Week", views: data.thisWeek },
-    { name: "Month", views: data.thisMonth },
-    { name: "Year", views: data.thisYear },
+    { name: "This Week", views: data.thisWeek },
+    { name: "This Month", views: data.thisMonth },
+    { name: "Total", views: data.total },
   ];
 
   return (
