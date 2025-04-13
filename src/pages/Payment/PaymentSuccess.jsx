@@ -20,47 +20,51 @@ function PaymentSuccess() {
   const navigate = useNavigate();
   const apiCalled = useRef(false);
 
-  // Kiểm tra hủy thanh toán ngay lập tức
   const vnpResponseCode = searchParams.get("vnp_ResponseCode");
-  if (vnpResponseCode === "24") {
-    navigate("/subscription-plans", { replace: true });
-    return null; // Return null để không render gì cả
-  }
+  const isCancelledPayment = vnpResponseCode === "24";
 
   useEffect(() => {
-    const verifyPayment = async () => {
-      if (apiCalled.current) return;
+    if (isCancelledPayment) {
+      setLoading(false);
+      setPaymentInfo({
+        success: false,
+        message: "Payment was canceled by user",
+      });
+    } else {
+      verifyPayment();
+    }
+  }, [searchParams]);
 
-      try {
-        apiCalled.current = true;
-        const queryString = Array.from(searchParams.entries())
-          .map(([key, value]) => `${key}=${value}`)
-          .join("&");
+  const verifyPayment = async () => {
+    if (apiCalled.current) return;
 
-        const response = await subscriptionService.verifyPayment(queryString);
-        setPaymentInfo(response);
+    try {
+      apiCalled.current = true;
+      const queryString = Array.from(searchParams.entries())
+        .map(([key, value]) => `${key}=${value}`)
+        .join("&");
 
-        if (response.success) {
-          const user = JSON.parse(localStorage.getItem("user") || "{}");
-          user.subscriptionStatus = "Active";
-          user.roleName = "VIP MEMBER";
-          localStorage.setItem("user", JSON.stringify(user));
-          localStorage.setItem("role", "VIP MEMBER");
+      const response = await subscriptionService.verifyPayment(queryString);
+      setPaymentInfo(response);
 
-          window.dispatchEvent(new Event("userRoleChanged"));
-        }
-      } catch (error) {
-        setPaymentInfo({
-          success: false,
-          message: error.message || "Payment verification failed",
-        });
-      } finally {
-        setLoading(false);
+      if (response.success) {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        user.subscriptionStatus = "Active";
+        user.roleName = "VIP MEMBER";
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("role", "VIP MEMBER");
+
+        window.dispatchEvent(new Event("userRoleChanged"));
       }
-    };
-
-    verifyPayment();
-  }, [searchParams, navigate]);
+    } catch (error) {
+      setPaymentInfo({
+        success: false,
+        message: error.message || "Payment verification failed",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("en-US", {
@@ -251,8 +255,8 @@ function PaymentSuccess() {
         <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center mb-4">
           <CloseOutlined className="text-2xl text-white" />
         </div>
-        <Title level={2} className="text-white text-center">
-          Payment Failed
+        <Title level={2} className="!text-white text-center">
+          {isCancelledPayment ? "Payment Cancelled" : "Payment Failed"}
         </Title>
         <Text className="text-gray-300 text-center mb-6">
           {paymentInfo?.message ||
@@ -263,7 +267,7 @@ function PaymentSuccess() {
           <Button
             type="primary"
             size="large"
-            onClick={() => navigate("/subscribe")}
+            onClick={() => navigate("/subscription-plans")}
             style={{
               backgroundColor: "var(--eigakan-primary, #FF009F)",
               borderColor: "var(--eigakan-primary, #FF009F)",
@@ -271,7 +275,7 @@ function PaymentSuccess() {
             }}
             className="text-white hover:text-white border-none hover:shadow-lg"
           >
-            Try Again
+            {isCancelledPayment ? "Select Plan" : "Try Again"}
           </Button>
           <Button
             size="large"
