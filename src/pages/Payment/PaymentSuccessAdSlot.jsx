@@ -22,10 +22,19 @@ const PaymentSuccessAdSlot = () => {
   const apiCalled = useRef(false);
 
   const vnpResponseCode = searchParams.get("vnp_ResponseCode");
-  if (vnpResponseCode === "24") {
-    navigate("/advertiser/select-adpackage", { replace: true });
-    return null;
-  }
+  const isCancelledPayment = vnpResponseCode === "24";
+
+  useEffect(() => {
+    if (isCancelledPayment) {
+      setLoading(false);
+      setPaymentInfo({
+        success: false,
+        message: "Thanh toán đã bị hủy bởi người dùng",
+      });
+    } else {
+      handleVerifyPayment();
+    }
+  }, [searchParams]);
 
   const handleVerifyPayment = async () => {
     if (apiCalled.current) return;
@@ -47,10 +56,6 @@ const PaymentSuccessAdSlot = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    handleVerifyPayment();
-  }, [searchParams]);
 
   const handleNavigateToDashboard = () => navigate("/advertiser/dashboard");
   const handleNavigateToHome = () => navigate("/homescreen");
@@ -242,7 +247,7 @@ const PaymentSuccessAdSlot = () => {
           <CloseOutlined className="text-2xl text-white" />
         </div>
         <Title level={2} className="text-white text-center">
-          Payment Failed
+          {isCancelledPayment ? "Payment Cancelled" : "Payment Failed"}
         </Title>
         <Text className="text-gray-300 text-center mb-6">
           {paymentInfo?.message ||
@@ -261,7 +266,7 @@ const PaymentSuccessAdSlot = () => {
             }}
             className="text-white hover:text-white border-none hover:shadow-lg"
           >
-            Try Again
+            {isCancelledPayment ? "Select Package" : "Try Again"}
           </Button>
           <Button
             size="large"

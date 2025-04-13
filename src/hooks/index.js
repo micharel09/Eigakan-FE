@@ -12,7 +12,7 @@ export { useMovieComments } from './useMovieComments';
 export { useWatchHistory } from './useWatchHistory';
 
 // Advertisement related hooks
-export { useAdDisplay } from './useAdDisplay';
+export { useAdDisplay, AD_CONSTANTS, AdUIUtils } from './useAdDisplay';
 export { default as useAdSlotManagement } from './useAdSlotManagement';
 export { default as useAdMediaManagement } from './useAdMediaManagement';
 export { default as useFileUpload } from './useFileUpload';
