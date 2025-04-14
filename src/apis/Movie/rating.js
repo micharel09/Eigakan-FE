@@ -49,10 +49,21 @@ const ratingService = {
    */
   getImdbRating: async (title, year) => {
     try {
-      return await GlobalApi.getImdbRatingByTitleAndYear(title, year);
+      const result = await GlobalApi.getImdbRatingByTitleAndYear(title, year);
+      
+      // Format to include all rating sources from OMDB
+      return {
+        rating: result.rating || 0,
+        votes: result.votes || 0,
+        imdbId: result.imdbId || null,
+        imdbRating: result.rating || 0,
+        metascore: result.ratings?.find(r => r.Source === "Metacritic")?.Value.replace(/[^0-9]/g, '') || 0,
+        rottenTomatoes: result.ratings?.find(r => r.Source === "Rotten Tomatoes")?.Value.replace(/[^0-9%]/g, '') || "0%",
+        allRatings: result.ratings || []
+      };
     } catch (error) {
       console.error("Error getting IMDB rating:", error);
-      return { rating: 0, votes: 0 };
+      return { rating: 0, votes: 0, imdbId: null, allRatings: [] };
     }
   },
   
@@ -74,7 +85,10 @@ const ratingService = {
           ...movies,
           imdbRating: imdbData.rating,
           imdbVotes: imdbData.votes,
-          imdbId: imdbData.imdbId
+          imdbId: imdbData.imdbId,
+          metascore: imdbData.metascore,
+          rottenTomatoes: imdbData.rottenTomatoes,
+          allRatings: imdbData.allRatings
         };
       }
 
@@ -90,7 +104,10 @@ const ratingService = {
             ...movie,
             imdbRating: imdbData.rating,
             imdbVotes: imdbData.votes,
-            imdbId: imdbData.imdbId
+            imdbId: imdbData.imdbId,
+            metascore: imdbData.metascore,
+            rottenTomatoes: imdbData.rottenTomatoes,
+            allRatings: imdbData.allRatings
           };
         })
       );
