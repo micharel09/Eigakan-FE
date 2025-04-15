@@ -6,14 +6,14 @@ const API_URL = API_URLS.MOVIE_EARNING;
 const movieEarningService = {
   getAllMovieEarning: (page = 1, pageSize = 10) =>
     makeAuthenticatedRequest(async (headers) => {
-      const res = await axios.get(`${API_URL}/movieEarning`, {
+      const response = await axios.get(`${API_URL}/movieEarning`, {
         headers,
         params: {
           page,
           pageSize
         }
       });
-      return res;
+      return response.data;
     }),
 
   getMovieEarningByLogin: (page = 1, pageSize = 10, startDate = null, endDate = null) =>
@@ -34,7 +34,7 @@ const movieEarningService = {
       }
     }),
 
-  getMovieEarningByMovieId: (page = 1, pageSize = 10, movieId, startDate = null, endDate = null) =>
+  getMovieEarningByMovieId: (movieId, page = 1, pageSize = 10, startDate = null, endDate = null) =>
     makeAuthenticatedRequest(async (headers) => {
       try {
         const res = await axios.get(`${API_URL}/GetMovieEarningByMovieId/${movieId}`, {

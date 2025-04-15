@@ -16,35 +16,28 @@ const contractApi = {
       return response.data;
     }),
 
-    async getAllContractByLogin(page = 1 , pageSize = 10) {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await axios.get(`${API_URL}/GetAllContractUserByLogin`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
-            params: {
-              page,
-              pageSize
-            }
-          });
-          // Log để kiểm tra response
-          console.log("API Response:", response);
-          // Trả về đúng cấu trúc data
-          return {
-            contracts: response.data?.contracts || [],
-            total: response.data?.total || 0,
-            totalSigned: response.data?.totalSigned || 0,
-            totalEarning: response.data?.totalEarning || 0,
-          };
-        } catch (error) {
-          throw error.response?.data || error.message;
-        }
-      });
-      return {
-        contracts: response.data?.contracts || [],
-        total: response.data?.total || 0
-      };
+  getAllContractByLogin: (page = 1, pageSize = 10) =>
+    makeAuthenticatedRequest(async (headers) => {
+      try {
+        const response = await axios.get(`${API_URL}/GetAllContractUserByLogin`, {
+          headers,
+          params: {
+            page,
+            pageSize
+          }
+        });
+        // Log để kiểm tra response
+        console.log("API Response:", response);
+        // Trả về đúng cấu trúc data
+        return {
+          contracts: response.data?.contracts || [],
+          total: response.data?.total || 0,
+          totalSigned: response.data?.totalSigned || 0,
+          totalEarning: response.data?.totalEarning || 0,
+        };
+      } catch (error) {
+        throw error.response?.data || error.message;
+      }
     }),
 
   getAllContractByUserId: (userId, page, pageSize) =>
