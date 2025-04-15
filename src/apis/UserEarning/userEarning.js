@@ -1,12 +1,20 @@
 import axios from "axios";
 import { API_URLS, makeAuthenticatedRequest } from "../../utils/api";
 
+const API_URL = API_URLS.USER_EARNING;
+
 const userEarningService = {
   getUserEarnings: (page = 1, pageSize = 10) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.BASE}/UserEarning/userEarning?page=${page}&pageSize=${pageSize}`,
-        { headers }
+        `${API_URL}/userEarning`,
+        { 
+          headers,
+          params: {
+            page,
+            pageSize
+          }
+        }
       );
       return response.data;
     }),
@@ -14,8 +22,16 @@ const userEarningService = {
   getUserEarningByLogin: (year = 0, month = 0, day = 0, dayOfWeek = 0) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.BASE}/UserEarning/GetUserEarningByLogin?year=${year}&month=${month}&day=${day}&dayOfWeek=${dayOfWeek}`,
-        { headers }
+        `${API_URL}/GetUserEarningByLogin`,
+        { 
+          headers,
+          params: {
+            year,
+            month,
+            day,
+            dayOfWeek
+          }
+        }
       );
       return response.data;
     }),

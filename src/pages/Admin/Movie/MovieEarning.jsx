@@ -11,7 +11,7 @@ import {
   Statistic,
 } from "antd";
 import { SearchOutlined, EyeOutlined, DollarOutlined } from "@ant-design/icons";
-import movieEarningService from "../../../apis/MovieEarning/MovieEarning";
+import movieEarningService from "../../../apis/MovieEarning/movieEarning";
 import { Helmet } from "react-helmet";
 import dayjs from "dayjs";
 import { Link } from "react-router-dom";

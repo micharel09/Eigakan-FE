@@ -16,10 +16,10 @@ export const makeAuthenticatedRequest = async (apiCall) => {
   }
 };
 
-export const makePublicRequest = async (apiCall) => {
+export const makePublicRequest = async (apiCall, returnFullResponse = false) => {
   try {
     const response = await apiCall();
-    return response.data;
+    return returnFullResponse ? response : response.data;
   } catch (error) {
     throw error.response?.data || error.message;
   }
@@ -36,7 +36,8 @@ export const API_BASE_URL = "https://eigakan2222-001-site1.jtempurl.com/api";
 export const API_URLS = {
   BASE: API_BASE_URL,
   NEWS: `${API_BASE_URL}/News`,
-  UPLOAD: `${API_BASE_URL}/Upload/Upload_Pictures`,
+  UPLOAD: `${API_BASE_URL}/Upload`,
+  UPLOAD_PICTURES: `${API_BASE_URL}/Upload/Upload_Pictures`,
   AUTH: `${API_BASE_URL}/Auth`,
   MOVIE: `${API_BASE_URL}/Movie`,
   RATING: `${API_BASE_URL}/MovieRating`,
@@ -52,4 +53,15 @@ export const API_URLS = {
   AD_PURCHASE_TRANSACTION: `${API_BASE_URL}/AdPurchaseTransaction`,
   VIEW_PAYMENT_POLICY: `${API_BASE_URL}/ViewPaymentPolicy`,
   AD_MEDIA_COUNT: `${API_BASE_URL}/AdMediaCount`,
+  CONTRACT: `${API_BASE_URL}/contracts`,
+  MEDIA: `${API_BASE_URL}/Media`,
+  MOVIE_COUNT: `${API_BASE_URL}/MovieCount`,
+  MOVIE_EARNING: `${API_BASE_URL}/MovieEarning`,
+  MOVIE_HISTORY: `${API_BASE_URL}/MovieHistory`,
+  ROOM: `${API_BASE_URL}/Room`,
+  SUBSCRIPTION_PACKAGE: `${API_BASE_URL}/SubscriptionPackage`,
+  SUBSCRIPTION_PURCHASE_PAYMENT: `${API_BASE_URL}/SubscriptionPurchasePayment`,
+  USER: `${API_BASE_URL}/User`,
+  USER_EARNING: `${API_BASE_URL}/UserEarning`,
+  USER_REGISTER: `${API_BASE_URL}/UserRegister`,
 }; 

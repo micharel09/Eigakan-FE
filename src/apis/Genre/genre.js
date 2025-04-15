@@ -1,36 +1,19 @@
 import axios from "axios";
 import { makeAuthenticatedRequest, makePublicRequest, API_URLS } from "../../utils/api";
 
-/**
- * Service for handling genre operations
- */
+const API_URL = API_URLS.GENRE;
+
 const genreService = {
-  /**
-   * Get all genres - Public endpoint
-   * @returns {Promise<{success: boolean, data: Array, message: string}>} List of genres
-   */
   getGenres: () => 
     makePublicRequest(async () => {
-      const response = await axios.get(API_URLS.GENRE);
-      return response;
+      return axios.get(API_URL);
     }),
 
-  /**
-   * Get genre by ID - Public endpoint
-   * @param {string} id Genre ID
-   * @returns {Promise<{success: boolean, data: Object, message: string}>} Genre details
-   */
   getGenreById: (id) =>
     makePublicRequest(async () => {
-      const response = await axios.get(`${API_URLS.GENRE}/${id}`);
-      return response;
+      return axios.get(`${API_URL}/${id}`);
     }),
 
-  /**
-   * Create new genre - Admin only
-   * @param {Object} genreData Genre data to create
-   * @returns {Promise<{success: boolean, data: Object, message: string}>} Created genre
-   */
   createGenre: (genreData) =>
     makeAuthenticatedRequest(async (headers) => {
       const role = localStorage.getItem("role");
@@ -38,18 +21,10 @@ const genreService = {
         throw new Error("Unauthorized - Only admin can create genres");
       }
 
-      const response = await axios.post(API_URLS.GENRE, genreData, {
-        headers
-      });
+      const response = await axios.post(API_URL, genreData, { headers });
       return response.data;
     }),
 
-  /**
-   * Update genre - Admin only
-   * @param {string} id Genre ID
-   * @param {Object} genreData Updated genre data
-   * @returns {Promise<{success: boolean, data: Object, message: string}>} Updated genre
-   */
   updateGenre: (id, genreData) =>
     makeAuthenticatedRequest(async (headers) => {
       const role = localStorage.getItem("role");
@@ -57,17 +32,10 @@ const genreService = {
         throw new Error("Unauthorized - Only admin can update genres");
       }
 
-      const response = await axios.put(`${API_URLS.GENRE}/${id}`, genreData, {
-        headers
-      });
+      const response = await axios.put(`${API_URL}/${id}`, genreData, { headers });
       return response.data;
     }),
 
-  /**
-   * Delete genre - Admin only
-   * @param {string} id Genre ID
-   * @returns {Promise<{success: boolean, message: string}>} Operation result
-   */
   deleteGenre: (id) =>
     makeAuthenticatedRequest(async (headers) => {
       const role = localStorage.getItem("role");
@@ -76,7 +44,7 @@ const genreService = {
       }
 
       try {
-        await axios.delete(`${API_URLS.GENRE}/${id}`, {
+        await axios.delete(`${API_URL}/${id}`, {
           headers: {
             ...headers,
             'Content-Type': 'application/json'
@@ -84,7 +52,7 @@ const genreService = {
         });
         return { success: true };
       } catch (error) {
-        // Nếu status là 400 nhưng thực tế đã xóa thành công
+        // If status is 400 but actually succeeded
         if (error.response?.status === 400) {
           return { success: true };
         }

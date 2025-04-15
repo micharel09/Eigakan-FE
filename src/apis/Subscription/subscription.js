@@ -1,152 +1,106 @@
 import axios from "axios";
+import { makeAuthenticatedRequest, makePublicRequest, API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPackage";
-const PAYMENT_API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment";
+const API_URL = API_URLS.SUBSCRIPTION_PACKAGE;
+const PAYMENT_API_URL = API_URLS.SUBSCRIPTION_PURCHASE_PAYMENT;
 
 const subscriptionService = {
-  getAllPackages: async (page = 1, pageSize = 10) => {
-    try {
-      const token = localStorage.getItem("token");
+  getAllPackages: (page = 1, pageSize = 10) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
         `${API_URL}?page=${page}&pageSize=${pageSize}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers }
       );
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  getPackageById: (id) => {
-    return axios.get(`${API_URL}/${id}`);
-  },
+  getPackageById: (id) =>
+    makePublicRequest(async () => {
+      return axios.get(`${API_URL}/${id}`);
+    }, true),
 
-  createPackage: async (data) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(`${API_URL}/`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      // Nếu status là 201 thì cũng coi như thành công
-      return {
-        success: response.status === 201 || response.status === 200,
-        data: response.data,
-        message: "Package created successfully"
-      };
-    } catch (error) {
-      throw error.response?.data;
-    }
-  },
+  createPackage: (data) =>
+    makeAuthenticatedRequest(async (headers) => {
+      try {
+        const response = await axios.post(`${API_URL}/`, data, { headers });
+        // Nếu status là 201 thì cũng coi như thành công
+        return {
+          success: response.status === 201 || response.status === 200,
+          data: response.data,
+          message: "Package created successfully"
+        };
+      } catch (error) {
+        throw error.response?.data;
+      }
+    }),
 
-  updatePackage: async (id, data) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(`${API_URL}/${id}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  updatePackage: (id, data) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.put(`${API_URL}/${id}`, data, { headers });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  deletePackage: async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.delete(`${API_URL}/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  deletePackage: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.delete(`${API_URL}/${id}`, { headers });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  patchStatus: async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.patch(`${API_URL}/${id}`, null, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data;
-    }
-  },
+  patchStatus: (id) =>
+    makeAuthenticatedRequest(async (headers) => {
+      try {
+        const response = await axios.patch(`${API_URL}/${id}`, null, { headers });
+        return response.data;
+      } catch (error) {
+        throw error.response?.data;
+      }
+    }),
 
-  createPayment: async (subscriptionId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const returnUrl = `${window.location.origin}/payment-success`;
-      const response = await axios.post(
-        `${API_URL.replace('/SubscriptionPackage', '')}/SubscriptionPurchasePayment/create?subscriptionId=${subscriptionId}&returnUrl=${encodeURIComponent(returnUrl)}`,
-        null,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+  createPayment: (subscriptionId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      try {
+        const returnUrl = `${window.location.origin}/payment-success`;
+        const response = await axios.post(
+          `${PAYMENT_API_URL}/create?subscriptionId=${subscriptionId}&returnUrl=${encodeURIComponent(returnUrl)}`,
+          null,
+          {
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json'
+            }
           }
-        }
-      );
-      return {
-        success: response.data.success,
-        paymentUrl: response.data.paymentUrl,
-        message: response.data.message
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || "Payment creation failed",
-        error: error.response?.data
-      };
-    }
-  },
+        );
+        return {
+          success: response.data.success,
+          paymentUrl: response.data.paymentUrl,
+          message: response.data.message
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.response?.data?.message || "Payment creation failed",
+          error: error.response?.data
+        };
+      }
+    }),
 
-  getAllPurchaseHistory: async (page = 1, pageSize = 10) => {
-    try {
-      const token = localStorage.getItem("token");
+  getAllPurchaseHistory: (page = 1, pageSize = 10) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment/GetAllSubscriptionPurchaseUser?page=${page}&pageSize=${pageSize}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `${PAYMENT_API_URL}/GetAllSubscriptionPurchaseUser?page=${page}&pageSize=${pageSize}`,
+        { headers }
       );
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 
-  verifyPayment: async (queryString) => {
-    try {
-      const token = localStorage.getItem("token");
+  verifyPayment: (queryString) =>
+    makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
         `${PAYMENT_API_URL}/vnpay-return?${queryString}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers }
       );
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }),
 };
 
 export default subscriptionService; 

@@ -1,44 +1,28 @@
 import axios from "axios";
+import { makeAuthenticatedRequest, API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/MovieHistory";
-
+const API_URL = API_URLS.MOVIE_HISTORY;
 
 const movieHistoryService = {
-
-
-  async getAllListMoviesHistory(page , pageSize ) {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_URL}/GetMovieHistoryByLogin`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
+  getAllListMoviesHistory: (page, pageSize) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${API_URL}/GetMovieHistoryByLogin`, {
+        headers,
         params: {
-            page,
-            pageSize
+          page,
+          pageSize
         }
-        });
-        return response;
-    } catch (error) {
-        throw error.response?.data || error.message;
-    }
-  },
+      });
+      return response;
+    }),
 
-
-
-  async CreateMovieHistory(movieData) {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await axios.post(`${API_URL}/CreateMovieHistory`, movieData, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },   
+  CreateMovieHistory: (movieData) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.post(`${API_URL}/CreateMovieHistory`, movieData, {
+        headers
       });
       return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
+    }),
 };
+
 export default movieHistoryService;

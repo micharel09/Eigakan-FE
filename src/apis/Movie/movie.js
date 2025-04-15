@@ -1,7 +1,8 @@
 import axios from "axios";
 import ratingService from "./rating";
+import { API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Movie";
+const API_URL = API_URLS.MOVIE;
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');

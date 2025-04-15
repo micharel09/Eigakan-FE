@@ -1,11 +1,14 @@
 import axios from "axios";
 import { makeAuthenticatedRequest, API_URLS } from "../../utils/api";
 
+const API_URL = API_URLS.AD_PURCHASE_SLOT;
+const TRANSACTION_URL = API_URLS.AD_PURCHASE_TRANSACTION;
+
 const adPurchaseSlotService = {
   getAdPurchaseSlotsByUserId: (page = 1, pageSize = 5) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_SLOT}/AdPurchaseByUserId?page=${page}&pageSize=${pageSize}`,
+        `${API_URL}/AdPurchaseByUserId?page=${page}&pageSize=${pageSize}`,
         { headers }
       );
       return response.data;
@@ -14,7 +17,7 @@ const adPurchaseSlotService = {
   getAllAdPurchaseSlotsByUserId: () =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_SLOT}/AdPurchaseByUserId?page=1&pageSize=1000`,
+        `${API_URL}/AdPurchaseByUserId?page=1&pageSize=1000`,
         { headers }
       );
       return response.data;
@@ -22,7 +25,7 @@ const adPurchaseSlotService = {
 
   getAdPurchaseSlotById: (id) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(`${API_URLS.AD_PURCHASE_SLOT}/${id}`, {
+      const response = await axios.get(`${API_URL}/${id}`, {
         headers
       });
       return response.data;
@@ -30,7 +33,7 @@ const adPurchaseSlotService = {
 
   getPublicAdPurchaseSlotById: async (id) => {
     try {
-      const response = await axios.get(`${API_URLS.AD_PURCHASE_SLOT}/${id}`);
+      const response = await axios.get(`${API_URL}/${id}`);
       return response.data;
     } catch (error) {
       console.error("Error fetching public ad purchase slot:", error);
@@ -40,7 +43,7 @@ const adPurchaseSlotService = {
 
   createAdPurchaseSlot: (data) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.post(API_URLS.AD_PURCHASE_SLOT, data, {
+      const response = await axios.post(API_URL, data, {
         headers
       });
       return response.data;
@@ -49,7 +52,7 @@ const adPurchaseSlotService = {
   updateAdPurchaseSlot: (id, data) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.put(
-        `${API_URLS.AD_PURCHASE_SLOT}/${id}`,
+        `${API_URL}/${id}`,
         data,
         { headers }
       );
@@ -59,7 +62,7 @@ const adPurchaseSlotService = {
   deleteAdPurchaseSlot: (id) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.delete(
-        `${API_URLS.AD_PURCHASE_SLOT}/${id}`,
+        `${API_URL}/${id}`,
         { headers }
       );
       return response.data;
@@ -68,7 +71,7 @@ const adPurchaseSlotService = {
   getAdPurchaseTransactions: (page = 1, pageSize = 5) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_TRANSACTION}/AdPurchaseTransactionByUser`,
+        `${TRANSACTION_URL}/AdPurchaseTransactionByUser`,
         {
           params: { page, pageSize },
           headers
@@ -80,7 +83,7 @@ const adPurchaseSlotService = {
   getAllAdPurchaseTransactions: () =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_TRANSACTION}/AdPurchaseTransactionByUser`,
+        `${TRANSACTION_URL}/AdPurchaseTransactionByUser`,
         {
           params: { page: 1, pageSize: 1000 },
           headers
@@ -92,7 +95,7 @@ const adPurchaseSlotService = {
   getAdPurchaseTransactionById: (id) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.AD_PURCHASE_TRANSACTION}/${id}`,
+        `${TRANSACTION_URL}/${id}`,
         { headers }
       );
       return response.data;

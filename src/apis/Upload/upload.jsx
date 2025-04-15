@@ -1,7 +1,8 @@
 import axios from "axios";
 import cloudinaryConfig from "../../config/cloudinary";
+import { API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Upload";
+const API_URL = API_URLS.UPLOAD;
 
 const uploadFileApi = {
   async UploadFileTemp(file) {
