@@ -11,10 +11,11 @@ import {
   Statistic,
 } from "antd";
 import { SearchOutlined, EyeOutlined, DollarOutlined } from "@ant-design/icons";
-import movieEarningService from "../../../apis/MovieEarning/movieEarning";
+import movieEarningService from "../../../apis/MovieEarning/MovieEarning";
 import { Helmet } from "react-helmet";
 import dayjs from "dayjs";
 import { Link } from "react-router-dom";
+import movieEarningService from "../../../apis/MovieEarning/MovieEarning";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -37,13 +38,13 @@ const MovieEarning = () => {
   const fetchMovieEarnings = async (page = 1, pageSize = 5) => {
     try {
       setLoading(true);
-      const response = await movieEarningService.getAllMovieEarning(
+      const response = await movieEarningService.getMovieEarning(
         page,
         pageSize
       );
 
-      if (response?.data?.data) {
-        const formattedData = response.data.data.movieEarning.map((item) => ({
+      if (response?.success && response.data) {
+        const formattedData = response.data.movieEarning.map((item) => ({
           ...item,
           key: item.id,
         }));
@@ -54,21 +55,14 @@ const MovieEarning = () => {
           ...pagination,
           current: page,
           pageSize: pageSize,
-          total: response.data.data.totalItems || 0,
+          total: response.data.totalItems || 0,
         });
 
-        setTotalViews(response.data.data.totalView || 0);
-        setTotalEarnings(response.data.data.totalEarnings || 0);
+        setTotalViews(response.data.totalView || 0);
+        setTotalEarnings(response.data.totalEarnings || 0);
         setTotalEarningsMovieContract(
-          response.data.data.totalEarningsMovieContract || 0
+          response.data.totalEarningsMovieContract || 0
         );
-      } else {
-        // Xử lý khi không có dữ liệu hoặc response không như mong đợi
-        setMovieEarnings([]);
-        notification.warning({
-          message: "No Data",
-          description: "No movie earnings data found",
-        });
       }
     } catch (error) {
       notification.error({
