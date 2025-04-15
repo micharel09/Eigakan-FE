@@ -29,7 +29,7 @@ const PaymentSuccessAdSlot = () => {
       setLoading(false);
       setPaymentInfo({
         success: false,
-        message: "Thanh toán đã bị hủy bởi người dùng",
+        message: "Payment was canceled by user",
       });
     } else {
       handleVerifyPayment();
@@ -246,7 +246,7 @@ const PaymentSuccessAdSlot = () => {
         <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center mb-4">
           <CloseOutlined className="text-2xl text-white" />
         </div>
-        <Title level={2} className="text-white text-center">
+        <Title level={2} className="!text-white text-center">
           {isCancelledPayment ? "Payment Cancelled" : "Payment Failed"}
         </Title>
         <Text className="text-gray-300 text-center mb-6">

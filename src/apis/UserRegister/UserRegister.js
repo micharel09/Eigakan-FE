@@ -1,126 +1,106 @@
 import axios from "axios"
+import { makeAuthenticatedRequest, makePublicRequest, API_URLS } from "../../utils/api";
 
-const API_URL = 'https://eigakan2222-001-site1.jtempurl.com/api/UserRegister'
+const API_URL = API_URLS.USER_REGISTER;
 
 const UserRegisterApi = {
+    getUserRegisters: (page = 1, pageSize = 0) =>
+        makeAuthenticatedRequest(async (headers) => {
+            try {
+                const res = await axios.get(`${API_URL}/userRegister`, {
+                    headers,
+                    params: {
+                        page,
+                        pageSize
+                    }
+                });
+                return res;
+            } catch (err) {
+                return err.response;
+            }
+        }),
 
-    async getUserRegisters (page = 1, pageSize = 0){
-        try{          
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}/userRegister`,{
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                params:{
-                    page: page,
-                    pageSize: pageSize
+    getUserRegisterDetail: (id) =>
+        makeAuthenticatedRequest(async (headers) => {
+            try {
+                const res = await axios.get(`${API_URL}/userRegisterById/${id}`, { headers });
+                return res.data;
+            } catch (err) {
+                return err.response;
+            }
+        }),
+
+    getListUserRegisterByEmail: (email) =>
+        makeAuthenticatedRequest(async (headers) => {
+            try {
+                const res = await axios.get(`${API_URL}/userRegisterByEmail/${email}`, { headers });
+                return res.data;
+            } catch (err) {
+                return err.response;
+            }
+        }),
+
+    getAllUserRegisterByUserId: (userId, page = 1, pageSize = 10) =>
+        makeAuthenticatedRequest(async (headers) => {
+            try {
+                const res = await axios.get(`${API_URL}/GetAllUserRegisterByUserId`, {
+                    headers,
+                    params: {
+                        userId,
+                        page,
+                        pageSize
+                    }
+                });
+                return res.data;
+            } catch (err) {
+                console.error("Error fetching user registers by user ID:", err);
+                throw err.response?.data || err.message;
+            }
+        }),
+
+    acceptedUserRegister: (data) =>
+        makeAuthenticatedRequest(async (headers) => {
+            try {
+                const response = await axios.patch(`${API_URL}/Accepted_UserRegister`, data, { headers });
+                return response;
+            } catch (error) {
+                console.error("API error:", error.message);
+                return error.response;
+            }
+        }),
+
+    rejectedUserRegister: (newUser) =>
+        makeAuthenticatedRequest(async (headers) => {
+            try {
+                const response = await axios.patch(`${API_URL}/Rejected_UserRegister`, newUser, { headers });
+                return response;
+            } catch (error) {
+                console.error("API error:", error.message);
+                return error.response;
+            }
+        }),
+
+    CreateUserRegister: (email, phoneNumber, reason, fileUrl, fullName) =>
+        makePublicRequest(async () => {
+            try {
+                const res = await axios.post(`${API_URL}/CreateUserRegister`, {
+                    email,
+                    phoneNumber,
+                    reason,
+                    fileUrl,
+                    fullName,
+                });
+                return res;
+            } catch (err) {
+                if (err.response?.data?.errors) {
+                    const firstError = Object.values(err.response.data.errors)[0];
+                    throw {
+                        message: Array.isArray(firstError) ? firstError[0] : firstError,
+                    };
                 }
-            });
-            return res;
-            
-        }catch (err){
-            return err.response;
-        }
-    },
+                throw err.response?.data || { message: "Network error" };
+            }
+        }, true),
+};
 
-    async getUserRegisterDetail(id) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}/userRegisterById/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res.data;
-        } catch (err) {
-            return err.response;
-        }
-    },
-
-    async getListUserRegisterByEmail(email) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}/userRegisterByEmail/${email}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return res.data;
-        } catch (err) {
-            return err.response;
-        }
-    },
-
-    async getAllUserRegisterByUserId(userId, page = 1, pageSize = 10) {
-        try {
-            const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}/GetAllUserRegisterByUserId`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                params: {
-                    userId,
-                    page,
-                    pageSize
-                }
-            });
-            return res.data;
-        } catch (err) {
-            console.error("Error fetching user registers by user ID:", err);
-            throw err.response?.data || err.message;
-        }
-    },
-
-    async acceptedUserRegister(data) {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.patch(`${API_URL}/Accepted_UserRegister`, data, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return response;
-          } catch (error) {
-            console.error("API error:", error.message);
-            return error.response;
-          }
-    },
-
-    async rejectedUserRegister(newUser) {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.patch(`${API_URL}/Rejected_UserRegister`, newUser, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return response;
-          } catch (error) {
-            console.error("API error:", error.message);
-            return error.response;
-          }
-    },
-
-    async CreateUserRegister(email, phoneNumber, reason, fileUrl, fullName) {
-        try {
-        const res = await axios.post(`${API_URL}/CreateUserRegister`, {
-            email,
-            phoneNumber,
-            reason,
-            fileUrl,
-            fullName,
-        });
-        return res.data;
-        } catch (err) {
-        if (err.response?.data?.errors) {
-            const firstError = Object.values(err.response.data.errors)[0];
-            throw {
-            message: Array.isArray(firstError) ? firstError[0] : firstError,
-            };
-        }
-        throw err.response?.data || { message: "Network error" };
-        }
-    },
-
-}
 export default UserRegisterApi 

@@ -1,11 +1,13 @@
 import axios from "axios";
 import { API_URLS, makeAuthenticatedRequest } from "../../utils/api";
 
+const API_URL = API_URLS.VIEW_PAYMENT_POLICY;
+
 const viewPaymentPolicyService = {
   getAllViewPaymentPolicies: (page = 1, pageSize = 5) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.VIEW_PAYMENT_POLICY}/GetAllViewPaymentPolicy?page=${page}&pageSize=${pageSize}`,
+        `${API_URL}/GetAllViewPaymentPolicy?page=${page}&pageSize=${pageSize}`,
         { headers }
       );
       return response.data;
@@ -14,7 +16,7 @@ const viewPaymentPolicyService = {
   getViewPaymentPolicyById: (id) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.VIEW_PAYMENT_POLICY}/GetViewPaymentPolicyById/${id}`,
+        `${API_URL}/GetViewPaymentPolicyById/${id}`,
         { headers }
       );
       return response.data;
@@ -23,7 +25,7 @@ const viewPaymentPolicyService = {
   getViewPaymentPolicyActive: () =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.VIEW_PAYMENT_POLICY}/GetViewPaymentPolicyActive`,
+        `${API_URL}/GetViewPaymentPolicyActive`,
         { headers }
       );
       return response.data;
@@ -32,7 +34,7 @@ const viewPaymentPolicyService = {
   getListPolicyPendingAndWaiting: () =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URLS.VIEW_PAYMENT_POLICY}/GetListPolicyPendingAndWaiting`,
+        `${API_URL}/GetListPolicyPendingAndWaiting`,
         { headers }
       );
       return response.data;
@@ -41,7 +43,7 @@ const viewPaymentPolicyService = {
   updateViewPaymentPolicy: (id, data) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.put(
-        `${API_URLS.VIEW_PAYMENT_POLICY}/UpdateViewPaymentPolicy/${id}`,
+        `${API_URL}/UpdateViewPaymentPolicy/${id}`,
         data,
         { headers }
       );
@@ -51,7 +53,7 @@ const viewPaymentPolicyService = {
   cancelPolicy: (data) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.post(
-        `${API_URLS.VIEW_PAYMENT_POLICY}/CancelPolicy`,
+        `${API_URL}/CancelPolicy`,
         data,
         { headers }
       );
@@ -61,7 +63,7 @@ const viewPaymentPolicyService = {
   createViewPaymentPolicy: (data) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.post(
-        `${API_URLS.VIEW_PAYMENT_POLICY}/CreateViewPaymentPolicy`,
+        `${API_URL}/CreateViewPaymentPolicy`,
         data,
         { headers }
       );

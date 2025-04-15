@@ -2,13 +2,13 @@ import axios from "axios";
 import { makeAuthenticatedRequest, API_URLS } from "../../utils/api";
 import GlobalApi from "../ThirdParty/GlobalApi";
 
-/**
- * Service for handling movie ratings and comments
- */
+const RATING_URL = API_URLS.RATING;
+const COMMENT_URL = API_URLS.COMMENT;
+
 const ratingService = {
   createMovieRating: (stars, movieId) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.post(API_URLS.RATING, {
+      const response = await axios.post(RATING_URL, {
         stars,
         movieId
       }, { headers });
@@ -17,7 +17,7 @@ const ratingService = {
 
   getUserRatingForMovie: (movieId) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(`${API_URLS.RATING}/GetRatingByLogin`, {
+      const response = await axios.get(`${RATING_URL}/GetRatingByLogin`, {
         params: { movieId },
         headers
       });
@@ -26,7 +26,7 @@ const ratingService = {
 
   createComment: (content, movieId) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.post(API_URLS.COMMENT, {
+      const response = await axios.post(COMMENT_URL, {
         content,
         movieId
       }, { headers });
@@ -35,32 +35,32 @@ const ratingService = {
 
   getMovieComments: (movieId) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(`${API_URLS.COMMENT}/movie/${movieId}`, {
+      const response = await axios.get(`${COMMENT_URL}/movie/${movieId}`, {
         headers
       });
       return response.data;
     }),
 
-  /**
-   * Get IMDB rating for a movie by title and year
-   * @param {string} title - Movie title
-   * @param {number|string} year - Release year
-   * @returns {Promise<Object>} - Movie rating information
-   */
   getImdbRating: async (title, year) => {
     try {
-      return await GlobalApi.getImdbRatingByTitleAndYear(title, year);
+      const result = await GlobalApi.getImdbRatingByTitleAndYear(title, year);
+      
+      // Format to include all rating sources from OMDB
+      return {
+        rating: result.rating || 0,
+        votes: result.votes || 0,
+        imdbId: result.imdbId || null,
+        imdbRating: result.rating || 0,
+        metascore: result.ratings?.find(r => r.Source === "Metacritic")?.Value.replace(/[^0-9]/g, '') || 0,
+        rottenTomatoes: result.ratings?.find(r => r.Source === "Rotten Tomatoes")?.Value.replace(/[^0-9%]/g, '') || "0%",
+        allRatings: result.ratings || []
+      };
     } catch (error) {
       console.error("Error getting IMDB rating:", error);
-      return { rating: 0, votes: 0 };
+      return { rating: 0, votes: 0, imdbId: null, allRatings: [] };
     }
   },
   
-  /**
-   * Enrich movie data with IMDB ratings
-   * @param {Array|Object} movies - Single movie object or array of movie objects
-   * @returns {Promise<Array|Object>} - Enriched movie data with IMDB ratings
-   */
   enrichMoviesWithImdbRatings: async (movies) => {
     try {
       // If it's a single movie
@@ -74,7 +74,10 @@ const ratingService = {
           ...movies,
           imdbRating: imdbData.rating,
           imdbVotes: imdbData.votes,
-          imdbId: imdbData.imdbId
+          imdbId: imdbData.imdbId,
+          metascore: imdbData.metascore,
+          rottenTomatoes: imdbData.rottenTomatoes,
+          allRatings: imdbData.allRatings
         };
       }
 
@@ -90,7 +93,10 @@ const ratingService = {
             ...movie,
             imdbRating: imdbData.rating,
             imdbVotes: imdbData.votes,
-            imdbId: imdbData.imdbId
+            imdbId: imdbData.imdbId,
+            metascore: imdbData.metascore,
+            rottenTomatoes: imdbData.rottenTomatoes,
+            allRatings: imdbData.allRatings
           };
         })
       );

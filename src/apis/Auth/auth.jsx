@@ -1,6 +1,8 @@
 import axios from "axios";
 import { makePublicRequest, API_URLS } from "../../utils/api";
 
+const API_URL = API_URLS.AUTH;
+
 /**
  * Service for handling authentication operations
  */
@@ -10,7 +12,7 @@ const authService = {
   login: (email, password) =>
     makePublicRequest(async () => {
       const response = await axios.post(
-        `${API_URLS.AUTH}/Login`,
+        `${API_URL}/Login`,
         { email, password },
         { maxRedirects: 0 }
       );
@@ -20,7 +22,7 @@ const authService = {
 
   signup: (email, password, confirmPassword, fullName) =>
     makePublicRequest(async () => {
-      const response = await axios.post(`${API_URLS.AUTH}/SignUp`, {
+      const response = await axios.post(`${API_URL}/SignUp`, {
         email,
         password,
         confirmPassword,
@@ -31,9 +33,7 @@ const authService = {
 
   verify: (token) =>
     makePublicRequest(async () => {
-      const response = await axios.get(
-        `${API_URLS.AUTH}/Verify?token=${token}`
-      );
+      const response = await axios.get(`${API_URL}/Verify?token=${token}`);
       if (!response.success) {
         throw new Error(response.message);
       }
@@ -42,7 +42,7 @@ const authService = {
 
   forgotPassword: (email) =>
     makePublicRequest(async () => {
-      const response = await axios.post(`${API_URLS.AUTH}/Forgot-password`, {
+      const response = await axios.post(`${API_URL}/Forgot-password`, {
         email,
       });
       return response;
@@ -50,7 +50,7 @@ const authService = {
 
   resetPassword: (token, newPassword, confirmPassword) =>
     makePublicRequest(async () => {
-      const response = await axios.post(`${API_URLS.AUTH}/Reset-password`, {
+      const response = await axios.post(`${API_URL}/Reset-password`, {
         token,
         newPassword,
         confirmPassword,

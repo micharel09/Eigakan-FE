@@ -67,6 +67,22 @@ const getYoutubeEmbedUrl = (url) => {
   return url;
 };
 
+// Helper function to determine Metacritic text color based on score
+const getMetacriticColor = (score) => {
+  if (!score || isNaN(score)) return "text-gray-400";
+  if (score >= 75) return "text-green-500";
+  if (score >= 50) return "text-yellow-500";
+  return "text-red-500";
+};
+
+// Helper function to determine Metacritic progress bar color based on score
+const getMetacriticProgressColor = (score) => {
+  if (!score || isNaN(score)) return { "0%": "#777777", "100%": "#555555" };
+  if (score >= 75) return { "0%": "#66cc33", "100%": "#44aa11" };
+  if (score >= 50) return { "0%": "#ffcc33", "100%": "#ffaa00" };
+  return { "0%": "#ff0000", "100%": "#cc0000" };
+};
+
 const getBunnyStreamEmbedUrl = (url) => {
   if (!url) return null;
 
@@ -111,7 +127,7 @@ const StatBadge = memo(({ icon, value, label, color = "white" }) => (
 const GenreBadge = memo(({ name }) => (
   <motion.span
     whileHover={{ scale: 1.05 }}
-    className="px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 md:py-1 bg-gradient-to-r from-[#FF009F]/20 to-[#FF009F]/10 backdrop-blur-sm border border-[#FF009F]/20 rounded-full text-[9px] sm:text-xs md:text-sm text-white cursor-pointer transition-all"
+    className="px-2 py-1 bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-sm border border-gray-700/30 rounded-full text-xs text-white cursor-pointer transition-all"
   >
     {name}
   </motion.span>
@@ -123,14 +139,12 @@ const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
     whileTap={{ scale: 0.95 }}
     whileHover={{ scale: 1.02 }}
     onClick={onClick}
-    className={`w-full rounded-lg font-medium transition-all duration-200 
+    className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 
     ${
       primary
-        ? "bg-gradient-to-r from-[#FF009F] to-[#FF0055] text-white hover:shadow-lg hover:shadow-[#FF009F]/20"
-        : "bg-white/10 hover:bg-white/15 text-white border border-white/5 hover:border-white/10"
-    }
-    text-[10px] h-9 sm:text-xs md:text-sm md:h-10 
-    flex items-center justify-center gap-1.5`}
+        ? "bg-[#FF009F] hover:bg-[#e0008e] text-white"
+        : "bg-gray-800/70 hover:bg-gray-700/80 text-white border border-gray-700/30"
+    }`}
   >
     {icon}
     <span>{children}</span>
@@ -139,41 +153,26 @@ const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
 
 // Trailer component with enhanced UI
 const TrailerSection = memo(({ trailerUrl, title }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
+  <div
     id="trailer"
-    className="w-full mt-4 sm:mt-6"
+    className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg"
   >
-    <div className="flex items-center justify-between mb-2 sm:mb-4">
-      <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-        <PlayCircle className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF009F]" />
+    <div className="p-4 border-b border-gray-800/50">
+      <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+        <PlayCircle className="w-5 h-5 text-[#FF009F]" />
         Official Trailer
       </h2>
-      <div className="flex gap-2">
-        <Tooltip title="Share trailer">
-          <Button
-            type="text"
-            shape="circle"
-            icon={<ShareAltOutlined />}
-            className="text-gray-400 hover:text-white"
-          />
-        </Tooltip>
-      </div>
     </div>
-    <div className="rounded-lg sm:rounded-2xl overflow-hidden shadow-xl shadow-black/30 border border-gray-800/80">
-      <div className="aspect-video relative w-full">
-        <iframe
-          src={getBunnyStreamEmbedUrl(trailerUrl)}
-          title={`${title} - Official Trailer`}
-          className="absolute top-0 left-0 w-full h-full"
-          allowFullScreen
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        />
-      </div>
+    <div className="aspect-video relative w-full">
+      <iframe
+        src={getBunnyStreamEmbedUrl(trailerUrl)}
+        title={`${title} - Official Trailer`}
+        className="absolute top-0 left-0 w-full h-full"
+        allowFullScreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      />
     </div>
-  </motion.div>
+  </div>
 ));
 
 // Movie facts panel with enhanced design
@@ -213,44 +212,37 @@ const MovieFacts = memo(({ movie }) => {
   ];
 
   return (
-    <div className="w-full lg:w-1/3 space-y-4 sm:space-y-6">
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-gray-900/80 backdrop-blur-sm border border-gray-800/60 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-xl"
-      >
-        <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 md:mb-5 text-white flex items-center gap-2">
-          <InfoCircleOutlined className="text-[#FF009F]" />
-          Movie Details
-        </h2>
-        <div className="space-y-4 sm:space-y-5">
-          {/* Movie details section */}
-          <div className="space-y-2 sm:space-y-3">
+    <div className="w-full space-y-4 sm:space-y-6">
+      {/* Movie Details Card */}
+      <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 rounded-xl overflow-hidden shadow-lg">
+        <div className="p-4 sm:p-5 border-b border-gray-800/50">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <InfoCircleOutlined className="text-[#FF009F]" />
+            Movie Details
+          </h2>
+        </div>
+
+        <div className="p-4 sm:p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {movieStats.map(({ label, value, icon }) => (
-              <div
-                key={label}
-                className="flex items-center pb-2 sm:pb-3 border-b border-gray-800/70"
-              >
-                <div className="flex items-center gap-2 text-gray-300 w-20 sm:w-24 md:w-32 text-xs sm:text-sm md:text-base">
+              <div key={label} className="flex items-center gap-3 py-2">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800/50 text-[#FF009F]">
                   {icon}
-                  <span>{label}</span>
                 </div>
-                <span className="text-white font-medium ml-2 text-xs sm:text-sm md:text-base">
-                  {value}
-                </span>
+                <div>
+                  <div className="text-gray-400 text-xs">{label}</div>
+                  <div className="text-white font-medium text-sm sm:text-base">
+                    {value || "N/A"}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
 
           {/* Genres section */}
-          <div className="pt-2">
-            <h3 className="text-base font-medium text-white mb-2 sm:mb-3 flex items-center gap-2">
-              <Tag className="rounded-full border-none bg-[#FF009F]/20 text-[#FF009F] text-xs">
-                Genres
-              </Tag>
-            </h3>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2 md:gap-3">
+          <div className="mt-4 pt-4 border-t border-gray-800/30">
+            <h3 className="text-base font-medium text-white mb-3">Genres</h3>
+            <div className="flex flex-wrap gap-2">
               {genresArray && genresArray.length > 0 ? (
                 genresArray.map((genre) => (
                   <GenreBadge key={genre.id || genre.name} name={genre.name} />
@@ -262,81 +254,253 @@ const MovieFacts = memo(({ movie }) => {
               )}
             </div>
           </div>
+
+          {/* Description section */}
+          <div className="mt-4 pt-4 border-t border-gray-800/30">
+            <h3 className="text-base font-medium text-white mb-2">Synopsis</h3>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              {movie.description || "No description available."}
+            </p>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Rating Section */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="bg-gray-900/60 backdrop-blur-sm border border-gray-800/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-xl"
-      >
-        <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 md:mb-5 text-white flex items-center gap-2">
-          <Star className="w-5 h-5 text-yellow-500" />
-          Ratings
-        </h2>
+      <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 rounded-xl overflow-hidden shadow-lg">
+        <div className="p-4 sm:p-5 border-b border-gray-800/50">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <Star className="w-5 h-5 text-yellow-500" />
+            Ratings
+          </h2>
+        </div>
 
-        <div className="space-y-3 sm:space-y-4 md:space-y-6">
+        <div className="p-4 sm:p-5 space-y-5">
           {/* IMDB Rating */}
-          <div className="space-y-1 sm:space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300 text-xs sm:text-sm md:text-base">
-                IMDB Rating
-              </span>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <span className="text-yellow-500 font-bold text-sm sm:text-base md:text-lg">
-                  {movie.imdbRating?.toFixed(1) ||
-                    movie.rating?.toFixed(1) ||
-                    "N/A"}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center min-w-14 h-14 bg-gray-800 rounded-lg">
+              <img
+                src="https://m.media-amazon.com/images/G/01/imdb/images/favicon-2165806970._CB485916947_.ico"
+                alt="IMDB"
+                className="w-8 h-8"
+              />
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-gray-300 text-sm font-medium">
+                  IMDB Rating
                 </span>
-                <span className="text-gray-400 text-xs sm:text-sm">/10</span>
+                <div className="flex items-center">
+                  <span className="text-yellow-500 font-bold text-lg mr-1">
+                    {movie.imdbRating?.toFixed(1) ||
+                      movie.rating?.toFixed(1) ||
+                      "N/A"}
+                  </span>
+                  <span className="text-gray-400 text-xs">/10</span>
+                </div>
+              </div>
+              <Progress
+                percent={(movie.imdbRating || movie.rating || 0) * 10}
+                showInfo={false}
+                strokeColor={{
+                  "0%": "#FFD700",
+                  "100%": "#FF9900",
+                }}
+                trailColor="#1c1c1c"
+                size="small"
+              />
+              {movie.imdbVotes > 0 && (
+                <div className="text-right text-xs text-gray-400 mt-1">
+                  {new Intl.NumberFormat().format(movie.imdbVotes)} votes
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Rotten Tomatoes Rating */}
+          {(movie.rottenTomatoes ||
+            (movie.allRatings &&
+              movie.allRatings.find(
+                (r) => r.Source === "Rotten Tomatoes"
+              ))) && (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center min-w-14 h-14 bg-gray-800 rounded-lg">
+                <img
+                  src="https://www.rottentomatoes.com/assets/pizza-pie/images/favicon.ico"
+                  alt="Rotten Tomatoes"
+                  className="w-8 h-8"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-gray-300 text-sm font-medium">
+                    Rotten Tomatoes
+                  </span>
+                  <div className="flex items-center">
+                    <span
+                      className={`font-bold text-lg ${
+                        parseInt(
+                          movie.rottenTomatoes ||
+                            movie.allRatings?.find(
+                              (r) => r.Source === "Rotten Tomatoes"
+                            )?.Value
+                        ) >= 60
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {movie.rottenTomatoes ||
+                        movie.allRatings?.find(
+                          (r) => r.Source === "Rotten Tomatoes"
+                        )?.Value ||
+                        "N/A"}
+                    </span>
+                  </div>
+                </div>
+                <Progress
+                  percent={
+                    parseInt(
+                      movie.rottenTomatoes ||
+                        movie.allRatings?.find(
+                          (r) => r.Source === "Rotten Tomatoes"
+                        )?.Value
+                    ) || 0
+                  }
+                  showInfo={false}
+                  strokeColor={
+                    parseInt(
+                      movie.rottenTomatoes ||
+                        movie.allRatings?.find(
+                          (r) => r.Source === "Rotten Tomatoes"
+                        )?.Value
+                    ) >= 60
+                      ? {
+                          "0%": "#5cb85c",
+                          "100%": "#3e8e3e",
+                        }
+                      : {
+                          "0%": "#d9534f",
+                          "100%": "#c9302c",
+                        }
+                  }
+                  trailColor="#1c1c1c"
+                  size="small"
+                />
+                <div className="text-right text-xs text-gray-400 mt-1">
+                  {parseInt(
+                    movie.rottenTomatoes ||
+                      movie.allRatings?.find(
+                        (r) => r.Source === "Rotten Tomatoes"
+                      )?.Value
+                  ) >= 60
+                    ? "Fresh"
+                    : "Rotten"}
+                </div>
               </div>
             </div>
-            <Progress
-              percent={(movie.imdbRating || movie.rating || 0) * 10}
-              showInfo={false}
-              strokeColor={{
-                "0%": "#FFD700",
-                "100%": "#FF9900",
-              }}
-              trailColor="#1c1c1c"
-              size="small"
-            />
-            {movie.imdbVotes > 0 && (
-              <div className="text-right text-xs text-gray-400">
-                Based on {new Intl.NumberFormat().format(movie.imdbVotes)} votes
+          )}
+
+          {/* Metacritic Rating */}
+          {(movie.metascore ||
+            (movie.allRatings &&
+              movie.allRatings.find((r) => r.Source === "Metacritic"))) && (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center min-w-14 h-14 bg-gray-800 rounded-lg">
+                <img
+                  src="https://www.metacritic.com/favicon.ico"
+                  alt="Metacritic"
+                  className="w-8 h-8"
+                />
               </div>
-            )}
-          </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-gray-300 text-sm font-medium">
+                    Metacritic
+                  </span>
+                  <div className="flex items-center">
+                    <span
+                      className={`font-bold text-lg ${getMetacriticColor(
+                        parseInt(
+                          movie.metascore ||
+                            movie.allRatings?.find(
+                              (r) => r.Source === "Metacritic"
+                            )?.Value
+                        )
+                      )}`}
+                    >
+                      {movie.metascore ||
+                        movie.allRatings?.find((r) => r.Source === "Metacritic")
+                          ?.Value ||
+                        "N/A"}
+                    </span>
+                    <span className="text-gray-400 text-xs ml-1">/100</span>
+                  </div>
+                </div>
+                <Progress
+                  percent={
+                    parseInt(
+                      movie.metascore ||
+                        movie.allRatings?.find((r) => r.Source === "Metacritic")
+                          ?.Value
+                    ) || 0
+                  }
+                  showInfo={false}
+                  strokeColor={getMetacriticProgressColor(
+                    parseInt(
+                      movie.metascore ||
+                        movie.allRatings?.find((r) => r.Source === "Metacritic")
+                          ?.Value
+                    )
+                  )}
+                  trailColor="#1c1c1c"
+                  size="small"
+                />
+              </div>
+            </div>
+          )}
 
           {/* User Rating */}
-          <div className="space-y-1 sm:space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300 text-xs sm:text-sm md:text-base">
-                User Rating
-              </span>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <span className="text-[#FF009F] font-bold text-sm sm:text-base md:text-lg">
-                  {movie.userRating}
-                </span>
-                <span className="text-gray-400 text-xs sm:text-sm">/5</span>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center min-w-14 h-14 bg-gray-800 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="#FF009F"
+                className="w-8 h-8"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </div>
-            <Rate
-              disabled
-              value={movie.userRating}
-              allowHalf
-              className="text-[#FF009F] text-xs sm:text-sm md:text-base"
-            />
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-gray-300 text-sm font-medium">
+                  User Rating
+                </span>
+                <div className="flex items-center">
+                  <span className="text-[#FF009F] font-bold text-lg mr-1">
+                    {movie.userRating || "N/A"}
+                  </span>
+                  <span className="text-gray-400 text-xs">/5</span>
+                </div>
+              </div>
+              <Rate
+                disabled
+                value={movie.userRating}
+                allowHalf
+                className="text-[#FF009F] text-sm"
+              />
+            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 });
 
-// Tách MovieHero thành component riêng để tránh re-render không cần thiết
+// MovieHero component with modern design
 const MovieHero = memo(
   ({ movie, onTrailerClick, onCreateRoom, onWatchNow }) => {
     const banner = movie.medias?.find((m) => m.type === "BANNER");
@@ -353,204 +517,186 @@ const MovieHero = memo(
           }))
         : []);
 
-    // Calculate badges for key movie stats
-    const movieStats = [
+    // Calculate compact badges for key movie stats
+    const compactStats = [
       {
-        icon: (
-          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-[#FF009F]" />
-        ),
+        icon: <Calendar className="w-4 h-4 text-gray-400" />,
         value: movie.releaseYear,
-        label: "Year",
       },
       {
-        icon: (
-          <Clock className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-[#FF009F]" />
-        ),
+        icon: <Clock className="w-4 h-4 text-gray-400" />,
         value: `${movie.duration}m`,
-        label: "Duration",
       },
       {
-        icon: (
-          <Star className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-yellow-500" />
-        ),
-        value:
-          movie.imdbRating?.toFixed(1) || movie.rating?.toFixed(1) || "N/A",
-        label: movie.imdbRating ? "IMDB" : "Rating",
-        color: "yellow-500",
-      },
-      {
-        icon: (
-          <Globe className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-[#FF009F]" />
-        ),
+        icon: <Globe className="w-4 h-4 text-gray-400" />,
         value: movie.nation,
-        label: "Country",
       },
     ];
 
     return (
-      <div className="relative w-full overflow-hidden pt-12 sm:pt-16 md:pt-20 pb-8 sm:pb-10 md:pb-12 flex flex-col">
-        {/* Background Banner with parallax effect */}
-        <div className="absolute inset-0 top-0 h-full">
-          <motion.div
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-            className="w-full h-full"
-          >
+      <div className="relative w-full">
+        {/* Background Banner with gradient overlay */}
+        <div className="absolute inset-0 h-[500px] sm:h-[550px] md:h-[600px] lg:h-[650px]">
+          <div className="w-full h-full overflow-hidden">
             <img
               src={banner?.url || poster?.url || "/placeholder.jpg"}
               alt={movie.title}
               className="w-full h-full object-cover object-center"
             />
-          </motion.div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/90 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 to-transparent" />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black" />
         </div>
 
-        {/* Movie Info Container with staggered animations */}
-        <div className="relative flex-1 flex items-start justify-center mt-10 sm:mt-12 md:mt-14 lg:mt-16">
-          <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 w-full pt-4 sm:pt-6 md:pt-8">
-            <div className="w-full flex flex-col md:flex-row items-center md:items-start lg:items-center gap-5 sm:gap-6 md:gap-8 lg:gap-10">
-              {/* Poster with subtle hover effect */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="w-40 sm:w-48 md:w-56 lg:w-64 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10 z-10"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <img
-                    src={poster?.url || "/placeholder.jpg"}
-                    alt={movie.title}
-                    className="w-full h-auto object-cover"
-                    loading="eager"
-                  />
-                </motion.div>
-              </motion.div>
+        {/* Movie Info Container */}
+        <div className="relative container mx-auto px-4 py-32 sm:py-40 md:py-48 lg:py-56">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Poster with subtle shadow */}
+            <div className="w-48 md:w-64 lg:w-80 flex-shrink-0 mx-auto md:mx-0">
+              <div className="rounded-lg overflow-hidden shadow-2xl border border-gray-800/40">
+                <img
+                  src={poster?.url || "/placeholder.jpg"}
+                  alt={movie.title}
+                  className="w-full h-auto object-cover"
+                  loading="eager"
+                />
+              </div>
+            </div>
 
-              {/* Movie Info with staggered animations */}
-              <div className="flex-1 mt-5 sm:mt-6 md:mt-0 text-center sm:text-center md:text-left max-w-full md:max-w-3xl">
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, delay: 0.2 }}
-                  className="md:pr-4"
-                >
-                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 sm:mb-4 leading-tight">
-                    {movie.title}
-                  </h1>
-                </motion.div>
-
-                <div className="md:flex md:flex-wrap md:items-start md:justify-between md:gap-4">
-                  <div className="md:flex-1 md:pr-8 mb-6 md:mb-0">
-                    {/* Movie stats badges */}
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.7, delay: 0.3 }}
-                      className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2 md:gap-3 mb-3 sm:mb-4"
-                    >
-                      {movieStats.map((stat, index) => (
-                        <StatBadge
-                          key={index}
-                          icon={stat.icon}
-                          value={stat.value}
-                          label={stat.label}
-                          color={stat.color}
-                        />
-                      ))}
-                    </motion.div>
-
-                    {/* Genres */}
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.7, delay: 0.4 }}
-                      className="flex flex-wrap justify-center md:justify-start gap-1.5 sm:gap-2 md:gap-3 mb-4 sm:mb-5"
-                    >
-                      {genresArray && genresArray.length > 0 ? (
-                        genresArray.map((genre) => (
-                          <GenreBadge
-                            key={genre.id || genre.name}
-                            name={genre.name}
-                          />
-                        ))
-                      ) : (
-                        <span className="text-gray-400 text-xs md:text-sm px-2 md:px-3 py-0.5 md:py-1 bg-white/5 rounded-full">
-                          No genres
-                        </span>
-                      )}
-                    </motion.div>
-
-                    {/* Short description preview on desktop only */}
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.7, delay: 0.5 }}
-                      className="hidden md:block text-gray-300 text-sm lg:text-base leading-relaxed max-h-24 md:max-h-none overflow-y-auto md:overflow-visible line-clamp-3 max-w-2xl mb-4 md:mb-6"
-                    >
-                      {movie.description}
-                    </motion.p>
-
-                    {/* Mobile description - above buttons on small screens */}
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.7, delay: 0.5 }}
-                      className="block md:hidden text-gray-300 text-xs sm:text-sm leading-relaxed max-h-28 overflow-y-auto mb-4 px-3 sm:px-4"
-                    >
-                      {movie.description}
-                    </motion.p>
+            {/* Movie Info */}
+            <div className="flex-1 text-center md:text-left">
+              {/* Rating badges row */}
+              <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-4">
+                {movie.imdbRating && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/80 rounded-md">
+                    <img
+                      src="https://m.media-amazon.com/images/G/01/imdb/images/favicon-2165806970._CB485916947_.ico"
+                      alt="IMDB"
+                      className="w-4 h-4"
+                    />
+                    <span className="text-yellow-500 font-bold text-sm">
+                      {movie.imdbRating.toFixed(1)}
+                    </span>
                   </div>
+                )}
 
-                  {/* Action buttons with animations - moved to right side on desktop */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.5 }}
-                    className="flex flex-wrap justify-center md:justify-end gap-3 sm:gap-4 md:gap-0 w-full md:w-auto md:min-w-[180px] lg:min-w-[200px] mx-auto md:mx-0 md:self-start md:mt-2 lg:mt-0 lg:self-center mt-2 sm:mt-3 mb-2 sm:mb-3 md:mb-0"
-                  >
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-1 gap-2.5 sm:gap-3 w-full max-w-3xl sm:max-w-none mx-auto">
-                      <ActionButton
-                        icon={
-                          <PlayCircleOutlined className="text-sm sm:text-base md:text-lg" />
-                        }
-                        primary={true}
-                        onClick={onWatchNow}
-                      >
-                        <span className="block sm:hidden">Watch</span>
-                        <span className="hidden sm:block">Watch Now</span>
-                      </ActionButton>
+                {(movie.rottenTomatoes ||
+                  movie.allRatings?.find(
+                    (r) => r.Source === "Rotten Tomatoes"
+                  )) && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/80 rounded-md">
+                    <img
+                      src="https://www.rottentomatoes.com/assets/pizza-pie/images/favicon.ico"
+                      alt="RT"
+                      className="w-4 h-4"
+                    />
+                    <span
+                      className={
+                        parseInt(
+                          movie.rottenTomatoes ||
+                            movie.allRatings?.find(
+                              (r) => r.Source === "Rotten Tomatoes"
+                            )?.Value
+                        ) >= 60
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }
+                    >
+                      {movie.rottenTomatoes ||
+                        movie.allRatings?.find(
+                          (r) => r.Source === "Rotten Tomatoes"
+                        )?.Value}
+                    </span>
+                  </div>
+                )}
 
-                      {trailer && (
-                        <ActionButton
-                          icon={
-                            <YoutubeOutlined className="text-sm sm:text-base md:text-lg" />
-                          }
-                          onClick={onTrailerClick}
-                        >
-                          <span className="block sm:hidden">Trailer</span>
-                          <span className="hidden sm:block">Watch Trailer</span>
-                        </ActionButton>
+                {(movie.metascore ||
+                  movie.allRatings?.find((r) => r.Source === "Metacritic")) && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-gray-800/80 rounded-md">
+                    <img
+                      src="https://www.metacritic.com/favicon.ico"
+                      alt="Metacritic"
+                      className="w-4 h-4"
+                    />
+                    <span
+                      className={getMetacriticColor(
+                        parseInt(
+                          movie.metascore ||
+                            movie.allRatings?.find(
+                              (r) => r.Source === "Metacritic"
+                            )?.Value
+                        )
                       )}
+                    >
+                      {movie.metascore ||
+                        movie.allRatings?.find((r) => r.Source === "Metacritic")
+                          ?.Value}
+                    </span>
+                  </div>
+                )}
+              </div>
 
-                      <ActionButton
-                        icon={
-                          <TeamOutlined className="text-sm sm:text-base md:text-lg" />
-                        }
-                        onClick={onCreateRoom}
-                      >
-                        <span className="block sm:hidden">Create</span>
-                        <span className="hidden sm:block">Create Room</span>
-                      </ActionButton>
+              {/* Title */}
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
+                {movie.title}
+              </h1>
 
-          
-                    </div>
-                  </motion.div>
-                </div>
+              {/* Compact Stats Row */}
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-3 mb-6 text-sm text-gray-300">
+                {compactStats.map((stat, index) => (
+                  <div key={index} className="flex items-center gap-1.5">
+                    {stat.icon}
+                    <span>{stat.value}</span>
+                    {index < compactStats.length - 1 && (
+                      <span className="w-1 h-1 rounded-full bg-gray-600 ml-2" />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Genres Row */}
+              <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-6">
+                {genresArray && genresArray.length > 0 ? (
+                  genresArray.map((genre) => (
+                    <GenreBadge
+                      key={genre.id || genre.name}
+                      name={genre.name}
+                    />
+                  ))
+                ) : (
+                  <span className="text-gray-400 text-xs">No genres</span>
+                )}
+              </div>
+
+              {/* Description */}
+              <p className="text-gray-300 text-sm md:text-base leading-relaxed mb-8 max-w-2xl">
+                {movie.description}
+              </p>
+
+              {/* Action buttons */}
+              <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                <ActionButton
+                  icon={<PlayCircleOutlined className="text-lg" />}
+                  primary={true}
+                  onClick={onWatchNow}
+                >
+                  Watch Now
+                </ActionButton>
+
+                {trailer && (
+                  <ActionButton
+                    icon={<YoutubeOutlined className="text-lg" />}
+                    onClick={onTrailerClick}
+                  >
+                    Watch Trailer
+                  </ActionButton>
+                )}
+
+                <ActionButton
+                  icon={<TeamOutlined className="text-lg" />}
+                  onClick={onCreateRoom}
+                >
+                  Watch Together
+                </ActionButton>
               </div>
             </div>
           </div>
@@ -586,16 +732,7 @@ const MoviePage = () => {
   const [error, setError] = useState(null);
 
   // Use scroll effect hook for enhanced scroll animations
-  const { isScrolled, scrollY } = useScrollEffect(
-    150,
-    (hasScrolled, position) => {
-      // Optional callback that can be used for scroll-triggered animations
-      // For example, you could update UI elements based on scroll position
-      if (hasScrolled && !loading && movie) {
-        // You can implement special effects that trigger on scroll
-      }
-    }
-  );
+  const { isScrolled, scrollY } = useScrollEffect(150);
 
   // Fade in effect for section elements
   const sectionVariants = {
@@ -616,7 +753,66 @@ const MoviePage = () => {
         setLoading(true);
         const response = await movieService.getMovieById(movieId);
         if (response.success) {
-          setMovie(response.data);
+          // Ensure all ratings data is properly passed to child components
+          const movieData = response.data;
+
+          // Extract ratings information from allRatings if available
+          if (movieData.allRatings) {
+            const rtRating = movieData.allRatings.find(
+              (r) => r.Source === "Rotten Tomatoes"
+            );
+            const mcRating = movieData.allRatings.find(
+              (r) => r.Source === "Metacritic"
+            );
+
+            if (rtRating && !movieData.rottenTomatoes) {
+              movieData.rottenTomatoes = rtRating.Value;
+            }
+
+            if (mcRating && !movieData.metascore) {
+              movieData.metascore = mcRating.Value;
+            }
+          }
+
+          // If we still don't have all ratings data, try to create a default structure
+          if (!movieData.allRatings) {
+            movieData.allRatings = [];
+
+            // Add IMDB rating to allRatings if available
+            if (movieData.imdbRating) {
+              movieData.allRatings.push({
+                Source: "Internet Movie Database",
+                Value: `${movieData.imdbRating}/10`,
+              });
+            }
+
+            // Add Metacritic to allRatings if available
+            if (movieData.metascore) {
+              movieData.allRatings.push({
+                Source: "Metacritic",
+                Value: `${movieData.metascore}/100`,
+              });
+            }
+
+            // Add Rotten Tomatoes to allRatings if available
+            if (movieData.rottenTomatoes) {
+              movieData.allRatings.push({
+                Source: "Rotten Tomatoes",
+                Value: movieData.rottenTomatoes,
+              });
+            }
+          }
+
+          // Debug: Log all ratings data
+          console.log("Movie ratings data:", {
+            imdbRating: movieData.imdbRating,
+            imdbVotes: movieData.imdbVotes,
+            metascore: movieData.metascore,
+            rottenTomatoes: movieData.rottenTomatoes,
+            allRatings: movieData.allRatings,
+          });
+
+          setMovie(movieData);
         } else {
           notification.error({
             message: "Failed to load movie",
@@ -745,8 +941,6 @@ const MoviePage = () => {
     }
   }, [isCreatingRoom, isAuthenticated, user, movie, movieId, navigate]);
 
- 
-
   // Render header with enhanced scroll behavior
   const renderHeader = () => (
     <div
@@ -777,7 +971,7 @@ const MoviePage = () => {
           }}
         >
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
         </div>
 
         {/* Hero content remains the same */}
@@ -827,7 +1021,7 @@ const MoviePage = () => {
   const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
   return (
-    <div className="movie-page">
+    <div className="min-h-screen bg-black text-white">
       <Helmet>
         <title>{movie ? `${movie.title} | Eigakan` : "Loading Movie..."}</title>
         <meta
@@ -836,185 +1030,153 @@ const MoviePage = () => {
         />
       </Helmet>
 
-      {loading ? (
-        <Loading />
-      ) : movie ? (
-        <div className="flex flex-col min-h-screen bg-black">
-          {/* Use enhanced header with scroll effects */}
-          {renderHeader()}
+      {/* Hero Section */}
+      <MovieHero
+        movie={movie}
+        onTrailerClick={() =>
+          document
+            .getElementById("trailer")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+        onCreateRoom={() => setIsCreateRoomModalVisible(true)}
+        onWatchNow={() => navigate(`/watch/${movieId}`)}
+      />
 
-          {/* Hero section with parallax */}
-          {renderHeroSection()}
+      {/* Main Content with modern layout */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left Column - Content */}
+          <div className="flex-1 space-y-8">
+            {/* Trailer section */}
+            {trailer && (
+              <TrailerSection trailerUrl={trailer.url} title={movie.title} />
+            )}
 
-          {/* Main content with animation */}
-          <motion.div
-            className="movie-content container mx-auto px-4 py-2 sm:py-3 md:py-4"
-            initial="hidden"
-            animate="visible"
-            variants={sectionVariants}
-          >
-            {/* Content Tabs */}
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              size="middle"
-              className="mb-2 sm:mb-3 lg:mb-4 text-white [&_.ant-tabs-tab]:text-gray-400 [&_.ant-tabs-tab.ant-tabs-tab-active]:text-[#FF009F] [&_.ant-tabs-ink-bar]:bg-[#FF009F]"
-              items={[
-                {
-                  label: "Overview",
-                  key: "overview",
-                  children: (
-                    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 mb-6 sm:mb-8">
-                      <div className="w-full lg:w-2/3">
-                        {/* Trailer section */}
-                        {trailer && (
-                          <TrailerSection
-                            trailerUrl={trailer.url}
-                            title={movie.title}
-                          />
-                        )}
-
-                        {/* Cast and Crew */}
-                        <Suspense
-                          fallback={
-                            <div className="mt-4 sm:mt-6 space-y-4">
-                              <Skeleton.Input
-                                active
-                                style={{ width: 200, height: 32 }}
-                              />
-                              <div className="flex gap-4 mt-4 overflow-x-auto pb-2">
-                                {[1, 2, 3, 4].map((i) => (
-                                  <Skeleton.Avatar
-                                    key={i}
-                                    active
-                                    size={80}
-                                    shape="square"
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          }
-                        >
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                            className="mt-4 sm:mt-6"
-                          >
-                            <CastAndCrew persons={movie.person} />
-                          </motion.div>
-                        </Suspense>
-                      </div>
-
-                      <MovieFacts movie={movie} />
-                    </div>
-                  ),
-                },
-                {
-                  label: "Similar Movies",
-                  key: "similar",
-                  children: (
-                    <Suspense
-                      fallback={
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-6">
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-                            <div
-                              key={i}
-                              className="aspect-[2/3] bg-gray-800 rounded-lg relative overflow-hidden"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-shimmer"></div>
-                            </div>
-                          ))}
-                        </div>
-                      }
-                    >
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <SimilarMovies />
-                      </motion.div>
-                    </Suspense>
-                  ),
-                },
-              ]}
-            />
-          </motion.div>
-
-          {/* Additional components like modals */}
-          <Modal
-            title={
-              <div className="flex items-center gap-2">
-                <TeamOutlined className="text-[#FF009F]" /> Create Watch Room
-              </div>
-            }
-            open={isCreateRoomModalVisible}
-            onOk={handleCreateRoom}
-            onCancel={() => setIsCreateRoomModalVisible(false)}
-            okText="Create Room"
-            cancelText="Cancel"
-            okButtonProps={{
-              loading: isCreatingRoom,
-              className:
-                "bg-gradient-to-r from-[#FF009F] to-[#FF0055] hover:from-[#FF00AA] hover:to-[#FF0066] border-none text-white hover:text-white shadow-lg",
-            }}
-            cancelButtonProps={{
-              disabled: isCreatingRoom,
-              className: "hover:text-[#FF009F] hover:border-[#FF009F]",
-            }}
-            className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
-            width={320}
-            centered
-          >
-            <div className="py-3 sm:py-4">
-              <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
-                <img
-                  src={
-                    movie.medias?.find((m) => m.type === "POSTER")?.url ||
-                    "/placeholder.jpg"
-                  }
-                  alt={movie.title}
-                  className="w-8 sm:w-10 md:w-12 h-12 sm:h-14 md:h-16 object-cover rounded-md"
-                />
-                <div>
-                  <h3 className="font-medium text-white text-xs sm:text-sm md:text-base">
-                    {movie.title}
-                  </h3>
-                  <p className="text-gray-400 text-[10px] sm:text-xs">
-                    {movie.releaseYear} • {movie.duration}m
-                  </p>
+            {/* Cast and Crew */}
+            <Suspense
+              fallback={
+                <div className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg p-4">
+                  <h2 className="text-lg sm:text-xl font-bold text-white mb-4">
+                    Cast & Crew
+                  </h2>
+                  <div className="flex gap-4 overflow-x-auto pb-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="flex-shrink-0 w-24 h-36 bg-gray-800 rounded-lg animate-pulse"
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+              }
+            >
+              <div className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg">
+                <div className="p-4 border-b border-gray-800/50">
+                  <h2 className="text-lg sm:text-xl font-bold text-white">
+                    Cast & Crew
+                  </h2>
+                </div>
+                <div className="p-4">
+                  <CastAndCrew persons={movie.person} />
                 </div>
               </div>
+            </Suspense>
+          </div>
 
-              <p className="text-gray-300 mb-3 sm:mb-4 text-[10px] sm:text-xs md:text-sm">
-                Create a new room to watch "{movie.title}" with friends in
-                real-time.
-              </p>
+          {/* Right Column - Details & Ratings */}
+          <div className="lg:w-1/3">
+            <MovieFacts movie={movie} />
+          </div>
+        </div>
 
-              <div className="bg-[#FF009F]/10 border border-[#FF009F]/20 p-2 sm:p-3 rounded-lg">
-                <p className="text-[10px] sm:text-xs md:text-sm text-white">
-                  <InfoCircleOutlined className="mr-1 sm:mr-2 text-[#FF009F]" />
-                  You'll be the host of this room and can control the playback
-                  for all viewers.
-                </p>
+        {/* Similar Movies Section */}
+        <Suspense
+          fallback={
+            <div className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg p-4 mt-8">
+              <h2 className="text-lg sm:text-xl font-bold text-white mb-4">
+                Similar Movies
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className="aspect-[2/3] bg-gray-800 rounded-lg animate-pulse"
+                  ></div>
+                ))}
               </div>
             </div>
-          </Modal>
+          }
+        >
+          <div className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg mt-8">
+            <div className="p-4 border-b border-gray-800/50">
+              <h2 className="text-lg sm:text-xl font-bold text-white">
+                Similar Movies
+              </h2>
+            </div>
+            <div className="p-4">
+              <SimilarMovies />
+            </div>
+          </div>
+        </Suspense>
+      </div>
 
-      
+      {/* Additional components like modals */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <TeamOutlined className="text-[#FF009F]" /> Create Watch Room
+          </div>
+        }
+        open={isCreateRoomModalVisible}
+        onOk={handleCreateRoom}
+        onCancel={() => setIsCreateRoomModalVisible(false)}
+        okText="Create Room"
+        cancelText="Cancel"
+        okButtonProps={{
+          loading: isCreatingRoom,
+          className:
+            "bg-[#FF009F] hover:bg-[#e0008e] border-none text-white hover:text-white",
+        }}
+        cancelButtonProps={{
+          disabled: isCreatingRoom,
+          className: "hover:text-[#FF009F] hover:border-[#FF009F]",
+        }}
+        className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
+        width={320}
+        centered
+      >
+        <div className="py-3 sm:py-4">
+          <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
+            <img
+              src={
+                movie.medias?.find((m) => m.type === "POSTER")?.url ||
+                "/placeholder.jpg"
+              }
+              alt={movie.title}
+              className="w-12 h-16 object-cover rounded-md"
+            />
+            <div>
+              <h3 className="font-medium text-white text-sm">{movie.title}</h3>
+              <p className="text-gray-400 text-xs">
+                {movie.releaseYear} • {movie.duration}m
+              </p>
+            </div>
+          </div>
+
+          <p className="text-gray-300 mb-4 text-sm">
+            Create a new room to watch "{movie.title}" with friends in
+            real-time.
+          </p>
+
+          <div className="bg-[#FF009F]/10 border border-[#FF009F]/20 p-3 rounded-lg">
+            <p className="text-sm text-white">
+              <InfoCircleOutlined className="mr-2 text-[#FF009F]" />
+              You'll be the host of this room and can control the playback for
+              all viewers.
+            </p>
+          </div>
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center min-h-screen">
-          <h2 className="text-2xl text-white mb-4">Movie not found</h2>
-          <Link
-            to="/homescreen"
-            className="px-4 py-2 bg-[#FF009F] text-white rounded-lg"
-          >
-            Return to Home
-          </Link>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

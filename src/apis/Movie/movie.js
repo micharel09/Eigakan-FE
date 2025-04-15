@@ -1,7 +1,8 @@
 import axios from "axios";
 import ratingService from "./rating";
+import { API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/Movie";
+const API_URL = API_URLS.MOVIE;
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');
@@ -73,7 +74,22 @@ const movieService = {
       
       // Add IMDB rating to the movie
       if (response.data && response.data.data) {
+        console.log('Before enrichment:', response.data.data);
+        
+        // Check if we have title and year before enrichment
+        if (!response.data.data.title || !response.data.data.releaseYear) {
+          console.warn('Missing movie title or releaseYear for OMDB enrichment:',
+            { title: response.data.data.title, releaseYear: response.data.data.releaseYear });
+        }
+        
         response.data.data = await ratingService.enrichMoviesWithImdbRatings(response.data.data);
+        console.log('After enrichment:', {
+          imdbRating: response.data.data.imdbRating,
+          imdbVotes: response.data.data.imdbVotes,
+          metascore: response.data.data.metascore,
+          rottenTomatoes: response.data.data.rottenTomatoes,
+          allRatings: response.data.data.allRatings
+        });
       }
       
       return response.data;

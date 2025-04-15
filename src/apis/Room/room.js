@@ -1,134 +1,97 @@
 import axios from "axios";
+import { makeAuthenticatedRequest, API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api";
+const API_URL = API_URLS.ROOM;
 
 const roomService = {
-  getRoomDetails: async (roomId) => {
-    try {
-      const response = await axios.get(`${API_URL}/Room/GetById/${roomId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-    
+  getRoomDetails: (roomId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${API_URL}/GetById/${roomId}`, { headers });
       return response.data;
-     
-    } catch (error) {
-      return error.response;
-    }
-  },
+    }),
 
-  createRoom: async (roomData) => {
-    try {
-      const response = await axios.post(`${API_URL}/Room/create`, roomData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Error creating room:", error);
-      if (error.response && error.response.data) {
-        throw error.response.data;
-      }
-      throw error;
-    }
-  },
-
-  joinRoom: async (data) => {
-    try {
-      const response = await axios.post(`${API_URL}/Room/join`, data, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Error joining room:", error);
-      if (error.response && error.response.data) {
-        throw error.response.data;
-      }
-      throw error;
-    }
-  },
-
-  getActiveRooms: async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/Room/active`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
-  getHostRoom: async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/Room/get-host-room`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
-  getRoomLink: async (roomId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/Room/share-link/${roomId}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
-  endRoom: async (roomId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(`${API_URL}/Room/end/${roomId}`, null, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error;
-    }
-  },
-
-  leaveRoom: async (roomId) => {
-    try {
-      const response = await axios.post(
-        `${API_URL}/Room/leave/${roomId}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+  createRoom: (roomData) =>
+    makeAuthenticatedRequest(async (headers) => {
+      try {
+        const response = await axios.post(`${API_URL}/create`, roomData, { headers });
+        return response.data;
+      } catch (error) {
+        console.error("Error creating room:", error);
+        if (error.response && error.response.data) {
+          throw error.response.data;
         }
-      );
+        throw error;
+      }
+    }),
+
+  joinRoom: (data) =>
+    makeAuthenticatedRequest(async (headers) => {
+      try {
+        const response = await axios.post(`${API_URL}/join`, data, { headers });
+        return response.data;
+      } catch (error) {
+        console.error("Error joining room:", error);
+        if (error.response && error.response.data) {
+          throw error.response.data;
+        }
+        throw error;
+      }
+    }),
+
+  getActiveRooms: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${API_URL}/active`, {
+        headers: {
+          ...headers,
+          "Content-Type": "application/json"
+        }
+      });
       return response.data;
-    } catch (error) {
-      console.error("Error leaving room:", error);
-      throw error;
-    }
-  },
+    }),
+
+  getHostRoom: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${API_URL}/get-host-room`, {
+        headers: {
+          ...headers,
+          "Content-Type": "application/json"
+        }
+      });
+      return response.data;
+    }),
+
+  getRoomLink: (roomId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(`${API_URL}/share-link/${roomId}`, {
+        headers: {
+          ...headers,
+          "Content-Type": "application/json"
+        }
+      });
+      return response.data;
+    }),
+
+  endRoom: (roomId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.put(`${API_URL}/end/${roomId}`, null, {
+        headers: {
+          ...headers,
+          "Content-Type": "application/json"
+        }
+      });
+      return response.data;
+    }),
+
+  leaveRoom: (roomId) =>
+    makeAuthenticatedRequest(async (headers) => {
+      try {
+        const response = await axios.post(`${API_URL}/leave/${roomId}`, {}, { headers });
+        return response.data;
+      } catch (error) {
+        console.error("Error leaving room:", error);
+        throw error;
+      }
+    }),
 };
 
 export default roomService;

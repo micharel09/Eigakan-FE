@@ -1,38 +1,26 @@
 import axios from "axios";
+import { makePublicRequest, API_URLS } from "../../utils/api";
 
-const API_URL = "https://eigakan2222-001-site1.jtempurl.com/api/MovieCount";
-
+const API_URL = API_URLS.MOVIE_COUNT;
 
 const movieCountService = {
-
-
-  async getMovieCountByMovieId(movieId) {
-    try {
+  getMovieCountByMovieId: (movieId) =>
+    makePublicRequest(async () => {
       const response = await axios.get(`${API_URL}/GetMovieCountByMovieId/${movieId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+      return response;
+    }, true),
 
-  async getStatisticMovieCount(movieId) {
-    try {
+  getStatisticMovieCount: (movieId) =>
+    makePublicRequest(async () => {
       const response = await axios.get(`${API_URL}/StatisticMovieCount/${movieId}`);
       return response;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+    }, true),
 
-  async increaseMovieCount(movieData) {
-    try {
-      const response = await axios.post(`${API_URL}/IncreaseMovieCount`, movieData, {       
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
+  increaseMovieCount: (movieData) =>
+    makePublicRequest(async () => {
+      const response = await axios.post(`${API_URL}/IncreaseMovieCount`, movieData);
+      return response;
+    }, true),
 };
+
 export default movieCountService;

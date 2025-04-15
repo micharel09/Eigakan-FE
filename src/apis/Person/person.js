@@ -1,24 +1,20 @@
 import axios from "axios";
 import { makeAuthenticatedRequest, makePublicRequest, API_URLS } from "../../utils/api";
 
-/**
- * Service for handling person operations
- */
+const API_URL = API_URLS.PERSON;
+const UPLOAD_URL = API_URLS.UPLOAD;
+
 const personService = {
-  /**
-   * Get all persons with pagination and search
-   */
   getAllPerson: (pageNumber = 1, pageSize = 10, name = '') => 
     makeAuthenticatedRequest(async (headers) => {
       const params = { pageNumber, pageSize };
       if (name?.trim()) params.name = name.trim();
       
-      const response = await axios.get(API_URLS.PERSON, {
+      const response = await axios.get(API_URL, {
         headers,
         params
       });
       
-      // Set paging limits
       const maxItems = pageSize * 6;
       return {
         ...response.data,
@@ -28,25 +24,19 @@ const personService = {
       };
     }),
 
-  /**
-   * Get person by ID
-   */
   getPersonById: (id) => 
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(`${API_URLS.PERSON}/${id}`, { headers });
+      const response = await axios.get(`${API_URL}/${id}`, { headers });
       return response.data;
     }),
 
-  /**
-   * Create new person - Admin only
-   */
   createPerson: (personData) => 
     makeAuthenticatedRequest(async (headers) => {
       if (localStorage.getItem("role") !== "ADMIN") {
         throw new Error("Unauthorized - Only admin can create persons");
       }
       
-      const response = await axios.post(API_URLS.PERSON, personData, {
+      const response = await axios.post(API_URL, personData, {
         headers: {
           ...headers,
           "Content-Type": "application/json"
@@ -55,16 +45,13 @@ const personService = {
       return response.data;
     }),
 
-  /**
-   * Update person - Admin only
-   */
   updatePerson: (id, personData) => 
     makeAuthenticatedRequest(async (headers) => {
       if (localStorage.getItem("role") !== "ADMIN") {
         throw new Error("Unauthorized - Only admin can update persons");
       }
       
-      const response = await axios.put(`${API_URLS.PERSON}/${id}`, personData, {
+      const response = await axios.put(`${API_URL}/${id}`, personData, {
         headers: {
           ...headers,
           "Content-Type": "application/json"
@@ -73,9 +60,6 @@ const personService = {
       return response.data;
     }),
 
-  /**
-   * Delete person - Admin only
-   */
   deletePerson: (id) => 
     makeAuthenticatedRequest(async (headers) => {
       if (localStorage.getItem("role") !== "ADMIN") {
@@ -83,7 +67,7 @@ const personService = {
       }
 
       try {
-        await axios.delete(`${API_URLS.PERSON}/${id}`, { headers });
+        await axios.delete(`${API_URL}/${id}`, { headers });
         return { success: true, message: "Person deleted successfully" };
       } catch (error) {
         if (error.response?.status === 400) {
@@ -93,9 +77,6 @@ const personService = {
       }
     }),
 
-  /**
-   * Upload image for person
-   */
   uploadImage: (file, abortSignal) => 
     makeAuthenticatedRequest(async (headers) => {
       const formData = new FormData();
@@ -108,7 +89,7 @@ const personService = {
       };
 
       try {
-        const response = await axios.post(API_URLS.UPLOAD, formData, {
+        const response = await axios.post(UPLOAD_URL, formData, {
           headers: uploadHeaders,
           signal: abortSignal
         });
@@ -122,13 +103,10 @@ const personService = {
       }
     }),
 
-  /**
-   * Get total count of persons
-   */
   getTotalPersons: () => 
     makeAuthenticatedRequest(async (headers) => {
       try {
-        const response = await axios.get(`${API_URLS.PERSON}/count`, { headers });
+        const response = await axios.get(`${API_URL}/count`, { headers });
         
         let total = 30;
         if (response.data) {
@@ -141,9 +119,8 @@ const personService = {
         
         return { success: true, total: Math.min(total, 30) };
       } catch (error) {
-        // Fallback: try to get the count from the full list
         try {
-          const response = await axios.get(API_URLS.PERSON, {
+          const response = await axios.get(API_URL, {
             headers,
             params: { pageNumber: 1, pageSize: 1000 }
           });
