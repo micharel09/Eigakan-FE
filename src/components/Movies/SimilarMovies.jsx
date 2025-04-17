@@ -2,19 +2,24 @@ import React, { useEffect, useState, useCallback, memo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
+import { motion } from "framer-motion";
 import movieService from "../../apis/Movie/movie";
 import "swiper/css";
 import "swiper/css/navigation";
+import { Tag } from "antd";
+import { FileText } from "lucide-react";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
 // Tách MovieCard thành component riêng và memo để tránh re-render không cần thiết
 const MovieCard = memo(({ movie, onClick }) => (
-  <div
+  <motion.div
+    whileHover={{ y: -10 }}
+    transition={{ type: "spring", stiffness: 300, damping: 20 }}
     className="relative cursor-pointer group"
     onClick={() => onClick(movie.id)}
   >
-    <div className="rounded-lg overflow-hidden bg-gray-900">
+    <div className="rounded-lg overflow-hidden bg-gray-900 shadow-lg hover:shadow-[0_0_25px_rgba(255,0,159,0.3)] transition-all duration-300">
       <div className="relative aspect-[2/3]">
         <img
           src={movie.medias?.[0]?.url || "/placeholder.svg"}
@@ -30,31 +35,90 @@ const MovieCard = memo(({ movie, onClick }) => (
             <div className="flex items-center gap-2 mt-1 text-xs text-gray-300">
               <span>{movie.releaseYear}</span>
               <span>•</span>
-              <span>{movie.duration} minutes</span>
+              <span>{movie.duration} min</span>
             </div>
+
+            {movie.genreNames && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {movie.genreNames
+                  .split(",")
+                  .slice(0, 2)
+                  .map((genre, idx) => (
+                    <Tag
+                      key={idx}
+                      className="bg-[#FF009F]/20 border-[#FF009F]/40 text-[9px] py-0"
+                      bordered={false}
+                    >
+                      {genre.trim()}
+                    </Tag>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </motion.div>
 ));
 
 const SimilarMovies = () => {
-  const [movies, setMovies] = useState([]);
+  const [similarMovies, setSimilarMovies] = useState([]);
+  const [currentMovie, setCurrentMovie] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [matchingGenre, setMatchingGenre] = useState("");
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { movieId } = useParams();
 
+  // Fetch current movie to get its genres
   useEffect(() => {
-    const fetchSimilarMovies = async () => {
+    const fetchCurrentMovie = async () => {
+      try {
+        const response = await movieService.getMovieById(movieId);
+        if (response.success && response.data) {
+          setCurrentMovie(response.data);
+          return response.data;
+        }
+      } catch (error) {
+        console.error("Error fetching current movie details:", error);
+      }
+      return null;
+    };
+
+    const fetchSimilarMoviesByGenre = async () => {
       try {
         setLoading(true);
-        const response = await movieService.getMovies(1, 10);
+
+        // First fetch current movie details
+        const movie = await fetchCurrentMovie();
+        if (!movie) return;
+
+        // Extract first genre name from the movie
+        let genreName = "";
+        if (movie.genreNames && movie.genreNames.includes(",")) {
+          genreName = movie.genreNames.split(",")[0].trim();
+        } else if (movie.genreNames) {
+          genreName = movie.genreNames.trim();
+        } else if (movie.genres && movie.genres.length > 0) {
+          genreName = movie.genres[0].name;
+        }
+
+        if (!genreName) {
+          setLoading(false);
+          return;
+        }
+
+        setMatchingGenre(genreName);
+
+        // Now fetch movies with this genre
+        const response = await movieService.getMovies(1, 15, genreName);
+
         if (response.success && response.movies) {
-          const filteredMovies = response.movies.filter(
-            (movie) => movie.id !== id
-          );
-          setMovies(filteredMovies);
+          // Filter out the current movie and limit to 10 movies
+          const filteredMovies = response.movies
+            .filter((movie) => movie.id !== movieId)
+            .slice(0, 10);
+
+          setSimilarMovies(filteredMovies);
         }
       } catch (error) {
         console.error("Error fetching similar movies:", error);
@@ -63,30 +127,67 @@ const SimilarMovies = () => {
       }
     };
 
-    fetchSimilarMovies();
-  }, [id]);
+    fetchSimilarMoviesByGenre();
+  }, [movieId]);
 
-  const handleMovieClick = useCallback(
-    (movieId) => {
-      navigate(`/movie/${movieId}`);
-    },
-    [navigate]
-  );
+  const handleMovieClick = useCallback((movieId) => {
+    // Use window.location for a full refresh that will trigger scroll to top
+    window.location.href = `/movie/${movieId}`;
+  }, []);
 
-  if (loading || !movies.length) return null;
+  if (loading) {
+    return (
+      <div className="py-6 flex justify-center">
+        <div className="animate-pulse flex gap-2 items-center">
+          <div className="h-4 w-4 bg-[#FF009F]/50 rounded-full"></div>
+          <div className="h-4 w-32 bg-gray-700 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!similarMovies.length) {
+    return (
+      <div className="p-4 text-center">
+        <div className="flex justify-center">
+          <FileText className="text-gray-500 w-12 h-12 mb-2" />
+        </div>
+        <p className="text-gray-400">No similar movies found</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-8">
-      <h2 className="text-xl font-bold text-white mb-4">Similar Movies</h2>
+    <div className="py-2">
+      {matchingGenre && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 flex items-center"
+        >
+          <Tag color="#FF009F" className="mr-2">
+            {matchingGenre}
+          </Tag>
+          <span className="text-sm text-gray-400">
+            More movies you might like based on this genre
+          </span>
+        </motion.div>
+      )}
+
       <Swiper
         modules={[Navigation]}
         navigation
         spaceBetween={16}
-        slidesPerView="auto"
+        slidesPerView={2}
+        breakpoints={{
+          640: { slidesPerView: 3 },
+          768: { slidesPerView: 4 },
+          1024: { slidesPerView: 5 },
+        }}
         className="similar-movies-swiper"
       >
-        {movies.map((movie) => (
-          <SwiperSlide key={movie.id} className="!w-[180px]">
+        {similarMovies.map((movie) => (
+          <SwiperSlide key={movie.id}>
             <MovieCard movie={movie} onClick={handleMovieClick} />
           </SwiperSlide>
         ))}
