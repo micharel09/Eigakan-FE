@@ -64,4 +64,7 @@ export const API_URLS = {
   USER: `${API_BASE_URL}/User`,
   USER_EARNING: `${API_BASE_URL}/UserEarning`,
   USER_REGISTER: `${API_BASE_URL}/UserRegister`,
-}; 
+  USER_WALLET: `${API_BASE_URL}/UserWallet`,
+  WALLET_TRANSACTION: `${API_BASE_URL}/WalletTransaction`,
+  AD_PURCHASE_ITEM: `${API_BASE_URL}/AdPurchaseItem`,
+};

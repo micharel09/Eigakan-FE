@@ -56,9 +56,10 @@ import WatchTogether from "../pages/WatchTogether/WatchTogether";
 import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
 import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
 import { Navigate } from "react-router-dom";
-import AdPurchaseSlotManagement from "../pages/Advertiser/AdPurchaseSlotManagement";
 import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory";
 import PaymentDetails from "../pages/Advertiser/PaymentHistory/PaymentDetails";
+import UserWallet from "../pages/Advertiser/UserWallet/UserWallet";
+import AdsManagement from "../pages/Advertiser/AdsManagement/AdsManagement";
 import WaitingRoom from "../pages/WatchTogether/WaitingRoom.jsx";
 import PaymentPolicyManagement from "../pages/Admin/PaymentPolicy/PaymentPolicyManagement.jsx";
 import AdHistory from "../pages/Admin/Ad/AdHistory.jsx";
@@ -584,8 +585,8 @@ const routes = [
   {
     path: "/advertiser/ad-purchase-slots",
     element: (
-      <PrivateRoute>
-        <AdPurchaseSlotManagement />
+      <PrivateRoute requiredRole="ADVERTISER">
+        <AdsManagement />
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",
@@ -606,6 +607,16 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
         <PaymentDetails />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/advertiser/user-wallet",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <UserWallet />
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",

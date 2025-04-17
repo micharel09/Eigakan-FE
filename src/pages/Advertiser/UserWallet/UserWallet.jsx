@@ -1,0 +1,419 @@
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Spin,
+  Alert,
+  Typography,
+  Tag,
+  Button,
+  Divider,
+  Table,
+  Tooltip,
+  Pagination,
+  Empty,
+  Badge,
+} from "antd";
+import { Helmet } from "react-helmet";
+import {
+  WalletOutlined,
+  ReloadOutlined,
+  DollarOutlined,
+  CheckCircleOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  CreditCardOutlined,
+  ShoppingOutlined,
+} from "@ant-design/icons";
+import userWalletService from "../../../apis/UserWallet/userWallet";
+import walletHistoryService from "../../../apis/UserWallet/walletHistory";
+import dayjs from "dayjs";
+
+const { Title, Text } = Typography;
+
+const UserWallet = () => {
+  const [loading, setLoading] = useState({
+    wallet: true,
+    history: true,
+  });
+  const [error, setError] = useState(null);
+  const [walletData, setWalletData] = useState(null);
+  const [transactionHistory, setTransactionHistory] = useState([]);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  const fetchWalletData = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, wallet: true }));
+      setError(null);
+      const data = await userWalletService.getUserWalletByLogin();
+      setWalletData(data);
+    } catch (err) {
+      console.error("Error fetching wallet data:", err);
+      setError(err.message || "Failed to load wallet data");
+    } finally {
+      setLoading((prev) => ({ ...prev, wallet: false }));
+    }
+  };
+
+  const fetchTransactionHistory = async (page = 1, pageSize = 10) => {
+    try {
+      setLoading((prev) => ({ ...prev, history: true }));
+      const response = await walletHistoryService.getWalletHistory(
+        page,
+        pageSize
+      );
+
+      if (response.success) {
+        setTransactionHistory(response.data || []);
+        setPagination({
+          current: page,
+          pageSize: pageSize,
+          total:
+            response.data?.length >= pageSize
+              ? page * pageSize + 1
+              : page * pageSize, // Estimate total if not provided
+        });
+      } else {
+        console.error("Failed to fetch transaction history:", response.message);
+      }
+    } catch (err) {
+      console.error("Error fetching transaction history:", err);
+      // We don't set the main error state here to avoid blocking the wallet display
+    } finally {
+      setLoading((prev) => ({ ...prev, history: false }));
+    }
+  };
+
+  useEffect(() => {
+    fetchWalletData();
+    fetchTransactionHistory(pagination.current, pagination.pageSize);
+  }, []);
+
+  const handleTableChange = (page, pageSize) => {
+    fetchTransactionHistory(page, pageSize);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "active":
+      case "success":
+        return "success";
+      case "inactive":
+      case "failed":
+        return "error";
+      case "pending":
+        return "warning";
+      default:
+        return "default";
+    }
+  };
+
+  const getTransactionTypeIcon = (type) => {
+    switch (type?.toUpperCase()) {
+      case "DEPOSIT":
+        return <ArrowUpOutlined className="text-green-500" />;
+      case "WITHDRAWAL":
+        return <ArrowDownOutlined className="text-red-500" />;
+      case "AD_PURCHASE":
+        return <ShoppingOutlined className="text-blue-500" />;
+      default:
+        return <CreditCardOutlined className="text-gray-500" />;
+    }
+  };
+
+  const getTransactionStatusIcon = (status) => {
+    switch (status?.toUpperCase()) {
+      case "SUCCESS":
+        return <CheckCircleOutlined className="text-green-500" />;
+      case "FAILED":
+        return <CloseCircleOutlined className="text-red-500" />;
+      case "PENDING":
+        return <ClockCircleOutlined className="text-yellow-500" />;
+      default:
+        return <ClockCircleOutlined className="text-gray-500" />;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return dayjs(dateString).format("MMM D, YYYY HH:mm");
+  };
+
+  const formatAmount = (amount, type) => {
+    const isNegative = type === "WITHDRAWAL" || type === "AD_PURCHASE";
+    return (
+      <span className={isNegative ? "text-red-500" : "text-green-500"}>
+        {isNegative ? "-" : "+"}
+        {amount.toLocaleString()}đ
+      </span>
+    );
+  };
+
+  const handleRefresh = () => {
+    fetchWalletData();
+    fetchTransactionHistory(pagination.current, pagination.pageSize);
+  };
+
+  return (
+    <div className="user-wallet-page p-6">
+      <Helmet>
+        <title>My Wallet | EIGAKAN</title>
+      </Helmet>
+
+      <div className="flex justify-between items-center mb-6">
+        <Title level={2} className="m-0">
+          <WalletOutlined className="mr-2" /> My Wallet
+        </Title>
+        <Button
+          onClick={handleRefresh}
+          icon={<ReloadOutlined />}
+          loading={loading.wallet || loading.history}
+          className="bg-white hover:bg-gray-50"
+        >
+          Refresh
+        </Button>
+      </div>
+
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          className="mb-6"
+          closable
+        />
+      )}
+
+      {loading.wallet ? (
+        <div className="flex justify-center items-center h-64">
+          <Spin size="large" />
+        </div>
+      ) : walletData ? (
+        <div className="wallet-content">
+          <Row gutter={[16, 16]} className="mb-6">
+            <Col xs={24} md={12}>
+              <Card
+                hoverable
+                className="shadow-sm h-full"
+                title={
+                  <div className="flex items-center">
+                    <WalletOutlined className="mr-2 text-[#FF009F]" />
+                    <span>Wallet Information</span>
+                  </div>
+                }
+              >
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <Text type="secondary">Wallet ID:</Text>
+                    <div className="font-mono bg-gray-50 p-2 rounded mt-1 text-sm break-all">
+                      {walletData.id}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Text type="secondary">Status:</Text>
+                    <div className="mt-1">
+                      <Tag
+                        color={getStatusColor(walletData.status)}
+                        className="text-sm px-3 py-1"
+                      >
+                        {walletData.status}
+                      </Tag>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Text type="secondary">User ID:</Text>
+                    <div className="font-mono bg-gray-50 p-2 rounded mt-1 text-sm break-all">
+                      {walletData.userId}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Card
+                hoverable
+                className="shadow-sm h-full bg-gradient-to-br from-purple-50 to-pink-50"
+              >
+                <Statistic
+                  title={<span className="text-lg">Current Balance</span>}
+                  value={walletData.balance}
+                  precision={0}
+                  valueStyle={{ color: "#FF009F", fontSize: "2.5rem" }}
+                  prefix={<DollarOutlined />}
+                  suffix="đ"
+                />
+
+                <Divider />
+
+                <div className="flex items-center mt-4">
+                  <CheckCircleOutlined className="text-green-500 mr-2" />
+                  <Text>
+                    Your wallet is ready to use for purchasing ad slots
+                  </Text>
+                </div>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Transaction History Section */}
+          <div className="transaction-history mt-8">
+            <Card
+              title={
+                <div className="flex items-center">
+                  <CreditCardOutlined className="mr-2 text-[#FF009F]" />
+                  <span>Transaction History</span>
+                </div>
+              }
+              className="shadow-sm"
+              extra={
+                <div className="flex items-center">
+                  <Badge
+                    status={loading.history ? "processing" : "success"}
+                    text={loading.history ? "Loading..." : "Updated"}
+                    className="mr-2"
+                  />
+                </div>
+              }
+            >
+              <Table
+                dataSource={transactionHistory}
+                rowKey="id"
+                loading={loading.history}
+                pagination={{
+                  current: pagination.current,
+                  pageSize: pagination.pageSize,
+                  total: pagination.total,
+                  onChange: handleTableChange,
+                  showSizeChanger: true,
+                  pageSizeOptions: [5, 10, 20],
+                  showTotal: (total) => `Total ${total} transactions`,
+                }}
+                className="transaction-table"
+                columns={[
+                  {
+                    title: "Date",
+                    dataIndex: "createDate",
+                    key: "createDate",
+                    render: (text) => formatDate(text),
+                    sorter: (a, b) =>
+                      new Date(a.createDate) - new Date(b.createDate),
+                    width: "20%",
+                  },
+                  {
+                    title: "Type",
+                    dataIndex: "type",
+                    key: "type",
+                    render: (text) => (
+                      <Tooltip title={text}>
+                        <Tag
+                          color={
+                            text === "DEPOSIT"
+                              ? "green"
+                              : text === "AD_PURCHASE"
+                              ? "blue"
+                              : "volcano"
+                          }
+                          className="flex items-center w-fit"
+                        >
+                          {getTransactionTypeIcon(text)}
+                          <span className="ml-1">{text.replace("_", " ")}</span>
+                        </Tag>
+                      </Tooltip>
+                    ),
+                    filters: [
+                      { text: "Deposit", value: "DEPOSIT" },
+                      { text: "Ad Purchase", value: "AD_PURCHASE" },
+                      { text: "Withdrawal", value: "WITHDRAWAL" },
+                    ],
+                    onFilter: (value, record) => record.type === value,
+                    width: "15%",
+                  },
+                  {
+                    title: "Amount",
+                    dataIndex: "amount",
+                    key: "amount",
+                    render: (text, record) => formatAmount(text, record.type),
+                    sorter: (a, b) => a.amount - b.amount,
+                    width: "15%",
+                  },
+                  {
+                    title: "Payment Method",
+                    dataIndex: "paymentMethod",
+                    key: "paymentMethod",
+                    render: (text) => <Tag>{text}</Tag>,
+                    width: "15%",
+                  },
+                  {
+                    title: "Status",
+                    dataIndex: "status",
+                    key: "status",
+                    render: (text) => (
+                      <Tag
+                        color={getStatusColor(text)}
+                        className="flex items-center w-fit"
+                      >
+                        {getTransactionStatusIcon(text)}
+                        <span className="ml-1">{text}</span>
+                      </Tag>
+                    ),
+                    filters: [
+                      { text: "Success", value: "SUCCESS" },
+                      { text: "Failed", value: "FAILED" },
+                      { text: "Pending", value: "PENDING" },
+                    ],
+                    onFilter: (value, record) => record.status === value,
+                    width: "15%",
+                  },
+                  {
+                    title: "Reference ID",
+                    dataIndex: "paymentReferenceId",
+                    key: "paymentReferenceId",
+                    render: (text) => (
+                      <Tooltip title={text}>
+                        <span className="font-mono text-xs">
+                          {text.length > 10
+                            ? `${text.substring(0, 10)}...`
+                            : text}
+                        </span>
+                      </Tooltip>
+                    ),
+                    width: "20%",
+                  },
+                ]}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="No transaction history found"
+                    />
+                  ),
+                }}
+              />
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <Alert
+          message="No Wallet Found"
+          description="You don't have a wallet yet. Please contact support for assistance."
+          type="info"
+          showIcon
+          className="mb-6"
+        />
+      )}
+    </div>
+  );
+};
+
+export default UserWallet;
