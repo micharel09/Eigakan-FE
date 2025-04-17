@@ -30,6 +30,9 @@ import {
   SearchOutlined,
   SyncOutlined,
   ArrowRightOutlined,
+  BellOutlined,
+  FileTextOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import { Line, Bar, Pie, Doughnut } from "react-chartjs-2";
 import {
@@ -46,8 +49,9 @@ import {
   Filler,
 } from "chart.js";
 import subscriptionService from "../../../apis/Subscription/subscription";
+import NewsApi from "../../../apis/News/news";
+import adPackageService from "../../../apis/AdPackage/adpackage";
 import { Helmet } from "react-helmet";
-import axios from "axios";
 import { Link } from "react-router-dom";
 
 // Register Chart.js components
@@ -119,24 +123,26 @@ const ManagerDashboard = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [chartsLoading, setChartsLoading] = useState(true);
 
+  // State for each data type
   const [subscriptionData, setSubscriptionData] = useState([]);
-  const [purchaseHistory, setPurchaseHistory] = useState([]);
+  const [newsData, setNewsData] = useState([]);
+  const [adPackageData, setAdPackageData] = useState([]);
+
   const [timeRange, setTimeRange] = useState("week");
 
+  // Stats for display on cards
   const [stats, setStats] = useState({
-    activePackages: 0,
-    totalRevenue: 0,
-    totalSales: 0,
+    activeSubscriptions: 0,
+    totalNews: 0,
+    activeAdPackages: 0,
   });
 
-  const [revenueData, setRevenueData] = useState(null);
+  // Chart data states
   const [packageDistribution, setPackageDistribution] = useState(null);
-  const [salesData, setSalesData] = useState(null);
+  const [newsDistribution, setNewsDistribution] = useState(null);
+  const [adPackageDistribution, setAdPackageDistribution] = useState(null);
 
-  // Thêm state để lưu trữ dữ liệu adSlots
-  const [adSlots, setAdSlots] = useState([]);
-
-  // Cấu hình chung cho biểu đồ
+  // Chart configuration
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -164,19 +170,6 @@ const ManagerDashboard = () => {
         },
       },
       tooltip: {
-        callbacks: {
-          label: function (context) {
-            let label = context.dataset.label || "";
-            if (label) {
-              label += ": ";
-            }
-            if (context.parsed.y !== null) {
-              label +=
-                new Intl.NumberFormat("vi-VN").format(context.parsed.y) + " đ";
-            }
-            return label;
-          },
-        },
         backgroundColor: "rgba(0, 0, 0, 0.8)",
         titleFont: {
           family: "'Inter', sans-serif",
@@ -215,166 +208,123 @@ const ManagerDashboard = () => {
             size: 11,
           },
           color: "#64748b",
-          callback: function (value) {
-            return new Intl.NumberFormat("vi-VN").format(value) + " đ";
-          },
         },
       },
     },
   };
 
-  // Function để chuẩn bị dữ liệu cho biểu đồ doanh thu
-  const prepareRevenueData = useCallback(() => {
-    // Kiểm tra dữ liệu tồn tại trước khi xử lý
-    if (!purchaseHistory || purchaseHistory.length === 0) {
-      // Trả về dữ liệu giả nếu không có dữ liệu thực
-      return {
-        labels: ["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"],
-        datasets: [
-          {
-            label: "Revenue (đ)",
-            data: [0, 0, 0, 0, 0, 0, 0],
-            fill: true,
-            backgroundColor: "rgba(255, 0, 159, 0.1)",
-            borderColor: "rgba(255, 0, 159, 0.8)",
-            tension: 0.4,
-            pointRadius: 3,
-            pointBackgroundColor: "rgba(255, 0, 159, 1)",
-          },
-        ],
-      };
+  // Table columns configuration
+  const newsColumns = [
+    {
+      title: "Title",
+      dataIndex: "title",
+      key: "title",
+      ellipsis: true,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Tag color={status === "Active" ? "green" : "orange"}>{status}</Tag>
+      ),
+    },
+    {
+      title: "Created Date",
+      key: "createdDate",
+      render: (_, record) => {
+        // Try both createDate and createAt fields
+        const dateValue = record.createDate || record.createAt;
+        return dateValue ? new Date(dateValue).toLocaleDateString() : "N/A";
+      },
+    },
+  ];
+
+  // Fetch all necessary data
+  const fetchAllData = useCallback(async () => {
+    setStatsLoading(true);
+
+    try {
+      // Fetch subscription packages
+      const subscriptionResponse = await subscriptionService.getAllPackages(
+        1,
+        100
+      );
+      console.log("Subscription response:", subscriptionResponse);
+      const packages = subscriptionResponse?.data?.subscriptionpackage || [];
+      setSubscriptionData(packages);
+
+      // Fetch news - Handle different possible response structures
+      const newsResponse = await NewsApi.getAllNews();
+      console.log("Raw news response:", newsResponse);
+
+      // Try different potential paths to the data
+      let news = [];
+      if (newsResponse?.data?.data) {
+        // Structure: { success: true, data: [...], message: "..." }
+        news = newsResponse.data.data;
+      } else if (Array.isArray(newsResponse?.data)) {
+        // Structure: { data: [...] }
+        news = newsResponse.data;
+      } else if (newsResponse?.data) {
+        // Structure might have data directly in the response
+        news = newsResponse.data;
+      }
+
+      console.log("Processed news data:", news);
+      setNewsData(news);
+
+      // Fetch ad packages
+      const adPackageResponse = await adPackageService.getAllAdPackages(1, 100);
+      console.log("Ad package response:", adPackageResponse);
+      const adPackages = adPackageResponse?.adPackages || [];
+      setAdPackageData(adPackages);
+
+      // Calculate statistics
+      const activeSubscriptions = packages.filter(
+        (pkg) => pkg.status === "Active"
+      ).length;
+      const totalNews = news.length;
+      const activeAdPackages = adPackages.filter(
+        (pkg) => pkg.status === "Active"
+      ).length;
+
+      setStats({
+        activeSubscriptions,
+        totalNews,
+        activeAdPackages,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      notification.error({
+        message: "Error",
+        description: "Failed to load dashboard data. Please try again.",
+      });
+      return false;
+    } finally {
+      setStatsLoading(false);
     }
+  }, []);
 
-    console.log("Đang xử lý dữ liệu doanh thu:", purchaseHistory);
-
-    // Ghi log để debug
-    console.log("Dữ liệu xử lý:", {
-      purchaseHistory,
-      timeRange,
-    });
-
-    // Filter data based on selected time range
-    let filteredData = [];
-    const today = new Date();
-    let labels = [];
-    let dateFormat = {};
-
-    if (timeRange === "week") {
-      // Last 7 days
-      const lastWeek = new Date(today);
-      lastWeek.setDate(lastWeek.getDate() - 7);
-      filteredData = purchaseHistory.filter(
-        (item) => new Date(item.createAt) >= lastWeek
-      );
-
-      // Generate labels for last 7 days
-      dateFormat = { weekday: "short" };
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        labels.push(date.toLocaleDateString("en-US", dateFormat));
-      }
-    } else if (timeRange === "month") {
-      // Last 30 days - group by week
-      const lastMonth = new Date(today);
-      lastMonth.setDate(lastMonth.getDate() - 30);
-      filteredData = purchaseHistory.filter(
-        (item) => new Date(item.createAt) >= lastMonth
-      );
-
-      // Generate labels for last 4 weeks
-      dateFormat = { month: "short", day: "numeric" };
-      for (let i = 3; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i * 7);
-        labels.push(date.toLocaleDateString("en-US", dateFormat));
-      }
-    } else {
-      // Year - last 12 months
-      const lastYear = new Date(today);
-      lastYear.setFullYear(lastYear.getFullYear() - 1);
-      filteredData = purchaseHistory.filter(
-        (item) => new Date(item.createAt) >= lastYear
-      );
-
-      // Generate labels for last 12 months
-      dateFormat = { month: "short" };
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date(today);
-        date.setMonth(date.getMonth() - i);
-        labels.push(date.toLocaleDateString("en-US", dateFormat));
-      }
-    }
-
-    // Prepare data - group purchases by time period and calculate revenue
-    const revenueData = Array(labels.length).fill(0);
-
-    filteredData.forEach((purchase) => {
-      const purchaseDate = new Date(purchase.createAt);
-      let index = 0;
-
-      if (timeRange === "week") {
-        // Group by day
-        const daysFromToday = Math.floor(
-          (today - purchaseDate) / (1000 * 60 * 60 * 24)
-        );
-        index = 6 - daysFromToday;
-      } else if (timeRange === "month") {
-        // Group by week
-        const daysFromToday = Math.floor(
-          (today - purchaseDate) / (1000 * 60 * 60 * 24)
-        );
-        index = 3 - Math.floor(daysFromToday / 7);
-      } else {
-        // Group by month
-        const monthsFromToday =
-          (today.getMonth() - purchaseDate.getMonth() + 12) % 12;
-        index = 11 - monthsFromToday;
-      }
-
-      // Make sure index is valid
-      if (index >= 0 && index < revenueData.length) {
-        revenueData[index] += purchase.slotTimePrice || 0;
-      }
-    });
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Revenue (đ)",
-          data: revenueData,
-          fill: true,
-          backgroundColor: "rgba(255, 0, 159, 0.1)",
-          borderColor: "rgba(255, 0, 159, 0.8)",
-          tension: 0.4,
-          pointRadius: 3,
-          pointBackgroundColor: "rgba(255, 0, 159, 1)",
-        },
-      ],
-    };
-  }, [purchaseHistory, timeRange]);
-
-  // Function để chuẩn bị dữ liệu cho biểu đồ phân phối gói
+  // Prepare subscription package distribution data
   const preparePackageDistributionData = useCallback(() => {
-    // Kiểm tra dữ liệu tồn tại
-    if (!adSlots || adSlots.length === 0) {
+    if (!subscriptionData || subscriptionData.length === 0) {
       return {
-        labels: ["SIDEBAR-LEFT", "HEADER", "SIDEBAR-RIGHT", "FOOTER"],
+        labels: ["Basic", "Standard", "Premium"],
         datasets: [
           {
-            data: [1, 1, 1, 1],
+            data: [1, 1, 1],
             backgroundColor: [
               "rgba(255, 99, 132, 0.8)",
               "rgba(255, 206, 86, 0.8)",
               "rgba(54, 162, 235, 0.8)",
-              "rgba(75, 192, 192, 0.8)",
             ],
             borderColor: [
               "rgba(255, 99, 132, 1)",
               "rgba(255, 206, 86, 1)",
               "rgba(54, 162, 235, 1)",
-              "rgba(75, 192, 192, 1)",
             ],
             borderWidth: 1,
           },
@@ -382,21 +332,18 @@ const ManagerDashboard = () => {
       };
     }
 
-    console.log("Đang xử lý dữ liệu phân phối:", adSlots);
+    // Count packages by name instead of status
+    const packageCounts = {};
 
-    // Đếm số lượng mỗi loại vị trí
-    const locationCounts = {};
-    adSlots.forEach((slot) => {
-      if (slot.slotLocation) {
-        locationCounts[slot.slotLocation] =
-          (locationCounts[slot.slotLocation] || 0) + 1;
-      }
+    subscriptionData.forEach((pkg) => {
+      const packageName = pkg.packageName || "Unknown";
+      packageCounts[packageName] = (packageCounts[packageName] || 0) + 1;
     });
 
-    const labels = Object.keys(locationCounts);
-    const data = Object.values(locationCounts);
+    const labels = Object.keys(packageCounts);
+    const data = Object.values(packageCounts);
 
-    // Tạo mảng màu tương ứng với số lượng vị trí
+    // Create color arrays based on the number of package types
     const backgroundColors = labels.map((_, index) => {
       const colors = [
         "rgba(255, 99, 132, 0.8)",
@@ -422,413 +369,215 @@ const ManagerDashboard = () => {
         },
       ],
     };
-  }, [adSlots]);
+  }, [subscriptionData]);
 
-  // Function để chuẩn bị dữ liệu cho biểu đồ bán hàng
-  const prepareSalesData = useCallback(() => {
-    console.log("Đang xử lý dữ liệu bán hàng:", purchaseHistory);
-
-    // Kiểm tra dữ liệu
-    if (!purchaseHistory || purchaseHistory.length === 0) {
+  // Prepare news distribution data by status
+  const prepareNewsDistributionData = useCallback(() => {
+    if (!newsData || newsData.length === 0) {
       return {
-        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        labels: ["Active", "Deleted"],
         datasets: [
           {
-            label: "Packages Sold",
-            data: [0, 0, 0, 0, 0, 0, 0],
-            backgroundColor: "rgba(46, 184, 92, 0.6)",
-            borderColor: "rgba(46, 184, 92, 1)",
+            data: [1, 1],
+            backgroundColor: [
+              "rgba(75, 192, 192, 0.8)",
+              "rgba(153, 102, 255, 0.8)",
+            ],
+            borderColor: ["rgba(75, 192, 192, 1)", "rgba(153, 102, 255, 1)"],
             borderWidth: 1,
           },
         ],
       };
     }
 
-    // Filter data based on selected time range
-    let filteredData = [];
-    const today = new Date();
-    let labels = [];
+    console.log("Preparing news distribution from data:", newsData);
 
-    if (timeRange === "week") {
-      // Last 7 days
-      const lastWeek = new Date(today);
-      lastWeek.setDate(lastWeek.getDate() - 7);
-      filteredData = purchaseHistory.filter(
-        (item) => new Date(item.createAt) >= lastWeek
-      );
+    // Count news by status
+    const statusCounts = {};
+    newsData.forEach((news) => {
+      const status = news.status || "Unknown";
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
 
-      // Create labels for days of week
-      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-      const dayMap = {};
-      days.forEach((day) => {
-        dayMap[day] = 0;
-      });
+    console.log("News status counts:", statusCounts);
 
-      // Count sales for each day
-      filteredData.forEach((purchase) => {
-        const date = new Date(purchase.createAt);
-        const day = days[date.getDay() === 0 ? 6 : date.getDay() - 1]; // Adjust to make Monday=0, Sunday=6
-        dayMap[day]++;
-      });
+    const labels = Object.keys(statusCounts);
+    const data = Object.values(statusCounts);
 
-      labels = days;
-      filteredData = Object.values(dayMap);
-    } else if (timeRange === "month") {
-      // Last 4 weeks
-      labels = ["Week 1", "Week 2", "Week 3", "Week 4"];
-      const weeklySales = [0, 0, 0, 0];
-
-      const lastMonth = new Date(today);
-      lastMonth.setDate(lastMonth.getDate() - 28);
-
-      purchaseHistory
-        .filter((item) => new Date(item.createAt) >= lastMonth)
-        .forEach((purchase) => {
-          const date = new Date(purchase.createAt);
-          const daysAgo = Math.floor((today - date) / (1000 * 60 * 60 * 24));
-          const weekIndex = Math.min(3, Math.floor(daysAgo / 7));
-          weeklySales[weekIndex]++;
-        });
-
-      filteredData = weeklySales;
-    } else {
-      // Last 12 months
-      const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
+    // Create colors array based on number of statuses
+    const backgroundColors = labels.map((_, index) => {
+      const colors = [
+        "rgba(75, 192, 192, 0.8)",
+        "rgba(153, 102, 255, 0.8)",
+        "rgba(255, 159, 64, 0.8)",
       ];
-      const monthlySales = Array(12).fill(0);
+      return colors[index % colors.length];
+    });
 
-      purchaseHistory.forEach((purchase) => {
-        const date = new Date(purchase.createAt);
-        if (
-          date.getFullYear() === today.getFullYear() ||
-          (date.getFullYear() === today.getFullYear() - 1 &&
-            date.getMonth() > today.getMonth())
-        ) {
-          const monthIndex = date.getMonth();
-          monthlySales[monthIndex]++;
-        }
-      });
-
-      labels = months;
-      filteredData = monthlySales;
-    }
+    const borderColors = backgroundColors.map((color) =>
+      color.replace("0.8", "1")
+    );
 
     return {
       labels,
       datasets: [
         {
-          label: "Packages Sold",
-          data: filteredData,
-          backgroundColor: "rgba(46, 184, 92, 0.6)",
-          borderColor: "rgba(46, 184, 92, 1)",
+          data,
+          backgroundColor: backgroundColors,
+          borderColor: borderColors,
           borderWidth: 1,
         },
       ],
     };
-  }, [purchaseHistory, timeRange]);
+  }, [newsData]);
 
-  // Fetch statistics data
-  const processStats = useCallback(async () => {
-    setStatsLoading(true);
-    setChartsLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const headers = {
-        Authorization: `Bearer ${token}`,
+  // Prepare ad package distribution data
+  const prepareAdPackageDistributionData = useCallback(() => {
+    if (!adPackageData || adPackageData.length === 0) {
+      return {
+        labels: ["Vip", "SuperVip", "UltraVip"],
+        datasets: [
+          {
+            data: [1, 1, 1],
+            backgroundColor: [
+              "rgba(255, 206, 86, 0.8)",
+              "rgba(75, 192, 192, 0.8)",
+              "rgba(153, 102, 255, 0.8)",
+            ],
+            borderColor: [
+              "rgba(255, 206, 86, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+            ],
+            borderWidth: 1,
+          },
+        ],
       };
+    }
 
-      const [subscriptionResponse, adSlotTimeResponse, adSlotResponse] =
-        await Promise.all([
-          axios.get(
-            "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPackage?page=1&pageSize=10",
-            { headers }
-          ),
-          axios.get(
-            "https://eigakan2222-001-site1.jtempurl.com/api/AdSlotTime",
-            {
-              headers,
-            }
-          ),
-          axios.get("https://eigakan2222-001-site1.jtempurl.com/api/AdSlot", {
-            headers,
-          }),
-        ]);
+    // Count ad packages by package name
+    const packageNameCounts = {};
 
-      const packages =
-        subscriptionResponse.data?.data?.subscriptionpackage || [];
-      const adSlotTimes = adSlotTimeResponse.data?.data || [];
-      const adSlotsData = adSlotResponse.data?.data || [];
+    adPackageData.forEach((pkg) => {
+      const packageName = pkg.packageName || "Unknown";
+      packageNameCounts[packageName] =
+        (packageNameCounts[packageName] || 0) + 1;
+    });
 
-      setSubscriptionData(packages);
-      setPurchaseHistory(adSlotTimes);
-      setAdSlots(adSlotsData);
+    const labels = Object.keys(packageNameCounts);
+    const data = Object.values(packageNameCounts);
 
-      // Tính toán thống kê
-      const activePackages = packages.filter(
-        (pkg) => pkg.status === "Active"
-      ).length;
-      const totalRevenue = adSlotTimes.reduce(
-        (sum, slot) => sum + (slot.slotTimePrice || 0),
-        0
-      );
-      const totalSales = adSlotTimes.length;
+    // Create colors array
+    const backgroundColors = labels.map((_, index) => {
+      const colors = [
+        "rgba(255, 206, 86, 0.8)",
+        "rgba(75, 192, 192, 0.8)",
+        "rgba(153, 102, 255, 0.8)",
+        "rgba(255, 159, 64, 0.8)",
+      ];
+      return colors[index % colors.length];
+    });
 
-      setStats({
-        activePackages,
-        totalRevenue,
-        totalSales,
-      });
+    const borderColors = backgroundColors.map((color) =>
+      color.replace("0.8", "1")
+    );
 
-      console.log("Stats updated, processing charts next");
-      return { adSlotTimes, packages, adSlotsData };
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: backgroundColors,
+          borderColor: borderColors,
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [adPackageData]);
+
+  // Process and prepare chart data
+  const processCharts = useCallback(() => {
+    setChartsLoading(true);
+
+    try {
+      // Prepare all chart data
+      const packageData = preparePackageDistributionData();
+      setPackageDistribution(packageData);
+
+      const newsData = prepareNewsDistributionData();
+      setNewsDistribution(newsData);
+
+      const adPackageData = prepareAdPackageDistributionData();
+      setAdPackageDistribution(adPackageData);
     } catch (error) {
-      console.error("Error fetching stats:", error);
+      console.error("Error processing chart data:", error);
       notification.error({
         message: "Error",
-        description: "Failed to load dashboard statistics",
-      });
-    } finally {
-      setStatsLoading(false);
-    }
-  }, []);
-
-  // Sửa lại hàm processCharts để xử lý lỗi tốt hơn
-  const processCharts = useCallback(async () => {
-    setChartsLoading(true);
-    try {
-      console.log("Bắt đầu xử lý chart với dữ liệu:", purchaseHistory.length);
-
-      // Đảm bảo có dữ liệu trước khi xử lý
-      if (!purchaseHistory || purchaseHistory.length === 0) {
-        console.log("Không có dữ liệu purchaseHistory, sử dụng dữ liệu mẫu");
-        // Tạo dữ liệu mẫu cho biểu đồ
-        setRevenueData({
-          labels: ["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"],
-          datasets: [
-            {
-              label: "Revenue (đ)",
-              data: [0, 0, 0, 0, 0, 0, 0],
-              fill: true,
-              backgroundColor: "rgba(255, 0, 159, 0.1)",
-              borderColor: "rgba(255, 0, 159, 0.8)",
-              tension: 0.4,
-              pointRadius: 3,
-              pointBackgroundColor: "rgba(255, 0, 159, 1)",
-            },
-          ],
-        });
-
-        setPackageDistribution({
-          labels: ["SIDEBAR-LEFT", "HEADER", "SIDEBAR-RIGHT"],
-          datasets: [
-            {
-              data: [1, 1, 1],
-              backgroundColor: [
-                "rgba(255, 99, 132, 0.8)",
-                "rgba(255, 206, 86, 0.8)",
-                "rgba(54, 162, 235, 0.8)",
-              ],
-              borderColor: [
-                "rgba(255, 99, 132, 1)",
-                "rgba(255, 206, 86, 1)",
-                "rgba(54, 162, 235, 1)",
-              ],
-              borderWidth: 1,
-            },
-          ],
-        });
-
-        setSalesData({
-          labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-          datasets: [
-            {
-              label: "Packages Sold",
-              data: [0, 0, 0, 0, 0, 0, 0],
-              backgroundColor: "rgba(46, 184, 92, 0.6)",
-              borderColor: "rgba(46, 184, 92, 1)",
-              borderWidth: 1,
-            },
-          ],
-        });
-      } else {
-        // Sử dụng dữ liệu thực từ API
-        try {
-          const revData = prepareRevenueData();
-          setRevenueData(revData);
-          console.log("Đã xử lý dữ liệu doanh thu:", revData);
-        } catch (error) {
-          console.error("Lỗi khi xử lý dữ liệu doanh thu:", error);
-          // Sử dụng dữ liệu mặc định nếu có lỗi
-          setRevenueData({
-            labels: ["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"],
-            datasets: [
-              {
-                label: "Revenue (đ)",
-                data: [0, 0, 0, 0, 0, 0, 0],
-                fill: true,
-                backgroundColor: "rgba(255, 0, 159, 0.1)",
-                borderColor: "rgba(255, 0, 159, 0.8)",
-                tension: 0.4,
-                pointRadius: 3,
-                pointBackgroundColor: "rgba(255, 0, 159, 1)",
-              },
-            ],
-          });
-        }
-
-        try {
-          const packageData = preparePackageDistributionData();
-          setPackageDistribution(packageData);
-          console.log("Đã xử lý dữ liệu phân phối:", packageData);
-        } catch (error) {
-          console.error("Lỗi khi xử lý dữ liệu phân phối:", error);
-          // Sử dụng dữ liệu mặc định
-          setPackageDistribution({
-            labels: ["SIDEBAR-LEFT", "HEADER", "SIDEBAR-RIGHT"],
-            datasets: [
-              {
-                data: [1, 1, 1],
-                backgroundColor: [
-                  "rgba(255, 99, 132, 0.8)",
-                  "rgba(255, 206, 86, 0.8)",
-                  "rgba(54, 162, 235, 0.8)",
-                ],
-                borderColor: [
-                  "rgba(255, 99, 132, 1)",
-                  "rgba(255, 206, 86, 1)",
-                  "rgba(54, 162, 235, 1)",
-                ],
-                borderWidth: 1,
-              },
-            ],
-          });
-        }
-
-        try {
-          const salesChartData = prepareSalesData();
-          setSalesData(salesChartData);
-          console.log("Đã xử lý dữ liệu bán hàng:", salesChartData);
-        } catch (error) {
-          console.error("Lỗi khi xử lý dữ liệu bán hàng:", error);
-          // Sử dụng dữ liệu mặc định
-          setSalesData({
-            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            datasets: [
-              {
-                label: "Packages Sold",
-                data: [0, 0, 0, 0, 0, 0, 0],
-                backgroundColor: "rgba(46, 184, 92, 0.6)",
-                borderColor: "rgba(46, 184, 92, 1)",
-                borderWidth: 1,
-              },
-            ],
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Lỗi tổng thể khi xử lý dữ liệu biểu đồ:", error);
-      notification.error({
-        message: "Lỗi",
-        description: "Không thể xử lý dữ liệu biểu đồ. Vui lòng thử lại sau.",
+        description: "Failed to process dashboard charts. Please try again.",
       });
     } finally {
       setChartsLoading(false);
     }
   }, [
-    timeRange,
-    purchaseHistory,
-    prepareRevenueData,
     preparePackageDistributionData,
-    prepareSalesData,
+    prepareNewsDistributionData,
+    prepareAdPackageDistributionData,
   ]);
 
-  // Khôi phục lại hàm handleTimeRangeChange
-  const handleTimeRangeChange = (value) => {
-    setTimeRange(value);
-  };
+  // Process and prepare chart data after data is loaded
+  useEffect(() => {
+    if (
+      subscriptionData.length > 0 ||
+      newsData.length > 0 ||
+      adPackageData.length > 0
+    ) {
+      processCharts();
+    }
+  }, [subscriptionData, newsData, adPackageData, processCharts]);
 
-  // Sửa lại cách xử lý useEffect để tránh gọi API nhiều lần
+  // Initial data loading
   useEffect(() => {
     const initializeDashboard = async () => {
-      try {
-        setLoading(true);
-        const data = await processStats();
-
-        if (data) {
-          await processCharts();
-        }
-      } catch (error) {
-        console.error("Failed to initialize dashboard:", error);
-        notification.error({
-          message: "Error",
-          description: "Failed to load dashboard data. Please try again.",
-        });
-      } finally {
-        setLoading(false);
-        setChartsLoading(false);
-      }
+      setLoading(true);
+      await fetchAllData();
+      setLoading(false);
     };
 
     initializeDashboard();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to run only once on mount
 
-  // Thêm useEffect để xử lý chart khi dữ liệu thay đổi
-  useEffect(() => {
-    if (!statsLoading && purchaseHistory.length > 0 && adSlots.length > 0) {
-      processCharts();
-    }
-  }, [statsLoading, purchaseHistory, adSlots, timeRange]);
-
-  // Sửa lại handleRefresh để đảm bảo nó hoạt động đúng
+  // Handle refresh button click
   const handleRefresh = async () => {
     setRefreshing(true);
-    setChartsLoading(true);
-    try {
-      await processStats();
-      await processCharts();
-
+    const success = await fetchAllData();
+    if (success) {
+      processCharts();
       notification.success({
         message: "Refresh successful",
         description: "Dashboard data has been updated.",
       });
-    } catch (error) {
-      console.error("Error refreshing dashboard:", error);
-      notification.error({
-        message: "Refresh failed",
-        description: "Failed to update dashboard data. Please try again.",
-      });
-    } finally {
-      setRefreshing(false);
-      setChartsLoading(false);
     }
+    setRefreshing(false);
   };
 
-  // Sử dụng useMemo để chỉ tính toán lại khi dữ liệu thay đổi
-  const memoizedRevenueData = useMemo(() => {
-    return revenueData;
-  }, [revenueData]);
+  // Memoize chart data to prevent unnecessary renders
+  const memoizedPackageDistribution = useMemo(
+    () => packageDistribution,
+    [packageDistribution]
+  );
 
-  const memoizedDistributionData = useMemo(() => {
-    return packageDistribution;
-  }, [packageDistribution]);
+  const memoizedNewsDistribution = useMemo(
+    () => newsDistribution,
+    [newsDistribution]
+  );
 
-  const memoizedSalesData = useMemo(() => {
-    return salesData;
-  }, [salesData]);
+  const memoizedAdPackageDistribution = useMemo(
+    () => adPackageDistribution,
+    [adPackageDistribution]
+  );
 
-  // Render skeleton for chart
+  // Skeleton loaders
   const renderSkeletonChart = () => (
     <div className="bg-white p-4 rounded-xl shadow-md">
       <div className="w-[150px] h-6 mb-4 bg-gray-200 rounded relative overflow-hidden">
@@ -840,7 +589,6 @@ const ManagerDashboard = () => {
     </div>
   );
 
-  // Render skeleton for card
   const renderSkeletonCard = () => (
     <div className="bg-white p-5 rounded-xl shadow-sm">
       <div className="w-[60px] h-4 mb-2 bg-gray-200 rounded relative overflow-hidden">
@@ -852,9 +600,50 @@ const ManagerDashboard = () => {
     </div>
   );
 
-  // Sửa lại hàm format tiền tệ
-  const formatCurrency = (value) => {
-    return `${value.toLocaleString("vi-VN")} đ`;
+  // Recent News Articles section
+  const renderNewsTable = () => {
+    // Debugging
+    console.log("Rendering news table with data:", newsData);
+
+    if (newsData.length > 0) {
+      console.log("Sample news item:", newsData[0]);
+      console.log("News item createDate:", newsData[0].createDate);
+    }
+
+    return (
+      <div className="grid grid-cols-1 gap-3">
+        <Card
+          title={
+            <span className="text-sm font-medium">Recent News Articles</span>
+          }
+          className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+          bodyStyle={{ padding: "12px" }}
+          headStyle={{ padding: "8px 12px" }}
+          extra={
+            <Link
+              to="/manager/news"
+              className="text-xs text-blue-500 hover:text-blue-700"
+            >
+              View All
+            </Link>
+          }
+        >
+          {newsData && newsData.length > 0 ? (
+            <Table
+              dataSource={newsData.slice(0, 5)}
+              rowKey="id"
+              size="small"
+              pagination={false}
+              columns={newsColumns}
+            />
+          ) : (
+            <div className="py-5 flex flex-col items-center">
+              <p className="text-gray-500">No news articles found</p>
+            </div>
+          )}
+        </Card>
+      </div>
+    );
   };
 
   return (
@@ -869,18 +658,6 @@ const ManagerDashboard = () => {
         </h1>
 
         <div className="flex items-center gap-2">
-          <Select
-            defaultValue="week"
-            style={{ width: 110 }}
-            onChange={handleTimeRangeChange}
-            disabled={loading || chartsLoading}
-            size="small"
-          >
-            <Option value="week">Last Week</Option>
-            <Option value="month">Last Month</Option>
-            <Option value="year">Last Year</Option>
-          </Select>
-
           <Tooltip title="Refresh dashboard data">
             <Button
               type="primary"
@@ -905,27 +682,27 @@ const ManagerDashboard = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <StatCard
-            title="Active Packages"
-            value={stats.activePackages}
+            title="Active Subscription Packages"
+            value={stats.activeSubscriptions}
             icon={<PlaySquareOutlined style={{ color: colorMap.blue }} />}
             color="blue"
             linkTo="/manager/subscription"
           />
 
           <StatCard
-            title="Total Revenue"
-            value={formatCurrency(stats.totalRevenue)}
-            icon={<DollarOutlined style={{ color: colorMap.green }} />}
-            color="green"
-            linkTo="/manager/adslot-time"
+            title="News Articles"
+            value={stats.totalNews}
+            icon={<FileTextOutlined style={{ color: colorMap.purple }} />}
+            color="purple"
+            linkTo="/manager/news"
           />
 
           <StatCard
-            title="Packages Sold"
-            value={stats.totalSales}
-            icon={<RiseOutlined style={{ color: colorMap.orange }} />}
-            color="orange"
-            linkTo="/manager/adslot-time"
+            title="Active Ad Packages"
+            value={stats.activeAdPackages}
+            icon={<PictureOutlined style={{ color: colorMap.green }} />}
+            color="green"
+            linkTo="/manager/adpackage"
           />
         </div>
       )}
@@ -933,34 +710,12 @@ const ManagerDashboard = () => {
       {/* Charts */}
       {!loading && !chartsLoading ? (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {/* Revenue Chart */}
-            <Card
-              title={
-                <span className="text-sm font-medium">Revenue Trends</span>
-              }
-              className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
-              bodyStyle={{ height: 280, padding: "12px" }}
-              headStyle={{ padding: "8px 12px" }}
-            >
-              <div className="w-full h-full">
-                {memoizedRevenueData && (
-                  <Line
-                    data={memoizedRevenueData}
-                    options={{
-                      ...chartOptions,
-                      animation: { duration: 0 },
-                    }}
-                  />
-                )}
-              </div>
-            </Card>
-
-            {/* Package Distribution Chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            {/* Subscription Packages Distribution Chart */}
             <Card
               title={
                 <span className="text-sm font-medium">
-                  Package Distribution
+                  Subscription Package Types
                 </span>
               }
               className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
@@ -968,9 +723,58 @@ const ManagerDashboard = () => {
               headStyle={{ padding: "8px 12px" }}
             >
               <div className="w-full h-full">
-                {memoizedDistributionData && (
+                {memoizedPackageDistribution && (
                   <Doughnut
-                    data={memoizedDistributionData}
+                    data={memoizedPackageDistribution}
+                    options={{
+                      ...chartOptions,
+                      maintainAspectRatio: false,
+                      cutout: "65%",
+                      animation: { duration: 0 },
+                    }}
+                  />
+                )}
+              </div>
+            </Card>
+
+            {/* News Distribution Chart */}
+            <Card
+              title={
+                <span className="text-sm font-medium">
+                  News Status Distribution
+                </span>
+              }
+              className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+              bodyStyle={{ height: 280, padding: "12px" }}
+              headStyle={{ padding: "8px 12px" }}
+            >
+              <div className="w-full h-full">
+                {memoizedNewsDistribution && (
+                  <Pie
+                    data={memoizedNewsDistribution}
+                    options={{
+                      ...chartOptions,
+                      maintainAspectRatio: false,
+                      animation: { duration: 0 },
+                    }}
+                  />
+                )}
+              </div>
+            </Card>
+
+            {/* Ad Packages Distribution Chart */}
+            <Card
+              title={
+                <span className="text-sm font-medium">Ad Package Types</span>
+              }
+              className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+              bodyStyle={{ height: 280, padding: "12px" }}
+              headStyle={{ padding: "8px 12px" }}
+            >
+              <div className="w-full h-full">
+                {memoizedAdPackageDistribution && (
+                  <Doughnut
+                    data={memoizedAdPackageDistribution}
                     options={{
                       ...chartOptions,
                       maintainAspectRatio: false,
@@ -983,29 +787,12 @@ const ManagerDashboard = () => {
             </Card>
           </div>
 
-          {/* Sales Chart (Full Width) */}
-          <Card
-            title={<span className="text-sm font-medium">Package Sales</span>}
-            className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
-            bodyStyle={{ height: 230, padding: "12px" }}
-            headStyle={{ padding: "8px 12px" }}
-          >
-            <div className="w-full h-full">
-              {memoizedSalesData && (
-                <Bar
-                  data={memoizedSalesData}
-                  options={{
-                    ...chartOptions,
-                    animation: { duration: 0 },
-                  }}
-                />
-              )}
-            </div>
-          </Card>
+          {/* Recent Activity (Tables) */}
+          {renderNewsTable()}
         </>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {[...Array(2)].map((_, i) => (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {[...Array(3)].map((_, i) => (
             <div key={i}>{renderSkeletonChart()}</div>
           ))}
         </div>

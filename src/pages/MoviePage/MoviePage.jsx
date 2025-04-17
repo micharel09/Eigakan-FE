@@ -106,9 +106,63 @@ const getBunnyStreamEmbedUrl = (url) => {
   return url;
 };
 
+// Motion variants for animations
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.5 },
+  },
+};
+
+const slideUp = {
+  hidden: { y: 30, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariant = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { type: "spring", stiffness: 100 },
+  },
+};
+
+const scaleIn = {
+  hidden: { scale: 0.9, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: { type: "spring", stiffness: 100 },
+  },
+};
+
 // Movie stats badge component for cleaner UI
 const StatBadge = memo(({ icon, value, label, color = "white" }) => (
-  <div className="flex flex-col items-center px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 md:py-2 bg-white/5 backdrop-blur-sm rounded-lg">
+  <motion.div
+    variants={itemVariant}
+    className="flex flex-col items-center px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 md:py-2 bg-white/5 backdrop-blur-sm rounded-lg"
+  >
     <div className="flex items-center gap-1 sm:gap-1.5">
       {icon}
       <span
@@ -120,13 +174,14 @@ const StatBadge = memo(({ icon, value, label, color = "white" }) => (
     <span className="text-gray-400 text-[8px] sm:text-[10px] md:text-xs">
       {label}
     </span>
-  </div>
+  </motion.div>
 ));
 
 // Genre badge with hover effect
 const GenreBadge = memo(({ name }) => (
   <motion.span
     whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
     className="px-2 py-1 bg-gray-800/80 hover:bg-gray-700/80 backdrop-blur-sm border border-gray-700/30 rounded-full text-xs text-white cursor-pointer transition-all"
   >
     {name}
@@ -137,7 +192,10 @@ const GenreBadge = memo(({ name }) => (
 const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
   <motion.button
     whileTap={{ scale: 0.95 }}
-    whileHover={{ scale: 1.02 }}
+    whileHover={{ scale: 1.02, y: -2 }}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ type: "spring", stiffness: 400, damping: 10 }}
     onClick={onClick}
     className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 
     ${
@@ -153,7 +211,11 @@ const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
 
 // Trailer component with enhanced UI
 const TrailerSection = memo(({ trailerUrl, title }) => (
-  <div
+  <motion.div
+    initial="hidden"
+    whileInView="visible"
+    viewport={{ once: true, amount: 0.3 }}
+    variants={fadeIn}
     id="trailer"
     className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg"
   >
@@ -163,7 +225,7 @@ const TrailerSection = memo(({ trailerUrl, title }) => (
         Official Trailer
       </h2>
     </div>
-    <div className="aspect-video relative w-full">
+    <motion.div variants={scaleIn} className="aspect-video relative w-full">
       <iframe
         src={getBunnyStreamEmbedUrl(trailerUrl)}
         title={`${title} - Official Trailer`}
@@ -171,8 +233,8 @@ const TrailerSection = memo(({ trailerUrl, title }) => (
         allowFullScreen
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
-    </div>
-  </div>
+    </motion.div>
+  </motion.div>
 ));
 
 // Movie facts panel with enhanced design
@@ -212,9 +274,18 @@ const MovieFacts = memo(({ movie }) => {
   ];
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6">
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.1 }}
+      variants={staggerContainer}
+      className="w-full space-y-4 sm:space-y-6"
+    >
       {/* Movie Details Card */}
-      <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 rounded-xl overflow-hidden shadow-lg">
+      <motion.div
+        variants={slideUp}
+        className="bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 rounded-xl overflow-hidden shadow-lg"
+      >
         <div className="p-4 sm:p-5 border-b border-gray-800/50">
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
             <InfoCircleOutlined className="text-[#FF009F]" />
@@ -223,9 +294,18 @@ const MovieFacts = memo(({ movie }) => {
         </div>
 
         <div className="p-4 sm:p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          >
             {movieStats.map(({ label, value, icon }) => (
-              <div key={label} className="flex items-center gap-3 py-2">
+              <motion.div
+                key={label}
+                variants={itemVariant}
+                className="flex items-center gap-3 py-2"
+              >
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800/50 text-[#FF009F]">
                   {icon}
                 </div>
@@ -235,38 +315,57 @@ const MovieFacts = memo(({ movie }) => {
                     {value || "N/A"}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {/* Genres section */}
-          <div className="mt-4 pt-4 border-t border-gray-800/30">
+          <motion.div
+            variants={slideUp}
+            className="mt-4 pt-4 border-t border-gray-800/30"
+          >
             <h3 className="text-base font-medium text-white mb-3">Genres</h3>
-            <div className="flex flex-wrap gap-2">
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="flex flex-wrap gap-2"
+            >
               {genresArray && genresArray.length > 0 ? (
                 genresArray.map((genre) => (
-                  <GenreBadge key={genre.id || genre.name} name={genre.name} />
+                  <motion.div
+                    key={genre.id || genre.name}
+                    variants={itemVariant}
+                  >
+                    <GenreBadge name={genre.name} />
+                  </motion.div>
                 ))
               ) : (
                 <span className="text-gray-400 text-xs md:text-sm px-2 md:px-3 py-0.5 md:py-1 bg-white/5 rounded-full">
                   No genres
                 </span>
               )}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Description section */}
-          <div className="mt-4 pt-4 border-t border-gray-800/30">
+          <motion.div
+            variants={slideUp}
+            className="mt-4 pt-4 border-t border-gray-800/30"
+          >
             <h3 className="text-base font-medium text-white mb-2">Synopsis</h3>
             <p className="text-gray-300 text-sm leading-relaxed">
               {movie.description || "No description available."}
             </p>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Rating Section */}
-      <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 rounded-xl overflow-hidden shadow-lg">
+      <motion.div
+        variants={slideUp}
+        className="bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 rounded-xl overflow-hidden shadow-lg"
+      >
         <div className="p-4 sm:p-5 border-b border-gray-800/50">
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
             <Star className="w-5 h-5 text-yellow-500" />
@@ -495,8 +594,8 @@ const MovieFacts = memo(({ movie }) => {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 });
 
@@ -536,22 +635,40 @@ const MovieHero = memo(
     return (
       <div className="relative w-full">
         {/* Background Banner with gradient overlay */}
-        <div className="absolute inset-0 h-[500px] sm:h-[550px] md:h-[600px] lg:h-[650px]">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
+          className="absolute inset-0 h-[500px] sm:h-[550px] md:h-[600px] lg:h-[650px]"
+        >
           <div className="w-full h-full overflow-hidden">
-            <img
+            <motion.img
+              initial={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 2, ease: "easeOut" }}
               src={banner?.url || poster?.url || "/placeholder.jpg"}
               alt={movie.title}
               className="w-full h-full object-cover object-center"
             />
           </div>
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black" />
-        </div>
+        </motion.div>
 
         {/* Movie Info Container */}
         <div className="relative container mx-auto px-4 py-32 sm:py-40 md:py-48 lg:py-56">
           <div className="flex flex-col md:flex-row gap-8">
             {/* Poster with subtle shadow */}
-            <div className="w-48 md:w-64 lg:w-80 flex-shrink-0 mx-auto md:mx-0">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.8,
+                delay: 0.2,
+                type: "spring",
+                stiffness: 50,
+              }}
+              className="w-48 md:w-64 lg:w-80 flex-shrink-0 mx-auto md:mx-0"
+            >
               <div className="rounded-lg overflow-hidden shadow-2xl border border-gray-800/40">
                 <img
                   src={poster?.url || "/placeholder.jpg"}
@@ -560,10 +677,15 @@ const MovieHero = memo(
                   loading="eager"
                 />
               </div>
-            </div>
+            </motion.div>
 
             {/* Movie Info */}
-            <div className="flex-1 text-center md:text-left">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={staggerContainer}
+              className="flex-1 text-center md:text-left"
+            >
               {/* Rating badges row */}
               <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-4">
                 {movie.imdbRating && (
@@ -636,9 +758,12 @@ const MovieHero = memo(
               </div>
 
               {/* Title */}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
+              <motion.h1
+                variants={itemVariant}
+                className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4"
+              >
                 {movie.title}
-              </h1>
+              </motion.h1>
 
               {/* Compact Stats Row */}
               <div className="flex flex-wrap justify-center md:justify-start items-center gap-3 mb-6 text-sm text-gray-300">
@@ -668,9 +793,12 @@ const MovieHero = memo(
               </div>
 
               {/* Description */}
-              <p className="text-gray-300 text-sm md:text-base leading-relaxed mb-8 max-w-2xl">
+              <motion.p
+                variants={itemVariant}
+                className="text-gray-300 text-sm md:text-base leading-relaxed mb-8 max-w-2xl"
+              >
                 {movie.description}
-              </p>
+              </motion.p>
 
               {/* Action buttons */}
               <div className="flex flex-wrap justify-center md:justify-start gap-3">
@@ -698,7 +826,7 @@ const MovieHero = memo(
                   Watch Together
                 </ActionButton>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -746,6 +874,11 @@ const MoviePage = () => {
       },
     },
   };
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const fetchMovieData = async () => {
@@ -992,36 +1125,64 @@ const MoviePage = () => {
   // Loading states
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center justify-center min-h-screen bg-black"
+      >
         <Loading className="scale-75 sm:scale-100" />
-      </div>
+      </motion.div>
     );
   }
 
   if (!movie)
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-4">
-        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">
-          Movie Not Found
-        </h2>
-        <p className="text-gray-400 mb-5 sm:mb-6 text-center text-sm sm:text-base">
-          The movie you're looking for doesn't exist or has been removed.
-        </p>
-        <Button
-          type="primary"
-          onClick={() => navigate("/")}
-          className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-4"
+      >
+        <motion.h2
+          initial={{ y: -20 }}
+          animate={{ y: 0 }}
+          className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center"
         >
-          Back to Home
-        </Button>
-      </div>
+          Movie Not Found
+        </motion.h2>
+        <motion.p
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="text-gray-400 mb-5 sm:mb-6 text-center text-sm sm:text-base"
+        >
+          The movie you're looking for doesn't exist or has been removed.
+        </motion.p>
+        <motion.div
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Button
+            type="primary"
+            onClick={() => navigate("/")}
+            className="bg-[#FF009F] hover:bg-[#D1007F] border-none"
+          >
+            Back to Home
+          </Button>
+        </motion.div>
+      </motion.div>
     );
 
   // Find media elements
   const trailer = movie.medias?.find((m) => m.type === "TRAILER");
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-black text-white"
+    >
       <Helmet>
         <title>{movie ? `${movie.title} | Eigakan` : "Loading Movie..."}</title>
         <meta
@@ -1043,10 +1204,18 @@ const MoviePage = () => {
       />
 
       {/* Main Content with modern layout */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer}
+        className="container mx-auto px-4 py-8"
+      >
+        <motion.div
+          variants={fadeIn}
+          className="flex flex-col lg:flex-row gap-8"
+        >
           {/* Left Column - Content */}
-          <div className="flex-1 space-y-8">
+          <motion.div variants={slideUp} className="flex-1 space-y-8">
             {/* Trailer section */}
             {trailer && (
               <TrailerSection trailerUrl={trailer.url} title={movie.title} />
@@ -1055,7 +1224,11 @@ const MoviePage = () => {
             {/* Cast and Crew */}
             <Suspense
               fallback={
-                <div className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg p-4"
+                >
                   <h2 className="text-lg sm:text-xl font-bold text-white mb-4">
                     Cast & Crew
                   </h2>
@@ -1067,32 +1240,42 @@ const MoviePage = () => {
                       ></div>
                     ))}
                   </div>
-                </div>
+                </motion.div>
               }
             >
-              <div className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg">
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+                variants={fadeIn}
+                className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg"
+              >
                 <div className="p-4 border-b border-gray-800/50">
                   <h2 className="text-lg sm:text-xl font-bold text-white">
                     Cast & Crew
                   </h2>
                 </div>
-                <div className="p-4">
+                <motion.div variants={slideUp} className="p-4">
                   <CastAndCrew persons={movie.person} />
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </Suspense>
-          </div>
+          </motion.div>
 
           {/* Right Column - Details & Ratings */}
-          <div className="lg:w-1/3">
+          <motion.div variants={slideUp} className="lg:w-1/3">
             <MovieFacts movie={movie} />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Similar Movies Section */}
         <Suspense
           fallback={
-            <div className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg p-4 mt-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg p-4 mt-8"
+            >
               <h2 className="text-lg sm:text-xl font-bold text-white mb-4">
                 Similar Movies
               </h2>
@@ -1104,80 +1287,107 @@ const MoviePage = () => {
                   ></div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           }
         >
-          <div className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg mt-8">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeIn}
+            className="w-full rounded-xl overflow-hidden bg-gray-900/50 backdrop-blur-sm border border-gray-800/30 shadow-lg mt-8"
+          >
             <div className="p-4 border-b border-gray-800/50">
               <h2 className="text-lg sm:text-xl font-bold text-white">
                 Similar Movies
               </h2>
             </div>
-            <div className="p-4">
+            <motion.div variants={slideUp} className="p-4">
               <SimilarMovies />
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </Suspense>
-      </div>
+      </motion.div>
 
       {/* Additional components like modals */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <TeamOutlined className="text-[#FF009F]" /> Create Watch Room
-          </div>
-        }
-        open={isCreateRoomModalVisible}
-        onOk={handleCreateRoom}
-        onCancel={() => setIsCreateRoomModalVisible(false)}
-        okText="Create Room"
-        cancelText="Cancel"
-        okButtonProps={{
-          loading: isCreatingRoom,
-          className:
-            "bg-[#FF009F] hover:bg-[#e0008e] border-none text-white hover:text-white",
-        }}
-        cancelButtonProps={{
-          disabled: isCreatingRoom,
-          className: "hover:text-[#FF009F] hover:border-[#FF009F]",
-        }}
-        className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
-        width={320}
-        centered
-      >
-        <div className="py-3 sm:py-4">
-          <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
-            <img
-              src={
-                movie.medias?.find((m) => m.type === "POSTER")?.url ||
-                "/placeholder.jpg"
-              }
-              alt={movie.title}
-              className="w-12 h-16 object-cover rounded-md"
-            />
-            <div>
-              <h3 className="font-medium text-white text-sm">{movie.title}</h3>
-              <p className="text-gray-400 text-xs">
-                {movie.releaseYear} • {movie.duration}m
+      <AnimatePresence>
+        {isCreateRoomModalVisible && (
+          <Modal
+            title={
+              <div className="flex items-center gap-2">
+                <TeamOutlined className="text-[#FF009F]" /> Create Watch Room
+              </div>
+            }
+            open={isCreateRoomModalVisible}
+            onOk={handleCreateRoom}
+            onCancel={() => setIsCreateRoomModalVisible(false)}
+            okText="Create Room"
+            cancelText="Cancel"
+            okButtonProps={{
+              loading: isCreatingRoom,
+              className:
+                "bg-[#FF009F] hover:bg-[#e0008e] border-none text-white hover:text-white",
+            }}
+            cancelButtonProps={{
+              disabled: isCreatingRoom,
+              className: "hover:text-[#FF009F] hover:border-[#FF009F]",
+            }}
+            className="text-white [&_.ant-modal-content]:bg-gray-900 [&_.ant-modal-content]:text-white [&_.ant-modal-content]:shadow-2xl [&_.ant-modal-content]:border [&_.ant-modal-content]:border-gray-800 [&_.ant-modal-content]:rounded-xl [&_.ant-modal-header]:bg-gray-900 [&_.ant-modal-header]:rounded-t-xl [&_.ant-modal-header]:border-b-gray-800 [&_.ant-modal-title]:text-white [&_.ant-modal-close-x]:text-white"
+            width={320}
+            centered
+            modalRender={(modal) => (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              >
+                {modal}
+              </motion.div>
+            )}
+          >
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={staggerContainer}
+              className="py-3 sm:py-4"
+            >
+              <div className="bg-gray-800/50 p-2 sm:p-3 md:p-4 rounded-lg mb-3 sm:mb-4 flex gap-2 sm:gap-3 md:gap-4 items-center">
+                <img
+                  src={
+                    movie.medias?.find((m) => m.type === "POSTER")?.url ||
+                    "/placeholder.jpg"
+                  }
+                  alt={movie.title}
+                  className="w-12 h-16 object-cover rounded-md"
+                />
+                <div>
+                  <h3 className="font-medium text-white text-sm">
+                    {movie.title}
+                  </h3>
+                  <p className="text-gray-400 text-xs">
+                    {movie.releaseYear} • {movie.duration}m
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-gray-300 mb-4 text-sm">
+                Create a new room to watch "{movie.title}" with friends in
+                real-time.
               </p>
-            </div>
-          </div>
 
-          <p className="text-gray-300 mb-4 text-sm">
-            Create a new room to watch "{movie.title}" with friends in
-            real-time.
-          </p>
-
-          <div className="bg-[#FF009F]/10 border border-[#FF009F]/20 p-3 rounded-lg">
-            <p className="text-sm text-white">
-              <InfoCircleOutlined className="mr-2 text-[#FF009F]" />
-              You'll be the host of this room and can control the playback for
-              all viewers.
-            </p>
-          </div>
-        </div>
-      </Modal>
-    </div>
+              <div className="bg-[#FF009F]/10 border border-[#FF009F]/20 p-3 rounded-lg">
+                <p className="text-sm text-white">
+                  <InfoCircleOutlined className="mr-2 text-[#FF009F]" />
+                  You'll be the host of this room and can control the playback
+                  for all viewers.
+                </p>
+              </div>
+            </motion.div>
+          </Modal>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
