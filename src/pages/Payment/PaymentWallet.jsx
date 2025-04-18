@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Spin, notification, Button, Tag, Typography } from "antd";
 import {
@@ -21,6 +21,7 @@ const PaymentWallet = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const apiCalled = useRef(false);
 
   useEffect(() => {
     // Parse query parameters
@@ -30,7 +31,45 @@ const PaymentWallet = () => {
     const amount = queryParams.get("vnp_Amount");
 
     const verifyPayment = async () => {
+      // Kiểm tra nếu API đã được gọi trước đó, không gọi lại
+      if (apiCalled.current) {
+        setLoading(false);
+        return;
+      }
+
+      // Kiểm tra nếu giao dịch này đã được xử lý trước đó
+      const transactionId = queryParams.get("vnp_TransactionNo");
+      if (
+        transactionId &&
+        localStorage.getItem(`payment_processed_${transactionId}`)
+      ) {
+        console.log("Transaction already processed, not calling API again");
+
+        // Thay vì chuyển hướng, tạo thông tin thanh toán từ dữ liệu có sẵn
+        setPaymentInfo({
+          success: true,
+          amount: parseInt(amount) / 100,
+          message: "SUCCESS",
+          transactionId: transactionId || "N/A",
+          paymentTime:
+            queryParams.get("vnp_PayDate") || new Date().toLocaleString(),
+          status: "SUCCESS",
+        });
+
+        setLoading(false);
+        return;
+      }
+
       try {
+        // Đánh dấu API đã được gọi
+        apiCalled.current = true;
+
+        // Lưu trạng thái vào localStorage để tránh gọi lại API khi làm mới trang
+        const transactionId = queryParams.get("vnp_TransactionNo");
+        if (transactionId) {
+          localStorage.setItem(`payment_processed_${transactionId}`, "true");
+        }
+
         // Gọi API payment_return để cập nhật trạng thái giao dịch
         const queryString = location.search.substring(1); // Bỏ dấu ? ở đầu
         const token = localStorage.getItem("token");
@@ -262,12 +301,13 @@ const PaymentWallet = () => {
           <CloseOutlined className="text-2xl text-white" />
         </div>
         <Title level={2} className="!text-white text-center">
-          {paymentInfo.status === "FAILED" || paymentInfo.message === "FAILED"
+          {paymentInfo &&
+          (paymentInfo.status === "FAILED" || paymentInfo.message === "FAILED")
             ? "Payment Failed"
             : "Payment Unsuccessful"}
         </Title>
         <Text className="text-gray-300 text-center mb-6">
-          {paymentInfo.message ||
+          {(paymentInfo && paymentInfo.message) ||
             "There was an issue with your payment. Please try again."}
         </Text>
 
@@ -298,6 +338,7 @@ const PaymentWallet = () => {
     </div>
   );
 
+  // Hiển thị màn hình loading khi đang tải dữ liệu
   if (loading) {
     return (
       <div className="min-h-[calc(100vh-200px)] bg-[#1a1f2d] flex items-center justify-center">
@@ -311,6 +352,7 @@ const PaymentWallet = () => {
     );
   }
 
+  // Kiểm tra nếu có lỗi và không có thông tin thanh toán
   if (error && !paymentInfo) {
     return (
       <div className="min-h-[calc(100vh-200px)] bg-[#1a1f2d] flex items-center justify-center">
@@ -338,9 +380,30 @@ const PaymentWallet = () => {
     );
   }
 
+  // Kiểm tra nếu không có thông tin thanh toán sau khi đã tải xong
+  if (!paymentInfo) {
+    // Hiển thị màn hình loading thay vì chuyển hướng ngay
+    return (
+      <div className="min-h-[calc(100vh-200px)] bg-[#1a1f2d] flex items-center justify-center">
+        <div className="text-center">
+          <Spin size="large" />
+          <Text className="block mt-4 text-gray-300">
+            Processing your payment, please wait...
+          </Text>
+          <Button
+            className="mt-8 bg-[#374151] text-white border-none hover:bg-[#374151]/90 hover:text-white"
+            onClick={() => navigate("/advertiser/user-wallet")}
+          >
+            Go to Wallet
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[calc(100vh-200px)] flex items-center justify-center p-4 bg-[#1a1f2d] text-white">
-      {paymentInfo?.success ? renderSuccessContent() : renderFailureContent()}
+      {paymentInfo.success ? renderSuccessContent() : renderFailureContent()}
     </div>
   );
 };

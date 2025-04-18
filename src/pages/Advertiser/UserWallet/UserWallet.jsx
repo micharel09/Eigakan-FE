@@ -38,6 +38,7 @@ import {
 import userWalletService from "../../../apis/UserWallet/userWallet";
 import walletHistoryService from "../../../apis/UserWallet/walletHistory";
 import dayjs from "dayjs";
+import axios from "axios";
 
 const { Title, Text } = Typography;
 
@@ -75,26 +76,85 @@ const UserWallet = () => {
     }
   };
 
+  // Get total number of transactions for pagination
+  const fetchTotalTransactions = async () => {
+    try {
+      // Call hidden API with large pageSize to get all data
+      const response = await axios.get(
+        "https://eigakan2222-001-site1.jtempurl.com/api/WalletTransaction/MyHistoryWallet?page=1&pageSize=1000&sortBy=createDate&sortDirection=desc",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.success) {
+        // Also store all transactions for potential use
+        window.allTransactions = response.data.data || [];
+        // Return total count for pagination
+        return response.data.data?.length || 0;
+      }
+      return 0;
+    } catch (err) {
+      console.error("Error fetching total transactions:", err);
+      return 0;
+    }
+  };
+
   const fetchTransactionHistory = async (page = 1, pageSize = 5) => {
     try {
       setLoading((prev) => ({ ...prev, history: true }));
-      const response = await walletHistoryService.getWalletHistory(
-        page,
-        pageSize
-      );
 
-      if (response.success) {
-        setTransactionHistory(response.data || []);
+      // Get total count first and all transactions
+      const totalItems = await fetchTotalTransactions();
+
+      // Use the stored all transactions to create paginated data
+      if (window.allTransactions && window.allTransactions.length > 0) {
+        // Calculate start and end indices for the current page
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = Math.min(
+          startIndex + pageSize,
+          window.allTransactions.length
+        );
+
+        // Get the slice of data for the current page
+        const paginatedData = window.allTransactions.slice(
+          startIndex,
+          endIndex
+        );
+
+        setTransactionHistory(paginatedData);
         setPagination({
           current: page,
           pageSize: pageSize,
-          total:
-            response.data?.length >= pageSize
-              ? page * pageSize + 1
-              : page * pageSize, // Estimate total if not provided
+          total: totalItems,
         });
       } else {
-        console.error("Failed to fetch transaction history:", response.message);
+        // Fallback to API if window.allTransactions is not available
+        const response = await walletHistoryService.getWalletHistory(
+          page,
+          pageSize
+        );
+
+        if (response.success) {
+          // Sort data by createDate in descending order (newest first)
+          const sortedData = [...(response.data || [])].sort((a, b) => {
+            return new Date(b.createDate) - new Date(a.createDate);
+          });
+
+          setTransactionHistory(sortedData);
+          setPagination({
+            current: page,
+            pageSize: pageSize,
+            total: totalItems, // Use actual total count
+          });
+        } else {
+          console.error(
+            "Failed to fetch transaction history:",
+            response.message
+          );
+        }
       }
     } catch (err) {
       console.error("Error fetching transaction history:", err);

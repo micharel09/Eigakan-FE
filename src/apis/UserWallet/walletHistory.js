@@ -10,7 +10,7 @@ const walletHistoryService = {
         `${API_URL}/MyHistoryWallet`,
         {
           headers,
-          params: { page, pageSize }
+          params: { page, pageSize, sortBy: "createDate", sortDirection: "desc" }
         }
       );
       return response.data;
