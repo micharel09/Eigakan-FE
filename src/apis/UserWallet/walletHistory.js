@@ -7,11 +7,21 @@ const walletHistoryService = {
   getWalletHistory: (page = 1, pageSize = 10) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
-        `${API_URL}/MyHistoryWallet`, 
-        { 
+        `${API_URL}/MyHistoryWallet`,
+        {
           headers,
           params: { page, pageSize }
         }
+      );
+      return response.data;
+    }),
+
+  depositMoney: (amount) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.post(
+        `${API_URL}`,
+        { amount },
+        { headers }
       );
       return response.data;
     }),

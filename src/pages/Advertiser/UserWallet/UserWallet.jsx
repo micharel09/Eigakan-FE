@@ -15,6 +15,10 @@ import {
   Pagination,
   Empty,
   Badge,
+  Modal,
+  Form,
+  InputNumber,
+  notification,
 } from "antd";
 import { Helmet } from "react-helmet";
 import {
@@ -28,6 +32,8 @@ import {
   CloseCircleOutlined,
   CreditCardOutlined,
   ShoppingOutlined,
+  PlusCircleOutlined,
+  BankOutlined,
 } from "@ant-design/icons";
 import userWalletService from "../../../apis/UserWallet/userWallet";
 import walletHistoryService from "../../../apis/UserWallet/walletHistory";
@@ -39,15 +45,21 @@ const UserWallet = () => {
   const [loading, setLoading] = useState({
     wallet: true,
     history: true,
+    deposit: false,
   });
   const [error, setError] = useState(null);
   const [walletData, setWalletData] = useState(null);
   const [transactionHistory, setTransactionHistory] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 5,
     total: 0,
   });
+
+  // Deposit states
+  const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(100000);
+  const [depositForm] = Form.useForm();
 
   const fetchWalletData = async () => {
     try {
@@ -63,7 +75,7 @@ const UserWallet = () => {
     }
   };
 
-  const fetchTransactionHistory = async (page = 1, pageSize = 10) => {
+  const fetchTransactionHistory = async (page = 1, pageSize = 5) => {
     try {
       setLoading((prev) => ({ ...prev, history: true }));
       const response = await walletHistoryService.getWalletHistory(
@@ -161,6 +173,58 @@ const UserWallet = () => {
     fetchTransactionHistory(pagination.current, pagination.pageSize);
   };
 
+  // Handle deposit modal
+  const showDepositModal = () => {
+    depositForm.resetFields();
+    depositForm.setFieldsValue({ amount: 100000 });
+    setIsDepositModalVisible(true);
+  };
+
+  const handleCancelDeposit = () => {
+    setIsDepositModalVisible(false);
+  };
+
+  // Handle deposit submission
+  const handleDeposit = async (values) => {
+    if (values.amount < 100000) {
+      notification.error({
+        message: "Invalid Amount",
+        description: "Minimum deposit amount is 100,000đ",
+      });
+      return;
+    }
+
+    setLoading((prev) => ({ ...prev, deposit: true }));
+    try {
+      const response = await walletHistoryService.depositMoney(values.amount);
+
+      if (response.success) {
+        // If successful, redirect to the payment URL in the same window
+        window.location.href = response.message;
+        notification.success({
+          message: "Deposit Initiated",
+          description:
+            "You will be redirected to the payment gateway to complete your deposit.",
+        });
+        setIsDepositModalVisible(false);
+      } else {
+        notification.error({
+          message: "Deposit Failed",
+          description: response.message || "Failed to initiate deposit",
+        });
+      }
+    } catch (error) {
+      notification.error({
+        message: "Error",
+        description:
+          error.message || "An error occurred while processing your deposit",
+      });
+      console.error("Deposit error:", error);
+    } finally {
+      setLoading((prev) => ({ ...prev, deposit: false }));
+    }
+  };
+
   return (
     <div className="user-wallet-page p-6">
       <Helmet>
@@ -171,14 +235,25 @@ const UserWallet = () => {
         <Title level={2} className="m-0">
           <WalletOutlined className="mr-2" /> My Wallet
         </Title>
-        <Button
-          onClick={handleRefresh}
-          icon={<ReloadOutlined />}
-          loading={loading.wallet || loading.history}
-          className="bg-white hover:bg-gray-50"
-        >
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="primary"
+            onClick={showDepositModal}
+            icon={<PlusCircleOutlined />}
+            loading={loading.deposit}
+            className="bg-[#FF009F] hover:bg-[#d1007f] border-none"
+          >
+            Deposit Money
+          </Button>
+          <Button
+            onClick={handleRefresh}
+            icon={<ReloadOutlined />}
+            loading={loading.wallet || loading.history}
+            className="bg-white hover:bg-gray-50"
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -297,6 +372,7 @@ const UserWallet = () => {
                   onChange: handleTableChange,
                   showSizeChanger: true,
                   pageSizeOptions: [5, 10, 20],
+                  defaultPageSize: 5,
                   showTotal: (total) => `Total ${total} transactions`,
                 }}
                 className="transaction-table"
@@ -412,6 +488,72 @@ const UserWallet = () => {
           className="mb-6"
         />
       )}
+
+      {/* Deposit Modal */}
+      <Modal
+        title={
+          <div className="flex items-center">
+            <BankOutlined className="mr-2 text-[#FF009F]" />
+            <span>Deposit Money</span>
+          </div>
+        }
+        open={isDepositModalVisible}
+        onCancel={handleCancelDeposit}
+        footer={null}
+      >
+        <Form
+          form={depositForm}
+          layout="vertical"
+          onFinish={handleDeposit}
+          initialValues={{ amount: 100000 }}
+        >
+          <div className="mb-4">
+            <Alert
+              message="Minimum Deposit"
+              description="The minimum deposit amount is 100,000đ"
+              type="info"
+              showIcon
+            />
+          </div>
+
+          <Form.Item
+            name="amount"
+            label="Deposit Amount (đ)"
+            rules={[
+              { required: true, message: "Please enter deposit amount" },
+              {
+                type: "number",
+                min: 100000,
+                message: "Minimum deposit amount is 100,000đ",
+              },
+            ]}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              formatter={(value) =>
+                `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
+              min={100000}
+              step={10000}
+              placeholder="Enter amount"
+            />
+          </Form.Item>
+
+          <div className="flex justify-end gap-2 mt-6">
+            <Button onClick={handleCancelDeposit}>Cancel</Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading.deposit}
+              icon={<BankOutlined />}
+              className="bg-[#FF009F] hover:bg-[#d1007f] border-none"
+            >
+              Proceed to Payment
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 };
