@@ -726,13 +726,26 @@ const WatchPage = () => {
       // Thiết lập đếm ngược
       adContainer.appendChild(adCountdown);
       let countdownTime = AD_CONSTANTS.AD_COUNTDOWN_SECONDS;
+      let skipButtonShown = false;
+
       const countdownInterval = setInterval(() => {
         countdownTime--;
         if (countdownTime <= 0) {
           clearInterval(countdownInterval);
           finishAd();
         } else {
+          // Cập nhật text đếm ngược
           adCountdown.textContent = `Ad ends in: ${countdownTime}s`;
+
+          // Hiển thị nút skip trong 5 giây cuối
+          if (
+            countdownTime <= AD_CONSTANTS.SKIP_AD_DELAY_SECONDS &&
+            !skipButtonShown
+          ) {
+            skipButton.style.display = "block";
+            skipButton.style.animation = "fadeIn 0.5s ease-in-out";
+            skipButtonShown = true;
+          }
         }
       }, 1000);
       adContainer.dataset.countdownIntervalId = countdownInterval;
@@ -742,11 +755,6 @@ const WatchPage = () => {
         clearInterval(countdownInterval);
         finishAd();
       });
-
-      // Hiển thị nút bỏ qua sau thời gian quy định
-      setTimeout(() => {
-        skipButton.style.display = "block";
-      }, AD_CONSTANTS.SKIP_AD_DELAY);
 
       adContainer.appendChild(adLabel);
 
@@ -769,23 +777,61 @@ const WatchPage = () => {
 
       // Tạo nội dung quảng cáo dựa trên loại (video hoặc hình ảnh)
       if (currentAd.video && currentAd.video.trim() !== "") {
-        // Quảng cáo video
+        console.log("Creating video ad with URL:", currentAd.video);
+
+        // Tạo container cho video để dễ dàng style
+        const videoContainer = document.createElement("div");
+        videoContainer.className = "video-ad-container";
+        videoContainer.style.width = "100%";
+        videoContainer.style.height = "100%";
+        videoContainer.style.display = "flex";
+        videoContainer.style.justifyContent = "center";
+        videoContainer.style.alignItems = "center";
+        videoContainer.style.backgroundColor = "#000";
+        videoContainer.style.position = "relative";
+
+        // Tạo video element
         const videoElement = document.createElement("video");
         Object.assign(videoElement.style, {
           width: "100%",
           height: "100%",
           objectFit: "contain",
           backgroundColor: "#000",
+          zIndex: "1",
         });
+
+        // Thiết lập các thuộc tính của video
         videoElement.controls = false;
         videoElement.autoplay = true;
-        // Mặc định tắt tiếng để đảm bảo autoplay hoạt động
-        videoElement.muted = true;
+        videoElement.muted = true; // Mặc định tắt tiếng để đảm bảo autoplay hoạt động
         videoElement.playsInline = true;
+        videoElement.preload = "auto";
+        videoElement.crossOrigin = "anonymous";
+        videoElement.setAttribute("playsinline", "");
+        videoElement.setAttribute("webkit-playsinline", "");
+
+        // Tạo fallback image trong trường hợp video không tải được
+        const fallbackImage = document.createElement("img");
+        fallbackImage.src =
+          currentAd.alternativeImage ||
+          "https://placehold.co/800x450/FF009F/FFFFFF?text=Alternative+Ad";
+        fallbackImage.style.display = "none";
+        fallbackImage.style.width = "100%";
+        fallbackImage.style.height = "100%";
+        fallbackImage.style.objectFit = "contain";
+        fallbackImage.style.position = "absolute";
+        fallbackImage.style.top = "0";
+        fallbackImage.style.left = "0";
+        fallbackImage.style.zIndex = "0";
 
         // Hàm để đảm bảo video được phát
         const ensureVideoPlayback = () => {
           console.log("Ensuring video playback");
+
+          // Hiển thị video, ẩn fallback image
+          videoElement.style.display = "block";
+          fallbackImage.style.display = "none";
+
           const playPromise = videoElement.play();
 
           if (playPromise !== undefined) {
@@ -801,9 +847,12 @@ const WatchPage = () => {
                 console.error("Auto-play was prevented:", error);
                 // Nếu không thể phát tự động, giữ tắt tiếng và thử lại
                 videoElement.muted = true;
-                videoElement
-                  .play()
-                  .catch((e) => console.error("Still cannot play:", e));
+                videoElement.play().catch((e) => {
+                  console.error("Still cannot play:", e);
+                  // Nếu vẫn không thể phát, hiển thị fallback image
+                  videoElement.style.display = "none";
+                  fallbackImage.style.display = "block";
+                });
               });
           }
         };
@@ -811,18 +860,21 @@ const WatchPage = () => {
         // Thêm các sự kiện
         videoElement.addEventListener("canplay", ensureVideoPlayback);
         videoElement.addEventListener("loadeddata", ensureVideoPlayback);
+        videoElement.addEventListener("loadedmetadata", ensureVideoPlayback);
         videoElement.addEventListener("ended", () => {
           clearInterval(countdownInterval);
           finishAd();
         });
-        videoElement.addEventListener("error", () => {
-          console.error("Video error event triggered");
-          clearInterval(countdownInterval);
-          finishAd();
+        videoElement.addEventListener("error", (e) => {
+          console.error("Video error event triggered:", e);
+          // Hiển thị fallback image khi có lỗi
+          videoElement.style.display = "none";
+          fallbackImage.style.display = "block";
+          // Không kết thúc quảng cáo ngay, vẫn hiển thị fallback image
         });
 
         // Thêm sự kiện click để bật âm thanh và phát video
-        adContainer.addEventListener("click", (e) => {
+        videoContainer.addEventListener("click", (e) => {
           // Kiểm tra xem có phải là nút skip không
           if (!e.target.closest(".skip-button")) {
             if (videoElement.paused) {
@@ -832,11 +884,18 @@ const WatchPage = () => {
           }
         });
 
+        // Thêm source cho video
         const source = document.createElement("source");
         source.type = "video/mp4";
         source.src = currentAd.video;
         videoElement.appendChild(source);
-        adContainer.appendChild(videoElement);
+
+        // Thêm video và fallback image vào container
+        videoContainer.appendChild(videoElement);
+        videoContainer.appendChild(fallbackImage);
+
+        // Thêm container vào ad container
+        adContainer.appendChild(videoContainer);
 
         // Thêm overlay click nếu có URL
         if (currentAd.redirectUrl?.trim()) {
@@ -866,43 +925,161 @@ const WatchPage = () => {
       } else if (currentAd.image) {
         // Quảng cáo hình ảnh
         console.log("Displaying image ad with URL:", currentAd.image);
-        const imageContainer = AdUIUtils.createImageAdContainer();
-        const adImage = AdUIUtils.createAdImage(
-          currentAd.image,
-          currentAd.alternativeImage ||
-            "https://placehold.co/800x450/FF009F/FFFFFF?text=Fallback+Ad"
-        );
 
+        // Tạo container cho hình ảnh để dễ dàng style
+        const imageContainer = document.createElement("div");
+        imageContainer.className = "image-ad-container";
+        imageContainer.style.width = "100%";
+        imageContainer.style.height = "100%";
+        imageContainer.style.display = "flex";
+        imageContainer.style.justifyContent = "center";
+        imageContainer.style.alignItems = "center";
+        imageContainer.style.backgroundColor = "#000";
+        imageContainer.style.position = "relative";
+        imageContainer.style.animation = "fadeIn 0.5s ease-in-out";
+
+        // Tạo style cho animation nếu chưa có
+        if (!document.getElementById("ad-animations")) {
+          const style = document.createElement("style");
+          style.id = "ad-animations";
+          style.textContent = `
+            @keyframes fadeIn {
+              from { opacity: 0; transform: scale(0.95); }
+              to { opacity: 1; transform: scale(1); }
+            }
+
+            @keyframes pulse {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.05); }
+              100% { transform: scale(1); }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        // Tạo hình ảnh quảng cáo
+        const adImage = document.createElement("img");
+        adImage.src = currentAd.image;
+        adImage.className = "ad-image";
+        adImage.style.maxWidth = "80%";
+        adImage.style.maxHeight = "80%";
+        adImage.style.objectFit = "contain";
+        adImage.style.borderRadius = "8px";
+        adImage.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
+        adImage.style.animation = "pulse 3s infinite ease-in-out";
+
+        // Xử lý lỗi nếu hình ảnh không tải được
+        adImage.onerror = () => {
+          adImage.onerror = null;
+          adImage.src =
+            currentAd.alternativeImage ||
+            "https://placehold.co/800x450/FF009F/FFFFFF?text=Fallback+Ad";
+        };
+
+        // Xử lý URL chuyển hướng nếu có
         if (currentAd.redirectUrl?.trim()) {
+          // Tạo wrapper cho hình ảnh
           const linkWrapper = document.createElement("a");
           linkWrapper.href = currentAd.redirectUrl;
           linkWrapper.target = "_blank";
           linkWrapper.style.display = "block";
+          linkWrapper.style.cursor = "pointer";
 
-          // Không cần sự kiện click để tăng lượt xem quảng cáo nữa
-
+          // Thêm hình ảnh vào wrapper
           linkWrapper.appendChild(adImage);
           imageContainer.appendChild(linkWrapper);
 
-          const urlLabel = AdUIUtils.createUrlLabel();
+          // Thêm nhãn URL
+          const urlLabel = document.createElement("div");
+          urlLabel.textContent = "Click to learn more";
+          urlLabel.className = "url-label";
+          urlLabel.style.position = "absolute";
+          urlLabel.style.bottom = "12px";
+          urlLabel.style.left = "0";
+          urlLabel.style.right = "0";
+          urlLabel.style.textAlign = "center";
+          urlLabel.style.color = "white";
+          urlLabel.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
+          urlLabel.style.padding = "8px";
+          urlLabel.style.borderRadius = "4px";
+          urlLabel.style.width = "200px";
+          urlLabel.style.margin = "0 auto";
+          urlLabel.style.fontSize = "14px";
           imageContainer.appendChild(urlLabel);
         } else {
-          // Không cần sự kiện click để tăng lượt xem quảng cáo nữa
-
+          // Nếu không có URL, chỉ thêm hình ảnh vào container
           imageContainer.appendChild(adImage);
         }
 
+        // Thêm container vào ad container
         adContainer.appendChild(imageContainer);
       } else {
         // Trường hợp không có video hoặc hình ảnh, hiển thị fallback
         console.log("No video or image found in ad, using fallback", currentAd);
-        const imageContainer = AdUIUtils.createImageAdContainer();
-        const adImage = AdUIUtils.createAdImage(
-          "https://placehold.co/800x450/FF009F/FFFFFF?text=Advertisement",
-          "https://placehold.co/800x450/FF009F/FFFFFF?text=Advertisement"
-        );
-        imageContainer.appendChild(adImage);
-        adContainer.appendChild(imageContainer);
+
+        // Tạo container cho fallback
+        const fallbackContainer = document.createElement("div");
+        fallbackContainer.className = "fallback-ad-container";
+        fallbackContainer.style.width = "100%";
+        fallbackContainer.style.height = "100%";
+        fallbackContainer.style.display = "flex";
+        fallbackContainer.style.flexDirection = "column";
+        fallbackContainer.style.justifyContent = "center";
+        fallbackContainer.style.alignItems = "center";
+        fallbackContainer.style.backgroundColor = "#3A0033";
+        fallbackContainer.style.color = "white";
+        fallbackContainer.style.textAlign = "center";
+        fallbackContainer.style.padding = "20px";
+
+        // Tạo tiêu đề cho fallback
+        const fallbackTitle = document.createElement("h2");
+        fallbackTitle.textContent = "Alternative Ad";
+        fallbackTitle.style.fontSize = "32px";
+        fallbackTitle.style.fontWeight = "bold";
+        fallbackTitle.style.marginBottom = "16px";
+        fallbackTitle.style.color = "#FF009F";
+
+        // Tạo nội dung cho fallback
+        const fallbackContent = document.createElement("p");
+        fallbackContent.textContent =
+          currentAd.content || "Advertisement content";
+        fallbackContent.style.fontSize = "18px";
+        fallbackContent.style.maxWidth = "80%";
+        fallbackContent.style.lineHeight = "1.5";
+
+        // Thêm các phần tử vào container
+        fallbackContainer.appendChild(fallbackTitle);
+        fallbackContainer.appendChild(fallbackContent);
+
+        // Nếu có URL chuyển hướng, thêm nút
+        if (currentAd.redirectUrl?.trim()) {
+          const fallbackButton = document.createElement("a");
+          fallbackButton.href = currentAd.redirectUrl;
+          fallbackButton.target = "_blank";
+          fallbackButton.textContent = "Learn More";
+          fallbackButton.style.display = "inline-block";
+          fallbackButton.style.marginTop = "20px";
+          fallbackButton.style.padding = "10px 20px";
+          fallbackButton.style.backgroundColor = "#FF009F";
+          fallbackButton.style.color = "white";
+          fallbackButton.style.borderRadius = "4px";
+          fallbackButton.style.textDecoration = "none";
+          fallbackButton.style.fontWeight = "bold";
+          fallbackButton.style.transition = "background-color 0.3s";
+
+          // Thêm hover effect
+          fallbackButton.onmouseover = () => {
+            fallbackButton.style.backgroundColor = "#D1007F";
+          };
+          fallbackButton.onmouseout = () => {
+            fallbackButton.style.backgroundColor = "#FF009F";
+          };
+
+          fallbackContainer.appendChild(fallbackButton);
+        }
+
+        // Thêm container vào ad container
+        adContainer.appendChild(fallbackContainer);
       }
 
       // Thêm nội dung văn bản nếu có

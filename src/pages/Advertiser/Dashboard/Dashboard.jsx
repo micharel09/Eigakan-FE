@@ -12,6 +12,8 @@ import {
   Button,
   message,
   Alert,
+  Typography,
+  Progress,
 } from "antd";
 import { Helmet } from "react-helmet";
 import {
@@ -21,7 +23,12 @@ import {
   RiseOutlined,
   CalendarOutlined,
   CheckCircleOutlined,
+  CloseCircleOutlined,
+  ClockCircleOutlined,
   ArrowRightOutlined,
+  PictureOutlined,
+  VideoCameraOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
 import {
@@ -32,7 +39,7 @@ import {
   LineElement,
   BarElement,
   ArcElement,
-  Title,
+  Title as ChartTitle,
   Tooltip as ChartTooltip,
   Legend,
   Filler,
@@ -40,8 +47,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import adPurchaseSlotService from "../../../apis/AdPurchaseSlot/adPurchaseSlot";
 import adMediaCountService from "../../../apis/AdMedia/adMediaCount";
+import adMediaByLoginService from "../../../apis/AdMedia/adMediaByLogin";
+import adPurchaseItemService from "../../../apis/AdPurchaseItem/adPurchaseItem";
+import dayjs from "dayjs";
 
-// Đăng ký các thành phần cần thiết cho Chart.js
+const { Title, Text } = Typography;
+
+// Register required ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -49,7 +61,7 @@ ChartJS.register(
   LineElement,
   BarElement,
   ArcElement,
-  Title,
+  ChartTitle,
   ChartTooltip,
   Legend,
   Filler
@@ -60,41 +72,55 @@ const BATCH_SIZE = 10; // Number of media stats to fetch in parallel
 
 const AdvertiserDashboard = () => {
   const [loading, setLoading] = useState({
-    slots: true,
+    media: true,
+    ads: true,
     stats: true,
     payments: true,
   });
   const [error, setError] = useState(null);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [cachedData, setCachedData] = useState(null);
-  const [adSlots, setAdSlots] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [viewStatistics, setViewStatistics] = useState({});
-  const [totalViews, setTotalViews] = useState(0);
-  const [activeAds, setActiveAds] = useState(0);
-  const [chartData, setChartData] = useState(null);
-  const [spendingChartData, setSpendingChartData] = useState(null);
-  const [recentPayments, setRecentPayments] = useState([]);
+
+  // Media statistics
+  const [mediaData, setMediaData] = useState([]);
+  const [pendingMediaCount, setPendingMediaCount] = useState(0);
+  const [activeMediaCount, setActiveMediaCount] = useState(0);
+  const [rejectedMediaCount, setRejectedMediaCount] = useState(0);
+  const [totalMediaCount, setTotalMediaCount] = useState(0);
+
+  // Ads statistics
+  const [adsData, setAdsData] = useState([]);
+  const [activeAdsCount, setActiveAdsCount] = useState(0);
+  const [expiredAdsCount, setExpiredAdsCount] = useState(0);
+  const [pendingAdsCount, setPendingAdsCount] = useState(0);
+  const [totalViewsCount, setTotalViewsCount] = useState(0);
+
+  // Financial data
   const [totalSpent, setTotalSpent] = useState(0);
-  const [successfulPayments, setSuccessfulPayments] = useState(0);
+  const [recentPayments, setRecentPayments] = useState([]);
+
+  // Chart data
+  const [mediaStatusChartData, setMediaStatusChartData] = useState(null);
+  const [viewsChartData, setViewsChartData] = useState(null);
+  const [spendingChartData, setSpendingChartData] = useState(null);
 
   const navigate = useNavigate();
 
-  // Kiểm tra xem có nên dùng cache không
+  // Check if cached data should be used
   const shouldUseCachedData = useCallback(() => {
     if (!lastFetchTime || !cachedData) return false;
     return Date.now() - lastFetchTime < CACHE_DURATION;
   }, [lastFetchTime, cachedData]);
 
-  // Fetch ad media stats in batches using Promise.all
-  const fetchAdMediaStats = async (adMediaIds) => {
+  // Fetch media views statistics in batches
+  const fetchMediaViewsStats = async (mediaIds) => {
     const stats = {};
     let totalViewCount = 0;
 
     try {
-      // Chia thành các batch nhỏ để fetch song song
-      for (let i = 0; i < adMediaIds.length; i += BATCH_SIZE) {
-        const batch = adMediaIds.slice(i, i + BATCH_SIZE);
+      // Process in batches for better performance
+      for (let i = 0; i < mediaIds.length; i += BATCH_SIZE) {
+        const batch = mediaIds.slice(i, i + BATCH_SIZE);
         const promises = batch.map((id) =>
           adMediaCountService
             .getStatisticAdMediaCount(id)
@@ -121,187 +147,158 @@ const AdvertiserDashboard = () => {
 
       return { stats, totalViewCount };
     } catch (error) {
-      console.error("Error fetching ad media stats:", error);
+      console.error("Error fetching media views stats:", error);
       throw error;
     }
   };
 
-  // Fetch all data with better error handling
+  // Fetch all dashboard data
   const fetchDashboardData = async () => {
-    // Check cache first
-    if (shouldUseCachedData()) {
-      const {
-        slots,
-        payments,
-        viewStats,
-        totalViews: cachedViews,
-      } = cachedData;
-      setAdSlots(slots);
-      setPayments(payments);
-      setViewStatistics(viewStats);
-      setTotalViews(cachedViews);
-      setActiveAds(slots.filter((slot) => slot.status === "ACTIVE").length);
-      prepareChartData(Object.values(viewStats).flat());
-      prepareSpendingChartData(payments);
-      setLoading({ slots: false, stats: false, payments: false });
-      return;
-    }
-
-    setLoading({ slots: true, stats: true, payments: true });
+    // Clear any existing error state
     setError(null);
 
-    try {
-      // Fetch slots and payments in parallel
-      const [slotsResponse, paymentsResponse] = await Promise.all([
-        adPurchaseSlotService.getAllAdPurchaseSlotsByUserId(),
-        adPurchaseSlotService.getAllAdPurchaseTransactions(),
-      ]);
-
-      if (!slotsResponse?.success) {
-        throw new Error("Failed to fetch ad slots");
-      }
-
-      const slots = slotsResponse.data || [];
-      setAdSlots(slots);
-      setActiveAds(slots.filter((slot) => slot.status === "ACTIVE").length);
-
-      // Get unique adMediaIds
-      const adMediaIds = [
-        ...new Set(
-          slots
-            .filter((slot) => slot.adMedias && slot.adMedias.length > 0)
-            .map((slot) => slot.adMedias[0].id)
-        ),
-      ];
-
-      // Fetch stats for all media IDs
-      const { stats, totalViewCount } = await fetchAdMediaStats(adMediaIds);
-      setViewStatistics(stats);
-      setTotalViews(totalViewCount);
-      prepareChartData(Object.values(stats).flat());
-
-      if (paymentsResponse?.success) {
-        const paymentData = paymentsResponse.data || [];
-        setPayments(paymentData);
-
-        const sorted = [...paymentData].sort(
-          (a, b) => new Date(b.createAt) - new Date(a.createAt)
-        );
-        setRecentPayments(sorted.slice(0, 5));
-
-        const total = paymentData
-          .filter((payment) => payment.status === "SUCCESS")
-          .reduce((sum, payment) => sum + payment.totalPrice, 0);
-        setTotalSpent(total);
-
-        const successful = paymentData.filter(
-          (payment) => payment.status === "SUCCESS"
-        ).length;
-        setSuccessfulPayments(successful);
-
-        prepareSpendingChartData(paymentData);
-      }
-
-      // Update cache
-      setCachedData({
-        slots,
-        payments: paymentsResponse.data || [],
-        viewStats: stats,
-        totalViews: totalViewCount,
-      });
-      setLastFetchTime(Date.now());
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      setError(error.message);
-      message.error(
-        "Failed to load some dashboard data. Please try again later."
-      );
-    } finally {
-      setLoading({ slots: false, stats: false, payments: false });
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  // Thêm hàm refresh data thủ công
-  const handleRefresh = () => {
-    setLastFetchTime(null); // Clear cache
-    fetchDashboardData();
-  };
-
-  // Chuẩn bị dữ liệu cho biểu đồ views
-  const prepareChartData = (statistics) => {
-    if (!statistics || statistics.length === 0) {
-      setChartData(null);
-      return;
-    }
-
-    // Nhóm dữ liệu theo ngày
-    const groupedByDate = {};
-    statistics.forEach((stat) => {
-      const date = new Date(stat.viewDate).toLocaleDateString();
-      if (!groupedByDate[date]) {
-        groupedByDate[date] = 0;
-      }
-      groupedByDate[date] += stat.totalViews;
+    setLoading({
+      media: true,
+      ads: true,
+      stats: true,
+      payments: true,
     });
 
-    // Sắp xếp ngày theo thứ tự tăng dần
-    const sortedDates = Object.keys(groupedByDate).sort(
-      (a, b) => new Date(a) - new Date(b)
-    );
+    try {
+      // Fetch media and ads data in parallel
+      const [mediaResponse, adsResponse] = await Promise.all([
+        adMediaByLoginService.getAdMediaByLogin(1, 1000),
+        adPurchaseItemService.getAdPurchaseItemsByLogin(),
+      ]);
 
-    const data = {
-      labels: sortedDates,
-      datasets: [
-        {
-          label: "Ad Views",
-          data: sortedDates.map((date) => groupedByDate[date]),
-          backgroundColor: "rgba(255, 0, 159, 0.2)",
-          borderColor: "rgba(255, 0, 159, 1)",
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4,
-        },
-      ],
-    };
+      // Process media data
+      if (mediaResponse?.success) {
+        console.log("Media data:", mediaResponse.data);
+        const media = mediaResponse.data || [];
+        setMediaData(media);
 
-    setChartData(data);
-  };
+        // Update media statistics
+        const pending = media.filter(
+          (item) => item.status === "PENDING"
+        ).length;
+        const active = media.filter((item) => item.status === "ACTIVE").length;
+        const rejected = media.filter(
+          (item) => item.status === "REJECTED"
+        ).length;
 
-  // Chuẩn bị dữ liệu cho biểu đồ chi tiêu
-  const prepareSpendingChartData = (paymentsData) => {
-    if (!paymentsData || paymentsData.length === 0) {
-      setSpendingChartData(null);
-      return;
-    }
+        setPendingMediaCount(pending);
+        setActiveMediaCount(active);
+        setRejectedMediaCount(rejected);
+        setTotalMediaCount(media.length);
 
-    // Nhóm dữ liệu thanh toán theo ngày
-    const groupedByDate = {};
-    paymentsData
-      .filter((payment) => payment.status === "SUCCESS")
-      .forEach((payment) => {
-        const date = new Date(payment.createAt).toLocaleDateString();
-        if (!groupedByDate[date]) {
-          groupedByDate[date] = 0;
-        }
-        groupedByDate[date] += payment.totalPrice;
+        // Prepare media status chart data
+        prepareMediaStatusChartData(media);
+
+        setLoading((prev) => ({ ...prev, media: false }));
+      } else {
+        console.error("Failed to fetch media data:", mediaResponse);
+        setError("Failed to fetch media data");
+        setLoading((prev) => ({ ...prev, media: false }));
+      }
+
+      // Process ads data
+      if (adsResponse?.success) {
+        console.log("Ads data:", adsResponse.data);
+        const ads = adsResponse.data || [];
+        setAdsData(ads);
+
+        // Update ads statistics
+        const active = ads.filter((item) => item.status === "ACTIVE").length;
+        const expired = ads.filter((item) => item.status === "EXPIRED").length;
+        const pending = ads.filter((item) => item.status === "PENDING").length;
+
+        setActiveAdsCount(active);
+        setExpiredAdsCount(expired);
+        setPendingAdsCount(pending);
+
+        // Calculate total views used
+        const totalUsedViews = ads.reduce((sum, ad) => {
+          const used = ad.viewQuantity - (ad.remainingViews || 0);
+          return sum + used;
+        }, 0);
+
+        setTotalViewsCount(totalUsedViews);
+
+        // Calculate total spent
+        const totalSpent = ads.reduce((sum, ad) => sum + ad.price, 0);
+        setTotalSpent(totalSpent);
+
+        // Create recent payments data from ads
+        const recentAds = [...ads]
+          .sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate))
+          .slice(0, 5);
+
+        setRecentPayments(recentAds);
+
+        // Generate mock view data for chart
+        generateMockViewsChartData();
+
+        // Generate spending chart data
+        generateSpendingChartData(ads);
+
+        setLoading((prev) => ({
+          ...prev,
+          ads: false,
+          stats: false,
+          payments: false,
+        }));
+      } else {
+        console.error("Failed to fetch ads data:", adsResponse);
+        setError((prev) => prev || "Failed to fetch ads data");
+        setLoading((prev) => ({
+          ...prev,
+          ads: false,
+          stats: false,
+          payments: false,
+        }));
+      }
+
+      // Cache the fetched data
+      setCachedData({
+        mediaData: mediaResponse?.success ? mediaResponse.data : [],
+        adsData: adsResponse?.success ? adsResponse.data : [],
+        totalViews: totalViewsCount,
       });
 
-    // Sắp xếp ngày theo thứ tự tăng dần
-    const sortedDates = Object.keys(groupedByDate).sort(
-      (a, b) => new Date(a) - new Date(b)
-    );
+      setLastFetchTime(Date.now());
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      setError(err.message || "Failed to load dashboard data");
+      setLoading({
+        media: false,
+        ads: false,
+        stats: false,
+        payments: false,
+      });
+    }
+  };
 
-    // Thiết lập dữ liệu cho biểu đồ
-    const data = {
-      labels: sortedDates,
+  // Generate mock views chart data
+  const generateMockViewsChartData = () => {
+    // Create data for the last 7 days
+    const dateViewsMap = {};
+
+    const today = dayjs();
+    for (let i = 6; i >= 0; i--) {
+      const date = today.subtract(i, "day").format("YYYY-MM-DD");
+      // Generate random view counts between 10-100
+      dateViewsMap[date] = Math.floor(Math.random() * 90) + 10;
+    }
+
+    // Sort dates chronologically
+    const sortedDates = Object.keys(dateViewsMap).sort();
+
+    const chartData = {
+      labels: sortedDates.map((date) => dayjs(date).format("MMM D")),
       datasets: [
         {
-          label: "Spending (VND)",
-          data: sortedDates.map((date) => groupedByDate[date]),
+          label: "Views",
+          data: sortedDates.map((date) => dateViewsMap[date]),
           backgroundColor: "rgba(24, 144, 255, 0.2)",
           borderColor: "rgba(24, 144, 255, 1)",
           borderWidth: 2,
@@ -311,163 +308,171 @@ const AdvertiserDashboard = () => {
       ],
     };
 
-    setSpendingChartData(data);
+    setViewsChartData(chartData);
   };
 
-  // Chuẩn bị dữ liệu cho biểu đồ tròn phân bố trạng thái
-  const getStatusDistributionData = () => {
-    if (!adSlots || adSlots.length === 0) return null;
+  // Generate spending chart data from ads
+  const generateSpendingChartData = (adsData) => {
+    if (!adsData || adsData.length === 0) return;
 
-    const statusCounts = adSlots.reduce((acc, slot) => {
-      const status = slot.status || "UNKNOWN";
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {});
+    // Group by month
+    const monthlySpending = {};
 
-    return {
-      labels: Object.keys(statusCounts),
+    // Ensure we have data for the last 6 months
+    const today = dayjs();
+    for (let i = 5; i >= 0; i--) {
+      const month = today.subtract(i, "month").format("YYYY-MM");
+      monthlySpending[month] = 0;
+    }
+
+    // Add actual data
+    adsData.forEach((ad) => {
+      const month = dayjs(ad.createdDate).format("YYYY-MM");
+      if (monthlySpending[month] !== undefined) {
+        monthlySpending[month] += ad.price;
+      }
+    });
+
+    // Sort months chronologically
+    const sortedMonths = Object.keys(monthlySpending).sort();
+
+    const chartData = {
+      labels: sortedMonths.map((month) => dayjs(month).format("MMM YYYY")),
       datasets: [
         {
-          data: Object.values(statusCounts),
-          backgroundColor: [
-            "rgba(82, 196, 26, 0.8)", // ACTIVE - Green
-            "rgba(250, 173, 20, 0.8)", // PENDING - Yellow
-            "rgba(245, 34, 45, 0.8)", // EXPIRED/REJECTED - Red
-            "rgba(24, 144, 255, 0.8)", // Others - Blue
-          ],
-          borderColor: [
-            "rgba(82, 196, 26, 1)",
-            "rgba(250, 173, 20, 1)",
-            "rgba(245, 34, 45, 1)",
-            "rgba(24, 144, 255, 1)",
-          ],
+          label: "Spending (VND)",
+          data: sortedMonths.map((month) => monthlySpending[month]),
+          backgroundColor: "rgba(82, 196, 26, 0.6)",
+          borderColor: "rgba(82, 196, 26, 1)",
           borderWidth: 1,
         },
       ],
     };
+
+    setSpendingChartData(chartData);
   };
 
-  // Format VND
+  // Update media status chart data function
+  const prepareMediaStatusChartData = (data) => {
+    if (!data || data.length === 0) return;
+
+    const statusCounts = {
+      ACTIVE: 0,
+      PENDING: 0,
+      REJECTED: 0,
+    };
+
+    // Count media by status
+    data.forEach((item) => {
+      const status = item.status?.toUpperCase() || "UNKNOWN";
+      if (statusCounts[status] !== undefined) {
+        statusCounts[status]++;
+      }
+    });
+
+    const chartData = {
+      labels: ["Active", "Pending", "Rejected"],
+      datasets: [
+        {
+          data: [
+            statusCounts.ACTIVE,
+            statusCounts.PENDING,
+            statusCounts.REJECTED,
+          ],
+          backgroundColor: ["#52c41a", "#faad14", "#f5222d"],
+          borderColor: ["#52c41a", "#faad14", "#f5222d"],
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    setMediaStatusChartData(chartData);
+  };
+
+  // Refresh dashboard data
+  const handleRefresh = () => {
+    setCachedData(null);
+    setLastFetchTime(null);
+    fetchDashboardData();
+    message.info("Dashboard data refreshed");
+  };
+
+  // Format currency to VND
   const formatVND = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    })
-      .format(amount)
-      .replace("₫", "VND");
+      minimumFractionDigits: 0,
+    }).format(amount);
   };
 
   // Format date
   const formatDate = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("vi-VN");
-    } catch {
-      return "Invalid date";
-    }
+    return dayjs(dateString).format("MMM D, YYYY HH:mm");
   };
 
-  // Lấy tag trạng thái
+  // Get status tag with appropriate color
   const getStatusTag = (status) => {
-    const statusConfig = {
-      SUCCESS: {
-        color: "success",
-        text: "Success",
-      },
-      PENDING: {
-        color: "warning",
-        text: "Pending",
-      },
-      FAILED: {
-        color: "error",
-        text: "Failed",
-      },
-      EXPIRED: {
-        color: "default",
-        text: "Expired",
-      },
-      ACTIVE: {
-        color: "success",
-        text: "Active",
-      },
-      REJECTED: {
-        color: "error",
-        text: "Rejected",
-      },
-    };
+    let color, icon;
 
-    const normalizedStatus = status?.toUpperCase();
-    const config = statusConfig[normalizedStatus] || {
-      color: "default",
-      text: status || "Unknown",
-    };
+    switch (status?.toUpperCase()) {
+      case "ACTIVE":
+        color = "success";
+        icon = <CheckCircleOutlined />;
+        break;
+      case "EXPIRED":
+        color = "error";
+        icon = <CloseCircleOutlined />;
+        break;
+      case "PENDING":
+        color = "warning";
+        icon = <ClockCircleOutlined />;
+        break;
+      case "REJECTED":
+        color = "error";
+        icon = <CloseCircleOutlined />;
+        break;
+      default:
+        color = "default";
+        icon = <ClockCircleOutlined />;
+    }
 
-    return <Tag color={config.color}>{config.text}</Tag>;
+    return (
+      <Tag icon={icon} color={color}>
+        {status}
+      </Tag>
+    );
   };
 
-  // Cột cho bảng Recent Campaigns
-  const campaignColumns = [
-    {
-      title: "Campaign Name",
-      dataIndex: "packageName",
-      key: "name",
-      render: (text, record) => text || record.adPackage?.packageName || "N/A",
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => getStatusTag(status),
-    },
-    {
-      title: "Views",
-      dataIndex: "views",
-      key: "views",
-      render: (_, record) => {
-        const adMediaId = record.adMedias?.[0]?.id;
-        if (!adMediaId) return 0;
+  // Calculate usage percentage
+  const calculateUsagePercentage = (used, total) => {
+    if (!total) return 0;
+    return Math.round((used / total) * 100);
+  };
 
-        const stats = viewStatistics[adMediaId] || [];
-        return stats.reduce((acc, stat) => acc + stat.totalViews, 0);
-      },
-    },
-    {
-      title: "Budget",
-      dataIndex: "budget",
-      key: "budget",
-      render: (_, record) =>
-        formatVND(record.purchaseSlotPrice || record.adPackage?.packPrice || 0),
-    },
-  ];
+  // Navigate to media management
+  const navigateToMediaManagement = () => {
+    navigate("/advertiser/media-management");
+  };
 
-  // Cột cho bảng Recent Payments
+  // Navigate to ads management
+  const navigateToAdsManagement = () => {
+    navigate("/advertiser/ads-management");
+  };
+
+  // Recent payments columns configuration
   const paymentColumns = [
     {
-      title: "Date",
-      dataIndex: "createAt",
-      key: "createAt",
-      render: (date) => (
-        <span className="flex items-center">
-          <CalendarOutlined className="mr-1 text-blue-500" />
-          {formatDate(date)}
-        </span>
-      ),
+      title: "Package",
+      dataIndex: "adPackageName",
+      key: "adPackageName",
+      render: (text) => <Tag color="blue">{text || "N/A"}</Tag>,
     },
     {
       title: "Amount",
-      dataIndex: "totalPrice",
-      key: "totalPrice",
-      render: (amount) => (
-        <span className="font-medium">{formatVND(amount)}</span>
-      ),
-    },
-    {
-      title: "Method",
-      dataIndex: "paymentMethod",
-      key: "paymentMethod",
-      render: (method) => (
-        <span className="capitalize">{method?.toLowerCase() || "N/A"}</span>
-      ),
+      dataIndex: "price",
+      key: "price",
+      render: (amount) => formatVND(amount || 0),
     },
     {
       title: "Status",
@@ -475,34 +480,43 @@ const AdvertiserDashboard = () => {
       key: "status",
       render: (status) => getStatusTag(status),
     },
+    {
+      title: "Date",
+      dataIndex: "createdDate",
+      key: "createdDate",
+      render: (date) => formatDate(date),
+    },
   ];
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="advertiser-dashboard p-6">
       <Helmet>
-        <title>Advertiser Dashboard | EIGAKAN</title>
+        <title>Dashboard | EIGAKAN</title>
       </Helmet>
 
+      {/* Header with refresh button */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Advertiser Dashboard</h1>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleRefresh}
-            loading={Object.values(loading).some(Boolean)}
-            className="bg-white hover:bg-gray-50"
-          >
-            Refresh Data
-          </Button>
-          <Button
-            type="primary"
-            onClick={() => navigate("/advertiser/payment-history")}
-            className="bg-[#FF009F] hover:bg-[#d1007f] border-none flex items-center"
-          >
-            View All Payments <ArrowRightOutlined className="ml-1" />
-          </Button>
-        </div>
+        <Title level={2} className="mb-0">
+          Advertiser Dashboard
+        </Title>
+        <Button
+          type="primary"
+          icon={<ReloadOutlined />}
+          onClick={handleRefresh}
+          loading={
+            loading.media || loading.ads || loading.stats || loading.payments
+          }
+        >
+          Refresh
+        </Button>
       </div>
 
+      {/* Error message if any */}
       {error && (
         <Alert
           message="Error"
@@ -514,96 +528,109 @@ const AdvertiserDashboard = () => {
         />
       )}
 
-      {/* Summary Cards */}
-      <Row gutter={[16, 16]}>
+      {/* Key metrics */}
+      <Row gutter={[16, 16]} className="mb-6">
         <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="shadow-sm">
+          <Card loading={loading.media}>
             <Statistic
-              title="Active Ad Slots"
-              value={activeAds}
-              prefix={<PlayCircleOutlined />}
-              valueStyle={{ color: "#FF009F" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="shadow-sm">
-            <Statistic
-              title="Total Ad Views"
-              value={totalViews}
-              prefix={<EyeOutlined />}
-              valueStyle={{ color: "#52c41a" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="shadow-sm">
-            <Statistic
-              title="Total Payment Amount"
-              value={totalSpent}
-              prefix={<DollarCircleOutlined />}
-              valueStyle={{ color: "#faad14" }}
-              suffix="đ"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="shadow-sm">
-            <Statistic
-              title="Successful Transactions"
-              value={successfulPayments}
-              prefix={<CheckCircleOutlined />}
+              title="Total Media"
+              value={totalMediaCount}
+              prefix={<PictureOutlined />}
               valueStyle={{ color: "#1890ff" }}
             />
+            <div className="mt-2">
+              <div className="flex justify-between items-center text-xs text-gray-500">
+                <span>Active: {activeMediaCount}</span>
+                <span>Pending: {pendingMediaCount}</span>
+                <span>Rejected: {rejectedMediaCount}</span>
+              </div>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loading.ads}>
+            <Statistic
+              title="Active Ads"
+              value={activeAdsCount}
+              prefix={<PlayCircleOutlined />}
+              valueStyle={{ color: "#52c41a" }}
+            />
+            <div className="mt-2">
+              <Button
+                type="link"
+                size="small"
+                className="p-0"
+                onClick={navigateToAdsManagement}
+              >
+                View all ads <ArrowRightOutlined />
+              </Button>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loading.stats}>
+            <Statistic
+              title="Total Views"
+              value={totalViewsCount}
+              prefix={<EyeOutlined />}
+              valueStyle={{ color: "#722ed1" }}
+            />
+            <div className="mt-2 text-xs text-gray-500">
+              Across all your ad media
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loading.payments}>
+            <Statistic
+              title="Total Spent"
+              value={formatVND(totalSpent)}
+              prefix={<DollarCircleOutlined />}
+              valueStyle={{ color: "#fa8c16" }}
+            />
+            <div className="mt-2 text-xs text-gray-500">
+              On successful ad campaigns
+            </div>
           </Card>
         </Col>
       </Row>
 
-      {/* Charts Row */}
-      <Row gutter={[16, 16]} className="mt-6">
-        {/* Biểu đồ thống kê lượt xem theo ngày */}
+      {/* Charts and analytics */}
+      <Row gutter={[16, 16]} className="mb-6">
         <Col xs={24} lg={12}>
-          <Card title="Ad View Statistics" className="shadow-sm">
-            {loading.stats ? (
-              <div className="h-[300px] flex items-center justify-center">
-                <Spin size="large" />
+          <Card
+            title={
+              <div className="flex items-center">
+                <EyeOutlined className="mr-2" />
+                <span>Views Over Time</span>
               </div>
-            ) : chartData ? (
-              <div className="h-[300px]">
+            }
+            loading={loading.stats}
+          >
+            {viewsChartData ? (
+              <div style={{ height: "300px" }}>
                 <Line
-                  data={chartData}
+                  data={viewsChartData}
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "top",
-                      },
-                      title: {
-                        display: true,
-                        text: "Daily Ad Views",
-                      },
-                      tooltip: {
-                        callbacks: {
-                          label: (context) => `Views: ${context.parsed.y}`,
-                        },
-                      },
-                    },
                     scales: {
                       y: {
                         beginAtZero: true,
-                        title: {
-                          display: true,
-                          text: "Views",
-                        },
                         ticks: {
                           precision: 0,
                         },
                       },
-                      x: {
-                        title: {
-                          display: true,
-                          text: "Date",
+                    },
+                    plugins: {
+                      legend: {
+                        display: false,
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => {
+                            return `Views: ${context.parsed.y}`;
+                          },
                         },
                       },
                     },
@@ -615,178 +642,41 @@ const AdvertiserDashboard = () => {
             )}
           </Card>
         </Col>
-
-        {/* Biểu đồ chi tiêu theo thời gian */}
         <Col xs={24} lg={12}>
-          <Card title="Transaction History" className="shadow-sm">
-            {loading.payments ? (
-              <div className="h-[300px] flex items-center justify-center">
-                <Spin size="large" />
+          <Card
+            title={
+              <div className="flex items-center">
+                <DollarCircleOutlined className="mr-2" />
+                <span>Monthly Spending</span>
               </div>
-            ) : spendingChartData ? (
-              <div className="h-[300px]">
-                <Line
+            }
+            loading={loading.payments}
+          >
+            {spendingChartData ? (
+              <div style={{ height: "300px" }}>
+                <Bar
                   data={spendingChartData}
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "top",
-                      },
-                      title: {
-                        display: true,
-                        text: "Payment Amount Over Time",
-                      },
-                      tooltip: {
-                        callbacks: {
-                          label: (context) => `${formatVND(context.parsed.y)}`,
-                        },
-                      },
-                    },
                     scales: {
                       y: {
                         beginAtZero: true,
-                        title: {
-                          display: true,
-                          text: "Amount (VND)",
-                        },
-                      },
-                      x: {
-                        title: {
-                          display: true,
-                          text: "Date",
-                        },
-                      },
-                    },
-                  }}
-                />
-              </div>
-            ) : (
-              <Empty description="No payment data available" />
-            )}
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Second row of charts */}
-      <Row gutter={[16, 16]} className="mt-6">
-        {/* Top Performing Ads (biểu đồ cột) */}
-        <Col xs={24} lg={16}>
-          <Card title="Top Ad Slots by Views" className="shadow-sm">
-            {loading.stats ? (
-              <div className="h-[300px] flex items-center justify-center">
-                <Spin size="large" />
-              </div>
-            ) : adSlots.filter((slot) => slot.adMedias?.length > 0).length >
-              0 ? (
-              <div className="h-[300px]">
-                <Bar
-                  data={{
-                    labels: adSlots
-                      .filter((slot) => slot.adMedias?.length > 0)
-                      .sort((a, b) => {
-                        const aViews = (
-                          viewStatistics[a.adMedias[0].id] || []
-                        ).reduce((acc, stat) => acc + stat.totalViews, 0);
-                        const bViews = (
-                          viewStatistics[b.adMedias[0].id] || []
-                        ).reduce((acc, stat) => acc + stat.totalViews, 0);
-                        return bViews - aViews;
-                      })
-                      .slice(0, 5)
-                      .map((slot) => slot.adPackage?.packageName || "Ad"),
-                    datasets: [
-                      {
-                        label: "Views",
-                        data: adSlots
-                          .filter((slot) => slot.adMedias?.length > 0)
-                          .sort((a, b) => {
-                            const aViews = (
-                              viewStatistics[a.adMedias[0].id] || []
-                            ).reduce((acc, stat) => acc + stat.totalViews, 0);
-                            const bViews = (
-                              viewStatistics[b.adMedias[0].id] || []
-                            ).reduce((acc, stat) => acc + stat.totalViews, 0);
-                            return bViews - aViews;
-                          })
-                          .slice(0, 5)
-                          .map((slot) => {
-                            const adMediaId = slot.adMedias[0].id;
-                            const stats = viewStatistics[adMediaId] || [];
-                            return stats.reduce(
-                              (acc, stat) => acc + stat.totalViews,
-                              0
-                            );
-                          }),
-                        backgroundColor: "rgba(255, 0, 159, 0.7)",
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "top",
-                      },
-                      title: {
-                        display: true,
-                        text: "Most Viewed Ad Slots",
-                      },
-                    },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        title: {
-                          display: true,
-                          text: "Views",
-                        },
                         ticks: {
-                          precision: 0,
+                          callback: (value) => {
+                            return value.toLocaleString() + " đ";
+                          },
                         },
                       },
                     },
-                  }}
-                />
-              </div>
-            ) : (
-              <Empty description="No ads data available" />
-            )}
-          </Card>
-        </Col>
-
-        {/* Status Distribution */}
-        <Col xs={24} lg={8}>
-          <Card title="Ad Slot Status Distribution" className="shadow-sm">
-            {loading.slots ? (
-              <div className="h-[300px] flex items-center justify-center">
-                <Spin size="large" />
-              </div>
-            ) : adSlots.length > 0 ? (
-              <div className="h-[300px] flex items-center justify-center">
-                <Doughnut
-                  data={getStatusDistributionData()}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
                     plugins: {
                       legend: {
-                        position: "right",
+                        display: false,
                       },
                       tooltip: {
                         callbacks: {
                           label: (context) => {
-                            const label = context.label || "";
-                            const value = context.raw || 0;
-                            const total = context.dataset.data.reduce(
-                              (acc, val) => acc + val,
-                              0
-                            );
-                            const percentage = Math.round(
-                              (value / total) * 100
-                            );
-                            return `${label}: ${value} (${percentage}%)`;
+                            return `${context.parsed.y.toLocaleString()} đ`;
                           },
                         },
                       },
@@ -795,66 +685,91 @@ const AdvertiserDashboard = () => {
                 />
               </div>
             ) : (
-              <Empty description="No status data available" />
+              <Empty description="No spending data available" />
             )}
           </Card>
         </Col>
       </Row>
 
-      {/* Data Table Row */}
-      <Row gutter={[16, 16]} className="mt-6">
-        {/* Recent Campaigns */}
+      {/* Media and Payments */}
+      <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <Card
-            title="Recent Ad Slots"
-            className="shadow-sm"
+            title={
+              <div className="flex items-center">
+                <PictureOutlined className="mr-2" />
+                <span>Media Status Distribution</span>
+              </div>
+            }
             extra={
               <Button
-                className="text-[#FF009F] hover:text-[#D1007F] border-none"
-                onClick={() => navigate("/advertiser/ad-purchase-slots")}
+                type="link"
+                onClick={navigateToMediaManagement}
+                icon={<ArrowRightOutlined />}
               >
-                View All
+                View all
               </Button>
             }
+            loading={loading.media}
           >
-            {loading.slots ? (
-              <Spin />
+            {mediaStatusChartData ? (
+              <div style={{ height: "300px" }} className="flex justify-center">
+                <div style={{ width: "300px" }}>
+                  <Doughnut
+                    data={mediaStatusChartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "bottom",
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: (context) => {
+                              const label = context.label || "";
+                              const value = context.parsed || 0;
+                              const total = context.dataset.data.reduce(
+                                (a, b) => a + b,
+                                0
+                              );
+                              const percentage = Math.round(
+                                (value / total) * 100
+                              );
+                              return `${label}: ${value} (${percentage}%)`;
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </div>
             ) : (
-              <Table
-                columns={campaignColumns}
-                dataSource={adSlots.slice(0, 5)}
-                rowKey={(record) => record.id || Math.random().toString()}
-                pagination={false}
-              />
+              <Empty description="No media status data available" />
             )}
           </Card>
         </Col>
-
-        {/* Recent Payments */}
         <Col xs={24} lg={12}>
           <Card
-            title="Recent Transactions"
-            className="shadow-sm"
-            extra={
-              <Button
-                className="text-[#FF009F] hover:text-[#D1007F] border-none"
-                onClick={() => navigate("/advertiser/payment-history")}
-              >
-                View All
-              </Button>
+            title={
+              <div className="flex items-center">
+                <CalendarOutlined className="mr-2" />
+                <span>Recent Payments</span>
+              </div>
             }
+            loading={loading.payments}
           >
-            {loading.payments ? (
-              <Spin />
-            ) : recentPayments.length > 0 ? (
+            {recentPayments && recentPayments.length > 0 ? (
               <Table
-                columns={paymentColumns}
                 dataSource={recentPayments}
-                rowKey={(record) => record.id || Math.random().toString()}
+                columns={paymentColumns}
+                rowKey="id"
                 pagination={false}
+                size="small"
               />
             ) : (
-              <Empty description="No payment records" />
+              <Empty description="No recent payment data available" />
             )}
           </Card>
         </Col>

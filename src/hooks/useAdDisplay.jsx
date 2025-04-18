@@ -4,7 +4,7 @@ import adMediaService from "../apis/AdMedia/adMedia";
 
 // Constants for ad display
 export const AD_CONSTANTS = {
-  SKIP_AD_DELAY: 5000, // Time before skip button appears
+  SKIP_AD_DELAY_SECONDS: 5, // Number of seconds before end when skip button appears
   AD_AUTO_CLOSE_DELAY: 15000, // Time before ad auto-closes
   AD_COUNTDOWN_SECONDS: 15, // Countdown duration for ads
   FULLSCREEN_RETRY_DELAY: 500, // Delay before retrying fullscreen
@@ -91,21 +91,32 @@ export const AdUIUtils = {
     // Set high z-index to ensure it's above other elements
     button.style.zIndex = "9999";
 
-    // Show button after delay
-    setTimeout(() => {
-      button.style.display = "block";
-    }, AD_CONSTANTS.SKIP_AD_DELAY);
+    // Initially hidden - will be shown in the last few seconds
+    button.style.display = "none";
+
+    // Add hover effect
+    button.onmouseover = () => {
+      button.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
+    };
+    button.onmouseout = () => {
+      button.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
+    };
 
     return button;
   },
 
   // Setup skip button with standardized behavior for all ad types
   setupSkipButton: (skipButton, adContainer, onSkip) => {
-    // Ensure button is visible
-    skipButton.style.display = "block";
+    // Don't force display here - let the countdown control visibility
+    // skipButton.style.display = "block";
 
     // Set high z-index to ensure it's above all other elements
     skipButton.style.zIndex = "9999";
+
+    // Add pulse animation to make it more noticeable when it appears
+    skipButton.style.transition = "all 0.3s ease-in-out";
+    skipButton.style.transform = "scale(1)";
+    skipButton.style.animation = "pulse 2s infinite ease-in-out";
 
     // Use addEventListener for better event handling
     skipButton.addEventListener("click", (e) => {
@@ -140,6 +151,10 @@ export const AdUIUtils = {
     countdown.className =
       "absolute left-1/2 -translate-x-1/2 bottom-5 bg-black/60 text-white py-2 px-4 rounded text-sm";
     countdown.style.transform = "translateX(-50%)";
+    countdown.style.zIndex = "9998"; // High z-index but below skip button
+    countdown.style.fontWeight = "bold";
+    countdown.style.backdropFilter = "blur(2px)";
+    countdown.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.3)";
     countdown.textContent = `Ad ends in: ${totalSeconds}s`;
 
     return countdown;
@@ -287,14 +302,25 @@ export const useAdDisplay = ({
       const content = adMedia.content || "Advertisement";
       const url = adMedia.url || "";
       const position = item.position || 0;
+      const redirectUrl = adMedia.redirectUrl || "";
+
+      // Xác định loại quảng cáo (video hoặc hình ảnh) dựa trên URL
+      const isVideo =
+        url &&
+        (url.endsWith(".mp4") ||
+          url.endsWith(".webm") ||
+          url.endsWith(".mov") ||
+          url.includes("video") ||
+          (url.includes("cloudinary") && url.includes("video")));
 
       return {
         id: adMediaId,
         title: content,
-        image: url,
+        // Nếu là video, đặt vào trường video, ngược lại đặt vào trường image
+        ...(isVideo ? { video: url } : { image: url }),
         alternativeImage:
           "https://placehold.co/800x450/3A0033/FFFFFF?text=Alternative+Ad",
-        redirectUrl: "", // Không có URL chuyển hướng từ API
+        redirectUrl: redirectUrl, // Sử dụng redirectUrl từ API nếu có
         content: content,
         slotLocation: "CENTER",
         duration: 15,
