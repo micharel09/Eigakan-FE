@@ -12,24 +12,6 @@ const adMediaByLoginService = {
       );
       return response.data;
     }),
-
-  uploadAdMedia: (file) =>
-    makeAuthenticatedRequest(async (headers) => {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await axios.post(
-        `${API_URL}/UploadAdMedia`,
-        formData,
-        { 
-          headers: {
-            ...headers,
-            "Content-Type": "multipart/form-data"
-          }
-        }
-      );
-      return response.data;
-    }),
 };
 
 export default adMediaByLoginService;
