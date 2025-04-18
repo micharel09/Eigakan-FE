@@ -10,8 +10,13 @@ import {
   Tooltip,
   Badge,
   Image,
-  Progress,
   Empty,
+  Modal,
+  Form,
+  Input,
+  Upload,
+  message,
+  notification,
 } from "antd";
 import { Helmet } from "react-helmet";
 import {
@@ -21,50 +26,58 @@ import {
   CloseCircleOutlined,
   PictureOutlined,
   VideoCameraOutlined,
-  FileTextOutlined,
+  UploadOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
-import adPurchaseItemService from "../../../apis/AdPurchaseItem/adPurchaseItem";
+import adMediaByLoginService from "../../../apis/AdMedia/adMediaByLogin";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 
-const AdsManagement = () => {
+const MediaManagement = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [adsData, setAdsData] = useState([]);
+  const [mediaData, setMediaData] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
+  const [fileList, setFileList] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
-  const fetchAdsData = async () => {
+  const fetchMediaData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await adPurchaseItemService.getAdPurchaseItemsByLogin();
+      const response = await adMediaByLoginService.getAdMediaByLogin();
 
       if (response.success) {
-        setAdsData(response.data || []);
+        setMediaData(response.data || []);
       } else {
-        setError(response.message || "Failed to load ads data");
+        setError(response.message || "Failed to load media data");
       }
     } catch (err) {
-      console.error("Error fetching ads data:", err);
-      setError(err.message || "Failed to load ads data");
+      console.error("Error fetching media data:", err);
+      setError(err.message || "Failed to load media data");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAdsData();
+    fetchMediaData();
   }, []);
 
   const handleRefresh = () => {
-    fetchAdsData();
+    fetchMediaData();
   };
 
   const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
       case "ACTIVE":
         return "success";
-      case "EXPIRED":
+      case "REJECTED":
         return "error";
       case "PENDING":
         return "warning";
@@ -79,7 +92,7 @@ const AdsManagement = () => {
     switch (status?.toUpperCase()) {
       case "ACTIVE":
         return <CheckCircleOutlined />;
-      case "EXPIRED":
+      case "REJECTED":
         return <CloseCircleOutlined />;
       case "PENDING":
         return <ClockCircleOutlined />;
@@ -89,13 +102,7 @@ const AdsManagement = () => {
   };
 
   const formatDate = (dateString) => {
-    return dayjs(dateString).format("MMM D, YYYY");
-  };
-
-  const calculateUsagePercentage = (used, total) => {
-    if (!total) return 0;
-    const usedViews = total - used;
-    return Math.round((usedViews / total) * 100);
+    return dayjs(dateString).format("MMM D, YYYY HH:mm");
   };
 
   const getMediaTypeIcon = (url) => {
@@ -112,8 +119,8 @@ const AdsManagement = () => {
   const columns = [
     {
       title: "Media",
-      dataIndex: "adMediaUrl",
-      key: "adMediaUrl",
+      dataIndex: "url",
+      key: "url",
       render: (url) =>
         url ? (
           <div className="flex justify-center">
@@ -136,71 +143,15 @@ const AdsManagement = () => {
       width: "16%",
     },
     {
-      title: "Package",
-      dataIndex: "adPackageName",
-      key: "adPackageName",
-      render: (text) => <Tag color="blue">{text}</Tag>,
-      width: "12%",
-    },
-    {
-      title: "Views",
-      key: "views",
-      render: (_, record) => {
-        const usagePercentage = calculateUsagePercentage(
-          record.remainingViews,
-          record.viewQuantity
-        );
-        const usedViews = record.viewQuantity - record.remainingViews;
-
-        return (
-          <div className="flex flex-col">
-            <div className="flex justify-between mb-1">
-              <Text className="text-xs font-medium">
-                {usedViews}/{record.viewQuantity} views
-              </Text>
-            </div>
-            <div className="flex items-center gap-2">
-              <Progress
-                percent={usagePercentage}
-                size="small"
-                status={usagePercentage >= 100 ? "exception" : "active"}
-                strokeColor={{
-                  from: "#108ee9",
-                  to: "#87d068",
-                }}
-                format={() => null} // Hide the built-in percentage text
-              />
-              <span className="text-xs text-gray-500">{usagePercentage}%</span>
-            </div>
-          </div>
-        );
-      },
-      width: "18%",
-      sorter: (a, b) => {
-        const aPercentage = calculateUsagePercentage(
-          a.remainingViews,
-          a.viewQuantity
-        );
-        const bPercentage = calculateUsagePercentage(
-          b.remainingViews,
-          b.viewQuantity
-        );
-        return aPercentage - bPercentage;
-      },
-    },
-    {
-      title: "Price",
-      key: "price",
-      render: (_, record) => (
-        <div>
-          <div className="font-medium">{record.price.toLocaleString()}đ</div>
-          <div className="text-xs text-gray-500">
-            {record.pricePerView}đ/view
-          </div>
-        </div>
+      title: "Content",
+      dataIndex: "content",
+      key: "content",
+      render: (text) => (
+        <Tooltip title={text}>
+          <div className="truncate max-w-xs">{text}</div>
+        </Tooltip>
       ),
-      width: "12%",
-      sorter: (a, b) => a.price - b.price,
+      width: "25%",
     },
     {
       title: "Status",
@@ -215,51 +166,123 @@ const AdsManagement = () => {
           <span className="ml-1">{status}</span>
         </Tag>
       ),
-      width: "12%",
+      width: "15%",
       filters: [
         { text: "Active", value: "ACTIVE" },
-        { text: "Expired", value: "EXPIRED" },
         { text: "Pending", value: "PENDING" },
-        { text: "Inactive", value: "INACTIVE" },
+        { text: "Rejected", value: "REJECTED" },
       ],
       onFilter: (value, record) => record.status.toUpperCase() === value,
     },
     {
       title: "Created Date",
-      dataIndex: "createdDate",
-      key: "createdDate",
+      dataIndex: "createAt",
+      key: "createAt",
       render: (text) => formatDate(text),
-      width: "15%",
-      sorter: (a, b) => new Date(a.createdDate) - new Date(b.createdDate),
+      width: "20%",
+      sorter: (a, b) => new Date(a.createAt) - new Date(b.createAt),
     },
     {
-      title: "Expiry Date",
-      dataIndex: "expiredDate",
-      key: "expiredDate",
-      render: (text) => formatDate(text),
-      width: "15%",
-      sorter: (a, b) => new Date(a.expiredDate) - new Date(b.expiredDate),
+      title: "Approved Date",
+      dataIndex: "approvedDate",
+      key: "approvedDate",
+      render: (text) => (text ? formatDate(text) : "-"),
+      width: "20%",
+      sorter: (a, b) => {
+        if (!a.approvedDate) return 1;
+        if (!b.approvedDate) return -1;
+        return new Date(a.approvedDate) - new Date(b.approvedDate);
+      },
+    },
+    {
+      title: "Rejection Reason",
+      dataIndex: "reasonForRejection",
+      key: "reasonForRejection",
+      render: (text) => (
+        <Tooltip title={text}>
+          <div className="truncate max-w-xs">{text || "-"}</div>
+        </Tooltip>
+      ),
+      width: "20%",
     },
   ];
 
+  const showModal = () => {
+    form.resetFields();
+    setFileList([]);
+    setIsModalVisible(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
+
+  const handleUpload = async (options) => {
+    const { onSuccess, onError, file, onProgress } = options;
+
+    // Simulate upload progress
+    onProgress({ percent: 50 });
+
+    // In a real implementation, you would upload the file to your server
+    // For now, we'll just simulate a successful upload
+    setTimeout(() => {
+      onSuccess("ok");
+    }, 1000);
+  };
+
+  const handleSubmit = () => {
+    form
+      .validateFields()
+      .then((values) => {
+        setUploading(true);
+
+        // Simulate API call
+        setTimeout(() => {
+          setUploading(false);
+          setIsModalVisible(false);
+          notification.success({
+            message: "Media Uploaded",
+            description:
+              "Your media has been uploaded and is pending approval.",
+          });
+
+          // Refresh the list
+          fetchMediaData();
+        }, 1500);
+      })
+      .catch((info) => {
+        console.log("Validate Failed:", info);
+      });
+  };
+
   return (
-    <div className="ads-management-page p-6">
+    <div className="media-management-page p-6">
       <Helmet>
-        <title>Payment History | EIGAKAN</title>
+        <title>Ads Management | EIGAKAN</title>
       </Helmet>
 
       <div className="flex justify-between items-center mb-6">
         <Title level={2} className="m-0">
-          <FileTextOutlined className="mr-2" /> Payment History
+          <VideoCameraOutlined className="mr-2" /> Ads Management
         </Title>
-        <Button
-          onClick={handleRefresh}
-          icon={<ReloadOutlined />}
-          loading={loading}
-          className="bg-white hover:bg-gray-50"
-        >
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="primary"
+            onClick={() => navigate("/advertiser/buy-adslot")}
+            icon={<PlusOutlined />}
+            className="bg-[#FF009F] hover:bg-[#d1007f] border-none"
+          >
+            New AdsMedia
+          </Button>
+          <Button
+            onClick={handleRefresh}
+            icon={<ReloadOutlined />}
+            loading={loading}
+            className="bg-white hover:bg-gray-50"
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -275,7 +298,7 @@ const AdsManagement = () => {
 
       <Card className="shadow-sm">
         <div className="flex justify-between items-center mb-4">
-          <Text className="text-lg font-medium">Your Ad Campaigns</Text>
+          <Text className="text-lg font-medium">Your Ad Media</Text>
           <Badge
             status={loading ? "processing" : "success"}
             text={loading ? "Loading..." : "Updated"}
@@ -283,7 +306,7 @@ const AdsManagement = () => {
         </div>
 
         <Table
-          dataSource={adsData}
+          dataSource={mediaData}
           columns={columns}
           rowKey="id"
           loading={loading}
@@ -297,15 +320,68 @@ const AdsManagement = () => {
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No ad campaigns found"
+                description="No ad media found"
               />
             ),
           }}
-          className="ads-table"
+          className="media-table"
         />
       </Card>
+
+      <Modal
+        title="Upload New Ad Media"
+        open={isModalVisible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="back" onClick={handleCancel}>
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={uploading}
+            onClick={handleSubmit}
+            className="bg-[#FF009F] hover:bg-[#d1007f] border-none"
+          >
+            Upload
+          </Button>,
+        ]}
+      >
+        <Form form={form} layout="vertical" name="upload_media_form">
+          <Form.Item
+            name="content"
+            label="Content"
+            rules={[
+              { required: true, message: "Please enter content description" },
+            ]}
+          >
+            <TextArea rows={4} placeholder="Enter content description" />
+          </Form.Item>
+
+          <Form.Item
+            name="media"
+            label="Media File"
+            rules={[{ required: true, message: "Please upload a media file" }]}
+          >
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              customRequest={handleUpload}
+              onChange={({ fileList }) => setFileList(fileList)}
+              maxCount={1}
+            >
+              {fileList.length >= 1 ? null : (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
 
-export default AdsManagement;
+export default MediaManagement;

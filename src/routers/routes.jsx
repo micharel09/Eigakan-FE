@@ -55,11 +55,11 @@ import BuyAdSlot from "../pages/Advertiser/BuyAdSlot/BuyAdSlot";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
 import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
 import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
+import PaymentWallet from "../pages/Payment/PaymentWallet";
 import { Navigate } from "react-router-dom";
-import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory";
-import PaymentDetails from "../pages/Advertiser/PaymentHistory/PaymentDetails";
+import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory.jsx";
 import UserWallet from "../pages/Advertiser/UserWallet/UserWallet";
-import AdsManagement from "../pages/Advertiser/AdsManagement/AdsManagement";
+import MediaManagement from "../pages/Advertiser/MediaManagement/MediaManagement";
 import WaitingRoom from "../pages/WatchTogether/WaitingRoom.jsx";
 import PaymentPolicyManagement from "../pages/Admin/PaymentPolicy/PaymentPolicyManagement.jsx";
 import AdHistory from "../pages/Admin/Ad/AdHistory.jsx";
@@ -583,16 +583,6 @@ const routes = [
   },
 
   {
-    path: "/advertiser/ad-purchase-slots",
-    element: (
-      <PrivateRoute requiredRole="ADVERTISER">
-        <AdsManagement />
-      </PrivateRoute>
-    ),
-    layout: "AdvertiserLayout",
-  },
-
-  {
     path: "/advertiser/payment-history",
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
@@ -603,10 +593,10 @@ const routes = [
   },
 
   {
-    path: "/advertiser/payment-details/:id",
+    path: "/advertiser/ad-management",
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
-        <PaymentDetails />
+        <MediaManagement />
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",
@@ -620,6 +610,12 @@ const routes = [
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/payment-wallet",
+    element: <PaymentWallet />,
+    layout: "UserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },
