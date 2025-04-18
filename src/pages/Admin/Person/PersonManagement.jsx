@@ -187,10 +187,20 @@ const PersonManagement = () => {
       }
 
       if (response?.data?.status) {
+        // Tạo đối tượng file với thông tin xem trước
+        const uploadedFile = {
+          uid: file.uid,
+          name: file.name,
+          status: "done",
+          url: response.data.data[0].url,
+          thumbUrl: response.data.data[0].url,
+        };
+
         form.setFieldsValue({
-          image: [file],
+          image: [uploadedFile],
           picture: response.data.data[0].url,
         });
+
         notification.success({
           message: "Upload Successful",
           description: "Image has been uploaded successfully",
@@ -403,33 +413,63 @@ const PersonManagement = () => {
               getValueFromEvent={(e) => e?.fileList}
               rules={[{ required: true, message: "Please upload an image!" }]}
             >
-              <Upload
-                customRequest={handleUpload}
-                showUploadList={true}
-                accept="image/*"
-                maxCount={1}
-                beforeUpload={(file) => {
-                  const isImage = file.type.startsWith("image/");
-                  const isLt2M = file.size / 1024 / 1024 < 2;
-                  if (!isImage) {
-                    notification.error({
-                      message: "Upload Failed",
-                      description: "You can only upload image files!",
-                    });
-                    return false;
-                  }
-                  if (!isLt2M) {
-                    notification.error({
-                      message: "Upload Failed",
-                      description: "Image must be smaller than 2MB!",
-                    });
-                    return false;
-                  }
-                  return true;
-                }}
-              >
-                <Button icon={<UploadOutlined />}>Upload Image</Button>
-              </Upload>
+              <div className="flex flex-col space-y-2">
+                <Upload
+                  customRequest={handleUpload}
+                  listType="picture-card"
+                  showUploadList={false}
+                  accept="image/*"
+                  maxCount={1}
+                  fileList={form.getFieldValue("image") || []}
+                  onRemove={() => {
+                    form.setFieldsValue({ image: [], picture: null });
+                  }}
+                  beforeUpload={(file) => {
+                    const isImage = file.type.startsWith("image/");
+                    const isLt2M = file.size / 1024 / 1024 < 2;
+                    if (!isImage) {
+                      notification.error({
+                        message: "Upload Failed",
+                        description: "You can only upload image files!",
+                      });
+                      return false;
+                    }
+                    if (!isLt2M) {
+                      notification.error({
+                        message: "Upload Failed",
+                        description: "Image must be smaller than 2MB!",
+                      });
+                      return false;
+                    }
+                    return true;
+                  }}
+                >
+                  <div className="flex items-center justify-center w-full h-24 cursor-pointer hover:bg-gray-50 transition-colors">
+                    <PlusOutlined className="text-lg" />
+                    <div className="ml-2">Upload</div>
+                  </div>
+                </Upload>
+
+                {/* Hiển thị hình ảnh đã tải lên */}
+                {form.getFieldValue("image")?.[0]?.url && (
+                  <div className="relative mt-4 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                    <img
+                      src={form.getFieldValue("image")?.[0]?.url}
+                      alt="Preview"
+                      className="w-full h-auto max-h-64 object-contain bg-gray-50"
+                    />
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-white shadow-sm"
+                      onClick={() =>
+                        form.setFieldsValue({ image: [], picture: null })
+                      }
+                    />
+                  </div>
+                )}
+              </div>
             </Form.Item>
 
             <Form.Item className="mb-0">
