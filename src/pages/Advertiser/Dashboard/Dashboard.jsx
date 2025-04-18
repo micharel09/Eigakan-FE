@@ -444,6 +444,18 @@ const AdvertiserDashboard = () => {
     );
   };
 
+  // Calculate spending by status
+  const calculateTotalByStatus = () => {
+    if (!recentPayments || recentPayments.length === 0) return {};
+
+    return recentPayments.reduce((acc, payment) => {
+      const status = payment.status || "UNKNOWN";
+      if (!acc[status]) acc[status] = 0;
+      acc[status] += payment.totalPrice;
+      return acc;
+    }, {});
+  };
+
   // Calculate usage percentage
   const calculateUsagePercentage = (used, total) => {
     if (!total) return 0;
