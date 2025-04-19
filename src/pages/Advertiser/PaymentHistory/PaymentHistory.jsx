@@ -25,7 +25,7 @@ import {
   FileTextOutlined,
   PlayCircleOutlined,
 } from "@ant-design/icons";
-import adPurchaseItemService from "../../../apis/AdPurchaseItem/adPurchaseItem";
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
@@ -39,7 +39,7 @@ const PaymentHistory = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await adPurchaseItemService.getAdPurchaseItemsByLogin();
+      const response = await adPurchaseService.getAdPurchaseItemsByLogin();
 
       if (response.success) {
         // Log the data to see what we're getting

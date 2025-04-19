@@ -28,12 +28,13 @@ import {
   LoadingOutlined,
   PlusOutlined,
   RightOutlined,
+  PlayCircleOutlined,
 } from "@ant-design/icons";
 import { Helmet } from "react-helmet";
 import { motion } from "framer-motion";
-import adPackageService from "../../../apis/AdPackage/adPackageService";
+import adPackageService from "../../../apis/AdPackage/adpackage";
 import adMediaByLoginService from "../../../apis/AdMedia/adMediaByLogin";
-import adPurchaseTransactionService from "../../../apis/AdPurchaseTransaction/adPurchaseTransactionService";
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
 import uploadFileApi from "../../../apis/Upload/upload.jsx";
 import { useNavigate } from "react-router-dom";
 
@@ -439,9 +440,7 @@ const BuyAdSlot = () => {
         })),
       };
 
-      const response = await adPurchaseTransactionService.createAdPurchase(
-        purchaseData
-      );
+      const response = await adPurchaseService.createAdPurchase(purchaseData);
 
       if (response.success) {
         // Calculate total price of all items
@@ -871,9 +870,49 @@ const BuyAdSlot = () => {
                           >
                             <div className="aspect-video relative">
                               {isVideo(media.url) ? (
-                                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
-                                  <VideoCameraOutlined className="text-4xl text-white" />
-                                  <span className="ml-2 text-white">Video</span>
+                                <div className="w-full h-full bg-gray-700 relative group">
+                                  {/* Video thumbnail always visible */}
+                                  <video
+                                    src={media.url}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    preload="metadata"
+                                    poster=""
+                                    onLoadedData={(e) => {
+                                      // Capture the first frame as thumbnail
+                                      try {
+                                        e.target.currentTime = 0.5; // Set to 0.5 seconds to avoid black frame
+                                      } catch (err) {
+                                        console.error(
+                                          "Error setting video time:",
+                                          err
+                                        );
+                                      }
+                                    }}
+                                  />
+
+                                  {/* Play button overlay always visible */}
+                                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center pointer-events-none">
+                                    <PlayCircleOutlined className="text-5xl text-white opacity-80" />
+                                  </div>
+
+                                  {/* Video preview on hover - plays the video */}
+                                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <video
+                                      src={media.url}
+                                      className="w-full h-full object-cover"
+                                      muted
+                                      loop
+                                      preload="metadata"
+                                      onMouseOver={(e) => {
+                                        e.target.play();
+                                      }}
+                                      onMouseOut={(e) => {
+                                        e.target.pause();
+                                        e.target.currentTime = 0;
+                                      }}
+                                    />
+                                  </div>
                                 </div>
                               ) : (
                                 <img
@@ -1122,8 +1161,28 @@ const BuyAdSlot = () => {
                         >
                           <div className="w-16 h-16 mr-4 overflow-hidden rounded-md flex-shrink-0">
                             {isVideo(item.mediaUrl) ? (
-                              <div className="w-full h-full bg-gray-900 flex items-center justify-center">
-                                <VideoCameraOutlined className="text-xl text-white" />
+                              <div className="w-full h-full bg-gray-900 relative group">
+                                <video
+                                  src={item.mediaUrl}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  preload="metadata"
+                                  poster=""
+                                  onLoadedData={(e) => {
+                                    // Capture the first frame as thumbnail
+                                    try {
+                                      e.target.currentTime = 0.5; // Set to 0.5 seconds to avoid black frame
+                                    } catch (err) {
+                                      console.error(
+                                        "Error setting video time:",
+                                        err
+                                      );
+                                    }
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                                  <PlayCircleOutlined className="text-lg text-white" />
+                                </div>
                               </div>
                             ) : (
                               <img
@@ -1206,8 +1265,28 @@ const BuyAdSlot = () => {
                     >
                       <div className="w-20 h-20 mr-4 overflow-hidden rounded-md flex-shrink-0">
                         {isVideo(item.mediaUrl) ? (
-                          <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                            <VideoCameraOutlined className="text-2xl text-white" />
+                          <div className="w-full h-full bg-gray-800 relative group">
+                            <video
+                              src={item.mediaUrl}
+                              className="w-full h-full object-cover"
+                              muted
+                              preload="metadata"
+                              poster=""
+                              onLoadedData={(e) => {
+                                // Capture the first frame as thumbnail
+                                try {
+                                  e.target.currentTime = 0.5; // Set to 0.5 seconds to avoid black frame
+                                } catch (err) {
+                                  console.error(
+                                    "Error setting video time:",
+                                    err
+                                  );
+                                }
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                              <PlayCircleOutlined className="text-2xl text-white" />
+                            </div>
                           </div>
                         ) : (
                           <img

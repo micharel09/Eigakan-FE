@@ -54,7 +54,7 @@ import MovieCount from "../pages/Admin/Movie/MovieCount.jsx";
 import BuyAdSlot from "../pages/Advertiser/BuyAdSlot/BuyAdSlot";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
 import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
-import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
+// import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot"; // Removed as API no longer exists
 import PaymentWallet from "../pages/Payment/PaymentWallet";
 import { Navigate } from "react-router-dom";
 import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory.jsx";
@@ -572,15 +572,16 @@ const routes = [
     private: true,
   },
 
-  {
-    path: "/payment-success-adslot",
-    element: (
-      <PrivateRoute requiredRole="ADVERTISER">
-        <PaymentSuccessAdSlot />
-      </PrivateRoute>
-    ),
-    layout: "UserLayout",
-  },
+  // Route removed as PaymentSuccessAdSlot component no longer exists
+  // {
+  //   path: "/payment-success-adslot",
+  //   element: (
+  //     <PrivateRoute requiredRole="ADVERTISER">
+  //       <PaymentSuccessAdSlot />
+  //     </PrivateRoute>
+  //   ),
+  //   layout: "UserLayout",
+  // },
 
   {
     path: "/advertiser/payment-history",

@@ -45,10 +45,10 @@ import {
   Filler,
 } from "chart.js";
 import { useNavigate } from "react-router-dom";
-import adPurchaseSlotService from "../../../apis/AdPurchaseSlot/adPurchaseSlot";
+// import adPurchaseSlotService from "../../../apis/AdPurchaseSlot/adPurchaseSlot"; // Đã hợp nhất vào adPurchaseService
 import adMediaCountService from "../../../apis/AdMedia/adMediaCount";
 import adMediaByLoginService from "../../../apis/AdMedia/adMediaByLogin";
-import adPurchaseItemService from "../../../apis/AdPurchaseItem/adPurchaseItem";
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
@@ -168,7 +168,7 @@ const AdvertiserDashboard = () => {
       // Fetch media and ads data in parallel
       const [mediaResponse, adsResponse] = await Promise.all([
         adMediaByLoginService.getAdMediaByLogin(1, 1000),
-        adPurchaseItemService.getAdPurchaseItemsByLogin(),
+        adPurchaseService.getAdPurchaseItemsByLogin(),
       ]);
 
       // Process media data
