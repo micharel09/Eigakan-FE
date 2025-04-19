@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { notification } from "antd";
-import ratingService from "../apis/Movie/rating";
+import ratingService from "../../apis/Movie/rating";
 
 /**
  * Custom hook to handle movie rating functionality
@@ -86,4 +86,4 @@ export const useMovieRating = ({
     handleRating,
     canRateAndComment,
   };
-}; 
+};

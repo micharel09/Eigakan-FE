@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import movieCountService from "../apis/MovieCount/MovieCount";
-import movieHistoryService from "../apis/MovieHistory/MovieHistory";
+import movieCountService from "../../apis/MovieCount/MovieCount";
+import movieHistoryService from "../../apis/MovieHistory/MovieHistory";
 
 /**
  * Custom hook to handle movie view counting and history tracking
@@ -122,4 +122,4 @@ export const useViewCounter = ({
     startViewCount,
     stopViewCount,
   };
-}; 
+};

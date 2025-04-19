@@ -288,4 +288,4 @@ export const useVideo = ({
     togglePlay, 
     toggleFullscreen
   ]);
-}; 
+};

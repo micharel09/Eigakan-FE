@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { notification } from "antd";
-import uploadFileApi from "../apis/Upload/upload.jsx";
+import uploadFileApi from "../../apis/Upload/upload.jsx";
 
 const useFileUpload = () => {
   const [imageUrl, setImageUrl] = useState("");
@@ -154,4 +154,4 @@ const useFileUpload = () => {
   };
 };
 
-export default useFileUpload; 
+export default useFileUpload;

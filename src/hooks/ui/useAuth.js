@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import authService from "../apis/Auth/auth";
+import authService from "../../apis/Auth/auth";
 
 /**
  * Custom hook for authentication and user state management
@@ -107,4 +107,4 @@ const useAuth = () => {
   };
 };
 
-export default useAuth; 
+export default useAuth;

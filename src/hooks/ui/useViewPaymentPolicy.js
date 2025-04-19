@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import viewPaymentPolicyService from "../apis/ViewPaymentPolicy/viewPaymentPolicy";
+import viewPaymentPolicyService from "../../apis/ViewPaymentPolicy/viewPaymentPolicy";
 import { toast } from "react-hot-toast";
 
 const useViewPaymentPolicy = () => {
@@ -87,4 +87,4 @@ const useViewPaymentPolicy = () => {
   };
 };
 
-export default useViewPaymentPolicy; 
+export default useViewPaymentPolicy;

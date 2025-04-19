@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import ScreenfullUtils from "../utils/ScreenfullUtils";
-import adMediaService from "../apis/AdMedia/adMedia";
+import ScreenfullUtils from "../../utils/ScreenfullUtils";
+import adMediaService from "../../apis/AdMedia/adMedia";
 
 // Constants for ad display
 export const AD_CONSTANTS = {
@@ -11,58 +11,6 @@ export const AD_CONSTANTS = {
   VOLUME_FADE_DELAY: 1500, // Delay for volume fade in
   MIDROLL_AD_TRIGGER_TIME: 20, // Seconds after start to trigger midroll ad
 };
-
-// Sample test ads - moved outside the hook for better separation of concerns
-const TEST_ADS = [
-  {
-    id: "ad-1",
-    title: "Test Advertisement 1",
-    image:
-      "https://placehold.co/800x450/FF009F/FFFFFF?text=Test+Advertisement+1",
-    alternativeImage:
-      "https://placehold.co/800x450/3A0033/FFFFFF?text=Alternative+Ad+1",
-    redirectUrl: "https://example.com/ad1",
-    content: "This is test advertisement 1 for Eigakan",
-    slotLocation: "CENTER",
-    duration: 15,
-    isMidroll: true,
-  },
-  {
-    id: "ad-2",
-    title: "Test Advertisement 2",
-    image: "https://placehold.co/800x450/FF4DB8/000000?text=Test+Ad+2",
-    alternativeImage:
-      "https://placehold.co/800x450/3A0033/FFFFFF?text=Alternative+Ad+2",
-    redirectUrl: "https://example.com/ad2",
-    content: "This is test advertisement 2 for Eigakan",
-    slotLocation: "CENTER",
-    duration: 12,
-    isMidroll: true,
-  },
-  {
-    id: "ad-3",
-    title: "Video Advertisement",
-    video:
-      "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    redirectUrl: "https://example.com/video-ad",
-    content: "This is a video advertisement for testing",
-    slotLocation: "CENTER",
-    duration: 10,
-    isMidroll: true,
-  },
-  {
-    id: "midroll-1",
-    title: "Midroll Only Ad 1",
-    image: "https://placehold.co/800x450/3A0033/FF4DB8?text=Midroll+Only+1",
-    alternativeImage:
-      "https://placehold.co/800x450/FF009F/FFFFFF?text=Alternative+Midroll",
-    redirectUrl: "https://example.com/midroll1",
-    content: "This is a midroll-only advertisement",
-    slotLocation: "CENTER",
-    duration: 10,
-    isMidroll: true,
-  },
-];
 
 // Utility to create ad UI elements using DOM API and Tailwind
 export const AdUIUtils = {
@@ -258,7 +206,7 @@ export const useAdDisplay = ({
   userRole = null,
   movieId = null,
 }) => {
-  // Chỉ giữ lại state và logic cần thiết cho WatchPage
+  // Only keep necessary state and logic for WatchPage
   const [midrollAdSequence, setMidrollAdSequence] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -269,17 +217,17 @@ export const useAdDisplay = ({
     [userRole]
   );
 
-  // Chuyển đổi dữ liệu từ API sang định dạng cần thiết cho quảng cáo
+  // Convert API data to the required ad format
   const mapApiDataToAdFormat = useCallback((apiData) => {
     console.log("API Data received:", apiData);
 
-    // Kiểm tra cấu trúc dữ liệu API
+    // Check API data structure
     if (!apiData) {
       console.error("API data is null or undefined");
       return [];
     }
 
-    // Kiểm tra xem có phải là mảng không
+    // Check if it's an array
     const dataArray = Array.isArray(apiData)
       ? apiData
       : apiData.data && Array.isArray(apiData.data)
@@ -296,7 +244,7 @@ export const useAdDisplay = ({
     return dataArray.map((item) => {
       console.log("Processing ad item:", item);
 
-      // Xử lý trường hợp cấu trúc dữ liệu khác nhau
+      // Handle different data structure cases
       const adMedia = item.adMedia || item;
       const adMediaId = item.adMediaId || adMedia.id || "unknown-id";
       const content = adMedia.content || "Advertisement";
@@ -304,7 +252,7 @@ export const useAdDisplay = ({
       const position = item.position || 0;
       const redirectUrl = adMedia.redirectUrl || "";
 
-      // Xác định loại quảng cáo (video hoặc hình ảnh) dựa trên URL
+      // Determine ad type (video or image) based on URL
       const isVideo =
         url &&
         (url.endsWith(".mp4") ||
@@ -316,21 +264,21 @@ export const useAdDisplay = ({
       return {
         id: adMediaId,
         title: content,
-        // Nếu là video, đặt vào trường video, ngược lại đặt vào trường image
+        // If it's a video, set the video field, otherwise set the image field
         ...(isVideo ? { video: url } : { image: url }),
         alternativeImage:
-          "https://placehold.co/800x450/3A0033/FFFFFF?text=Alternative+Ad",
-        redirectUrl: redirectUrl, // Sử dụng redirectUrl từ API nếu có
+          "https://placehold.co/800x450/3A0033/FFFFFF?text=Alternative+Ad", // Fallback image for ads
+        redirectUrl: redirectUrl, // Use redirectUrl from API if available
         content: content,
         slotLocation: "CENTER",
-        duration: 15,
+        duration: AD_CONSTANTS.AD_COUNTDOWN_SECONDS,
         isMidroll: true,
         position: position,
       };
     });
   }, []);
 
-  // Lấy quảng cáo từ API
+  // Fetch ads from API
   const fetchAdsFromApi = useCallback(async () => {
     if (!movieId) {
       console.log("No movieId provided for ad fetch");
@@ -345,20 +293,20 @@ export const useAdDisplay = ({
       const response = await adMediaService.getRandomAdMedia(movieId);
       console.log("API response:", response);
 
-      // Kiểm tra response có hợp lệ không
+      // Check if response is valid
       if (!response) {
         throw new Error("Empty response from API");
       }
 
-      // Xử lý trường hợp response không có success field
+      // Handle case where response doesn't have success field
       if (response.success === undefined) {
-        // Có thể response trực tiếp là dữ liệu
+        // Response might be direct data
         const formattedAds = mapApiDataToAdFormat(response);
         console.log("Formatted ads (direct):", formattedAds);
         return formattedAds;
       }
 
-      // Xử lý trường hợp response có success field
+      // Handle case where response has success field
       if (response.success) {
         const formattedAds = mapApiDataToAdFormat(response.data);
         console.log("Formatted ads (success):", formattedAds);
@@ -379,36 +327,26 @@ export const useAdDisplay = ({
     }
   }, [movieId, mapApiDataToAdFormat]);
 
-  // Get a sequence of ads for midroll - sử dụng API thay vì dữ liệu test
+  // Get a sequence of ads for midroll from API
   const getAdSequence = useCallback(async () => {
-    // Nếu không có movieId, sử dụng dữ liệu test
     if (!movieId) {
-      const availableAds = [...TEST_ADS].filter((ad) => ad.isMidroll);
-      const selectedAds = [];
-
-      // Lấy tất cả quảng cáo test
-      for (let i = 0; i < availableAds.length; i++) {
-        const randomIndex = Math.floor(Math.random() * availableAds.length);
-        selectedAds.push(availableAds[randomIndex]);
-        availableAds.splice(randomIndex, 1);
-      }
-
-      return selectedAds;
+      console.log("No movieId provided for ad fetch");
+      return [];
     }
 
-    // Sử dụng API để lấy quảng cáo
+    // Get ads from API
     const ads = await fetchAdsFromApi();
     console.log("Total ads from API:", ads.length);
 
-    // Trả về tất cả quảng cáo từ API, không giới hạn số lượng
+    // Return all ads from API
     return ads;
   }, [movieId, fetchAdsFromApi]);
 
   // Initialize midroll ad sequence
   useEffect(() => {
     const initializeAds = async () => {
-      // Lấy tất cả quảng cáo từ API (không giới hạn số lượng)
-      const ads = await getAdSequence(); // Không truyền tham số để lấy tất cả quảng cáo
+      // Get all ads from API without limiting the number
+      const ads = await getAdSequence();
       console.log("Loaded all ads from API:", ads.length, "ads");
       setMidrollAdSequence(ads);
     };
@@ -416,14 +354,14 @@ export const useAdDisplay = ({
     initializeAds();
   }, [getAdSequence]);
 
-  // Lấy vị trí quảng cáo từ midrollAdSequence
+  // Get ad positions from midrollAdSequence
   const getAdPositions = useCallback(() => {
     if (!midrollAdSequence || midrollAdSequence.length === 0) {
-      // Nếu không có quảng cáo, trả về vị trí mặc định
+      // If no ads, return default position
       return [AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME];
     }
 
-    // Lấy vị trí của tất cả quảng cáo
+    // Get positions of all ads
     const positions = midrollAdSequence.map(
       (ad) => ad.position || AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME
     );
@@ -431,7 +369,7 @@ export const useAdDisplay = ({
     return positions;
   }, [midrollAdSequence]);
 
-  // Chỉ trả về những gì WatchPage thực sự cần
+  // Only return what WatchPage actually needs
   return {
     midrollAdSequence,
     shouldShowAds,

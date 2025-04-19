@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { notification } from "antd";
-import UserApi from "../apis/User/user";
-import ratingService from "../apis/Movie/rating";
-import movieService from "../apis/Movie/movie";
+import UserApi from "../../apis/User/user";
+import ratingService from "../../apis/Movie/rating";
+import movieService from "../../apis/Movie/movie";
 
 /**
  * Custom hook to handle movie comments functionality
@@ -12,35 +12,37 @@ import movieService from "../apis/Movie/movie";
  * @param {Object} options.movie - Movie object containing comments
  * @returns {Object} Comments state and control functions
  */
-export const useMovieComments = ({ 
-  movieId, 
+export const useMovieComments = ({
+  movieId,
   isAuthenticated = false,
   movie
 }) => {
   const [commentInput, setCommentInput] = useState("");
   const [userDetails, setUserDetails] = useState({});
   const [loadingComments, setLoadingComments] = useState(true);
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   /**
    * Submit a new comment for the current movie
    */
   const handleCommentSubmit = useCallback(async (e) => {
     if (e) e.preventDefault();
-    if (!commentInput.trim() || !isAuthenticated || !movieId) return null;
+    if (!commentInput.trim() || !isAuthenticated || !movieId || submittingComment) return null;
 
+    setSubmittingComment(true);
     try {
       const response = await ratingService.createComment(commentInput, movieId);
       if (!response.success) throw new Error(response.message || "Failed to post comment");
-      
+
       const movieResponse = await movieService.getMovieById(movieId);
       if (!movieResponse.success) throw new Error("Failed to refresh movie data");
-      
+
       setCommentInput("");
       notification.success({
         message: "Success",
         description: "Comment posted successfully",
       });
-      
+
       return movieResponse.data;
     } catch (error) {
       notification.error({
@@ -48,8 +50,10 @@ export const useMovieComments = ({
         description: error.message || "Failed to post comment",
       });
       return null;
+    } finally {
+      setSubmittingComment(false);
     }
-  }, [commentInput, isAuthenticated, movieId]);
+  }, [commentInput, isAuthenticated, movieId, submittingComment]);
 
   /**
    * Fetch user details for comment authors
@@ -59,7 +63,7 @@ export const useMovieComments = ({
       setLoadingComments(false);
       return;
     }
-    
+
     const fetchUserDetails = async () => {
       setLoadingComments(true);
 
@@ -96,6 +100,7 @@ export const useMovieComments = ({
     setCommentInput,
     userDetails,
     loadingComments,
+    submittingComment,
     handleCommentSubmit,
   };
-}; 
+};

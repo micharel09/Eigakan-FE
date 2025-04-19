@@ -73,4 +73,4 @@ const useModal = (initialState = false, onClose = null, animationDuration = 300)
   };
 };
 
-export default useModal; 
+export default useModal;
