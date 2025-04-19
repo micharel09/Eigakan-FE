@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { notification } from "antd";
-import UserApi from "../apis/User/user";
-import ratingService from "../apis/Movie/rating";
-import movieService from "../apis/Movie/movie";
+import UserApi from "../../apis/User/user";
+import ratingService from "../../apis/Movie/rating";
+import movieService from "../../apis/Movie/movie";
 
 /**
  * Custom hook to handle movie comments functionality
@@ -98,4 +98,4 @@ export const useMovieComments = ({
     loadingComments,
     handleCommentSubmit,
   };
-}; 
+};

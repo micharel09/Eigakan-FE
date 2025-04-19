@@ -255,7 +255,7 @@ const WatchPage = () => {
     return positions;
   }, [midrollAdSequence]);
 
-  // Fetch movie data
+  // Fetch movie data and handle controls
   useEffect(() => {
     const fetchMovie = async () => {
       try {
@@ -390,80 +390,7 @@ const WatchPage = () => {
     });
   }, [adPlaybackAttempted]);
 
-  // Listen for user interaction to force play ads and video
-  useEffect(() => {
-    const handleUserInteraction = () => {
-      forcePlayAds();
-
-      // Cũng cố gắng phát video quảng cáo đang hiển thị
-      const forcePlayVisibleAdVideos = () => {
-        const adContainer = document.getElementById("in-stream-ad-container");
-        if (adContainer) {
-          const adVideos = adContainer.querySelectorAll("video");
-          adVideos.forEach((video) => {
-            if (video.paused) {
-              console.log("User interaction - forcing ad video playback");
-              // Thử phát video sau khi có tương tác người dùng
-              const playPromise = video.play();
-              if (playPromise !== undefined) {
-                playPromise.catch((err) => {
-                  console.error(
-                    "Cannot play ad video after user interaction:",
-                    err
-                  );
-                  // Nếu vẫn không thể phát, thử tắt tiếng và phát lại
-                  video.muted = true;
-                  video
-                    .play()
-                    .then(() => {
-                      // Bật âm thanh sau khi video đã bắt đầu phát
-                      setTimeout(() => {
-                        video.muted = false;
-                      }, 500);
-                    })
-                    .catch((e) => console.error("Still cannot play:", e));
-                });
-              }
-            }
-          });
-        }
-      };
-
-      // Thử phát video quảng cáo ngay lập tức và sau một khoảng thời gian
-      forcePlayVisibleAdVideos();
-      setTimeout(forcePlayVisibleAdVideos, 500);
-    };
-
-    // Sử dụng các sự kiện phổ biến nhất để bắt user interaction
-    const interactionEvents = ["click", "touchstart", "keydown", "scroll"];
-
-    interactionEvents.forEach((event) => {
-      window.addEventListener(event, handleUserInteraction, { once: true });
-    });
-
-    return () => {
-      interactionEvents.forEach((event) => {
-        window.removeEventListener(event, handleUserInteraction);
-      });
-    };
-  }, [forcePlayAds]);
-
-  // Clean up ad players on unmount
-  useEffect(() => {
-    return () => {
-      adPlayersRef.current.forEach((player) => {
-        try {
-          player.off("ready");
-          player.off("error");
-        } catch (err) {
-          // Bỏ qua lỗi khi cleanup
-        }
-      });
-      adPlayersRef.current = [];
-    };
-  }, []);
-
-  // Add useEffect to auto-hide resume dialog after 4 seconds
+  // Auto-hide resume dialog after 4 seconds
   useEffect(() => {
     // Clear any existing timers
     if (hideTimeoutRef.current) {
@@ -527,12 +454,56 @@ const WatchPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playbackPosition.showResumeDialog, playbackPosition.savedPosition]);
 
-  // Thêm useEffect để gọi forcePlayAds sau khi trang load xong
+  // Unified ad management effect - handles all ad-related functionality
   useEffect(() => {
-    // Force play ads when component mounts and video URL is available
+    // 1. Force play ads when user interacts with the page
+    const handleUserInteraction = () => {
+      forcePlayAds();
+
+      // Cố gắng phát video quảng cáo đang hiển thị
+      const forcePlayVisibleAdVideos = () => {
+        const adContainer = document.getElementById("in-stream-ad-container");
+        if (adContainer) {
+          const adVideos = adContainer.querySelectorAll("video");
+          adVideos.forEach((video) => {
+            if (video.paused) {
+              console.log("User interaction - forcing ad video playback");
+              // Thử phát video sau khi có tương tác người dùng
+              const playPromise = video.play();
+              if (playPromise !== undefined) {
+                playPromise.catch((err) => {
+                  console.error(
+                    "Cannot play ad video after user interaction:",
+                    err
+                  );
+                  // Nếu vẫn không thể phát, thử tắt tiếng và phát lại
+                  video.muted = true;
+                  video
+                    .play()
+                    .then(() => {
+                      // Bật âm thanh sau khi video đã bắt đầu phát
+                      setTimeout(() => {
+                        video.muted = false;
+                      }, 500);
+                    })
+                    .catch((e) => console.error("Still cannot play:", e));
+                });
+              }
+            }
+          });
+        }
+      };
+
+      // Thử phát video quảng cáo ngay lập tức và sau một khoảng thời gian
+      forcePlayVisibleAdVideos();
+      setTimeout(forcePlayVisibleAdVideos, 500);
+    };
+
+    // 2. Force play ads when component mounts and video URL is available
+    let forcePlayTimer;
     if (movie) {
       // Wait for a short time to ensure iframe has loaded
-      const timer = setTimeout(() => {
+      forcePlayTimer = setTimeout(() => {
         forcePlayAds();
 
         // Thêm xử lý đặc biệt cho video quảng cáo khi reload trang
@@ -569,9 +540,37 @@ const WatchPage = () => {
         forcePlayAdVideos();
         setTimeout(forcePlayAdVideos, 1000);
       }, 1000);
-
-      return () => clearTimeout(timer);
     }
+
+    // 3. Set up event listeners for user interaction
+    const interactionEvents = ["click", "touchstart", "keydown", "scroll"];
+    interactionEvents.forEach((event) => {
+      window.addEventListener(event, handleUserInteraction, { once: true });
+    });
+
+    // Cleanup function
+    return () => {
+      // Clean up timers
+      if (forcePlayTimer) {
+        clearTimeout(forcePlayTimer);
+      }
+
+      // Clean up event listeners
+      interactionEvents.forEach((event) => {
+        window.removeEventListener(event, handleUserInteraction);
+      });
+
+      // Clean up ad players
+      adPlayersRef.current.forEach((player) => {
+        try {
+          player.off("ready");
+          player.off("error");
+        } catch (err) {
+          // Bỏ qua lỗi khi cleanup
+        }
+      });
+      adPlayersRef.current = [];
+    };
   }, [movie, forcePlayAds]);
 
   // Hàm bỏ qua quảng cáo đã được thay thế bằng AdUIUtils.setupSkipButton
@@ -1185,8 +1184,42 @@ const WatchPage = () => {
 
   // Removed unused triggerMidrollAd function
 
-  // Initialize ads immediately after player is ready
+  // Unified player initialization and ad management effect
   useEffect(() => {
+    // 1. Initialize mainPlayerRef when component mounts
+    if (
+      iframeRef.current &&
+      playerReady &&
+      !mainPlayerRef.current &&
+      typeof window.playerjs !== "undefined"
+    ) {
+      console.log("Initializing mainPlayerRef when playerReady");
+
+      try {
+        mainPlayerRef.current = new window.playerjs.Player(iframeRef.current);
+
+        // Ensure ready event is triggered
+        mainPlayerRef.current.on("ready", () => {
+          console.log("Main player is ready for ads integration");
+        });
+
+        // Remove metrics errors
+        if (window.location.hostname === "localhost") {
+          console.log("Running on localhost - disabling metrics");
+          window.playerjs.metrics = {
+            send: () => {},
+          };
+        }
+      } catch (error) {
+        console.error("Error initializing main player:", error);
+      }
+    }
+
+    // 2. Reset mid-roll ad state when video changes
+    console.log("Resetting ad state when video changes");
+    shownAdPositions.current = [];
+
+    // 3. Set up ad trigger for non-VIP members
     if (!playerReady || !mainPlayerRef.current || role === "VIP MEMBER") return;
 
     console.log("Player ready, setting up playback time listener");
@@ -1194,7 +1227,7 @@ const WatchPage = () => {
     // Store the position where the ad was triggered to prevent duplicate ads
     let adTriggeredPosition = -1;
 
-    // Lấy vị trí quảng cáo từ API hoặc sử dụng giá trị mặc định
+    // Get ad positions from API or use default value
     const adTriggerPositions = adPositions || [
       AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME,
     ];
@@ -1221,37 +1254,42 @@ const WatchPage = () => {
         const currentTime = Date.now();
         const timeSinceLastAd = currentTime - lastAdTime;
 
-        // If less than 10 seconds since last ad closed, don't trigger another
-        if (timeSinceLastAd < 10000) {
+        // If less than cooldown period since last ad closed, don't trigger another
+        const adCooldownPeriod = 10000; // 10 seconds in milliseconds
+        if (timeSinceLastAd < adCooldownPeriod) {
           return;
         }
       }
 
       mainPlayerRef.current.getCurrentTime((currentTime) => {
-        // If we're within 0.5 seconds of where we triggered an ad before, don't trigger again
-        if (Math.abs(currentTime - adTriggeredPosition) < 0.5) {
+        // If we're within margin of where we triggered an ad before, don't trigger again
+        const adPositionMargin = 0.5; // 0.5 seconds margin
+        if (Math.abs(currentTime - adTriggeredPosition) < adPositionMargin) {
           return;
         }
 
-        // Bỏ qua 5 giây đầu tiên của video
-        if (currentTime < 5) {
+        // Skip first few seconds of video
+        const skipInitialSeconds = 5; // Skip first 5 seconds
+        if (currentTime < skipInitialSeconds) {
           return;
         }
 
-        // Tìm vị trí quảng cáo phù hợp để hiển thị
+        // Find appropriate ad position to display
         const adPositionToShow = adTriggerPositions.find((position) => {
-          // Kiểm tra xem đã đến vị trí quảng cáo chưa (chấp nhận sai lệch 2 giây)
+          // Check if we've reached the ad position (allow margin)
+          const adTriggerMargin = 2; // 2 second margin
           const isAtPosition =
-            currentTime >= position && Math.abs(currentTime - position) < 2;
+            currentTime >= position &&
+            Math.abs(currentTime - position) < adTriggerMargin;
 
-          // Kiểm tra xem quảng cáo này đã hiển thị chưa
+          // Check if this ad has already been shown
           const hasShownThisAd = shownAdPositions.current.includes(position);
 
-          // Chỉ trả về true nếu đã đến vị trí và chưa hiển thị quảng cáo này
+          // Only return true if we've reached the position and haven't shown this ad yet
           return isAtPosition && !hasShownThisAd;
         });
 
-        // Nếu tìm thấy vị trí quảng cáo phù hợp
+        // If we found a suitable ad position
         if (adPositionToShow !== undefined) {
           console.log(
             `Reached ad trigger position at ${adPositionToShow} seconds (current time: ${currentTime.toFixed(
@@ -1259,59 +1297,22 @@ const WatchPage = () => {
             )}), displaying ad`
           );
 
-          // Thêm vị trí quảng cáo vào danh sách đã hiển thị
+          // Add ad position to list of shown ads
           shownAdPositions.current.push(adPositionToShow);
           adTriggeredPosition = currentTime; // Remember where we triggered the ad
 
-          // Hiển thị quảng cáo với vị trí cụ thể
+          // Display ad with specific position
           showInStreamAd(adPositionToShow);
         }
       });
     }, 1000);
 
+    // Cleanup function
     return () => {
+      // Clear interval
       clearInterval(timeCheckInterval);
-    };
-  }, [playerReady, role, showInStreamAd, adPositions]);
 
-  // Initialize mainPlayerRef when component mounts
-  useEffect(() => {
-    if (!iframeRef.current || !playerReady) return;
-
-    // Initialize main player if not already existing
-    if (!mainPlayerRef.current && typeof window.playerjs !== "undefined") {
-      console.log("Initializing mainPlayerRef when playerReady");
-
-      try {
-        mainPlayerRef.current = new window.playerjs.Player(iframeRef.current);
-
-        // Ensure ready event is triggered
-        mainPlayerRef.current.on("ready", () => {
-          console.log("Main player is ready for ads integration");
-        });
-
-        // Remove metrics errors
-        if (window.location.hostname === "localhost") {
-          console.log("Running on localhost - disabling metrics");
-          window.playerjs.metrics = {
-            send: () => {},
-          };
-        }
-      } catch (error) {
-        console.error("Error initializing main player:", error);
-      }
-    }
-  }, [playerReady]);
-
-  // Reset mid-roll ad state when video changes
-  useEffect(() => {
-    console.log("Resetting ad state when video changes");
-    shownAdPositions.current = [];
-  }, [showTrailer, movieId]);
-
-  // Clean up player reference when component unmounts
-  useEffect(() => {
-    return () => {
+      // Clean up player reference
       if (mainPlayerRef.current) {
         try {
           mainPlayerRef.current.off("ready");
@@ -1324,7 +1325,15 @@ const WatchPage = () => {
       // Clean up inStreamAdRef
       inStreamAdRef.current = null;
     };
-  }, []);
+  }, [
+    playerReady,
+    role,
+    showInStreamAd,
+    adPositions,
+    iframeRef,
+    showTrailer,
+    movieId,
+  ]);
 
   if (loading) return <Loading />;
 

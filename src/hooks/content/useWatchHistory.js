@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import movieHistoryService from "../apis/MovieHistory/MovieHistory";
+import movieHistoryService from "../../apis/MovieHistory/MovieHistory";
 
 /**
  * Custom hook to handle movie watch history
@@ -101,4 +101,4 @@ export const useWatchHistory = ({
     clearHistory,
     isInHistory,
   };
-}; 
+};

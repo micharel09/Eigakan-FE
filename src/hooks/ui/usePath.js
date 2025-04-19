@@ -87,4 +87,4 @@ const usePath = () => {
   };
 };
 
-export default usePath; 
+export default usePath;

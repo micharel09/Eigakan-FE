@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { notification } from "antd";
-import adMediaService from "../apis/AdMedia/adMedia";
-import adMediaCountService from "../apis/AdMedia/adMediaCount";
+import adMediaService from "../../apis/AdMedia/adMedia";
+import adMediaCountService from "../../apis/AdMedia/adMediaCount";
 
 const useAdMediaManagement = () => {
   // States
@@ -173,4 +173,4 @@ const useAdMediaManagement = () => {
   };
 };
 
-export default useAdMediaManagement; 
+export default useAdMediaManagement;

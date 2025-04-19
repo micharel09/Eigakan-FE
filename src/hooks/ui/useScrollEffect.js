@@ -42,4 +42,4 @@ const useScrollEffect = (threshold = 10, callback = null) => {
   return { isScrolled, scrollY };
 };
 
-export default useScrollEffect; 
+export default useScrollEffect;
