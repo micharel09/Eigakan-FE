@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import ScreenfullUtils from "../utils/ScreenfullUtils";
+import adMediaService from "../apis/AdMedia/adMedia";
 
 // Constants for ad display
 export const AD_CONSTANTS = {
-  SKIP_AD_DELAY: 5000, // Time before skip button appears
+  SKIP_AD_DELAY_SECONDS: 5, // Number of seconds before end when skip button appears
   AD_AUTO_CLOSE_DELAY: 15000, // Time before ad auto-closes
   AD_COUNTDOWN_SECONDS: 15, // Countdown duration for ads
   FULLSCREEN_RETRY_DELAY: 500, // Delay before retrying fullscreen
@@ -24,7 +25,7 @@ const TEST_ADS = [
     content: "This is test advertisement 1 for Eigakan",
     slotLocation: "CENTER",
     duration: 15,
-    isPreroll: true,
+    isMidroll: true,
   },
   {
     id: "ad-2",
@@ -36,7 +37,7 @@ const TEST_ADS = [
     content: "This is test advertisement 2 for Eigakan",
     slotLocation: "CENTER",
     duration: 12,
-    isPreroll: true,
+    isMidroll: true,
   },
   {
     id: "ad-3",
@@ -47,7 +48,7 @@ const TEST_ADS = [
     content: "This is a video advertisement for testing",
     slotLocation: "CENTER",
     duration: 10,
-    isPreroll: true,
+    isMidroll: true,
   },
   {
     id: "midroll-1",
@@ -90,21 +91,32 @@ export const AdUIUtils = {
     // Set high z-index to ensure it's above other elements
     button.style.zIndex = "9999";
 
-    // Show button after delay
-    setTimeout(() => {
-      button.style.display = "block";
-    }, AD_CONSTANTS.SKIP_AD_DELAY);
+    // Initially hidden - will be shown in the last few seconds
+    button.style.display = "none";
+
+    // Add hover effect
+    button.onmouseover = () => {
+      button.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
+    };
+    button.onmouseout = () => {
+      button.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
+    };
 
     return button;
   },
 
   // Setup skip button with standardized behavior for all ad types
   setupSkipButton: (skipButton, adContainer, onSkip) => {
-    // Ensure button is visible
-    skipButton.style.display = "block";
+    // Don't force display here - let the countdown control visibility
+    // skipButton.style.display = "block";
 
     // Set high z-index to ensure it's above all other elements
     skipButton.style.zIndex = "9999";
+
+    // Add pulse animation to make it more noticeable when it appears
+    skipButton.style.transition = "all 0.3s ease-in-out";
+    skipButton.style.transform = "scale(1)";
+    skipButton.style.animation = "pulse 2s infinite ease-in-out";
 
     // Use addEventListener for better event handling
     skipButton.addEventListener("click", (e) => {
@@ -139,6 +151,10 @@ export const AdUIUtils = {
     countdown.className =
       "absolute left-1/2 -translate-x-1/2 bottom-5 bg-black/60 text-white py-2 px-4 rounded text-sm";
     countdown.style.transform = "translateX(-50%)";
+    countdown.style.zIndex = "9998"; // High z-index but below skip button
+    countdown.style.fontWeight = "bold";
+    countdown.style.backdropFilter = "blur(2px)";
+    countdown.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.3)";
     countdown.textContent = `Ad ends in: ${totalSeconds}s`;
 
     return countdown;
@@ -231,14 +247,21 @@ export const AdUIUtils = {
  * @param {Object} options - Configuration options
  * @param {boolean} options.isAuthenticated - Whether the user is authenticated (not used directly but kept for API compatibility)
  * @param {string} options.userRole - User role to determine if ads should be shown
+ * @param {string} options.movieId - ID of the movie being watched
  * @returns {Object} Ad state and control functions needed for WatchPage
  * @returns {Array} midrollAdSequence - Sequence of midroll ads to display
  * @returns {Function} shouldShowAds - Function to check if ads should be shown based on user role
  * @returns {Function} getAdSequence - Function to get a sequence of ads for midroll
  */
-export const useAdDisplay = ({ isAuthenticated = false, userRole = null }) => {
+export const useAdDisplay = ({
+  isAuthenticated = false,
+  userRole = null,
+  movieId = null,
+}) => {
   // Chỉ giữ lại state và logic cần thiết cho WatchPage
   const [midrollAdSequence, setMidrollAdSequence] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Check if ads should be shown based on user role
   const shouldShowAds = useCallback(
@@ -246,34 +269,175 @@ export const useAdDisplay = ({ isAuthenticated = false, userRole = null }) => {
     [userRole]
   );
 
-  // Get a sequence of ads for midroll - đơn giản hóa
-  const getAdSequence = useCallback((count = 2, type = "midroll") => {
-    // Create a copy of the array to avoid modifying the original
-    const availableAds = [...TEST_ADS].filter((ad) =>
-      type === "midroll" ? ad.isMidroll || ad.isPreroll : ad.isPreroll
-    );
+  // Chuyển đổi dữ liệu từ API sang định dạng cần thiết cho quảng cáo
+  const mapApiDataToAdFormat = useCallback((apiData) => {
+    console.log("API Data received:", apiData);
 
-    const selectedAds = [];
-    const actualCount = Math.min(count, availableAds.length);
-
-    for (let i = 0; i < actualCount; i++) {
-      const randomIndex = Math.floor(Math.random() * availableAds.length);
-      selectedAds.push(availableAds[randomIndex]);
-      availableAds.splice(randomIndex, 1);
+    // Kiểm tra cấu trúc dữ liệu API
+    if (!apiData) {
+      console.error("API data is null or undefined");
+      return [];
     }
 
-    return selectedAds;
+    // Kiểm tra xem có phải là mảng không
+    const dataArray = Array.isArray(apiData)
+      ? apiData
+      : apiData.data && Array.isArray(apiData.data)
+      ? apiData.data
+      : null;
+
+    if (!dataArray) {
+      console.error("Could not find valid data array in API response", apiData);
+      return [];
+    }
+
+    console.log("Processing data array:", dataArray);
+
+    return dataArray.map((item) => {
+      console.log("Processing ad item:", item);
+
+      // Xử lý trường hợp cấu trúc dữ liệu khác nhau
+      const adMedia = item.adMedia || item;
+      const adMediaId = item.adMediaId || adMedia.id || "unknown-id";
+      const content = adMedia.content || "Advertisement";
+      const url = adMedia.url || "";
+      const position = item.position || 0;
+      const redirectUrl = adMedia.redirectUrl || "";
+
+      // Xác định loại quảng cáo (video hoặc hình ảnh) dựa trên URL
+      const isVideo =
+        url &&
+        (url.endsWith(".mp4") ||
+          url.endsWith(".webm") ||
+          url.endsWith(".mov") ||
+          url.includes("video") ||
+          (url.includes("cloudinary") && url.includes("video")));
+
+      return {
+        id: adMediaId,
+        title: content,
+        // Nếu là video, đặt vào trường video, ngược lại đặt vào trường image
+        ...(isVideo ? { video: url } : { image: url }),
+        alternativeImage:
+          "https://placehold.co/800x450/3A0033/FFFFFF?text=Alternative+Ad",
+        redirectUrl: redirectUrl, // Sử dụng redirectUrl từ API nếu có
+        content: content,
+        slotLocation: "CENTER",
+        duration: 15,
+        isMidroll: true,
+        position: position,
+      };
+    });
   }, []);
+
+  // Lấy quảng cáo từ API
+  const fetchAdsFromApi = useCallback(async () => {
+    if (!movieId) {
+      console.log("No movieId provided for ad fetch");
+      return [];
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log("Fetching ads for movie ID:", movieId);
+      const response = await adMediaService.getRandomAdMedia(movieId);
+      console.log("API response:", response);
+
+      // Kiểm tra response có hợp lệ không
+      if (!response) {
+        throw new Error("Empty response from API");
+      }
+
+      // Xử lý trường hợp response không có success field
+      if (response.success === undefined) {
+        // Có thể response trực tiếp là dữ liệu
+        const formattedAds = mapApiDataToAdFormat(response);
+        console.log("Formatted ads (direct):", formattedAds);
+        return formattedAds;
+      }
+
+      // Xử lý trường hợp response có success field
+      if (response.success) {
+        const formattedAds = mapApiDataToAdFormat(response.data);
+        console.log("Formatted ads (success):", formattedAds);
+        return formattedAds;
+      } else {
+        console.error(
+          "API returned error:",
+          response.message || "Unknown error"
+        );
+        return [];
+      }
+    } catch (err) {
+      console.error("Error fetching ads:", err);
+      setError(err.message || "Failed to fetch ads");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [movieId, mapApiDataToAdFormat]);
+
+  // Get a sequence of ads for midroll - sử dụng API thay vì dữ liệu test
+  const getAdSequence = useCallback(async () => {
+    // Nếu không có movieId, sử dụng dữ liệu test
+    if (!movieId) {
+      const availableAds = [...TEST_ADS].filter((ad) => ad.isMidroll);
+      const selectedAds = [];
+
+      // Lấy tất cả quảng cáo test
+      for (let i = 0; i < availableAds.length; i++) {
+        const randomIndex = Math.floor(Math.random() * availableAds.length);
+        selectedAds.push(availableAds[randomIndex]);
+        availableAds.splice(randomIndex, 1);
+      }
+
+      return selectedAds;
+    }
+
+    // Sử dụng API để lấy quảng cáo
+    const ads = await fetchAdsFromApi();
+    console.log("Total ads from API:", ads.length);
+
+    // Trả về tất cả quảng cáo từ API, không giới hạn số lượng
+    return ads;
+  }, [movieId, fetchAdsFromApi]);
 
   // Initialize midroll ad sequence
   useEffect(() => {
-    setMidrollAdSequence(getAdSequence(2, "midroll"));
+    const initializeAds = async () => {
+      // Lấy tất cả quảng cáo từ API (không giới hạn số lượng)
+      const ads = await getAdSequence(); // Không truyền tham số để lấy tất cả quảng cáo
+      console.log("Loaded all ads from API:", ads.length, "ads");
+      setMidrollAdSequence(ads);
+    };
+
+    initializeAds();
   }, [getAdSequence]);
+
+  // Lấy vị trí quảng cáo từ midrollAdSequence
+  const getAdPositions = useCallback(() => {
+    if (!midrollAdSequence || midrollAdSequence.length === 0) {
+      // Nếu không có quảng cáo, trả về vị trí mặc định
+      return [AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME];
+    }
+
+    // Lấy vị trí của tất cả quảng cáo
+    const positions = midrollAdSequence.map(
+      (ad) => ad.position || AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME
+    );
+    console.log("Ad positions from API:", positions);
+    return positions;
+  }, [midrollAdSequence]);
 
   // Chỉ trả về những gì WatchPage thực sự cần
   return {
     midrollAdSequence,
     shouldShowAds,
     getAdSequence,
+    getAdPositions,
+    loading,
+    error,
   };
 };

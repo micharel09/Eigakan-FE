@@ -30,6 +30,12 @@ const adMediaService = {
       return response.data;
     }),
 
+  getRandomAdMedia: (movieId) =>
+    makePublicRequest(async () => {
+      const response = await axios.get(`${API_URL}/GetRandomAdMedia/${movieId}`);
+      return response.data;
+    }),
+
   approveAdMedia: (data) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.patch(`${API_URL}/AdMedia_ApprovedStatus`, data, { headers });
@@ -49,4 +55,4 @@ const adMediaService = {
     })
 };
 
-export default adMediaService; 
+export default adMediaService;

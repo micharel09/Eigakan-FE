@@ -45,10 +45,11 @@ export const API_URLS = {
   GENRE: `${API_BASE_URL}/Genre`,
   PERSON: `${API_BASE_URL}/Person`,
   AD_MEDIA: `${API_BASE_URL}/AdMedia`,
-  AD_PURCHASE_SLOT: `${API_BASE_URL}/AdPurchaseSlot`,
-  AD_SLOT: `${API_BASE_URL}/AdSlot`,
-  AD_SLOT_TIME: `${API_BASE_URL}/AdSlotTime`,
-  AD_SLOT_TIME_RANGE: `${API_BASE_URL}/AdSlotTimeRange`,
+  // Removed unused API endpoints:
+  // AD_PURCHASE_SLOT: `${API_BASE_URL}/AdPurchaseSlot`,
+  // AD_SLOT: `${API_BASE_URL}/AdSlot`,
+  // AD_SLOT_TIME: `${API_BASE_URL}/AdSlotTime`,
+  // AD_SLOT_TIME_RANGE: `${API_BASE_URL}/AdSlotTimeRange`,
   AD_PACKAGE: `${API_BASE_URL}/AdPackage`,
   AD_PURCHASE_TRANSACTION: `${API_BASE_URL}/AdPurchaseTransaction`,
   VIEW_PAYMENT_POLICY: `${API_BASE_URL}/ViewPaymentPolicy`,
@@ -64,4 +65,7 @@ export const API_URLS = {
   USER: `${API_BASE_URL}/User`,
   USER_EARNING: `${API_BASE_URL}/UserEarning`,
   USER_REGISTER: `${API_BASE_URL}/UserRegister`,
-}; 
+  USER_WALLET: `${API_BASE_URL}/UserWallet`,
+  WALLET_TRANSACTION: `${API_BASE_URL}/WalletTransaction`,
+  AD_PURCHASE_ITEM: `${API_BASE_URL}/AdPurchaseItem`,
+};

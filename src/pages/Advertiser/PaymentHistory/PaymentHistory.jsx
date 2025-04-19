@@ -1,401 +1,436 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Table,
   Card,
-  Typography,
+  Table,
   Tag,
-  Button,
   Spin,
-  Input,
-  Select,
-  DatePicker,
-  Space,
-  Empty,
-  notification,
+  Alert,
+  Typography,
+  Button,
   Tooltip,
-  ConfigProvider,
+  Badge,
+  Image,
+  Progress,
+  Empty,
+  Modal,
 } from "antd";
-import {
-  SearchOutlined,
-  FilterOutlined,
-  EyeOutlined,
-  CalendarOutlined,
-  ReloadOutlined,
-  DollarOutlined,
-} from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { format } from "date-fns";
-import adPurchaseSlotService from "../../../apis/AdPurchaseSlot/adPurchaseSlot";
+import {
+  ReloadOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  PictureOutlined,
+  VideoCameraOutlined,
+  FileTextOutlined,
+  PlayCircleOutlined,
+} from "@ant-design/icons";
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
-
-// Custom theme with brand color
-const theme = {
-  token: {
-    colorPrimary: "#FF009F",
-    colorLink: "#FF009F",
-  },
-};
 
 const PaymentHistory = () => {
-  const [payments, setPayments] = useState([]);
-  const [allPayments, setAllPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 5,
-    total: 0,
-  });
-  const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState(null);
-  const [dateRange, setDateRange] = useState(null);
-  const navigate = useNavigate();
+  const [error, setError] = useState(null);
+  const [adsData, setAdsData] = useState([]);
 
-  const fetchAllPayments = useCallback(async () => {
+  const fetchAdsData = async () => {
     try {
-      const response =
-        await adPurchaseSlotService.getAllAdPurchaseTransactions();
-      if (response.success) {
-        const allData = response.data || [];
-        setAllPayments(allData);
+      setLoading(true);
+      setError(null);
+      const response = await adPurchaseService.getAdPurchaseItemsByLogin();
 
-        setPagination((prev) => ({
-          ...prev,
-          total: allData.length,
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching all payments:", error);
-    }
-  }, []);
-
-  const fetchPayments = useCallback(async (page = 1, pageSize = 5) => {
-    setLoading(true);
-    try {
-      const response = await adPurchaseSlotService.getAdPurchaseTransactions(
-        page,
-        pageSize
-      );
       if (response.success) {
-        setPayments(response.data || []);
-      } else {
-        notification.error({
-          message: "Error",
-          description: response.message || "Failed to fetch payment history",
+        // Log the data to see what we're getting
+        console.log("Ad purchase items data:", response.data);
+
+        // Process the data to ensure video URLs are correctly identified
+        const processedData = (response.data || []).map((item) => {
+          // Force video detection for URLs containing video/upload
+          if (item.adMediaUrl && item.adMediaUrl.includes("/video/upload/")) {
+            console.log(`Found video URL: ${item.adMediaUrl}`);
+            // Add a flag to force video rendering
+            return { ...item, _isVideo: true };
+          }
+          return item;
         });
+
+        setAdsData(processedData);
+      } else {
+        setError(response.message || "Failed to load ads data");
       }
-    } catch (error) {
-      console.error("Error fetching payment history:", error);
-      notification.error({
-        message: "Error",
-        description: error.message || "Failed to fetch payment history",
-      });
+    } catch (err) {
+      console.error("Error fetching ads data:", err);
+      setError(err.message || "Failed to load ads data");
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchAllPayments();
-    fetchPayments(pagination.current, pagination.pageSize);
-  }, [
-    fetchAllPayments,
-    fetchPayments,
-    pagination.current,
-    pagination.pageSize,
-  ]);
+    fetchAdsData();
+  }, []);
 
-  const handleTableChange = (newPagination) => {
-    setPagination((prev) => ({
-      ...prev,
-      current: newPagination.current,
-    }));
-    fetchPayments(newPagination.current, newPagination.pageSize);
+  const handleRefresh = () => {
+    fetchAdsData();
   };
 
-  const handleViewDetails = (id) => {
-    navigate(`/advertiser/payment-details/${id}`);
-  };
-
-  const handleSearch = (value) => {
-    setSearchText(value);
-    applyFilters(value, statusFilter, dateRange);
-  };
-
-  const handleStatusFilter = (value) => {
-    setStatusFilter(value);
-    applyFilters(searchText, value, dateRange);
-  };
-
-  const handleDateRangeChange = (dates) => {
-    setDateRange(dates);
-    applyFilters(searchText, statusFilter, dates);
-  };
-
-  const handleReset = () => {
-    setSearchText("");
-    setStatusFilter(null);
-    setDateRange(null);
-    setPagination((prev) => ({
-      ...prev,
-      current: 1,
-    }));
-    fetchPayments(1, pagination.pageSize);
-  };
-
-  const applyFilters = (search, status, dates) => {
-    let filteredData = [...allPayments];
-
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredData = filteredData.filter(
-        (payment) =>
-          payment.id.toLowerCase().includes(searchLower) ||
-          (payment.paymentReferenceID &&
-            payment.paymentReferenceID.toLowerCase().includes(searchLower)) ||
-          payment.totalPrice.toString().includes(searchLower)
-      );
+  const getStatusColor = (status) => {
+    switch (status?.toUpperCase()) {
+      case "ACTIVE":
+        return "success";
+      case "EXPIRED":
+        return "error";
+      case "PENDING":
+        return "warning";
+      case "INACTIVE":
+        return "default";
+      default:
+        return "default";
     }
+  };
 
-    if (status) {
-      filteredData = filteredData.filter(
-        (payment) => payment.status.toUpperCase() === status.toUpperCase()
-      );
+  const getStatusIcon = (status) => {
+    switch (status?.toUpperCase()) {
+      case "ACTIVE":
+        return <CheckCircleOutlined />;
+      case "EXPIRED":
+        return <CloseCircleOutlined />;
+      case "PENDING":
+        return <ClockCircleOutlined />;
+      default:
+        return <ClockCircleOutlined />;
     }
-
-    if (dates && dates[0] && dates[1]) {
-      const startDate = dates[0].startOf("day").valueOf();
-      const endDate = dates[1].endOf("day").valueOf();
-
-      filteredData = filteredData.filter((payment) => {
-        const paymentDate = new Date(payment.createAt).getTime();
-        return paymentDate >= startDate && paymentDate <= endDate;
-      });
-    }
-
-    const startIndex = 0;
-    const endIndex = Math.min(pagination.pageSize, filteredData.length);
-    setPayments(filteredData.slice(startIndex, endIndex));
-
-    setPagination({
-      ...pagination,
-      current: 1,
-      total: filteredData.length,
-    });
   };
 
   const formatDate = (dateString) => {
-    try {
-      return format(new Date(dateString), "dd/MM/yyyy HH:mm");
-    } catch (error) {
-      return "Invalid date";
-    }
+    return dayjs(dateString).format("MMM D, YYYY");
   };
 
-  const formatVND = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    })
-      .format(amount)
-      .replace("₫", "VND");
+  const calculateUsagePercentage = (used, total) => {
+    if (!total) return 0;
+    const usedViews = total - used;
+    return Math.round((usedViews / total) * 100);
   };
 
-  const getStatusTag = (status) => {
-    const statusConfig = {
-      SUCCESS: {
-        color: "success",
-        text: "Success",
-      },
-      PENDING: {
-        color: "warning",
-        text: "Pending",
-      },
-      FAILED: {
-        color: "error",
-        text: "Failed",
-      },
-      EXPIRED: {
-        color: "default",
-        text: "Expired",
-      },
-    };
+  // Function to check if URL is a video
+  const isVideoUrl = (url) => {
+    if (!url) return false;
 
-    const normalizedStatus = status?.toUpperCase();
-    const config = statusConfig[normalizedStatus] || {
-      color: "default",
-      text: status || "Unknown",
-    };
+    // Check common video file extensions
+    const hasVideoExtension =
+      url.toLowerCase().endsWith(".mp4") ||
+      url.toLowerCase().endsWith(".mov") ||
+      url.toLowerCase().endsWith(".webm") ||
+      url.toLowerCase().endsWith(".ogg");
 
-    return (
-      <Tag
-        color={config.color}
-        className="text-xs font-medium px-2 py-0.5 rounded"
-      >
-        {config.text}
-      </Tag>
-    );
+    // Check Cloudinary video URLs (they contain /video/upload/ in the path)
+    const isCloudinaryVideo = url.toLowerCase().includes("/video/upload/");
+
+    // Check for other video keywords in the URL
+    const hasVideoKeyword = url.toLowerCase().includes("video");
+
+    // Log for debugging
+    console.log("URL check:", url, {
+      hasVideoExtension,
+      isCloudinaryVideo,
+      hasVideoKeyword,
+    });
+
+    return hasVideoExtension || isCloudinaryVideo || hasVideoKeyword;
   };
 
   const columns = [
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      render: (id) => (
-        <Tooltip title={id}>
-          <span className="text-gray-700 font-medium">
-            {id.substring(0, 8)}...
-          </span>
-        </Tooltip>
-      ),
+      title: "Media",
+      dataIndex: "adMediaUrl",
+      key: "adMediaUrl",
+      render: (url, record) => {
+        if (!url) {
+          return (
+            <div className="flex justify-center">
+              <Tag icon={<PictureOutlined />} color="default">
+                No Media
+              </Tag>
+            </div>
+          );
+        }
+
+        // Use the _isVideo flag if available, otherwise use the isVideoUrl function
+        const isVideo = record._isVideo || isVideoUrl(url);
+        console.log(`Rendering media: ${url}, isVideo: ${isVideo}`);
+
+        return (
+          <div className="flex flex-col items-center">
+            {isVideo ? (
+              <div className="relative group">
+                <div className="w-[120px] h-[68px] bg-black rounded overflow-hidden">
+                  <video
+                    className="w-full h-full object-cover"
+                    muted
+                    preload="metadata"
+                    crossOrigin="anonymous" // Add crossOrigin for Cloudinary URLs
+                    onLoadedData={(e) => {
+                      // Capture the first frame as thumbnail
+                      try {
+                        e.target.currentTime = 0.5; // Set to 0.5 seconds to avoid black frame
+                      } catch (err) {
+                        console.error("Error setting video time:", err);
+                      }
+                    }}
+                    onError={(e) => {
+                      console.error("Video loading error:", e.target.error);
+                    }}
+                  >
+                    <source
+                      src={url}
+                      type="video/mp4"
+                      crossOrigin="anonymous"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                  {/* Video overlay with conditional content */}
+                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                    <div className="flex flex-col items-center">
+                      <VideoCameraOutlined className="text-white text-2xl" />
+                      <span className="text-white text-xs mt-1">Video</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all duration-200 rounded"
+                  onClick={() => {
+                    Modal.info({
+                      title: "Video Preview",
+                      width: 640,
+                      closable: true,
+                      maskClosable: true,
+                      centered: true,
+                      footer: null,
+                      content: (
+                        <div className="flex flex-col items-center">
+                          <video
+                            controls
+                            autoPlay
+                            className="w-full max-h-[70vh] rounded"
+                            crossOrigin="anonymous" // Add crossOrigin for Cloudinary URLs
+                          >
+                            <source
+                              src={url}
+                              type="video/mp4"
+                              crossOrigin="anonymous"
+                            />
+                            Your browser does not support the video tag.
+                          </video>
+                        </div>
+                      ),
+                    });
+                  }}
+                  aria-label="Preview video"
+                  tabIndex="0"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.target.click();
+                    }
+                  }}
+                >
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <PlayCircleOutlined className="text-white text-3xl" />
+                  </div>
+                </button>
+                <div className="text-xs mt-1 text-center text-gray-500">
+                  Click to play
+                </div>
+              </div>
+            ) : (
+              <div className="relative group">
+                <Image
+                  src={url}
+                  alt="Ad Media"
+                  width={120}
+                  height={68}
+                  className="object-cover rounded"
+                  fallback="data:image/png;base64,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"
+                />
+              </div>
+            )}
+          </div>
+        );
+      },
+      width: "16%",
     },
     {
-      title: "Date",
-      dataIndex: "createAt",
-      key: "createAt",
-      render: (date) => (
-        <span className="text-gray-600">
-          <CalendarOutlined className="mr-1 text-blue-500" />
-          {formatDate(date)}
-        </span>
-      ),
+      title: "Package",
+      dataIndex: "adPackageName",
+      key: "adPackageName",
+      render: (text) => <Tag color="blue">{text}</Tag>,
+      width: "12%",
     },
     {
-      title: "Amount",
-      dataIndex: "totalPrice",
-      key: "totalPrice",
-      render: (amount) => (
-        <span className="text-gray-800 font-medium">
-          <DollarOutlined className="mr-1 text-green-500" />
-          {formatVND(amount)}
-        </span>
-      ),
+      title: "Views",
+      key: "views",
+      render: (_, record) => {
+        const usagePercentage = calculateUsagePercentage(
+          record.remainingViews,
+          record.viewQuantity
+        );
+        const usedViews = record.viewQuantity - record.remainingViews;
+
+        return (
+          <div className="flex flex-col">
+            <div className="flex justify-between mb-1">
+              <Text className="text-xs font-medium">
+                {usedViews}/{record.viewQuantity} views
+              </Text>
+            </div>
+            <div className="flex items-center gap-2">
+              <Progress
+                percent={usagePercentage}
+                size="small"
+                status={usagePercentage >= 100 ? "exception" : "active"}
+                strokeColor={{
+                  from: "#108ee9",
+                  to: "#87d068",
+                }}
+                format={() => null} // Hide the built-in percentage text
+              />
+              <span className="text-xs text-gray-500">{usagePercentage}%</span>
+            </div>
+          </div>
+        );
+      },
+      width: "18%",
+      sorter: (a, b) => {
+        const aPercentage = calculateUsagePercentage(
+          a.remainingViews,
+          a.viewQuantity
+        );
+        const bPercentage = calculateUsagePercentage(
+          b.remainingViews,
+          b.viewQuantity
+        );
+        return aPercentage - bPercentage;
+      },
     },
     {
-      title: "Payment Method",
-      dataIndex: "paymentMethod",
-      key: "paymentMethod",
-      render: (method) => (
-        <span className="text-gray-600 capitalize">
-          {method?.toLowerCase() || "N/A"}
-        </span>
+      title: "Price",
+      key: "price",
+      render: (_, record) => (
+        <div>
+          <div className="font-medium">{record.price.toLocaleString()}đ</div>
+          <div className="text-xs text-gray-500">
+            {record.pricePerView}đ/view
+          </div>
+        </div>
       ),
-    },
-    {
-      title: "Reference ID",
-      dataIndex: "paymentReferenceID",
-      key: "paymentReferenceID",
-      render: (refId) => (
-        <span className="text-gray-600">{refId || "N/A"}</span>
-      ),
+      width: "12%",
+      sorter: (a, b) => a.price - b.price,
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => getStatusTag(status),
+      render: (status) => (
+        <Tag
+          icon={getStatusIcon(status)}
+          color={getStatusColor(status)}
+          className="flex items-center w-fit"
+        >
+          <span className="ml-1">{status}</span>
+        </Tag>
+      ),
+      width: "12%",
+      filters: [
+        { text: "Active", value: "ACTIVE" },
+        { text: "Expired", value: "EXPIRED" },
+        { text: "Pending", value: "PENDING" },
+        { text: "Inactive", value: "INACTIVE" },
+      ],
+      onFilter: (value, record) => record.status.toUpperCase() === value,
     },
     {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Button
-          type="primary"
-          icon={<EyeOutlined />}
-          size="small"
-          onClick={() => handleViewDetails(record.id)}
-          className="bg-[#FF009F] hover:bg-[#d1007f] border-none shadow-sm"
-        >
-          View
-        </Button>
-      ),
+      title: "Created Date",
+      dataIndex: "createdDate",
+      key: "createdDate",
+      render: (text) => formatDate(text),
+      width: "15%",
+      sorter: (a, b) => new Date(a.createdDate) - new Date(b.createdDate),
+    },
+    {
+      title: "Expiry Date",
+      dataIndex: "expiredDate",
+      key: "expiredDate",
+      render: (text) => formatDate(text),
+      width: "15%",
+      sorter: (a, b) => new Date(a.expiredDate) - new Date(b.expiredDate),
     },
   ];
 
   return (
-    <>
+    <div className="ads-management-page p-6">
       <Helmet>
-        <title>Payment History | Eigakan Advertiser</title>
+        <title>Payment History | EIGAKAN</title>
       </Helmet>
 
-      <ConfigProvider theme={theme}>
-        <div className="p-4">
-          <Card className="shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-medium mb-0 flex items-center">
-                <DollarOutlined className="mr-2 text-[#FF009F]" />
-                Payment History
-              </h1>
+      <div className="flex justify-between items-center mb-6">
+        <Title level={2} className="m-0">
+          <FileTextOutlined className="mr-2" /> Payment History
+        </Title>
+        <Button
+          onClick={handleRefresh}
+          icon={<ReloadOutlined />}
+          loading={loading}
+          className="bg-white hover:bg-gray-50"
+        >
+          Refresh
+        </Button>
+      </div>
 
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Search by ID or amount"
-                  value={searchText}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  prefix={<SearchOutlined className="text-gray-400" />}
-                  className="w-64"
-                  allowClear
-                />
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          className="mb-6"
+          closable
+        />
+      )}
 
-                <Select
-                  placeholder="Filter by status"
-                  value={statusFilter}
-                  onChange={handleStatusFilter}
-                  className="w-40"
-                  allowClear
-                  suffixIcon={<FilterOutlined className="text-gray-400" />}
-                >
-                  <Option value="SUCCESS">Success</Option>
-                  <Option value="PENDING">Pending</Option>
-                  <Option value="FAILED">Failed</Option>
-                </Select>
+      <Card className="shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <Text className="text-lg font-medium">Your Ad Campaigns</Text>
+          <Badge
+            status={loading ? "processing" : "success"}
+            text={loading ? "Loading..." : "Updated"}
+          />
+        </div>
 
-                <RangePicker
-                  onChange={handleDateRangeChange}
-                  value={dateRange}
-                  className="w-64"
-                  format="YYYY-MM-DD"
-                />
-
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleReset}
-                  className="hover:text-[#FF009F] hover:border-[#FF009F]"
-                >
-                  Reset
-                </Button>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <Spin size="large" />
-              </div>
-            ) : payments.length > 0 ? (
-              <Table
-                columns={columns}
-                dataSource={payments}
-                rowKey="id"
-                pagination={pagination}
-                onChange={handleTableChange}
-                className="border border-gray-200 rounded-md"
-                scroll={{ x: 1000 }}
-              />
-            ) : (
+        <Table
+          dataSource={adsData}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: [5, 10, 20],
+            showTotal: (total) => `Total ${total} items`,
+          }}
+          locale={{
+            emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No payment records found"
-                className="py-12"
+                description="No ad campaigns found"
               />
-            )}
-          </Card>
-        </div>
-      </ConfigProvider>
-    </>
+            ),
+          }}
+          className="ads-table"
+        />
+      </Card>
+    </div>
   );
 };
 

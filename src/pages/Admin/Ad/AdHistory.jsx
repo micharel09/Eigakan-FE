@@ -13,7 +13,7 @@ import {
   Statistic,
 } from "antd";
 import { SearchOutlined, DollarOutlined } from "@ant-design/icons";
-import adPurchaseTransactionService from "../../../apis/Ad/adPurchaseTransaction";
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
 import { Helmet } from "react-helmet";
 import dayjs from "dayjs";
 
@@ -39,14 +39,13 @@ const AdHistory = () => {
       setLoading(true);
       // Get all transactions data for complete pagination
       const allResponse =
-        await adPurchaseTransactionService.getAllAdPurchaseTransactions();
+        await adPurchaseService.getAllAdPurchaseTransactions();
 
       // Get current page data
-      const response =
-        await adPurchaseTransactionService.getAdPurchaseTransactions(
-          page,
-          pageSize
-        );
+      const response = await adPurchaseService.getAdPurchaseTransactions(
+        page,
+        pageSize
+      );
 
       if (response.success) {
         const formattedData = response.data.map((item) => ({
