@@ -227,6 +227,7 @@ const WatchPage = () => {
     setCommentInput,
     userDetails,
     loadingComments,
+    submittingComment,
     handleCommentSubmit: submitComment,
   } = useMovieComments({
     movieId,
@@ -2058,10 +2059,20 @@ const WatchPage = () => {
                                       />
                                       <button
                                         type="submit"
-                                        disabled={!commentInput.trim()}
+                                        disabled={
+                                          !commentInput.trim() ||
+                                          submittingComment
+                                        }
                                         className="px-4 py-2 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 transition-all font-medium"
                                       >
-                                        Post
+                                        {submittingComment ? (
+                                          <span className="flex items-center gap-2">
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Posting...
+                                          </span>
+                                        ) : (
+                                          "Post"
+                                        )}
                                       </button>
                                     </div>
                                   </form>
