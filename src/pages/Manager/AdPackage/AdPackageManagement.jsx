@@ -1254,7 +1254,6 @@ const AdPackageManagement = () => {
                 onChange: handleAdPaymentPaginationChange,
                 showSizeChanger: true,
                 pageSizeOptions: ["5", "10", "20"],
-                pageSize: 5,
                 showTotal: (total) => (
                   <span>
                     {adPaymentTotalLoading ? (

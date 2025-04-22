@@ -32,10 +32,8 @@ const personService = {
 
   createPerson: (personData) =>
     makeAuthenticatedRequest(async (headers) => {
-      if (localStorage.getItem("role") !== "ADMIN") {
-        throw new Error("Unauthorized - Only admin can create persons");
-      }
-
+      
+      
       const response = await axios.post(API_URL, personData, {
         headers: {
           ...headers,

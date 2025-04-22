@@ -107,7 +107,27 @@ const contractApi = {
           message: "Failed to update contract"
         };
       }
-    })
+    }),
+
+    createContract: (contractData) =>
+      makeAuthenticatedRequest(async (headers) => {
+        try {
+          const response = await axios.post(`${API_URL}/Generate_Contract`, contractData, {
+            headers: {
+              ...headers,
+              "Content-Type": "application/json"
+            },
+          });
+          return response.data;
+        } catch (error) {
+          console.error("Error creating contract:", error);
+          throw error.response?.data || {
+            success: false,
+            message: "Failed to create contract"
+          };
+        }
+      })
+    
 };
 
 export default contractApi;

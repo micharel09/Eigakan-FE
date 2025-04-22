@@ -364,14 +364,7 @@ const ContractDetailPublisher = () => {
             <div className="mt-6 flex justify-end">
               {contract?.status === "SIGNED" || contract?.status === "DENIED" ? (
                 <>
-                  {showUploadButton && (
-                    <Link
-                      to={`/publisher/upload/${contract.movie?.id}`}
-                      className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-300"
-                    >
-                      <UploadOutlined className="mr-2" /> Upload Content
-                    </Link>
-                  )}
+                  
                 </>
               ) : (
                 <>

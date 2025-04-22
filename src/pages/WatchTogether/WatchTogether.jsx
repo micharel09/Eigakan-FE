@@ -485,7 +485,7 @@ const WatchTogetherPage = () => {
       }
     };
 
-    // Gửi ngay lập tức khi có người mới vào
+   
     syncTime();
 
     // Nếu interval đã tồn tại, không cần tạo mới
@@ -509,24 +509,23 @@ const WatchTogetherPage = () => {
 
       if (!playerRef.current) return;
 
-      // Kiểm tra xem player có đang pause không
-      playerRef.current.getPaused((isPaused) => {
-        if (isPaused) return; // Nếu đang pause thì không đồng bộ
+        // Kiểm tra xem player có đang pause không
+        playerRef.current.getPaused((isPaused) => {
+            if (isPaused) return; 
 
         playerRef.current.getCurrentTime((current) => {
           const diff = Math.abs(current - data.currentTime);
 
-          if (diff > 0.5) {
-            // Nếu lệch hơn 0.5s thì mới đồng bộ
-            console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
-            notification.info({
-              message: "Success",
-              description: "Auto synced with host",
+                if (diff > 0.5) { 
+                    console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
+                    notification.info({
+                      message: "Success",
+                      description: "Auto synced with host",
+                    })
+                    playerRef.current.setCurrentTime(data.currentTime);
+                }
             });
-            playerRef.current.setCurrentTime(data.currentTime);
-          }
         });
-      });
     };
 
     connection.on("SyncTime", handleSyncTime);
@@ -536,6 +535,7 @@ const WatchTogetherPage = () => {
     };
   }, [isPlayerReady, connection]);
 
+  
   const sendMessage = async (text) => {
     if (!connection || !text.trim()) return;
 
