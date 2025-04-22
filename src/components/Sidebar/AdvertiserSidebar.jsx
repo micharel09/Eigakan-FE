@@ -3,16 +3,21 @@ import authService from "../../apis/Auth/auth";
 import React, { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
 import { RiAdvertisementLine, RiSlideshow3Line } from "react-icons/ri";
-import { FundOutlined, FileTextOutlined } from "@ant-design/icons";
+import {
+  FundOutlined,
+  FileTextOutlined,
+  WalletOutlined,
+  DollarOutlined,
+} from "@ant-design/icons";
 import { motion } from "framer-motion";
 
 function AdvertiserSidebar() {
-  const [user, setUser] = useState(authService.getCurrentUser());
+  const [user, setUser] = useState(authService.getCurrentUser() || {});
   const navigate = useNavigate();
 
   useEffect(() => {
     const updateUser = () => {
-      setUser(authService.getCurrentUser());
+      setUser(authService.getCurrentUser() || {});
     };
 
     authService.addListener(updateUser);
@@ -49,12 +54,12 @@ function AdvertiserSidebar() {
           <li className="flex justify-center items-center">
             <div className="flex flex-col items-center gap-2">
               <img
-                src={user.picture || "/avatar2.jpg"}
+                src={user?.picture || "/avatar2.jpg"}
                 alt="Avatar"
                 className="h-16 w-16 rounded-full cursor-pointer border-2 border-gray-300"
               />
               <span className="text-indigo-800 text-sm sm:text-base font-medium mt-2">
-                {user.fullName}
+                {user?.fullName || "User"}
               </span>
             </div>
           </li>
@@ -73,7 +78,7 @@ function AdvertiserSidebar() {
 
           <li>
             <Link
-              to="/advertiser/ad-purchase-slots"
+              to="/advertiser/ad-management"
               className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
@@ -91,10 +96,33 @@ function AdvertiserSidebar() {
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
                 <FileTextOutlined />
               </span>
+              <span className="text-sm font-medium">Ad Purchase Items</span>
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              to="/advertiser/transactions"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            >
+              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+                <DollarOutlined />
+              </span>
               <span className="text-sm font-medium">Payment History</span>
             </Link>
           </li>
 
+          <li>
+            <Link
+              to="/advertiser/user-wallet"
+              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            >
+              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+                <WalletOutlined />
+              </span>
+              <span className="text-sm font-medium">My Wallet</span>
+            </Link>
+          </li>
 
           <li>
             <button

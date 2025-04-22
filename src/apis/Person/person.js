@@ -2,35 +2,35 @@ import axios from "axios";
 import { makeAuthenticatedRequest, makePublicRequest, API_URLS } from "../../utils/api";
 
 const API_URL = API_URLS.PERSON;
-const UPLOAD_URL = API_URLS.UPLOAD;
+const UPLOAD_URL = API_URLS.UPLOAD_PICTURES;
 
 const personService = {
-  getAllPerson: (pageNumber = 1, pageSize = 10, name = '') => 
+  getAllPerson: (pageNumber = 1, pageSize = 10, name = '') =>
     makeAuthenticatedRequest(async (headers) => {
       const params = { pageNumber, pageSize };
       if (name?.trim()) params.name = name.trim();
-      
+
       const response = await axios.get(API_URL, {
         headers,
         params
       });
-      
+
       const maxItems = pageSize * 6;
       return {
         ...response.data,
         total: Math.min(response.data.totalItems || maxItems, maxItems),
-        hasNextPage: response.data.hasNextPage || 
+        hasNextPage: response.data.hasNextPage ||
           (response.data.data?.length >= pageSize)
       };
     }),
 
-  getPersonById: (id) => 
+  getPersonById: (id) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(`${API_URL}/${id}`, { headers });
       return response.data;
     }),
 
-  createPerson: (personData) => 
+  createPerson: (personData) =>
     makeAuthenticatedRequest(async (headers) => {
       
       
@@ -43,12 +43,12 @@ const personService = {
       return response.data;
     }),
 
-  updatePerson: (id, personData) => 
+  updatePerson: (id, personData) =>
     makeAuthenticatedRequest(async (headers) => {
       if (localStorage.getItem("role") !== "ADMIN") {
         throw new Error("Unauthorized - Only admin can update persons");
       }
-      
+
       const response = await axios.put(`${API_URL}/${id}`, personData, {
         headers: {
           ...headers,
@@ -58,7 +58,7 @@ const personService = {
       return response.data;
     }),
 
-  deletePerson: (id) => 
+  deletePerson: (id) =>
     makeAuthenticatedRequest(async (headers) => {
       if (localStorage.getItem("role") !== "ADMIN") {
         throw new Error("Unauthorized - Only admin can delete persons");
@@ -75,7 +75,7 @@ const personService = {
       }
     }),
 
-  uploadImage: (file, abortSignal) => 
+  uploadImage: (file, abortSignal) =>
     makeAuthenticatedRequest(async (headers) => {
       const formData = new FormData();
       formData.append('formFiles', file.originFileObj || file);
@@ -101,11 +101,11 @@ const personService = {
       }
     }),
 
-  getTotalPersons: () => 
+  getTotalPersons: () =>
     makeAuthenticatedRequest(async (headers) => {
       try {
         const response = await axios.get(`${API_URL}/count`, { headers });
-        
+
         let total = 30;
         if (response.data) {
           if (typeof response.data === 'object') {
@@ -114,7 +114,7 @@ const personService = {
             total = response.data;
           }
         }
-        
+
         return { success: true, total: Math.min(total, 30) };
       } catch (error) {
         try {
@@ -122,9 +122,9 @@ const personService = {
             headers,
             params: { pageNumber: 1, pageSize: 1000 }
           });
-          
-          return { 
-            success: true, 
+
+          return {
+            success: true,
             total: Math.min(response.data.data?.length || 30, 30)
           };
         } catch (innerError) {
@@ -134,4 +134,4 @@ const personService = {
     })
 };
 
-export default personService; 
+export default personService;

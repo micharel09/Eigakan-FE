@@ -1,401 +1,283 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Table,
   Card,
-  Typography,
+  Table,
   Tag,
+  Alert,
+  Typography,
   Button,
-  Spin,
-  Input,
-  Select,
-  DatePicker,
-  Space,
+  Badge,
   Empty,
-  notification,
   Tooltip,
-  ConfigProvider,
+  Statistic,
+  Row,
+  Col,
 } from "antd";
-import {
-  SearchOutlined,
-  FilterOutlined,
-  EyeOutlined,
-  CalendarOutlined,
-  ReloadOutlined,
-  DollarOutlined,
-} from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { format } from "date-fns";
-import adPurchaseSlotService from "../../../apis/AdPurchaseSlot/adPurchaseSlot";
+import {
+  ReloadOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  DollarOutlined,
+  FileTextOutlined,
+} from "@ant-design/icons";
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
-
-// Custom theme with brand color
-const theme = {
-  token: {
-    colorPrimary: "#FF009F",
-    colorLink: "#FF009F",
-  },
-};
 
 const PaymentHistory = () => {
-  const [payments, setPayments] = useState([]);
-  const [allPayments, setAllPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 5,
     total: 0,
   });
-  const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState(null);
-  const [dateRange, setDateRange] = useState(null);
-  const navigate = useNavigate();
+  const [totalAmount, setTotalAmount] = useState(0);
 
-  const fetchAllPayments = useCallback(async () => {
+  const fetchTransactions = async (page = 1, pageSize = 5) => {
     try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch current page data
       const response =
-        await adPurchaseSlotService.getAllAdPurchaseTransactions();
-      if (response.success) {
-        const allData = response.data || [];
-        setAllPayments(allData);
+        await adPurchaseService.getMyHistoryAdPurchaseTransaction(
+          page,
+          pageSize
+        );
 
-        setPagination((prev) => ({
-          ...prev,
-          total: allData.length,
-        }));
-      }
-    } catch (error) {
-      console.error("Error fetching all payments:", error);
-    }
-  }, []);
+      // Fetch all data for accurate total calculation
+      const allResponse =
+        await adPurchaseService.getAllMyHistoryAdPurchaseTransaction();
 
-  const fetchPayments = useCallback(async (page = 1, pageSize = 5) => {
-    setLoading(true);
-    try {
-      const response = await adPurchaseSlotService.getAdPurchaseTransactions(
-        page,
-        pageSize
-      );
       if (response.success) {
-        setPayments(response.data || []);
-      } else {
-        notification.error({
-          message: "Error",
-          description: response.message || "Failed to fetch payment history",
+        console.log("Transaction data:", response);
+        console.log("All transaction data:", allResponse);
+
+        setTransactions(response.data || []);
+        setPagination({
+          ...pagination,
+          current: page,
+          pageSize: pageSize,
+          total: allResponse.total || 0,
         });
+
+        // Calculate total amount from ALL successful transactions
+        const allSuccessfulTransactions = allResponse.data.filter(
+          (item) => item.status === "SUCCESS"
+        );
+        const total = allSuccessfulTransactions.reduce(
+          (sum, item) => sum + (item.totalPrice || 0),
+          0
+        );
+        setTotalAmount(total);
+      } else {
+        setError(response.message || "Failed to load transaction data");
       }
-    } catch (error) {
-      console.error("Error fetching payment history:", error);
-      notification.error({
-        message: "Error",
-        description: error.message || "Failed to fetch payment history",
-      });
+    } catch (err) {
+      console.error("Error fetching transaction data:", err);
+      setError(err.message || "Failed to load transaction data");
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchAllPayments();
-    fetchPayments(pagination.current, pagination.pageSize);
-  }, [
-    fetchAllPayments,
-    fetchPayments,
-    pagination.current,
-    pagination.pageSize,
-  ]);
+    fetchTransactions(pagination.current, pagination.pageSize);
+  }, []);
 
-  const handleTableChange = (newPagination) => {
-    setPagination((prev) => ({
-      ...prev,
-      current: newPagination.current,
-    }));
-    fetchPayments(newPagination.current, newPagination.pageSize);
+  const handleTableChange = (pagination) => {
+    fetchTransactions(pagination.current, pagination.pageSize);
   };
 
-  const handleViewDetails = (id) => {
-    navigate(`/advertiser/payment-details/${id}`);
+  const handleRefresh = () => {
+    fetchTransactions(pagination.current, pagination.pageSize);
   };
 
-  const handleSearch = (value) => {
-    setSearchText(value);
-    applyFilters(value, statusFilter, dateRange);
-  };
-
-  const handleStatusFilter = (value) => {
-    setStatusFilter(value);
-    applyFilters(searchText, value, dateRange);
-  };
-
-  const handleDateRangeChange = (dates) => {
-    setDateRange(dates);
-    applyFilters(searchText, statusFilter, dates);
-  };
-
-  const handleReset = () => {
-    setSearchText("");
-    setStatusFilter(null);
-    setDateRange(null);
-    setPagination((prev) => ({
-      ...prev,
-      current: 1,
-    }));
-    fetchPayments(1, pagination.pageSize);
-  };
-
-  const applyFilters = (search, status, dates) => {
-    let filteredData = [...allPayments];
-
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredData = filteredData.filter(
-        (payment) =>
-          payment.id.toLowerCase().includes(searchLower) ||
-          (payment.paymentReferenceID &&
-            payment.paymentReferenceID.toLowerCase().includes(searchLower)) ||
-          payment.totalPrice.toString().includes(searchLower)
-      );
+  const getStatusColor = (status) => {
+    switch (status?.toUpperCase()) {
+      case "SUCCESS":
+        return "success";
+      case "PENDING":
+        return "warning";
+      case "CANCELED":
+        return "error";
+      default:
+        return "default";
     }
+  };
 
-    if (status) {
-      filteredData = filteredData.filter(
-        (payment) => payment.status.toUpperCase() === status.toUpperCase()
-      );
+  const getStatusIcon = (status) => {
+    switch (status?.toUpperCase()) {
+      case "SUCCESS":
+        return <CheckCircleOutlined />;
+      case "PENDING":
+        return <ClockCircleOutlined />;
+      case "CANCELED":
+        return <CloseCircleOutlined />;
+      default:
+        return <ClockCircleOutlined />;
     }
-
-    if (dates && dates[0] && dates[1]) {
-      const startDate = dates[0].startOf("day").valueOf();
-      const endDate = dates[1].endOf("day").valueOf();
-
-      filteredData = filteredData.filter((payment) => {
-        const paymentDate = new Date(payment.createAt).getTime();
-        return paymentDate >= startDate && paymentDate <= endDate;
-      });
-    }
-
-    const startIndex = 0;
-    const endIndex = Math.min(pagination.pageSize, filteredData.length);
-    setPayments(filteredData.slice(startIndex, endIndex));
-
-    setPagination({
-      ...pagination,
-      current: 1,
-      total: filteredData.length,
-    });
   };
 
   const formatDate = (dateString) => {
-    try {
-      return format(new Date(dateString), "dd/MM/yyyy HH:mm");
-    } catch (error) {
-      return "Invalid date";
-    }
+    return dayjs(dateString).format("MMM D, YYYY HH:mm");
   };
 
-  const formatVND = (amount) => {
+  const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    })
-      .format(amount)
-      .replace("₫", "VND");
-  };
-
-  const getStatusTag = (status) => {
-    const statusConfig = {
-      SUCCESS: {
-        color: "success",
-        text: "Success",
-      },
-      PENDING: {
-        color: "warning",
-        text: "Pending",
-      },
-      FAILED: {
-        color: "error",
-        text: "Failed",
-      },
-      EXPIRED: {
-        color: "default",
-        text: "Expired",
-      },
-    };
-
-    const normalizedStatus = status?.toUpperCase();
-    const config = statusConfig[normalizedStatus] || {
-      color: "default",
-      text: status || "Unknown",
-    };
-
-    return (
-      <Tag
-        color={config.color}
-        className="text-xs font-medium px-2 py-0.5 rounded"
-      >
-        {config.text}
-      </Tag>
-    );
+    }).format(price);
   };
 
   const columns = [
     {
-      title: "ID",
+      title: "Transaction ID",
       dataIndex: "id",
       key: "id",
-      render: (id) => (
-        <Tooltip title={id}>
-          <span className="text-gray-700 font-medium">
-            {id.substring(0, 8)}...
+      render: (text) => (
+        <Tooltip title={text}>
+          <span className="text-xs font-mono">
+            {text.substring(0, 8)}...{text.substring(text.length - 4)}
           </span>
         </Tooltip>
       ),
-    },
-    {
-      title: "Date",
-      dataIndex: "createAt",
-      key: "createAt",
-      render: (date) => (
-        <span className="text-gray-600">
-          <CalendarOutlined className="mr-1 text-blue-500" />
-          {formatDate(date)}
-        </span>
-      ),
+      width: "15%",
     },
     {
       title: "Amount",
       dataIndex: "totalPrice",
       key: "totalPrice",
-      render: (amount) => (
-        <span className="text-gray-800 font-medium">
-          <DollarOutlined className="mr-1 text-green-500" />
-          {formatVND(amount)}
-        </span>
+      render: (price) => (
+        <span className="font-medium">{formatVND(price)}</span>
       ),
+      width: "15%",
+      sorter: (a, b) => a.totalPrice - b.totalPrice,
     },
     {
       title: "Payment Method",
       dataIndex: "paymentMethod",
       key: "paymentMethod",
-      render: (method) => (
-        <span className="text-gray-600 capitalize">
-          {method?.toLowerCase() || "N/A"}
-        </span>
-      ),
-    },
-    {
-      title: "Reference ID",
-      dataIndex: "paymentReferenceID",
-      key: "paymentReferenceID",
-      render: (refId) => (
-        <span className="text-gray-600">{refId || "N/A"}</span>
-      ),
+      render: (method) => <Tag color="blue">{method}</Tag>,
+      width: "15%",
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => getStatusTag(status),
+      render: (status) => (
+        <Tag
+          icon={getStatusIcon(status)}
+          color={getStatusColor(status)}
+          className="flex items-center w-fit"
+        >
+          <span className="ml-1">{status}</span>
+        </Tag>
+      ),
+      width: "15%",
+      filters: [
+        { text: "Success", value: "SUCCESS" },
+        { text: "Pending", value: "PENDING" },
+        { text: "Canceled", value: "CANCELED" },
+      ],
+      onFilter: (value, record) => record.status.toUpperCase() === value,
     },
     {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Button
-          type="primary"
-          icon={<EyeOutlined />}
-          size="small"
-          onClick={() => handleViewDetails(record.id)}
-          className="bg-[#FF009F] hover:bg-[#d1007f] border-none shadow-sm"
-        >
-          View
-        </Button>
-      ),
+      title: "Created Date",
+      dataIndex: "createAt",
+      key: "createAt",
+      render: (text) => formatDate(text),
+      width: "20%",
+      sorter: (a, b) => new Date(a.createAt) - new Date(b.createAt),
+      defaultSortOrder: "descend",
     },
   ];
 
   return (
-    <>
+    <div className="payment-history-page p-6">
       <Helmet>
-        <title>Payment History | Eigakan Advertiser</title>
+        <title>Payment History | EIGAKAN</title>
       </Helmet>
 
-      <ConfigProvider theme={theme}>
-        <div className="p-4">
-          <Card className="shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-medium mb-0 flex items-center">
-                <DollarOutlined className="mr-2 text-[#FF009F]" />
-                Payment History
-              </h1>
+      <div className="flex justify-between items-center mb-6">
+        <Title level={2} className="m-0">
+          <FileTextOutlined className="mr-2" /> Payment History
+        </Title>
+        <Button
+          onClick={handleRefresh}
+          icon={<ReloadOutlined />}
+          loading={loading}
+          className="bg-white hover:bg-gray-50"
+        >
+          Refresh
+        </Button>
+      </div>
 
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Search by ID or amount"
-                  value={searchText}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  prefix={<SearchOutlined className="text-gray-400" />}
-                  className="w-64"
-                  allowClear
-                />
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          className="mb-6"
+          closable
+        />
+      )}
 
-                <Select
-                  placeholder="Filter by status"
-                  value={statusFilter}
-                  onChange={handleStatusFilter}
-                  className="w-40"
-                  allowClear
-                  suffixIcon={<FilterOutlined className="text-gray-400" />}
-                >
-                  <Option value="SUCCESS">Success</Option>
-                  <Option value="PENDING">Pending</Option>
-                  <Option value="FAILED">Failed</Option>
-                </Select>
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} md={8}>
+          <Card>
+            <Statistic
+              title="Total Successful Payments"
+              value={totalAmount}
+              precision={0}
+              formatter={(value) => formatVND(value)}
+              prefix={<DollarOutlined />}
+              loading={loading}
+            />
+          </Card>
+        </Col>
+      </Row>
 
-                <RangePicker
-                  onChange={handleDateRangeChange}
-                  value={dateRange}
-                  className="w-64"
-                  format="YYYY-MM-DD"
-                />
+      <Card className="shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <Text className="text-lg font-medium">Your Payment Transactions</Text>
+          <Badge
+            status={loading ? "processing" : "success"}
+            text={loading ? "Loading..." : "Updated"}
+          />
+        </div>
 
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleReset}
-                  className="hover:text-[#FF009F] hover:border-[#FF009F]"
-                >
-                  Reset
-                </Button>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center items-center py-12">
-                <Spin size="large" />
-              </div>
-            ) : payments.length > 0 ? (
-              <Table
-                columns={columns}
-                dataSource={payments}
-                rowKey="id"
-                pagination={pagination}
-                onChange={handleTableChange}
-                className="border border-gray-200 rounded-md"
-                scroll={{ x: 1000 }}
-              />
-            ) : (
+        <Table
+          dataSource={transactions}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            ...pagination,
+            showSizeChanger: true,
+            pageSizeOptions: [5, 10, 20],
+            pageSize: 5,
+            showTotal: (total) => `Total ${total} items`,
+          }}
+          onChange={handleTableChange}
+          locale={{
+            emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No payment records found"
-                className="py-12"
+                description="No transactions found"
               />
-            )}
-          </Card>
-        </div>
-      </ConfigProvider>
-    </>
+            ),
+          }}
+          className="payment-history-table"
+        />
+      </Card>
+    </div>
   );
 };
 

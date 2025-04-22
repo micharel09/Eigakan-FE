@@ -227,7 +227,10 @@
 /* Input hover and focus states */
 .ant-input:hover,
 .ant-input:focus,
-.ant-input-focused {
+.ant-input-focused,
+.ant-input-affix-wrapper:hover,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
   border-color: var(--eigakan-primary) !important;
   box-shadow: 0 0 0 2px var(--eigakan-primary-outline) !important;
 }

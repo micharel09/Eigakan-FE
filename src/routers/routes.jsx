@@ -30,6 +30,7 @@ import PaymentSuccess from "../pages/Payment/PaymentSuccess";
 import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 import SubscriptionHistory from "../pages/Subscription/SubscriptionHistory";
 import SubscriptionOrderManagement from "../pages/Admin/Subscription/SubscriptionOrderManagement";
+import ManagerSubscriptionOrderManagement from "../pages/Manager/Subscription/SubscriptionOrderManagement";
 import UserDetail from "../pages/Admin/User/UserDetail.jsx";
 import MoviePublisher from "../pages/Publisher/Movie/MoviePublisher.jsx";
 import DashboardPublisher from "../pages/Publisher/Dashboard/DashboardPublisher.jsx";
@@ -50,22 +51,24 @@ import UpdateMovieAdmin from "../pages/Admin/Movie/UpdateMovieAdmin.jsx";
 import AdvertiserDashboard from "../pages/Advertiser/Dashboard/Dashboard";
 import GenrePage from "../pages/Genre/GenrePage";
 import GenresPage from "../pages/Genre/GenresPage";
-import AdSlotTimeManagement from "../pages/Manager/AdSlot/AdSlotTimeManagement";
 import MovieCount from "../pages/Admin/Movie/MovieCount.jsx";
 import BuyAdSlot from "../pages/Advertiser/BuyAdSlot/BuyAdSlot";
 import WatchTogether from "../pages/WatchTogether/WatchTogether";
 import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage";
-import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot";
+// import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot"; // Removed as API no longer exists
+import PaymentWallet from "../pages/Payment/PaymentWallet";
 import { Navigate } from "react-router-dom";
-import AdPurchaseSlotManagement from "../pages/Advertiser/AdPurchaseSlotManagement";
-import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory";
-import PaymentDetails from "../pages/Advertiser/PaymentHistory/PaymentDetails";
+import AdPurchaseItems from "../pages/Advertiser/AdPurchaseItems/AdPurchaseItems.jsx";
+import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory.jsx";
+import UserWallet from "../pages/Advertiser/UserWallet/UserWallet";
+import MediaManagement from "../pages/Advertiser/MediaManagement/MediaManagement";
 import WaitingRoom from "../pages/WatchTogether/WaitingRoom.jsx";
 import PaymentPolicyManagement from "../pages/Admin/PaymentPolicy/PaymentPolicyManagement.jsx";
 import AdHistory from "../pages/Admin/Ad/AdHistory.jsx";
 import MovieEarning from "../pages/Admin/Movie/MovieEarning.jsx";
 import UserEarning from "../pages/Admin/User/UserEarning.jsx";
 import PublisherEarning from "../pages/Publisher/UserEarning/PublisherEarning.jsx";
+import AdPackageManagement from "../pages/Manager/AdPackage/AdPackageManagement.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -394,10 +397,10 @@ const routes = [
   },
 
   {
-    path: "/manager/adslot-time",
+    path: "/manager/adpackage",
     element: (
       <PrivateRoute requiredRole="MANAGER">
-        <AdSlotTimeManagement />
+        <AdPackageManagement />
       </PrivateRoute>
     ),
     layout: "ManagerLayout",
@@ -409,6 +412,17 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="MANAGER">
         <SubscriptionManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
+    path: "/manager/subscription-orders",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <ManagerSubscriptionOrderManagement />
       </PrivateRoute>
     ),
     layout: "ManagerLayout",
@@ -571,28 +585,39 @@ const routes = [
     private: true,
   },
 
-  {
-    path: "/payment-success-adslot",
-    element: (
-      <PrivateRoute requiredRole="ADVERTISER">
-        <PaymentSuccessAdSlot />
-      </PrivateRoute>
-    ),
-    layout: "UserLayout",
-  },
+  // Route removed as PaymentSuccessAdSlot component no longer exists
+  // {
+  //   path: "/payment-success-adslot",
+  //   element: (
+  //     <PrivateRoute requiredRole="ADVERTISER">
+  //       <PaymentSuccessAdSlot />
+  //     </PrivateRoute>
+  //   ),
+  //   layout: "UserLayout",
+  // },
 
   {
-    path: "/advertiser/ad-purchase-slots",
+    path: "/advertiser/payment-history",
     element: (
-      <PrivateRoute>
-        <AdPurchaseSlotManagement />
+      <PrivateRoute requiredRole="ADVERTISER">
+        <AdPurchaseItems />
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",
   },
 
   {
-    path: "/advertiser/payment-history",
+    path: "/advertiser/ad-management",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <MediaManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/advertiser/transactions",
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
         <PaymentHistory />
@@ -602,13 +627,19 @@ const routes = [
   },
 
   {
-    path: "/advertiser/payment-details/:id",
+    path: "/advertiser/user-wallet",
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
-        <PaymentDetails />
+        <UserWallet />
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/payment-wallet",
+    element: <PaymentWallet />,
+    layout: "UserLayout",
   },
 
   { path: "*", element: <h1>404 - Page Not Found</h1> },

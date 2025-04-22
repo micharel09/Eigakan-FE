@@ -10,12 +10,12 @@ const adMediaCountService = {
       return response;
     }),
 
-  increaseAdMediaCount: (data) =>
+  increaseAdMediaCount: (adMediaId) =>
     makePublicRequest(async () => {
-      const response = await axios.post(`${API_URL}/IncreaseAdMediaCount`, data);
+      const response = await axios.post(`${API_URL}/IncreaseAdMediaCount/${adMediaId}`);
       return response;
     }),
-    
+
   getStatisticAdMediaCount: (adMediaId) =>
     makePublicRequest(async () => {
       const response = await axios.get(`${API_URL}/StatisticAdMediaCount/${adMediaId}`);
@@ -23,4 +23,4 @@ const adMediaCountService = {
     }),
 };
 
-export default adMediaCountService; 
+export default adMediaCountService;

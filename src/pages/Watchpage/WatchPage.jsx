@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  memo,
+  useMemo,
+} from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { Calendar, Clock } from "lucide-react";
@@ -7,6 +14,7 @@ import moment from "moment";
 import Loading from "../../components/Loading/Loading";
 import movieService from "../../apis/Movie/movie";
 import adMediaCountService from "../../apis/AdMedia/adMediaCount";
+// ScreenfullUtils is now used through AdUIUtils.handleFullscreen
 import {
   useAuth,
   useVideo,
@@ -19,7 +27,6 @@ import {
   AdUIUtils,
 } from "../../hooks";
 
-// Constants - Tập trung các giá trị cố định để dễ bảo trì
 const CONSTANTS = {
   PLAYER_SCRIPT_URL:
     "https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js",
@@ -28,107 +35,7 @@ const CONSTANTS = {
   FALLBACK_IMAGE_URL: "https://placehold.co/200x400?text=Ad",
 };
 
-// Utility functions - Tách các chức năng lặp lại thành các hàm riêng biệt
-const FullscreenUtils = {
-  // Kiểm tra xem tài liệu có đang ở chế độ fullscreen không
-  isFullscreen: () => {
-    return !!(
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement
-    );
-  },
-
-  // Lấy element đang ở chế độ fullscreen
-  getFullscreenElement: () => {
-    return (
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement
-    );
-  },
-
-  // Thoát khỏi chế độ fullscreen
-  exitFullscreen: () => {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
-    }
-  },
-
-  // Yêu cầu chế độ fullscreen cho một element
-  requestFullscreen: (element, fallbackToForcedClick = true) => {
-    if (!element) return false;
-
-    try {
-      if (element.requestFullscreen) {
-        element.requestFullscreen();
-      } else if (element.webkitRequestFullscreen) {
-        element.webkitRequestFullscreen();
-      } else if (element.mozRequestFullScreen) {
-        element.mozRequestFullScreen();
-      } else if (element.msRequestFullscreen) {
-        element.msRequestFullscreen();
-      } else if (fallbackToForcedClick) {
-        FullscreenUtils.useClickMethodForFullscreen(element);
-        return true;
-      } else {
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error("Error entering fullscreen:", error);
-      if (fallbackToForcedClick) {
-        FullscreenUtils.useClickMethodForFullscreen(element);
-        return true;
-      }
-      return false;
-    }
-  },
-
-  // Phương pháp thay thế sử dụng click để vào fullscreen (khi API tiêu chuẩn không hoạt động)
-  useClickMethodForFullscreen: (element) => {
-    console.log("Using click method for fullscreen");
-    const tempButton = document.createElement("button");
-    tempButton.style.position = "fixed";
-    tempButton.style.top = "0";
-    tempButton.style.left = "0";
-    tempButton.style.width = "100%";
-    tempButton.style.height = "100%";
-    tempButton.style.opacity = "0";
-    tempButton.style.zIndex = "-1";
-    tempButton.textContent = "Fullscreen";
-
-    tempButton.addEventListener("click", () => {
-      // Thử lại việc vào fullscreen khi có user interaction
-      if (element.requestFullscreen) {
-        element.requestFullscreen();
-      } else if (element.webkitRequestFullscreen) {
-        element.webkitRequestFullscreen();
-      } else if (element.mozRequestFullScreen) {
-        element.mozRequestFullScreen();
-      } else if (element.msRequestFullscreen) {
-        element.msRequestFullscreen();
-      }
-
-      // Xóa nút sau khi click
-      document.body.removeChild(tempButton);
-    });
-
-    document.body.appendChild(tempButton);
-    // Giả lập click sau một chút delay
-    setTimeout(() => {
-      tempButton.click();
-    }, 300);
-  },
-};
+// Removed FullscreenUtils in favor of ScreenfullUtils
 
 // Utility để tạo player từ script
 const PlayerUtils = {
@@ -205,453 +112,9 @@ const PlayerUtils = {
   },
 };
 
-// Extract AdDisplay as a memoized component
-const AdDisplay = memo(({ ad, className, movieId }) => {
-  if (!ad) return null;
+// AdDisplay component removed - only using pre-roll and mid-roll ads
 
-  // Check if it's a header ad or sidebar ad
-  const isHeaderAd = className && className.includes("max-h-[100px]");
-  const isSidebarAd = className && className.includes("sidebar-ad");
-
-  // For video ads in regular ad slots
-  const adVideoRef = useRef(null);
-  const playerInstanceRef = useRef(null);
-  const isInitializingRef = useRef(false);
-
-  // Get handleAdClick from useAdDisplay hook
-  const { handleAdClick } = useAdDisplay({});
-
-  // Initialize video player if this is a video ad
-  useEffect(() => {
-    if (!ad.video || !adVideoRef.current) return;
-
-    if (isInitializingRef.current) return;
-    isInitializingRef.current = true;
-
-    let isComponentMounted = true;
-
-    // Sử dụng PlayerUtils thay vì code trực tiếp
-    const initPlayer = async () => {
-      try {
-        // Khởi tạo player với các options phù hợp
-        const player = await PlayerUtils.initializePlayer(adVideoRef, {
-          autoplay: true,
-          startMuted: true,
-          loop: true,
-          hideControls: true,
-        });
-
-        if (!player || !isComponentMounted) return;
-
-        playerInstanceRef.current = player;
-      } catch (error) {
-        console.error("Failed to initialize ad video player:", error);
-      } finally {
-        isInitializingRef.current = false;
-      }
-    };
-
-    initPlayer();
-
-    // Clean up function
-    return () => {
-      isComponentMounted = false;
-      isInitializingRef.current = false;
-
-      if (playerInstanceRef.current) {
-        // Disconnect events
-        try {
-          playerInstanceRef.current.off("ready");
-          playerInstanceRef.current.off("error");
-        } catch (err) {
-          console.warn("Error cleaning up player events:", err);
-        }
-      }
-    };
-  }, [ad.video]);
-
-  // Clean up player on component unmount
-  useEffect(() => {
-    return () => {
-      if (playerInstanceRef.current) {
-        console.log("Final cleanup of ad player");
-        try {
-          // Try to pause the video before cleanup
-          playerInstanceRef.current.pause();
-        } catch (err) {}
-
-        playerInstanceRef.current = null;
-        isInitializingRef.current = false;
-      }
-    };
-  }, []);
-
-  return (
-    <div className={`relative w-full h-full ${className}`}>
-      <div className="text-white text-xs uppercase tracking-wider mb-1 text-center font-light">
-        SPONSORED
-      </div>
-
-      {/* Display video if available */}
-      {ad.video ? (
-        <div
-          className={`relative w-full overflow-hidden rounded ${
-            isHeaderAd
-              ? "h-[60px]"
-              : isSidebarAd
-              ? "aspect-[9/16] h-[calc(100vh-220px)] max-h-full flex-1"
-              : "aspect-video"
-          }`}
-          onClick={() => handleAdClick(ad.id, movieId)}
-          style={{ cursor: "pointer" }}
-        >
-          <iframe
-            ref={adVideoRef}
-            src={`${ad.video}${
-              ad.video.includes("?") ? "&" : "?"
-            }autoplay=1&muted=1&controls=0&playsinline=1&enablejsapi=1&loop=1&playlist=${ad.video
-              .split("/")
-              .pop()}`}
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            allowFullScreen
-            allow="autoplay; fullscreen; encrypted-media"
-            frameBorder="0"
-            autoPlay
-            muted
-            playsInline
-            loading="eager"
-          />
-        </div>
-      ) : (
-        // Display image if no video
-        <a
-          href={ad.url || "#"}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full h-full"
-          onClick={() => handleAdClick(ad.id, movieId)}
-        >
-          <img
-            src={ad.image}
-            alt="Advertisement"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = CONSTANTS.FALLBACK_IMAGE_URL;
-            }}
-          />
-        </a>
-      )}
-
-      {/* Add visit button for video ads if URL is provided */}
-      {ad.video && ad.url && !isHeaderAd && (
-        <a
-          href={ad.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full mt-2 bg-white/10 text-white text-center py-1 text-sm rounded hover:bg-white/20 transition-colors"
-          onClick={() => handleAdClick(ad.id, movieId)}
-        >
-          Visit Site
-        </a>
-      )}
-
-      {ad.content && !isHeaderAd && (
-        <div className="text-white text-sm mt-2 text-center">{ad.content}</div>
-      )}
-    </div>
-  );
-});
-
-// Extract CenterAdDisplay as a memoized component
-const CenterAdDisplay = memo(({ centerAd, showCenterAd, setShowCenterAd }) => {
-  if (!centerAd || !showCenterAd) return null;
-
-  // Add state to track close button visibility
-  const [showCloseButton, setShowCloseButton] = useState(false);
-  // Add countdown state
-  const [countdown, setCountdown] = useState(10);
-
-  // Create a separate useVideo hook instance for the ad video
-  const adVideoRef = useRef(null);
-  const playerInstanceRef = useRef(null);
-  const isInitializingRef = useRef(false);
-
-  // Add effect to show close button after 10 seconds with countdown
-  useEffect(() => {
-    let timer;
-    let countdownInterval;
-
-    if (showCenterAd) {
-      // Initialize countdown to 10 seconds
-      setCountdown(10);
-
-      // Set up countdown interval
-      countdownInterval = setInterval(() => {
-        setCountdown((prev) => {
-          const newCount = prev - 1;
-          if (newCount <= 0) {
-            clearInterval(countdownInterval);
-            return 0;
-          }
-          return newCount;
-        });
-      }, 1000);
-
-      // Set timeout to show close button after 10 seconds
-      timer = setTimeout(() => {
-        setShowCloseButton(true);
-        clearInterval(countdownInterval);
-      }, 10000); // 10 seconds delay
-    }
-
-    return () => {
-      if (timer) clearTimeout(timer);
-      if (countdownInterval) clearInterval(countdownInterval);
-    };
-  }, [showCenterAd]);
-
-  // Only initialize the player when the ad has a video and is visible
-  useEffect(() => {
-    if (!centerAd?.video || !showCenterAd || !adVideoRef.current) return;
-
-    // Avoid multiple initialization attempts
-    if (isInitializingRef.current) return;
-    isInitializingRef.current = true;
-
-    let isComponentMounted = true;
-
-    // Sử dụng PlayerUtils để khởi tạo player
-    const initPlayer = async () => {
-      try {
-        const player = await PlayerUtils.initializePlayer(adVideoRef, {
-          autoplay: true,
-          startMuted: true,
-          loop: true,
-          hideControls: true,
-        });
-
-        if (!player || !isComponentMounted) return;
-
-        playerInstanceRef.current = player;
-      } catch (error) {
-        console.error("Failed to initialize center ad player:", error);
-      } finally {
-        isInitializingRef.current = false;
-      }
-    };
-
-    initPlayer();
-
-    // Cleanup function - disconnect events but don't destroy player
-    return () => {
-      isComponentMounted = false;
-      isInitializingRef.current = false;
-
-      if (playerInstanceRef.current) {
-        try {
-          playerInstanceRef.current.off("ready");
-          playerInstanceRef.current.off("error");
-        } catch (err) {
-          console.warn("Error cleaning up center ad player events:", err);
-        }
-      }
-    };
-  }, [centerAd?.video, showCenterAd]);
-
-  // Clean up player on component unmount or when ad is closed
-  useEffect(() => {
-    return () => {
-      if (playerInstanceRef.current) {
-        console.log("Final cleanup of center ad player");
-        try {
-          // Try to pause the video before cleanup
-          playerInstanceRef.current.pause();
-        } catch (err) {}
-
-        playerInstanceRef.current = null;
-        isInitializingRef.current = false;
-      }
-    };
-  }, []);
-
-  return (
-    <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/80 backdrop-blur-sm">
-      <div className="relative max-w-3xl max-h-[80vh] w-full mx-auto">
-        {/* Show close button only after delay - Improved styling */}
-        {showCloseButton && (
-          <button
-            onClick={() => setShowCenterAd(false)}
-            className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-[#FF009F] text-white flex items-center justify-center hover:bg-[#D1007F] transition-colors z-10 shadow-lg"
-            aria-label="Close advertisement"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
-
-        {/* Ad content container - Cleaner, more minimalist design */}
-        <div className="bg-black/90 rounded-xl overflow-hidden border border-white/10 shadow-xl relative">
-          {/* Header */}
-          <div className="bg-[#FF009F]/10 px-4 py-2 text-center border-b border-[#FF009F]/20">
-            <span className="text-[#FF009F] text-xs uppercase tracking-wider font-medium">
-              Sponsored Advertisement
-            </span>
-          </div>
-
-          {/* Content area */}
-          <div className="p-3">
-            {/* Video ad content with optimized container */}
-            {centerAd.video ? (
-              <div className="relative w-full aspect-video overflow-hidden rounded-lg shadow-lg group">
-                <iframe
-                  ref={adVideoRef}
-                  src={`${centerAd.video}${
-                    centerAd.video.includes("?") ? "&" : "?"
-                  }autoplay=1&muted=1&controls=0&playsinline=1&enablejsapi=1&loop=1&playlist=${centerAd.video
-                    .split("/")
-                    .pop()}`}
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  allowFullScreen
-                  allow="autoplay; fullscreen; encrypted-media"
-                  frameBorder="0"
-                  autoPlay
-                  muted
-                  playsInline
-                  loading="eager"
-                />
-
-                {/* Gradient overlay with integrated visit button */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <a
-                    href={centerAd.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-[#FF009F]/90 hover:bg-[#FF009F] text-white text-sm font-medium py-2 px-4 rounded-md transition-all transform hover:scale-105 shadow-lg"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                    Visit Site
-                  </a>
-                </div>
-              </div>
-            ) : centerAd.image ? (
-              /* Image ad content with improved styling and integrated visit button */
-              <a
-                href={centerAd.url || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full group relative"
-              >
-                <div className="overflow-hidden rounded-lg shadow-lg">
-                  <img
-                    src={centerAd.image}
-                    alt="Advertisement"
-                    className="w-full object-contain rounded-lg max-h-[60vh] transform transition-transform group-hover:scale-[1.02]"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = CONSTANTS.FALLBACK_IMAGE_URL;
-                    }}
-                  />
-
-                  {/* Overlay on hover with subtle visit indicator */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-4">
-                    <div className="inline-flex items-center gap-2 text-white text-sm font-medium">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                      Visit Advertiser
-                    </div>
-                  </div>
-                </div>
-              </a>
-            ) : null}
-
-            {/* Ad content text with improved styling */}
-            {centerAd.content && (
-              <div className="mt-3 text-white/80 text-center text-sm">
-                {centerAd.content}
-              </div>
-            )}
-
-            {/* Close instruction */}
-            <div className="mt-4 text-center">
-              {showCloseButton ? (
-                <p className="text-white/60 text-xs">
-                  Click the X button to close this ad
-                </p>
-              ) : (
-                <div className="bg-black/80 py-2 px-4 rounded-lg inline-block">
-                  <p className="text-white/90 text-xs mb-2">
-                    <span className="text-[#FF009F]">Close button</span> will
-                    appear in{" "}
-                    <span className="font-bold text-[#FF009F]">
-                      {countdown}
-                    </span>{" "}
-                    seconds
-                  </p>
-                  {/* Improved progress bar */}
-                  <div className="w-32 h-1 bg-[#3A0033] rounded-full overflow-hidden mx-auto">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#FF009F] to-[#FF4DB8]"
-                      style={{
-                        width: `${(countdown / 10) * 100}%`,
-                        transition: "width 1s linear",
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Footer with privacy notice */}
-          <div className="px-4 py-2 border-t border-white/5 bg-black/40">
-            <p className="text-white/40 text-[10px] text-center">
-              Your privacy matters. No user data is collected from this
-              advertisement.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
+// CenterAdDisplay component removed - only using pre-roll and mid-roll ads
 
 const WatchPage = () => {
   const { movieId } = useParams();
@@ -662,17 +125,14 @@ const WatchPage = () => {
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState(4);
   const [adPlaybackAttempted, setAdPlaybackAttempted] = useState(false);
-  const [prerollAdFinished, setPrerollAdFinished] = useState(false);
-  const [showPrerollAd, setShowPrerollAd] = useState(false);
-  const [showSkipButton, setShowSkipButton] = useState(false);
-  const [directVideoUrl, setDirectVideoUrl] = useState("");
 
   // Refs for ads management
   const adPlayersRef = useRef([]);
   const mainPlayerRef = useRef(null);
-  const isMainPlayerInitializingRef = useRef(false);
-  const hasShownMidRollAd = useRef(false);
+
+  const shownAdPositions = useRef([]);
   const inStreamAdRef = useRef(null);
+  const adPauseIntervalRef = useRef(null);
 
   // Refs for timer management
   const hideTimeoutRef = useRef(null);
@@ -692,17 +152,38 @@ const WatchPage = () => {
         playbackPosition.savePlaybackTime(seconds);
 
         // Phát quảng cáo khi đạt đến một thời điểm cụ thể
-        if (
-          role !== "VIP MEMBER" &&
-          seconds >= AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME &&
-          !hasShownMidRollAd.current &&
-          mainPlayerRef.current
-        ) {
-          console.log(
-            `Đã đạt đến ${AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME} giây, hiển thị quảng cáo`
-          );
-          hasShownMidRollAd.current = true;
-          showInStreamAd();
+        if (role !== "VIP MEMBER" && mainPlayerRef.current) {
+          // Kiểm tra xem có đạt đến vị trí quảng cáo nào không
+          const positions = adPositions || [
+            AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME,
+          ];
+
+          // Tìm vị trí quảng cáo phù hợp để hiển thị
+          const adPositionToShow = positions.find((position) => {
+            // Kiểm tra xem đã đến vị trí quảng cáo chưa
+            const isAtPosition =
+              seconds >= position && Math.abs(seconds - position) < 2;
+
+            // Kiểm tra xem quảng cáo này đã hiển thị chưa
+            const hasShownThisAd = shownAdPositions.current.includes(position);
+
+            // Chỉ trả về true nếu đã đến vị trí và chưa hiển thị quảng cáo này
+            return isAtPosition && !hasShownThisAd;
+          });
+
+          if (adPositionToShow !== undefined) {
+            console.log(
+              `Đã đạt đến vị trí quảng cáo ${adPositionToShow} giây (thời gian hiện tại: ${seconds.toFixed(
+                1
+              )}), hiển thị quảng cáo`
+            );
+
+            // Thêm vị trí quảng cáo vào danh sách đã hiển thị
+            shownAdPositions.current.push(adPositionToShow);
+
+            // Hiển thị quảng cáo với vị trí cụ thể
+            showInStreamAd(adPositionToShow);
+          }
         }
       },
       onPause: (seconds) => {
@@ -746,6 +227,7 @@ const WatchPage = () => {
     setCommentInput,
     userDetails,
     loadingComments,
+    submittingComment,
     handleCommentSubmit: submitComment,
   } = useMovieComments({
     movieId,
@@ -753,76 +235,28 @@ const WatchPage = () => {
     movie,
   });
 
-  // Ad display hook
-  const { centerAd, showCenterAd, setShowCenterAd } = useAdDisplay({
+  // Get ad hook values to display ads
+  const { midrollAdSequence } = useAdDisplay({
     isAuthenticated,
     userRole: role,
+    movieId, // Thêm movieId để lấy quảng cáo từ API
   });
 
-  const handlePrerollAdFinished = useCallback(() => {
-    console.log("Quảng cáo pre-roll kết thúc, bắt đầu phát video chính");
-    setPrerollAdFinished(true);
-    setShowPrerollAd(false);
-    setShowSkipButton(false);
-
-    // Bắt đầu phát video chính
-    if (mainPlayerRef.current) {
-      try {
-        // Đặt thời gian về 0 trước khi phát
-        mainPlayerRef.current.setCurrentTime(0);
-
-        // Thêm nhiều cách để đảm bảo video phát
-        const playVideo = () => {
-          mainPlayerRef.current.play();
-          console.log("Đang cố gắng phát video chính");
-
-          // Thử phát lại sau một khoảng thời gian ngắn để đảm bảo
-          setTimeout(() => {
-            try {
-              mainPlayerRef.current.play();
-            } catch (err) {
-              console.warn("Lỗi khi thử phát lại video: ", err);
-            }
-          }, 1000);
-        };
-
-        // Phát video sau một khoảng thời gian ngắn
-        setTimeout(() => {
-          console.log("Phát video chính sau quảng cáo");
-          playVideo();
-        }, 500);
-      } catch (error) {
-        console.error("Lỗi khi phát video chính:", error);
-
-        // Thử cách tiếp cận khác nếu có lỗi
-        try {
-          if (iframeRef.current) {
-            // Truy cập trực tiếp iframe để phát video
-            if (iframeRef.current.contentWindow) {
-              iframeRef.current.contentWindow.postMessage(
-                '{"event":"command","func":"playVideo","args":""}',
-                "*"
-              );
-            }
-          }
-        } catch (fallbackError) {
-          console.error("Cả hai cách phát video đều thất bại:", fallbackError);
-        }
-      }
-    } else {
-      console.warn("Không thể phát video chính vì không có mainPlayerRef");
-      // Nếu không có mainPlayerRef, thử tải lại iframe
-      if (iframeRef.current) {
-        const currentSrc = iframeRef.current.src;
-        iframeRef.current.src = "";
-        setTimeout(() => {
-          iframeRef.current.src = currentSrc;
-        }, 100);
-      }
+  // Lấy vị trí quảng cáo trực tiếp từ midrollAdSequence
+  const adPositions = useMemo(() => {
+    if (!midrollAdSequence || midrollAdSequence.length === 0) {
+      return [AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME]; // Giá trị mặc định
     }
-  }, []);
 
-  // Fetch movie data
+    // Lấy vị trí của tất cả quảng cáo
+    const positions = midrollAdSequence.map(
+      (ad) => ad.position || AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME
+    );
+    console.log("Ad positions from sequence:", positions);
+    return positions;
+  }, [midrollAdSequence]);
+
+  // Fetch movie data and handle controls
   useEffect(() => {
     const fetchMovie = async () => {
       try {
@@ -855,52 +289,6 @@ const WatchPage = () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [movieId]);
-
-  // Kích hoạt quảng cáo Pre-roll khi trang được tải và video được khởi tạo
-  useEffect(() => {
-    // Kiểm tra xem có quảng cáo hợp lệ không (video hoặc hình ảnh)
-    const hasValidAd =
-      (centerAd?.video && centerAd.video.trim() !== "") ||
-      (centerAd?.image && centerAd.image.trim() !== "");
-
-    // Chỉ kích hoạt Pre-roll khi có quảng cáo hợp lệ và người dùng không phải VIP MEMBER
-    if (
-      movie &&
-      playerReady &&
-      role !== "VIP MEMBER" &&
-      !prerollAdFinished &&
-      hasValidAd
-    ) {
-      console.log("Kích hoạt quảng cáo Pre-roll khi trang được tải");
-      console.log("Thông tin quảng cáo:", centerAd);
-
-      // Để đảm bảo iframe đã được tải hoàn toàn trước khi hiển thị quảng cáo
-      const timer = setTimeout(() => {
-        // Kích hoạt quảng cáo thông qua setShowPrerollAd để useEffect tương ứng được gọi
-        setShowPrerollAd(true);
-      }, 500);
-
-      return () => clearTimeout(timer);
-    } else if (
-      movie &&
-      playerReady &&
-      role !== "VIP MEMBER" &&
-      !prerollAdFinished
-    ) {
-      console.log(
-        "Không thể hiển thị quảng cáo Pre-roll vì không có quảng cáo hợp lệ",
-        centerAd
-      );
-    }
-  }, [
-    movie,
-    playerReady,
-    role,
-    prerollAdFinished,
-    centerAd,
-    handlePrerollAdFinished,
-    iframeRef,
-  ]);
 
   // Handle comment submission with movie data update
   const handleCommentSubmit = async (e) => {
@@ -948,29 +336,6 @@ const WatchPage = () => {
       playbackPosition.setShowResumeDialog(false);
     }
   };
-
-  // Helper components
-  const UpgradeMessage = ({ message, isAuthenticated }) => (
-    <div className="bg-black/90 rounded-xl p-0 overflow-hidden">
-      <div className="px-4 py-8 flex flex-col items-center justify-center text-center">
-        <p className="text-white mb-2">
-          {isAuthenticated ? message : "Please login to access this feature"}
-        </p>
-        <Link
-          to={isAuthenticated ? "/subscription-plans" : "/login"}
-          className="inline-block px-6 py-2 bg-[#FF009F] text-white rounded-md hover:bg-[#FF009F]/90 transition-colors mt-2"
-          aria-label={
-            isAuthenticated
-              ? "Upgrade your membership"
-              : "Login to your account"
-          }
-          tabIndex="0"
-        >
-          {isAuthenticated ? "Upgrade Now" : "Login Now"}
-        </Link>
-      </div>
-    </div>
-  );
 
   const getVideoContainerStyle = () => {
     // Tất cả các role đều dùng chung một kích thước video
@@ -1026,42 +391,7 @@ const WatchPage = () => {
     });
   }, [adPlaybackAttempted]);
 
-  // Listen for user interaction to force play ads
-  useEffect(() => {
-    const handleUserInteraction = () => {
-      forcePlayAds();
-    };
-
-    // Sử dụng các sự kiện phổ biến nhất để bắt user interaction
-    const interactionEvents = ["click", "touchstart", "keydown", "scroll"];
-
-    interactionEvents.forEach((event) => {
-      window.addEventListener(event, handleUserInteraction, { once: true });
-    });
-
-    return () => {
-      interactionEvents.forEach((event) => {
-        window.removeEventListener(event, handleUserInteraction);
-      });
-    };
-  }, [forcePlayAds]);
-
-  // Clean up ad players on unmount
-  useEffect(() => {
-    return () => {
-      adPlayersRef.current.forEach((player) => {
-        try {
-          player.off("ready");
-          player.off("error");
-        } catch (err) {
-          // Bỏ qua lỗi khi cleanup
-        }
-      });
-      adPlayersRef.current = [];
-    };
-  }, []);
-
-  // Add useEffect to auto-hide resume dialog after 4 seconds
+  // Auto-hide resume dialog after 4 seconds
   useEffect(() => {
     // Clear any existing timers
     if (hideTimeoutRef.current) {
@@ -1125,653 +455,786 @@ const WatchPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playbackPosition.showResumeDialog, playbackPosition.savedPosition]);
 
-  // Thêm useEffect để gọi forcePlayAds sau khi trang load xong
+  // Unified ad management effect - handles all ad-related functionality
   useEffect(() => {
-    // Force play ads when component mounts and video URL is available
-    if (movie && centerAd?.video) {
+    // 1. Force play ads when user interacts with the page
+    const handleUserInteraction = () => {
+      forcePlayAds();
+
+      // Cố gắng phát video quảng cáo đang hiển thị
+      const forcePlayVisibleAdVideos = () => {
+        const adContainer = document.getElementById("in-stream-ad-container");
+        if (adContainer) {
+          const adVideos = adContainer.querySelectorAll("video");
+          adVideos.forEach((video) => {
+            if (video.paused) {
+              console.log("User interaction - forcing ad video playback");
+              // Thử phát video sau khi có tương tác người dùng
+              const playPromise = video.play();
+              if (playPromise !== undefined) {
+                playPromise.catch((err) => {
+                  console.error(
+                    "Cannot play ad video after user interaction:",
+                    err
+                  );
+                  // Nếu vẫn không thể phát, thử tắt tiếng và phát lại
+                  video.muted = true;
+                  video
+                    .play()
+                    .then(() => {
+                      // Bật âm thanh sau khi video đã bắt đầu phát
+                      setTimeout(() => {
+                        video.muted = false;
+                      }, 500);
+                    })
+                    .catch((e) => console.error("Still cannot play:", e));
+                });
+              }
+            }
+          });
+        }
+      };
+
+      // Thử phát video quảng cáo ngay lập tức và sau một khoảng thời gian
+      forcePlayVisibleAdVideos();
+      setTimeout(forcePlayVisibleAdVideos, 500);
+    };
+
+    // 2. Force play ads when component mounts and video URL is available
+    let forcePlayTimer;
+    if (movie) {
       // Wait for a short time to ensure iframe has loaded
-      const timer = setTimeout(() => {
+      forcePlayTimer = setTimeout(() => {
         forcePlayAds();
+
+        // Thêm xử lý đặc biệt cho video quảng cáo khi reload trang
+        const forcePlayAdVideos = () => {
+          // Tìm tất cả các video quảng cáo đang hiển thị
+          const adContainer = document.getElementById("in-stream-ad-container");
+          if (adContainer) {
+            const adVideos = adContainer.querySelectorAll("video");
+            adVideos.forEach((video) => {
+              if (video.paused) {
+                console.log("Force playing paused ad video after reload");
+                // Tắt tiếng trước khi phát để đảm bảo autoplay hoạt động
+                video.muted = true;
+                const playPromise = video.play();
+
+                if (playPromise !== undefined) {
+                  playPromise
+                    .then(() => {
+                      // Bật âm thanh sau khi video đã bắt đầu phát
+                      setTimeout(() => {
+                        video.muted = false;
+                      }, 500);
+                    })
+                    .catch((err) => {
+                      console.error("Still cannot play ad video:", err);
+                    });
+                }
+              }
+            });
+          }
+        };
+
+        // Thử phát video quảng cáo ngay lập tức và sau một khoảng thời gian
+        forcePlayAdVideos();
+        setTimeout(forcePlayAdVideos, 1000);
       }, 1000);
-
-      return () => clearTimeout(timer);
     }
-  }, [movie, centerAd, forcePlayAds]);
 
-  // Hàm để bỏ qua quảng cáo pre-roll
-  const handleSkipPrerollAd = useCallback(() => {
-    console.log("Người dùng bỏ qua quảng cáo pre-roll");
+    // 3. Set up event listeners for user interaction
+    const interactionEvents = ["click", "touchstart", "keydown", "scroll"];
+    interactionEvents.forEach((event) => {
+      window.addEventListener(event, handleUserInteraction, { once: true });
+    });
 
-    // Tìm container quảng cáo
-    const adContainer = document.getElementById("in-stream-ad-container");
-    if (adContainer && adContainer.parentNode) {
-      adContainer.parentNode.removeChild(adContainer);
-
-      // Clear any countdown timers that might be running
-      const intervalId = adContainer.dataset.countdownIntervalId;
-      if (intervalId) {
-        clearInterval(parseInt(intervalId));
+    // Cleanup function
+    return () => {
+      // Clean up timers
+      if (forcePlayTimer) {
+        clearTimeout(forcePlayTimer);
       }
+
+      // Clean up event listeners
+      interactionEvents.forEach((event) => {
+        window.removeEventListener(event, handleUserInteraction);
+      });
+
+      // Clean up ad players
+      adPlayersRef.current.forEach((player) => {
+        try {
+          player.off("ready");
+          player.off("error");
+        } catch (err) {
+          // Bỏ qua lỗi khi cleanup
+        }
+      });
+      adPlayersRef.current = [];
+    };
+  }, [movie, forcePlayAds]);
+
+  // Hàm bỏ qua quảng cáo đã được thay thế bằng AdUIUtils.setupSkipButton
+
+  // Hàm tăng lượt xem quảng cáo
+  const increaseAdMediaCount = useCallback(async (adMediaId) => {
+    if (!adMediaId) {
+      console.error("Không có adMediaId để tăng lượt xem");
+      return;
     }
 
-    // Gọi hàm để hoàn thiện xử lý preroll ad
-    handlePrerollAdFinished();
-  }, [handlePrerollAdFinished]);
+    try {
+      console.log(`Tăng lượt xem cho quảng cáo có ID: ${adMediaId}`);
+      const response = await adMediaCountService.increaseAdMediaCount(
+        adMediaId
+      );
+      console.log("Kết quả tăng lượt xem quảng cáo:", response);
+    } catch (error) {
+      console.error("Lỗi khi tăng lượt xem quảng cáo:", error);
+    }
+  }, []);
 
-  // Hàm chung để hiển thị quảng cáo, được sử dụng cho cả pre-roll và mid-roll
+  // Hàm hiển thị quảng cáo mid-roll
   const displayAd = useCallback(
     ({
-      isPreroll = false,
-      currentPosition = 0,
       wasFullscreen = false,
       fullscreenElement = null,
       onFinish = null,
+      adIndex = 0,
     }) => {
-      console.log(`Hiển thị quảng cáo ${isPreroll ? "pre-roll" : "mid-roll"}`);
+      console.log("Hiển thị quảng cáo mid-roll, index:", adIndex);
 
-      // Tìm container của video chính
-      if (!iframeRef.current || !iframeRef.current.parentNode) {
+      // Đảm bảo video chính bị tạm dừng
+      if (mainPlayerRef.current) {
+        mainPlayerRef.current.pause();
+
+        // Thiết lập kiểm tra định kỳ để đảm bảo video vẫn tạm dừng trong quá trình phát quảng cáo
+        const pauseCheckInterval = setInterval(() => {
+          if (mainPlayerRef.current) mainPlayerRef.current.pause();
+        }, 500);
+
+        adPauseIntervalRef.current = pauseCheckInterval;
+      }
+
+      // Kiểm tra container video
+      if (!iframeRef.current?.parentNode) {
         console.error("Không tìm thấy container video");
-        if (mainPlayerRef.current) {
-          mainPlayerRef.current.play();
+        if (adPauseIntervalRef.current) {
+          clearInterval(adPauseIntervalRef.current);
+          adPauseIntervalRef.current = null;
         }
-        return;
+        return { cleanup: () => {} };
       }
 
       const videoContainer = iframeRef.current.parentNode;
+      if (!videoContainer.id) videoContainer.id = "video-container";
 
-      // Đảm bảo rằng video-container có ID để có thể tham chiếu sau này
-      if (!videoContainer.id) {
-        videoContainer.id = "video-container";
-      }
-
-      // Kiểm tra xem đã có container quảng cáo chưa
+      // Xóa container quảng cáo cũ nếu có
       const existingAdContainer = document.getElementById(
         "in-stream-ad-container"
       );
-      if (existingAdContainer) {
-        console.log("Đã có container quảng cáo, xóa trước khi tạo mới");
-        existingAdContainer.remove();
-      }
+      if (existingAdContainer) existingAdContainer.remove();
 
-      // Tạo container quảng cáo với utilities
+      // Tạo container quảng cáo mới
       const adContainer = AdUIUtils.createAdContainer(
         wasFullscreen,
         fullscreenElement ? fullscreenElement.id || "video-container" : null
       );
 
-      // Tạo các UI elements cho quảng cáo
+      // Tạo các thành phần UI
       const skipButton = AdUIUtils.createSkipButton();
       const adLabel = AdUIUtils.createAdLabel();
-
-      // Hàm để kết thúc quảng cáo và tiếp tục video chính
-      const finishAd = () => {
-        console.log(`${isPreroll ? "Pre-roll" : "Mid-roll"} ad ended`);
-
-        // Clear all timers
-        if (countdownInterval) {
-          clearInterval(countdownInterval);
-        }
-
-        // Clear auto-close timer
-        if (autoCloseTimer) {
-          clearTimeout(autoCloseTimer);
-        }
-
-        // Clear skip button timer if exists
-        if (skipButtonTimer) {
-          clearTimeout(skipButtonTimer);
-        }
-
-        // Xóa container quảng cáo
-        if (adContainer && adContainer.parentNode) {
-          adContainer.parentNode.removeChild(adContainer);
-        }
-
-        // For mid-roll ads, resume video from saved position
-        if (!isPreroll && mainPlayerRef.current) {
-          // Lấy thông tin về trạng thái fullscreen từ trước
-          const needsFullscreen = adContainer.dataset.wasFullscreen === "true";
-
-          // Set a flag to prevent immediate triggering of another midroll ad
-          let lastAdTime = Date.now();
-          adContainer.dataset.lastAdTime = lastAdTime;
-
-          // Đặt lại vị trí và phát video
-          mainPlayerRef.current.setCurrentTime(currentPosition);
-          mainPlayerRef.current.play();
-
-          // Nếu trước đó đang ở chế độ fullscreen, thì quay lại fullscreen sau khi đóng quảng cáo
-          if (needsFullscreen) {
-            // Tìm phần tử để làm fullscreen
-            let elementToFullscreen = iframeRef.current;
-            if (!elementToFullscreen) {
-              // Fallback đến container của video
-              elementToFullscreen =
-                document.getElementById("video-container") ||
-                document.querySelector(".video-container");
-            }
-
-            if (elementToFullscreen) {
-              // Delay trước khi cố gắng quay lại fullscreen
-              setTimeout(() => {
-                console.log("Đang cố gắng quay lại chế độ fullscreen...");
-                FullscreenUtils.requestFullscreen(elementToFullscreen);
-              }, AD_CONSTANTS.FULLSCREEN_RETRY_DELAY);
-            }
-          }
-        }
-
-        // For preroll ads, call specific handler
-        if (isPreroll && onFinish) {
-          onFinish();
-        }
-      };
-
-      // Tạo countdown timer
       const adCountdown = AdUIUtils.createCountdownTimer(
         AD_CONSTANTS.AD_COUNTDOWN_SECONDS
       );
-      adContainer.appendChild(adCountdown);
 
-      // Setup countdown timer
+      // Hàm kết thúc quảng cáo
+      const finishAd = () => {
+        console.log("Kết thúc quảng cáo");
+
+        // Xóa interval tạm dừng
+        if (adPauseIntervalRef.current) {
+          clearInterval(adPauseIntervalRef.current);
+          adPauseIntervalRef.current = null;
+        }
+
+        // Xóa container quảng cáo
+        if (adContainer?.parentNode) {
+          // Xóa interval đếm ngược
+          const intervalId = adContainer.dataset.countdownIntervalId;
+          if (intervalId) clearInterval(parseInt(intervalId));
+
+          adContainer.parentNode.removeChild(adContainer);
+        }
+
+        // Tiếp tục phát video chính
+        if (mainPlayerRef.current) {
+          console.log("Resuming main video playback");
+
+          // Hàm để đảm bảo video được phát sau khi quảng cáo kết thúc
+          const ensureVideoResumes = () => {
+            try {
+              // Thử phát video
+              const playPromise = mainPlayerRef.current.play();
+
+              // Xử lý promise nếu có
+              if (playPromise && typeof playPromise.then === "function") {
+                playPromise.catch((error) => {
+                  console.error("Error resuming video after ad:", error);
+                  // Thử lại sau 500ms
+                  setTimeout(ensureVideoResumes, 500);
+                });
+              }
+            } catch (error) {
+              console.error("Exception when resuming video:", error);
+              // Thử lại sau 500ms
+              setTimeout(ensureVideoResumes, 500);
+            }
+          };
+
+          // Thử phát video sau 100ms để đảm bảo các thao tác khác đã hoàn tất
+          setTimeout(ensureVideoResumes, 100);
+
+          // Thử lại sau 1 giây và 2 giây để đảm bảo video được phát
+          setTimeout(ensureVideoResumes, 1000);
+          setTimeout(ensureVideoResumes, 2000);
+        }
+
+        // Chỉ khôi phục fullscreen nếu video đã ở chế độ fullscreen trước khi hiển thị quảng cáo
+        if (wasFullscreen === true) {
+          console.log("Restoring fullscreen after ad");
+          setTimeout(() => {
+            const elementToFullscreen =
+              iframeRef.current ||
+              document.getElementById("video-container") ||
+              document.querySelector(".video-container");
+
+            if (elementToFullscreen) {
+              AdUIUtils.handleFullscreen.requestFullscreen(elementToFullscreen);
+            }
+          }, AD_CONSTANTS.FULLSCREEN_RETRY_DELAY);
+        } else {
+          console.log(
+            "Not restoring fullscreen as video was not in fullscreen before ad"
+          );
+        }
+
+        // Gọi callback nếu được cung cấp
+        if (onFinish) onFinish();
+      };
+
+      // Thiết lập đếm ngược
+      adContainer.appendChild(adCountdown);
       let countdownTime = AD_CONSTANTS.AD_COUNTDOWN_SECONDS;
+      let skipButtonShown = false;
+
       const countdownInterval = setInterval(() => {
         countdownTime--;
         if (countdownTime <= 0) {
           clearInterval(countdownInterval);
           finishAd();
         } else {
+          // Cập nhật text đếm ngược
           adCountdown.textContent = `Ad ends in: ${countdownTime}s`;
+
+          // Hiển thị nút skip trong 5 giây cuối
+          if (
+            countdownTime <= AD_CONSTANTS.SKIP_AD_DELAY_SECONDS &&
+            !skipButtonShown
+          ) {
+            skipButton.style.display = "block";
+            skipButton.style.animation = "fadeIn 0.5s ease-in-out";
+            skipButtonShown = true;
+          }
         }
       }, 1000);
-
-      // Store the interval ID in the container's dataset for later cleanup
       adContainer.dataset.countdownIntervalId = countdownInterval;
 
-      // Skip button visibility
-      let skipButtonTimer;
-      if (isPreroll) {
-        // Hiển thị nút bỏ qua sau thời gian quy định cho pre-roll
-        skipButtonTimer = setTimeout(() => {
-          skipButton.style.display = "block";
-          if (isPreroll) {
-            setShowSkipButton(true);
-          }
-        }, AD_CONSTANTS.SKIP_AD_DELAY);
-      } else {
-        // Hiển thị nút skip ngay lập tức cho mid-roll
-        skipButton.style.display = "block";
+      // Thiết lập nút bỏ qua với hành vi chuẩn hóa
+      AdUIUtils.setupSkipButton(skipButton, adContainer, () => {
+        clearInterval(countdownInterval);
+        finishAd();
+      });
+
+      adContainer.appendChild(adLabel);
+
+      // Lấy quảng cáo hiện tại dựa trên index được truyền vào
+      const currentAd = midrollAdSequence[adIndex];
+
+      console.log("Current ad to display:", currentAd, "at index:", adIndex);
+
+      // Tăng lượt xem quảng cáo ngay khi trigger
+      if (currentAd && currentAd.id) {
+        increaseAdMediaCount(currentAd.id);
       }
 
-      // Xử lý sự kiện khi bỏ qua quảng cáo
-      skipButton.onclick = () => {
-        console.log("Người dùng bỏ qua quảng cáo");
-        finishAd();
-      };
+      // Nếu không có quảng cáo, kết thúc ngay
+      if (!currentAd) {
+        console.log("Không có quảng cáo để hiển thị");
+        if (onFinish) onFinish();
+        return { cleanup: () => {} };
+      }
 
-      // Xử lý khác nhau dựa trên loại quảng cáo (video hoặc hình ảnh)
-      if (centerAd?.video && centerAd.video.trim() !== "") {
-        const isMediaDeliveryUrl = centerAd.video.includes("mediadelivery.net");
+      // Tạo nội dung quảng cáo dựa trên loại (video hoặc hình ảnh)
+      if (currentAd.video && currentAd.video.trim() !== "") {
+        console.log("Creating video ad with URL:", currentAd.video);
 
-        if (isMediaDeliveryUrl) {
-          console.log("URL media delivery, sử dụng phương pháp xử lý nâng cao");
+        // Tạo container cho video để dễ dàng style
+        const videoContainer = document.createElement("div");
+        videoContainer.className = "video-ad-container";
+        videoContainer.style.width = "100%";
+        videoContainer.style.height = "100%";
+        videoContainer.style.display = "flex";
+        videoContainer.style.justifyContent = "center";
+        videoContainer.style.alignItems = "center";
+        videoContainer.style.backgroundColor = "#000";
+        videoContainer.style.position = "relative";
 
-          // Tạo video element
-          const videoElement = document.createElement("video");
-          videoElement.style.width = "100%";
-          videoElement.style.height = "100%";
-          videoElement.style.objectFit = "contain";
-          videoElement.style.backgroundColor = "#000";
-          videoElement.controls = false;
-          videoElement.autoplay = true;
-          videoElement.muted = false;
-          videoElement.playsInline = true;
+        // Tạo video element
+        const videoElement = document.createElement("video");
+        Object.assign(videoElement.style, {
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          backgroundColor: "#000",
+          zIndex: "1",
+        });
 
-          // Thêm event listeners
-          videoElement.addEventListener("canplay", () => {
-            console.log("Video quảng cáo đã sẵn sàng phát");
-            videoElement.play();
-          });
+        // Thiết lập các thuộc tính của video
+        videoElement.controls = false;
+        videoElement.autoplay = true;
+        videoElement.muted = true; // Mặc định tắt tiếng để đảm bảo autoplay hoạt động
+        videoElement.playsInline = true;
+        videoElement.preload = "auto";
+        videoElement.crossOrigin = "anonymous";
+        videoElement.setAttribute("playsinline", "");
+        videoElement.setAttribute("webkit-playsinline", "");
 
-          videoElement.addEventListener("ended", () => {
-            console.log("Video quảng cáo đã kết thúc tự nhiên");
-            clearInterval(countdownInterval);
-            finishAd();
-          });
+        // Tạo fallback image trong trường hợp video không tải được
+        const fallbackImage = document.createElement("img");
+        fallbackImage.src =
+          currentAd.alternativeImage ||
+          "https://placehold.co/800x450/FF009F/FFFFFF?text=Alternative+Ad";
+        fallbackImage.style.display = "none";
+        fallbackImage.style.width = "100%";
+        fallbackImage.style.height = "100%";
+        fallbackImage.style.objectFit = "contain";
+        fallbackImage.style.position = "absolute";
+        fallbackImage.style.top = "0";
+        fallbackImage.style.left = "0";
+        fallbackImage.style.zIndex = "0";
 
-          videoElement.addEventListener("error", (e) => {
-            console.error("Lỗi phát video quảng cáo:", e);
-            fallbackToIframe();
-          });
+        // Hàm để đảm bảo video được phát
+        const ensureVideoPlayback = () => {
+          console.log("Ensuring video playback");
 
-          // Tạo source element
-          const tempSource = document.createElement("source");
-          tempSource.type = "video/mp4";
+          // Hiển thị video, ẩn fallback image
+          videoElement.style.display = "block";
+          fallbackImage.style.display = "none";
 
-          // Trích xuất mediaId từ URL
-          const mediaId = centerAd.video.split("/").pop().split("?")[0];
-          if (mediaId) {
-            tempSource.src = CONSTANTS.FALLBACK_VIDEO_URL;
-            videoElement.appendChild(tempSource);
-          } else {
-            fallbackToIframe();
-            return;
-          }
+          const playPromise = videoElement.play();
 
-          // Hàm fallback dùng iframe nếu video không phát được
-          function fallbackToIframe() {
-            console.log(
-              "Chuyển sang sử dụng iframe vì không thể phát video trực tiếp"
-            );
-
-            const adIframe = document.createElement("iframe");
-            adIframe.src = `${centerAd.video}${
-              centerAd.video.includes("?") ? "&" : "?"
-            }autoplay=true&controls=false&enablejsapi=true`;
-            adIframe.style.width = "100%";
-            adIframe.style.height = "100%";
-            adIframe.style.border = "none";
-            adIframe.allow = "autoplay; fullscreen; encrypted-media";
-            adIframe.allowFullscreen = true;
-
-            // Xóa video element nếu đã thêm vào DOM
-            if (videoElement.parentNode) {
-              videoElement.parentNode.removeChild(videoElement);
-            }
-
-            // Thêm iframe vào container
-            adContainer.appendChild(adIframe);
-          }
-
-          // Thêm các elements vào DOM
-          adContainer.appendChild(videoElement);
-        } else {
-          // Quảng cáo video thông thường hoặc iframe dựa trên loại
-          console.log("Hiển thị quảng cáo dạng video:", centerAd.video);
-
-          // Tạo iframe cho quảng cáo
-          const adIframe = document.createElement("iframe");
-          adIframe.src = `${centerAd.video}${
-            centerAd.video.includes("?") ? "&" : "?"
-          }autoplay=true&controls=false&enablejsapi=true`;
-          adIframe.style.width = "100%";
-          adIframe.style.height = "100%";
-          adIframe.style.border = "none";
-          adIframe.allow = "autoplay; fullscreen; encrypted-media";
-          adIframe.allowFullscreen = true;
-
-          // Khởi tạo player cho quảng cáo khi iframe đã load xong
-          adIframe.onload = async () => {
-            try {
-              // Sử dụng PlayerUtils để khởi tạo player
-              const player = await PlayerUtils.initializePlayer(
-                { current: adIframe },
-                {
-                  autoplay: true,
-                  startMuted: false,
-                  loop: false,
-                  hideControls: false,
-                }
-              );
-
-              if (!player) return;
-
-              // Đăng ký sự kiện kết thúc
-              player.on("ended", () => {
-                console.log("Quảng cáo video đã kết thúc");
-                clearInterval(countdownInterval);
-                finishAd();
-              });
-
-              player.on("error", (error) => {
-                console.error("Lỗi quảng cáo video:", error);
-                clearInterval(countdownInterval);
-                finishAd();
-              });
-            } catch (error) {
-              console.error("Lỗi khởi tạo quảng cáo video:", error);
-              clearInterval(countdownInterval);
-              finishAd();
-            }
-          };
-
-          // Thêm iframe vào container
-          adContainer.appendChild(adIframe);
-        }
-      } else if (centerAd?.image && centerAd.image.trim() !== "") {
-        // Quảng cáo hình ảnh
-        console.log("Hiển thị quảng cáo dạng hình ảnh:", centerAd.image);
-
-        // Tạo container cho hình ảnh
-        const imageContainer = AdUIUtils.createImageAdContainer();
-
-        // Tạo phần tử img
-        const adImage = AdUIUtils.createAdImage(centerAd.image);
-
-        // Xử lý click vào hình ảnh - sử dụng xử lý khác nhau cho pre-roll và mid-roll
-        adImage.style.cursor = "pointer";
-        adImage.onclick = async () => {
-          // Tăng lượt xem quảng cáo, chỉ trong trường hợp pre-roll
-          if (isPreroll) {
-            try {
-              if (centerAd.id && movieId) {
-                await adMediaCountService.increaseAdMediaCount({
-                  adMediaId: centerAd.id,
-                  movieId: movieId,
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log("Video playback started successfully");
+                // Bật âm thanh sau khi video đã bắt đầu phát
+                setTimeout(() => {
+                  videoElement.muted = false;
+                }, 500);
+              })
+              .catch((error) => {
+                console.error("Auto-play was prevented:", error);
+                // Nếu không thể phát tự động, giữ tắt tiếng và thử lại
+                videoElement.muted = true;
+                videoElement.play().catch((e) => {
+                  console.error("Still cannot play:", e);
+                  // Nếu vẫn không thể phát, hiển thị fallback image
+                  videoElement.style.display = "none";
+                  fallbackImage.style.display = "block";
                 });
-              }
-            } catch (error) {
-              console.error("Error increasing ad view count:", error);
-            }
-          }
-
-          // Nếu có URL thì mở URL trong tab mới
-          if (centerAd.url) {
-            window.open(centerAd.url, "_blank");
+              });
           }
         };
 
-        // Thêm URL nếu có
-        if (centerAd.url) {
-          // Thêm label URL
+        // Thêm các sự kiện
+        videoElement.addEventListener("canplay", ensureVideoPlayback);
+        videoElement.addEventListener("loadeddata", ensureVideoPlayback);
+        videoElement.addEventListener("loadedmetadata", ensureVideoPlayback);
+        videoElement.addEventListener("ended", () => {
+          clearInterval(countdownInterval);
+          finishAd();
+        });
+        videoElement.addEventListener("error", (e) => {
+          console.error("Video error event triggered:", e);
+          // Hiển thị fallback image khi có lỗi
+          videoElement.style.display = "none";
+          fallbackImage.style.display = "block";
+          // Không kết thúc quảng cáo ngay, vẫn hiển thị fallback image
+        });
+
+        // Thêm sự kiện click để bật âm thanh và phát video
+        videoContainer.addEventListener("click", (e) => {
+          // Kiểm tra xem có phải là nút skip không
+          if (!e.target.closest(".skip-button")) {
+            if (videoElement.paused) {
+              videoElement.muted = false;
+              videoElement.play();
+            }
+          }
+        });
+
+        // Thêm source cho video
+        const source = document.createElement("source");
+        source.type = "video/mp4";
+        source.src = currentAd.video;
+        videoElement.appendChild(source);
+
+        // Thêm video và fallback image vào container
+        videoContainer.appendChild(videoElement);
+        videoContainer.appendChild(fallbackImage);
+
+        // Thêm container vào ad container
+        adContainer.appendChild(videoContainer);
+
+        // Thêm overlay click nếu có URL
+        if (currentAd.redirectUrl?.trim()) {
+          const clickOverlay = document.createElement("div");
+          Object.assign(clickOverlay.style, {
+            position: "absolute",
+            inset: "0",
+            cursor: "pointer",
+            zIndex: "1", // Lower z-index than skip button
+          });
+
+          // Standardized click handler for ad overlays
+          clickOverlay.addEventListener("click", (e) => {
+            // Always check for skip-button class to avoid interfering with skip button
+            if (!e.target.closest(".skip-button")) {
+              // Open ad URL in new tab
+              window.open(currentAd.redirectUrl, "_blank");
+            }
+          });
+          adContainer.appendChild(clickOverlay);
+
           const urlLabel = AdUIUtils.createUrlLabel();
           adContainer.appendChild(urlLabel);
         }
 
-        // Thêm các phần tử vào DOM
-        imageContainer.appendChild(adImage);
+        // Skip button z-index and class are handled by AdUIUtils.setupSkipButton
+      } else if (currentAd.image) {
+        // Quảng cáo hình ảnh
+        console.log("Displaying image ad with URL:", currentAd.image);
+
+        // Tạo container cho hình ảnh để dễ dàng style
+        const imageContainer = document.createElement("div");
+        imageContainer.className = "image-ad-container";
+        imageContainer.style.width = "100%";
+        imageContainer.style.height = "100%";
+        imageContainer.style.display = "flex";
+        imageContainer.style.justifyContent = "center";
+        imageContainer.style.alignItems = "center";
+        imageContainer.style.backgroundColor = "#000";
+        imageContainer.style.position = "relative";
+        imageContainer.style.animation = "fadeIn 0.5s ease-in-out";
+
+        // Tạo style cho animation nếu chưa có
+        if (!document.getElementById("ad-animations")) {
+          const style = document.createElement("style");
+          style.id = "ad-animations";
+          style.textContent = `
+            @keyframes fadeIn {
+              from { opacity: 0; transform: scale(0.95); }
+              to { opacity: 1; transform: scale(1); }
+            }
+
+            @keyframes pulse {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.05); }
+              100% { transform: scale(1); }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        // Tạo hình ảnh quảng cáo
+        const adImage = document.createElement("img");
+        adImage.src = currentAd.image;
+        adImage.className = "ad-image";
+        adImage.style.maxWidth = "80%";
+        adImage.style.maxHeight = "80%";
+        adImage.style.objectFit = "contain";
+        adImage.style.borderRadius = "8px";
+        adImage.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
+        adImage.style.animation = "pulse 3s infinite ease-in-out";
+
+        // Xử lý lỗi nếu hình ảnh không tải được
+        adImage.onerror = () => {
+          adImage.onerror = null;
+          adImage.src =
+            currentAd.alternativeImage ||
+            "https://placehold.co/800x450/FF009F/FFFFFF?text=Fallback+Ad";
+        };
+
+        // Xử lý URL chuyển hướng nếu có
+        if (currentAd.redirectUrl?.trim()) {
+          // Tạo wrapper cho hình ảnh
+          const linkWrapper = document.createElement("a");
+          linkWrapper.href = currentAd.redirectUrl;
+          linkWrapper.target = "_blank";
+          linkWrapper.style.display = "block";
+          linkWrapper.style.cursor = "pointer";
+
+          // Thêm hình ảnh vào wrapper
+          linkWrapper.appendChild(adImage);
+          imageContainer.appendChild(linkWrapper);
+
+          // Thêm nhãn URL
+          const urlLabel = document.createElement("div");
+          urlLabel.textContent = "Click to learn more";
+          urlLabel.className = "url-label";
+          urlLabel.style.position = "absolute";
+          urlLabel.style.bottom = "12px";
+          urlLabel.style.left = "0";
+          urlLabel.style.right = "0";
+          urlLabel.style.textAlign = "center";
+          urlLabel.style.color = "white";
+          urlLabel.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
+          urlLabel.style.padding = "8px";
+          urlLabel.style.borderRadius = "4px";
+          urlLabel.style.width = "200px";
+          urlLabel.style.margin = "0 auto";
+          urlLabel.style.fontSize = "14px";
+          imageContainer.appendChild(urlLabel);
+        } else {
+          // Nếu không có URL, chỉ thêm hình ảnh vào container
+          imageContainer.appendChild(adImage);
+        }
+
+        // Thêm container vào ad container
         adContainer.appendChild(imageContainer);
       } else {
-        // Không có quảng cáo hợp lệ
-        const noAdMessage = document.createElement("div");
-        noAdMessage.textContent = "No valid advertisement";
-        noAdMessage.style.position = "absolute";
-        noAdMessage.style.top = "50%";
-        noAdMessage.style.left = "50%";
-        noAdMessage.style.transform = "translate(-50%, -50%)";
-        noAdMessage.style.color = "white";
-        noAdMessage.style.fontSize = "20px";
+        // Trường hợp không có video hoặc hình ảnh, hiển thị fallback
+        console.log("No video or image found in ad, using fallback", currentAd);
 
-        adContainer.appendChild(noAdMessage);
+        // Tạo container cho fallback
+        const fallbackContainer = document.createElement("div");
+        fallbackContainer.className = "fallback-ad-container";
+        fallbackContainer.style.width = "100%";
+        fallbackContainer.style.height = "100%";
+        fallbackContainer.style.display = "flex";
+        fallbackContainer.style.flexDirection = "column";
+        fallbackContainer.style.justifyContent = "center";
+        fallbackContainer.style.alignItems = "center";
+        fallbackContainer.style.backgroundColor = "#3A0033";
+        fallbackContainer.style.color = "white";
+        fallbackContainer.style.textAlign = "center";
+        fallbackContainer.style.padding = "20px";
 
-        // Tự động đóng sau 2 giây
-        setTimeout(() => {
-          finishAd();
-        }, 2000);
+        // Tạo tiêu đề cho fallback
+        const fallbackTitle = document.createElement("h2");
+        fallbackTitle.textContent = "Alternative Ad";
+        fallbackTitle.style.fontSize = "32px";
+        fallbackTitle.style.fontWeight = "bold";
+        fallbackTitle.style.marginBottom = "16px";
+        fallbackTitle.style.color = "#FF009F";
+
+        // Tạo nội dung cho fallback
+        const fallbackContent = document.createElement("p");
+        fallbackContent.textContent =
+          currentAd.content || "Advertisement content";
+        fallbackContent.style.fontSize = "18px";
+        fallbackContent.style.maxWidth = "80%";
+        fallbackContent.style.lineHeight = "1.5";
+
+        // Thêm các phần tử vào container
+        fallbackContainer.appendChild(fallbackTitle);
+        fallbackContainer.appendChild(fallbackContent);
+
+        // Nếu có URL chuyển hướng, thêm nút
+        if (currentAd.redirectUrl?.trim()) {
+          const fallbackButton = document.createElement("a");
+          fallbackButton.href = currentAd.redirectUrl;
+          fallbackButton.target = "_blank";
+          fallbackButton.textContent = "Learn More";
+          fallbackButton.style.display = "inline-block";
+          fallbackButton.style.marginTop = "20px";
+          fallbackButton.style.padding = "10px 20px";
+          fallbackButton.style.backgroundColor = "#FF009F";
+          fallbackButton.style.color = "white";
+          fallbackButton.style.borderRadius = "4px";
+          fallbackButton.style.textDecoration = "none";
+          fallbackButton.style.fontWeight = "bold";
+          fallbackButton.style.transition = "background-color 0.3s";
+
+          // Thêm hover effect
+          fallbackButton.onmouseover = () => {
+            fallbackButton.style.backgroundColor = "#D1007F";
+          };
+          fallbackButton.onmouseout = () => {
+            fallbackButton.style.backgroundColor = "#FF009F";
+          };
+
+          fallbackContainer.appendChild(fallbackButton);
+        }
+
+        // Thêm container vào ad container
+        adContainer.appendChild(fallbackContainer);
       }
 
-      // Thêm nút skip và label vào container
-      adContainer.appendChild(skipButton);
-      adContainer.appendChild(adLabel);
+      // Thêm nội dung văn bản nếu có
+      if (currentAd.content?.trim()) {
+        const contentDiv = document.createElement("div");
+        contentDiv.textContent = currentAd.content;
+        Object.assign(contentDiv.style, {
+          position: "absolute",
+          bottom: "100px",
+          left: "0",
+          width: "100%",
+          textAlign: "center",
+          color: "white",
+          fontSize: "18px",
+          padding: "10px",
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+        });
+        adContainer.appendChild(contentDiv);
+      }
 
-      // Thêm container vào video container
+      // Thêm vào DOM
       videoContainer.appendChild(adContainer);
 
-      // Auto-close sau một khoảng thời gian
-      const autoCloseTimer = setTimeout(
-        finishAd,
-        AD_CONSTANTS.AD_AUTO_CLOSE_DELAY
-      );
-
+      // Trả về hàm dọn dẹp
       return {
         cleanup: () => {
-          // Clear all timers on unmount
-          if (countdownInterval) {
-            clearInterval(countdownInterval);
+          clearInterval(countdownInterval);
+          if (adPauseIntervalRef.current) {
+            clearInterval(adPauseIntervalRef.current);
+            adPauseIntervalRef.current = null;
           }
-          if (autoCloseTimer) {
-            clearTimeout(autoCloseTimer);
-          }
-          if (skipButtonTimer) {
-            clearTimeout(skipButtonTimer);
+          if (adContainer?.parentNode) {
+            adContainer.parentNode.removeChild(adContainer);
           }
         },
       };
     },
-    [centerAd, iframeRef, mainPlayerRef, movieId]
+    [midrollAdSequence, iframeRef, mainPlayerRef]
   );
 
-  // Khởi tạo quảng cáo pre-roll khi nó được hiển thị
-  useEffect(() => {
-    if (!showPrerollAd || prerollAdFinished || !iframeRef.current) return;
-
-    // Đảm bảo video chính bị tạm dừng khi hiển thị quảng cáo pre-roll
-    if (mainPlayerRef.current) {
-      mainPlayerRef.current.pause();
-    }
-
-    // Sử dụng hàm displayAd để hiển thị quảng cáo pre-roll
-    const { cleanup } = displayAd({
-      isPreroll: true,
-      onFinish: handlePrerollAdFinished,
-    });
-
-    // Cleanup function
-    return cleanup;
-  }, [
-    showPrerollAd,
-    prerollAdFinished,
-    handlePrerollAdFinished,
-    displayAd,
-    iframeRef,
-    mainPlayerRef,
-  ]);
-
-  // Khởi tạo directVideoUrl khi component mount lần đầu và movie có sẵn
-  useEffect(() => {
-    if (!movie) return;
-
-    // Lấy URL video dựa vào trạng thái ban đầu
-    const originalUrl = movie?.medias?.find((m) => m.type === "FILMVIP")?.url;
-
-    if (!originalUrl) return;
-
-    // Kiểm tra nếu là URL của Bunny Stream hoặc Media Delivery
-    if (originalUrl.includes("iframe.mediadelivery.net/embed/")) {
-      // URL đã ở định dạng iframe embed, chỉ cần thêm tham số cho playerjs
-      setDirectVideoUrl(
-        `${originalUrl}${
-          originalUrl.includes("?") ? "&" : "?"
-        }autoplay=1&controls=1&playsinline=1&enablejsapi=1`
+  // Function to display in-stream ad - simplified and combined with showAdOutsideFullscreen
+  const showInStreamAd = useCallback(
+    (adPosition) => {
+      console.log(
+        "Attempting to display in-stream ad at position:",
+        adPosition
       );
-    } else {
-      // URL khác, giữ nguyên
-      setDirectVideoUrl(originalUrl);
-    }
-  }, [movie]);
+      if (role === "VIP MEMBER" || !mainPlayerRef.current) {
+        console.log("Cannot display ad: VIP user or no player");
+        return;
+      }
 
-  // Hàm hiển thị quảng cáo khi không ở chế độ fullscreen (thay thế hàm cũ)
-  const showAdOutsideFullscreen = useCallback(
-    (currentPosition, wasFullscreen = false, fullscreenElement = null) => {
-      displayAd({
-        isPreroll: false,
-        currentPosition,
-        wasFullscreen,
-        fullscreenElement,
-      });
+      // Check if there are midroll ads available
+      if (!midrollAdSequence || midrollAdSequence.length === 0) {
+        console.log("No midroll ads available to display");
+        return;
+      }
+
+      // Tìm quảng cáo phù hợp với vị trí hiện tại
+      const adIndex = midrollAdSequence.findIndex(
+        (ad) => ad.position === adPosition
+      );
+      const adToShow = adIndex !== -1 ? adIndex : 0; // Nếu không tìm thấy, sử dụng quảng cáo đầu tiên
+
+      console.log("Selected ad index:", adToShow, "for position:", adPosition);
+
+      // Kiểm tra xem có đang ở chế độ fullscreen không
+      const isCurrentlyFullscreen = AdUIUtils.handleFullscreen.isFullscreen();
+      const fullscreenElement = document.getElementById("video-container");
+
+      // Lưu trạng thái fullscreen trước khi hiển thị quảng cáo
+      console.log(
+        "Current fullscreen state before ad:",
+        isCurrentlyFullscreen ? "fullscreen" : "non-fullscreen"
+      );
+
+      // Nếu đang ở chế độ fullscreen, thoát khỏi fullscreen trước khi hiển thị quảng cáo
+      if (isCurrentlyFullscreen) {
+        console.log("Exiting fullscreen before showing ad");
+        AdUIUtils.handleFullscreen.exitFullscreen().then(() => {
+          // Sau khi thoát khỏi fullscreen, hiển thị quảng cáo
+          setTimeout(() => {
+            // Use the displayAd function to show mid-roll ad
+            displayAd({
+              wasFullscreen: true, // Đánh dấu là đã ở chế độ fullscreen trước đó
+              fullscreenElement: fullscreenElement,
+              adIndex: adToShow, // Truyền index của quảng cáo cần hiển thị
+            });
+          }, 100); // Chờ một chút để đảm bảo thoát khỏi fullscreen hoàn tất
+        });
+      } else {
+        // Nếu không ở chế độ fullscreen, hiển thị quảng cáo ngay
+        console.log("Showing ad in non-fullscreen mode");
+        displayAd({
+          wasFullscreen: false, // Đánh dấu rõ ràng là không ở chế độ fullscreen
+          fullscreenElement: null, // Không cần lưu fullscreenElement vì không có ý định khôi phục
+          adIndex: adToShow, // Truyền index của quảng cáo cần hiển thị
+        });
+      }
     },
-    [displayAd]
+    [midrollAdSequence, role, mainPlayerRef, displayAd]
   );
 
-  // Hàm hiển thị quảng cáo in-stream
-  const showInStreamAd = useCallback(() => {
-    console.log("Đang cố gắng hiển thị quảng cáo in-stream");
-    if (role === "VIP MEMBER" || !mainPlayerRef.current) {
-      console.log("Không thể hiển thị quảng cáo: ", {
-        role,
-        hasMainPlayer: !!mainPlayerRef.current,
-      });
-      return;
-    }
+  // Removed unused triggerMidrollAd function
 
-    // Kiểm tra xem có quảng cáo hợp lệ không
-    if (!centerAd) {
-      console.log("Không có quảng cáo để hiển thị");
-      return;
-    }
-
-    console.log("Thông tin quảng cáo:", centerAd);
-
-    // Kiểm tra xem có video hoặc hình ảnh không
-    const hasVideo = centerAd.video && centerAd.video.trim() !== "";
-    const hasImage = centerAd.image && centerAd.image.trim() !== "";
-
-    if (!hasVideo && !hasImage) {
-      console.log("Quảng cáo không có video hoặc hình ảnh, bỏ qua");
-      return;
-    }
-
-    // Kiểm tra có đang ở chế độ fullscreen không
-    const isFullscreen = FullscreenUtils.isFullscreen();
-    console.log("Trạng thái fullscreen:", isFullscreen);
-
-    // Lưu vị trí hiện tại của video
-    mainPlayerRef.current.getCurrentTime((currentPosition) => {
-      // Tạm dừng video chính
-      mainPlayerRef.current.pause();
-      console.log("Đã lưu vị trí video tại:", currentPosition);
-
-      // Xử lý khác nhau cho chế độ fullscreen và không fullscreen
-      if (isFullscreen) {
-        // Nếu đang ở chế độ fullscreen
-        console.log("Hiển thị quảng cáo trong chế độ fullscreen");
-
-        // Lưu phần tử fullscreen để có thể quay lại sau
-        const fullscreenElement = FullscreenUtils.getFullscreenElement();
-
-        // Thoát khỏi chế độ fullscreen tạm thời
-        FullscreenUtils.exitFullscreen();
-
-        // Đợi fullscreen thoát xong rồi hiển thị quảng cáo
-        setTimeout(() => {
-          // Sử dụng hàm displayAd thay vì showAdOutsideFullscreen
-          displayAd({
-            isPreroll: false,
-            currentPosition,
-            wasFullscreen: true,
-            fullscreenElement,
-          });
-
-          // Hiển thị thông báo
-          const fullscreenNotice = document.createElement("div");
-          fullscreenNotice.textContent =
-            "You have exited fullscreen mode to view the advertisement";
-          fullscreenNotice.style.position = "fixed";
-          fullscreenNotice.style.top = "10px";
-          fullscreenNotice.style.left = "50%";
-          fullscreenNotice.style.transform = "translateX(-50%)";
-          fullscreenNotice.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-          fullscreenNotice.style.color = "white";
-          fullscreenNotice.style.padding = "10px 20px";
-          fullscreenNotice.style.borderRadius = "5px";
-          fullscreenNotice.style.zIndex = "9999";
-          fullscreenNotice.style.fontSize = "14px";
-
-          document.body.appendChild(fullscreenNotice);
-
-          // Xóa thông báo sau 5 giây
-          setTimeout(() => {
-            if (fullscreenNotice.parentNode) {
-              fullscreenNotice.parentNode.removeChild(fullscreenNotice);
-            }
-          }, 5000);
-        }, 500);
-      } else {
-        // Nếu không ở chế độ fullscreen
-        displayAd({
-          isPreroll: false,
-          currentPosition,
-          wasFullscreen: false,
-        });
-      }
-    });
-  }, [centerAd, role, displayAd]);
-
-  // Bổ sung một hàm để có thể kích hoạt quảng cáo tại bất kỳ điểm nào trong video
-  const triggerMidrollAd = useCallback(() => {
-    if (role === "VIP MEMBER" || !mainPlayerRef.current || !iframeRef.current)
-      return;
-
-    // Lưu vị trí hiện tại
-    mainPlayerRef.current.getCurrentTime((currentTime) => {
-      // Lưu vị trí để có thể tiếp tục sau quảng cáo
-      const resumePosition = currentTime;
-
-      // Tạm dừng video chính
-      mainPlayerRef.current.pause();
-
-      console.log("Displaying mid-roll ad at position:", resumePosition);
-
-      // Kiểm tra nếu đang ở chế độ fullscreen
-      const isFullscreen = FullscreenUtils.isFullscreen();
-
-      if (isFullscreen) {
-        // Nếu đang ở chế độ fullscreen
-        const fullscreenElement = FullscreenUtils.getFullscreenElement();
-
-        // Thoát khỏi chế độ fullscreen tạm thời
-        FullscreenUtils.exitFullscreen();
-
-        // Đợi fullscreen thoát xong rồi hiển thị quảng cáo
-        setTimeout(() => {
-          displayAd({
-            isPreroll: false,
-            currentPosition: resumePosition,
-            wasFullscreen: true,
-            fullscreenElement,
-          });
-        }, 500);
-      } else {
-        // Nếu không ở chế độ fullscreen
-        displayAd({
-          isPreroll: false,
-          currentPosition: resumePosition,
-          wasFullscreen: false,
-        });
-      }
-    });
-  }, [role, iframeRef, mainPlayerRef, displayAd]);
-
-  // Khởi tạo mainPlayerRef khi component được mount
+  // Unified player initialization and ad management effect
   useEffect(() => {
-    if (!iframeRef.current || !playerReady) return;
-
-    // Khởi tạo main player nếu chưa tồn tại
-    if (!mainPlayerRef.current && typeof window.playerjs !== "undefined") {
-      console.log("Khởi tạo mainPlayerRef khi playerReady");
+    // 1. Initialize mainPlayerRef when component mounts
+    if (
+      iframeRef.current &&
+      playerReady &&
+      !mainPlayerRef.current &&
+      typeof window.playerjs !== "undefined"
+    ) {
+      console.log("Initializing mainPlayerRef when playerReady");
 
       try {
         mainPlayerRef.current = new window.playerjs.Player(iframeRef.current);
 
-        // Đảm bảo sự kiện ready được kích hoạt
+        // Ensure ready event is triggered
         mainPlayerRef.current.on("ready", () => {
           console.log("Main player is ready for ads integration");
         });
 
-        // Loại bỏ lỗi metrics
+        // Remove metrics errors
         if (window.location.hostname === "localhost") {
-          console.log("Đang chạy ở localhost - vô hiệu hóa metrics");
+          console.log("Running on localhost - disabling metrics");
           window.playerjs.metrics = {
             send: () => {},
           };
         }
       } catch (error) {
-        console.error("Lỗi khởi tạo player chính:", error);
+        console.error("Error initializing main player:", error);
       }
     }
-  }, [playerReady]);
 
-  // Khởi tạo quảng cáo ngay sau khi player đã sẵn sàng
-  useEffect(() => {
+    // 2. Reset mid-roll ad state when video changes
+    console.log("Resetting ad state when video changes");
+    shownAdPositions.current = [];
+
+    // 3. Set up ad trigger for non-VIP members
     if (!playerReady || !mainPlayerRef.current || role === "VIP MEMBER") return;
 
-    console.log("Player đã sẵn sàng, thiết lập listener cho thời gian phát");
+    console.log("Player ready, setting up playback time listener");
 
     // Store the position where the ad was triggered to prevent duplicate ads
     let adTriggeredPosition = -1;
 
-    // Thiết lập một kiểm tra thời gian định kỳ
+    // Get ad positions from API or use default value
+    const adTriggerPositions = adPositions || [
+      AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME,
+    ];
+    console.log("Ad trigger positions:", adTriggerPositions);
+
+    // Set up periodic time check
     const timeCheckInterval = setInterval(() => {
       if (!mainPlayerRef.current) {
         clearInterval(timeCheckInterval);
@@ -1792,47 +1255,65 @@ const WatchPage = () => {
         const currentTime = Date.now();
         const timeSinceLastAd = currentTime - lastAdTime;
 
-        // If less than 10 seconds since last ad closed, don't trigger another
-        if (timeSinceLastAd < 10000) {
+        // If less than cooldown period since last ad closed, don't trigger another
+        const adCooldownPeriod = 10000; // 10 seconds in milliseconds
+        if (timeSinceLastAd < adCooldownPeriod) {
           return;
         }
       }
 
       mainPlayerRef.current.getCurrentTime((currentTime) => {
-        // If we're within 0.5 seconds of where we triggered an ad before, don't trigger again
-        if (Math.abs(currentTime - adTriggeredPosition) < 0.5) {
+        // If we're within margin of where we triggered an ad before, don't trigger again
+        const adPositionMargin = 0.5; // 0.5 seconds margin
+        if (Math.abs(currentTime - adTriggeredPosition) < adPositionMargin) {
           return;
         }
 
-        if (
-          currentTime >= AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME &&
-          !hasShownMidRollAd.current
-        ) {
+        // Skip first few seconds of video
+        const skipInitialSeconds = 5; // Skip first 5 seconds
+        if (currentTime < skipInitialSeconds) {
+          return;
+        }
+
+        // Find appropriate ad position to display
+        const adPositionToShow = adTriggerPositions.find((position) => {
+          // Check if we've reached the ad position (allow margin)
+          const adTriggerMargin = 2; // 2 second margin
+          const isAtPosition =
+            currentTime >= position &&
+            Math.abs(currentTime - position) < adTriggerMargin;
+
+          // Check if this ad has already been shown
+          const hasShownThisAd = shownAdPositions.current.includes(position);
+
+          // Only return true if we've reached the position and haven't shown this ad yet
+          return isAtPosition && !hasShownThisAd;
+        });
+
+        // If we found a suitable ad position
+        if (adPositionToShow !== undefined) {
           console.log(
-            `Reached ${AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME} seconds, displaying ad`
+            `Reached ad trigger position at ${adPositionToShow} seconds (current time: ${currentTime.toFixed(
+              1
+            )}), displaying ad`
           );
+
+          // Add ad position to list of shown ads
+          shownAdPositions.current.push(adPositionToShow);
           adTriggeredPosition = currentTime; // Remember where we triggered the ad
-          hasShownMidRollAd.current = true;
-          showInStreamAd();
-          clearInterval(timeCheckInterval);
+
+          // Display ad with specific position
+          showInStreamAd(adPositionToShow);
         }
       });
     }, 1000);
 
+    // Cleanup function
     return () => {
+      // Clear interval
       clearInterval(timeCheckInterval);
-    };
-  }, [playerReady, role, showInStreamAd]);
 
-  // Reset trạng thái mid-roll ad khi thay đổi video
-  useEffect(() => {
-    console.log("Reset trạng thái quảng cáo khi thay đổi video");
-    hasShownMidRollAd.current = false;
-  }, [showTrailer, movieId]);
-
-  // Dọn dẹp tham chiếu đến player khi component unmount
-  useEffect(() => {
-    return () => {
+      // Clean up player reference
       if (mainPlayerRef.current) {
         try {
           mainPlayerRef.current.off("ready");
@@ -1842,10 +1323,18 @@ const WatchPage = () => {
         mainPlayerRef.current = null;
       }
 
-      // Dọn dẹp inStreamAdRef
+      // Clean up inStreamAdRef
       inStreamAdRef.current = null;
     };
-  }, []);
+  }, [
+    playerReady,
+    role,
+    showInStreamAd,
+    adPositions,
+    iframeRef,
+    showTrailer,
+    movieId,
+  ]);
 
   if (loading) return <Loading />;
 
@@ -1892,10 +1381,9 @@ const WatchPage = () => {
                 ref={iframeRef}
                 id="bunny-stream-embed"
                 src={showTrailer ? directTrailerUrl : directMovieUrl}
-                className="absolute inset-0 w-full h-full"
+                className="absolute inset-0 w-full h-full border-0"
                 allowFullScreen
                 allow="autoplay; fullscreen"
-                frameBorder="0"
               />
 
               {/* Resume playback dialog */}
@@ -1967,7 +1455,7 @@ const WatchPage = () => {
               </div>
             </div>
 
-            {/* Movie info content - this part is too long to include in full, 
+            {/* Movie info content - this part is too long to include in full,
                 but would contain the movie details, ratings, comments, etc. */}
             <div className="px-0 py-0 h-[70vh] overflow-y-auto scrollbar-hide bg-gradient-to-b from-black/80 via-black/85 to-black/90 backdrop-blur-xl">
               <div className="max-w-5xl mx-auto">
@@ -2284,7 +1772,7 @@ const WatchPage = () => {
                           </div>
 
                           <div className="grid grid-cols-4 gap-2 px-3 justify-items-center">
-                            {movie.person?.slice(0, 4).map((actor, index) => (
+                            {movie.person?.slice(0, 4).map((actor) => (
                               <Link
                                 to={`/person/${actor.id}`}
                                 key={actor.id}
@@ -2571,10 +2059,20 @@ const WatchPage = () => {
                                       />
                                       <button
                                         type="submit"
-                                        disabled={!commentInput.trim()}
+                                        disabled={
+                                          !commentInput.trim() ||
+                                          submittingComment
+                                        }
                                         className="px-4 py-2 bg-gradient-to-r from-[#FF009F] to-[#FF6B9F] text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:from-[#FF009F]/90 hover:to-[#FF6B9F]/90 transition-all font-medium"
                                       >
-                                        Post
+                                        {submittingComment ? (
+                                          <span className="flex items-center gap-2">
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Posting...
+                                          </span>
+                                        ) : (
+                                          "Post"
+                                        )}
                                       </button>
                                     </div>
                                   </form>
