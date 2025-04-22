@@ -30,6 +30,7 @@ import PaymentSuccess from "../pages/Payment/PaymentSuccess";
 import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 import SubscriptionHistory from "../pages/Subscription/SubscriptionHistory";
 import SubscriptionOrderManagement from "../pages/Admin/Subscription/SubscriptionOrderManagement";
+import ManagerSubscriptionOrderManagement from "../pages/Manager/Subscription/SubscriptionOrderManagement";
 import UserDetail from "../pages/Admin/User/UserDetail.jsx";
 import MoviePublisher from "../pages/Publisher/Movie/MoviePublisher.jsx";
 import DashboardPublisher from "../pages/Publisher/Dashboard/DashboardPublisher.jsx";
@@ -57,6 +58,7 @@ import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage
 // import PaymentSuccessAdSlot from "../pages/Payment/PaymentSuccessAdSlot"; // Removed as API no longer exists
 import PaymentWallet from "../pages/Payment/PaymentWallet";
 import { Navigate } from "react-router-dom";
+import AdPurchaseItems from "../pages/Advertiser/AdPurchaseItems/AdPurchaseItems.jsx";
 import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory.jsx";
 import UserWallet from "../pages/Advertiser/UserWallet/UserWallet";
 import MediaManagement from "../pages/Advertiser/MediaManagement/MediaManagement";
@@ -417,6 +419,17 @@ const routes = [
   },
 
   {
+    path: "/manager/subscription-orders",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <ManagerSubscriptionOrderManagement />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
     path: "/manager/genres",
     element: (
       <PrivateRoute requiredRole="MANAGER">
@@ -587,7 +600,7 @@ const routes = [
     path: "/advertiser/payment-history",
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
-        <PaymentHistory />
+        <AdPurchaseItems />
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",
@@ -598,6 +611,16 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
         <MediaManagement />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/advertiser/transactions",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <PaymentHistory />
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",

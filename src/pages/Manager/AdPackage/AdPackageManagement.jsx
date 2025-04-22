@@ -19,6 +19,9 @@ import {
   Image,
   Empty,
   Spin,
+  Row,
+  Col,
+  Statistic,
 } from "antd";
 import {
   EditOutlined,
@@ -32,9 +35,12 @@ import {
   VideoCameraOutlined,
   PictureOutlined,
   PlayCircleOutlined,
+  DollarOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import AdPackageService from "../../../apis/AdPackage/adpackage";
 import adMediaService from "../../../apis/AdMedia/adMedia";
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
 import { Helmet } from "react-helmet";
 import dayjs from "dayjs";
 
@@ -144,6 +150,20 @@ const AdPackageManagement = () => {
   const [approveLoading, setApproveLoading] = useState(false);
   const [rejectLoading, setRejectLoading] = useState(false);
 
+  // Ad Payment History tab state
+  const [adPaymentList, setAdPaymentList] = useState([]);
+  const [adPaymentLoading, setAdPaymentLoading] = useState(false);
+  const [adPaymentTotalLoading, setAdPaymentTotalLoading] = useState(false);
+  const [adPaymentSearchText, setAdPaymentSearchText] = useState("");
+  const [adPaymentStatusFilter, setAdPaymentStatusFilter] = useState(null);
+  const [filteredAdPayment, setFilteredAdPayment] = useState([]);
+  const [adPaymentPagination, setAdPaymentPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    total: 0,
+  });
+  const [totalPaymentAmount, setTotalPaymentAmount] = useState(0);
+
   // Fetch AdPackages
   const fetchAdPackages = async (
     page = pagination.current,
@@ -232,10 +252,79 @@ const AdPackageManagement = () => {
     }
   };
 
+  // Fetch Ad Payment History
+  const fetchAdPaymentHistory = async (
+    page = adPaymentPagination.current,
+    pageSize = adPaymentPagination.pageSize
+  ) => {
+    setAdPaymentLoading(true);
+    try {
+      // Fetch current page data
+      const response = await adPurchaseService.getAllAdPurchaseTransaction(
+        page,
+        pageSize
+      );
+
+      // Fetch all data for accurate total count and calculations
+      setAdPaymentTotalLoading(true);
+      let totalItems = 0;
+      let allTransactions = [];
+
+      try {
+        const totalResponse =
+          await adPurchaseService.getAllAdPurchaseTransactionTotal();
+        if (totalResponse && totalResponse.success) {
+          totalItems = totalResponse.total || 0;
+          allTransactions = totalResponse.data || [];
+
+          // Calculate total amount from successful transactions
+          const successfulTransactions = allTransactions.filter(
+            (item) => item.status === "SUCCESS"
+          );
+          const total = successfulTransactions.reduce(
+            (sum, item) => sum + (item.totalPrice || 0),
+            0
+          );
+          setTotalPaymentAmount(total);
+        }
+      } catch (error) {
+        console.error("Error fetching total payment data:", error);
+      } finally {
+        setAdPaymentTotalLoading(false);
+      }
+
+      if (response && response.success) {
+        setAdPaymentList(response.data || []);
+        setFilteredAdPayment(response.data || []);
+        setAdPaymentPagination({
+          ...adPaymentPagination,
+          total: response.total || totalItems,
+          current: page,
+          pageSize: pageSize,
+        });
+      } else {
+        notification.error({
+          message: "Error",
+          description: response?.message || "Failed to fetch payment history",
+        });
+      }
+    } catch (error) {
+      notification.error({
+        message: "Error",
+        description: "Failed to fetch payment history",
+      });
+      console.error("Error fetching payment history:", error);
+    } finally {
+      setAdPaymentLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAdPackages();
     if (activeTab === "2") {
       fetchAdMedia();
+    } else if (activeTab === "3") {
+      fetchAdPaymentHistory();
     }
   }, [activeTab]);
 
@@ -244,6 +333,8 @@ const AdPackageManagement = () => {
     setActiveTab(key);
     if (key === "2" && adMediaList.length === 0) {
       fetchAdMedia();
+    } else if (key === "3" && adPaymentList.length === 0) {
+      fetchAdPaymentHistory();
     }
   };
 
@@ -285,6 +376,25 @@ const AdPackageManagement = () => {
     setFilteredAdMedia(result);
   }, [adMediaSearchText, adMediaStatusFilter, adMediaList]);
 
+  // Filter Ad Payment data based on search text and status
+  useEffect(() => {
+    let result = [...adPaymentList];
+
+    if (adPaymentSearchText) {
+      result = result.filter(
+        (item) =>
+          item.id?.toLowerCase().includes(adPaymentSearchText.toLowerCase()) ||
+          item.userId?.toLowerCase().includes(adPaymentSearchText.toLowerCase())
+      );
+    }
+
+    if (adPaymentStatusFilter) {
+      result = result.filter((item) => item.status === adPaymentStatusFilter);
+    }
+
+    setFilteredAdPayment(result);
+  }, [adPaymentSearchText, adPaymentStatusFilter, adPaymentList]);
+
   // Handle AdMedia search change
   const handleAdMediaSearchChange = (e) => {
     setAdMediaSearchText(e.target.value);
@@ -305,6 +415,41 @@ const AdPackageManagement = () => {
     setAdMediaSearchText("");
     setAdMediaStatusFilter(null);
     setFilteredAdMedia(adMediaList);
+  };
+
+  // Handle Ad Payment search change
+  const handleAdPaymentSearchChange = (e) => {
+    setAdPaymentSearchText(e.target.value);
+  };
+
+  // Handle Ad Payment status filter change
+  const handleAdPaymentStatusFilterChange = (value) => {
+    setAdPaymentStatusFilter(value);
+  };
+
+  // Handle Ad Payment pagination change
+  const handleAdPaymentPaginationChange = (page, pageSize) => {
+    fetchAdPaymentHistory(page, pageSize);
+  };
+
+  // Clear all Ad Payment filters
+  const handleClearAdPaymentFilters = () => {
+    setAdPaymentSearchText("");
+    setAdPaymentStatusFilter(null);
+    setFilteredAdPayment(adPaymentList);
+  };
+
+  // Format VND currency
+  const formatVND = (price) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
+
+  // Format date
+  const formatDateTime = (dateString) => {
+    return dayjs(dateString).format("MMM D, YYYY HH:mm");
   };
 
   // Handle approve ad media
@@ -945,6 +1090,191 @@ const AdPackageManagement = () => {
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                     description="No ad media found"
+                  />
+                ),
+              }}
+            />
+          </TabPane>
+
+          <TabPane tab="Ad Payment History" key="3">
+            {/* Search and filter for Ad Payment History */}
+            <div className="flex flex-wrap gap-4 mb-6">
+              <Input
+                placeholder="Search by ID or user ID"
+                value={adPaymentSearchText}
+                onChange={handleAdPaymentSearchChange}
+                prefix={<SearchOutlined />}
+                className="max-w-xs"
+              />
+              <Select
+                placeholder="Filter by status"
+                value={adPaymentStatusFilter}
+                onChange={handleAdPaymentStatusFilterChange}
+                allowClear
+                className="min-w-[150px]"
+              >
+                <Option value="SUCCESS">Success</Option>
+                <Option value="PENDING">Pending</Option>
+                <Option value="CANCELED">Canceled</Option>
+              </Select>
+              <Button
+                onClick={handleClearAdPaymentFilters}
+                icon={<FilterOutlined />}
+              >
+                Clear Filters
+              </Button>
+            </div>
+
+            {/* Total amount card */}
+            <Row gutter={[16, 16]} className="mb-6">
+              <Col xs={24} md={8}>
+                <Card>
+                  <Statistic
+                    title="Total Successful Payments"
+                    value={totalPaymentAmount}
+                    precision={0}
+                    formatter={(value) => formatVND(value)}
+                    prefix={<DollarOutlined />}
+                    loading={adPaymentTotalLoading}
+                  />
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Ad Payment History Table */}
+            <Table
+              columns={[
+                {
+                  title: "Transaction ID",
+                  dataIndex: "id",
+                  key: "id",
+                  width: "15%",
+                  render: (text) => (
+                    <Tooltip title={text}>
+                      <span className="text-xs font-mono">
+                        {text.substring(0, 8)}...
+                        {text.substring(text.length - 4)}
+                      </span>
+                    </Tooltip>
+                  ),
+                },
+                {
+                  title: "User ID",
+                  dataIndex: "userId",
+                  key: "userId",
+                  width: "15%",
+                  render: (text) => (
+                    <Tooltip title={text}>
+                      <span className="text-xs font-mono">
+                        {text.substring(0, 8)}...
+                        {text.substring(text.length - 4)}
+                      </span>
+                    </Tooltip>
+                  ),
+                },
+                {
+                  title: "Amount",
+                  dataIndex: "totalPrice",
+                  key: "totalPrice",
+                  width: "15%",
+                  render: (price) => (
+                    <span className="font-medium">{formatVND(price)}</span>
+                  ),
+                  sorter: (a, b) => a.totalPrice - b.totalPrice,
+                },
+                {
+                  title: "Payment Method",
+                  dataIndex: "paymentMethod",
+                  key: "paymentMethod",
+                  width: "15%",
+                  render: (method) => <Tag color="blue">{method}</Tag>,
+                },
+                {
+                  title: "Status",
+                  dataIndex: "status",
+                  key: "status",
+                  width: "15%",
+                  render: (status) => {
+                    let color = "default";
+                    let icon = null;
+
+                    switch (status?.toUpperCase()) {
+                      case "SUCCESS":
+                        color = "success";
+                        icon = <CheckCircleOutlined />;
+                        break;
+                      case "PENDING":
+                        color = "warning";
+                        icon = <ClockCircleOutlined />;
+                        break;
+                      case "CANCELED":
+                        color = "error";
+                        icon = <CloseCircleOutlined />;
+                        break;
+                      default:
+                        color = "default";
+                        icon = <ClockCircleOutlined />;
+                    }
+
+                    return (
+                      <Tag
+                        icon={icon}
+                        color={color}
+                        className="flex items-center w-fit"
+                      >
+                        <span className="ml-1">{status}</span>
+                      </Tag>
+                    );
+                  },
+                  filters: [
+                    { text: "Success", value: "SUCCESS" },
+                    { text: "Pending", value: "PENDING" },
+                    { text: "Canceled", value: "CANCELED" },
+                  ],
+                  onFilter: (value, record) =>
+                    record.status.toUpperCase() === value,
+                },
+                {
+                  title: "Created Date",
+                  dataIndex: "createAt",
+                  key: "createAt",
+                  width: "20%",
+                  render: (text) => formatDateTime(text),
+                  sorter: (a, b) => new Date(a.createAt) - new Date(b.createAt),
+                  defaultSortOrder: "descend",
+                },
+              ]}
+              dataSource={filteredAdPayment}
+              rowKey="id"
+              loading={adPaymentLoading}
+              pagination={{
+                current: adPaymentPagination.current,
+                pageSize: adPaymentPagination.pageSize,
+                total: adPaymentPagination.total,
+                onChange: handleAdPaymentPaginationChange,
+                showSizeChanger: true,
+                pageSizeOptions: ["5", "10", "20"],
+                pageSize: 5,
+                showTotal: (total) => (
+                  <span>
+                    {adPaymentTotalLoading ? (
+                      <>
+                        <Spin size="small" className="mr-2" />
+                        Calculating total...
+                      </>
+                    ) : (
+                      `Total ${total} items`
+                    )}
+                  </span>
+                ),
+              }}
+              locale={{
+                emptyText: adPaymentLoading ? (
+                  <Spin size="large" />
+                ) : (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="No payment history found"
                   />
                 ),
               }}
