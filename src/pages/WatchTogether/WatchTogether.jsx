@@ -29,6 +29,7 @@ import useMediaStream from "../../hooks/useMediaStream";
 import usePlayer from "../../hooks/usePlayer";
 import Player from "./components/Player";
 import Bottom from "./components/Bottom";
+import CopySection from "./components/CopySection";
 
 const WatchTogetherPage = () => {
   const { movieId } = useParams();
@@ -880,6 +881,11 @@ const WatchTogetherPage = () => {
           {/* Video Controls */}
           <div className="bg-gray-900 p-4 border-t border-gray-800">
             <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Left Controls - Room ID */}
+              <div className="flex items-center gap-3">
+                {roomId && <CopySection roomId={roomId} inline={true} />}
+              </div>
+
               {/* Center Controls - Video Playback */}
               <div className="flex items-center gap-3">
                 <Tooltip title="Skip 10 seconds">

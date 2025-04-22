@@ -43,7 +43,6 @@ const adPurchaseService = {
     }),
 
   // ===== AdPurchaseSlot API =====
-  // Removed all AdPurchaseSlot related methods as they are no longer used
 
   // This method calls a different endpoint than getAdPurchaseTransactions
   getUserAdPurchaseTransactions: (page = 1, pageSize = 5) =>
@@ -75,6 +74,47 @@ const adPurchaseService = {
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
         `${AD_PURCHASE_TRANSACTION_URL}/${id}`,
+        { headers }
+      );
+      return response.data;
+    }),
+
+  getMyHistoryAdPurchaseTransaction: (page = 1, pageSize = 5) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${AD_PURCHASE_TRANSACTION_URL}/MyHistoryAdPurchaseTransaction`,
+        {
+          headers,
+          params: { page, pageSize }
+        }
+      );
+      return response.data;
+    }),
+
+  getAllMyHistoryAdPurchaseTransaction: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${AD_PURCHASE_TRANSACTION_URL}/MyHistoryAdPurchaseTransaction`,
+        {
+          headers,
+          params: { page: 1, pageSize: 1000 }
+        }
+      );
+      return response.data;
+    }),
+
+  // Admin API for all ad purchase transactions
+  getAllAdPurchaseTransaction: (page = 1, pageSize = 5) =>
+    makeAuthenticatedRequest(async (headers) => {
+      const url = `${AD_PURCHASE_TRANSACTION_URL}/GetAllAdPurchaseTransaction?page=${page}&pageSize=${pageSize}`;
+      const response = await axios.get(url, { headers });
+      return response.data;
+    }),
+
+  getAllAdPurchaseTransactionTotal: () =>
+    makeAuthenticatedRequest(async (headers) => {
+      const response = await axios.get(
+        `${AD_PURCHASE_TRANSACTION_URL}/GetAllAdPurchaseTransaction?page=1&pageSize=1000`,
         { headers }
       );
       return response.data;
