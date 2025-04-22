@@ -663,22 +663,7 @@ const UpdateMovieAdmin = () => {
             </Card>
           </TabPane>
 
-          <TabPane tab="Eigakan policy movie" key="2">
-            <Card className="p-4 shadow-md">
-              <p>By submitting your movie, you agree to the following policy:</p>
-              <p>
-                If you do not check the box, we will pay you based on the number of views your video receives. If you
-                check the box, we will create a contract and contact you for further details.
-              </p>
-
-              <Form.Item name="isContract" valuePropName="checked">
-                <Checkbox>I agree to create a contract and be contacted</Checkbox>
-              </Form.Item>
-              <h2 className="text-red-600">*If not just press next button to continue update your movie*</h2>
-            </Card>
-          </TabPane>
-
-          <TabPane tab="Genres" key="3">
+          <TabPane tab="Genres" key="2">
             <Card className="p-4 shadow-md">
               <Form.Item
                 name="genres"
@@ -696,7 +681,7 @@ const UpdateMovieAdmin = () => {
             </Card>
           </TabPane>
 
-          <TabPane tab="Persons" key="4">
+          <TabPane tab="Persons" key="3">
             <Card className="p-4 shadow-md">
               <div className="mb-4">
                 <h3 className="text-lg font-medium mb-2">Current Cast</h3>
@@ -738,7 +723,7 @@ const UpdateMovieAdmin = () => {
                 <span>Media Pictures</span>
               </span>
             }
-            key="5"
+            key="4"
           >
             {renderMediaPictureTab()}
           </TabPane>
@@ -750,12 +735,12 @@ const UpdateMovieAdmin = () => {
                 <span>Media Videos</span>
               </span>
             }
-            key="6"
+            key="5"
           >
             {renderMediaVideoTab()}
           </TabPane>
 
-          <TabPane tab="File Movie" key="7">
+          <TabPane tab="File Movie" key="6">
             <Card className="p-4 shadow-md">
               <h3 className="text-lg font-medium mb-4">Current File</h3>
               {fileUrl ? (
@@ -772,40 +757,25 @@ const UpdateMovieAdmin = () => {
                 <p className="mb-6 text-gray-500">No file currently uploaded</p>
               )}
 
-              <h3 className="text-lg font-medium mb-2">Update File</h3>
-              <p className="text-red-500 mb-4">*Please upload a file that identifies this movie as your property.*</p>
-
-              <Dragger
-                name="file"
-                multiple={false}
-                beforeUpload={() => false}
-                onChange={handleUploadFile}
-                showUploadList={false}
-                className="bg-gray-50 border-dashed border-2 border-gray-300 hover:border-blue-400 transition-colors duration-300"
-              >
-                <p className="ant-upload-drag-icon">{uploading ? <LoadingOutlined /> : <InboxOutlined />}</p>
-                <p className="ant-upload-text">
-                  {uploading ? "Uploading..." : "Upload a file to verify your movie ownership."}
-                </p>
-                <p className="ant-upload-hint text-gray-500">Click or drag file to this area to upload</p>
-              </Dragger>
-
-              {file && <p className="mt-2">Selected File: {file.name}</p>}
-
-              {file && fileUrl && (
-                <div className="mt-4 p-4 border rounded-md bg-green-50">
-                  <p className="font-medium flex items-center gap-2">
-                    <CheckCircleOutlined className="text-green-500" />
-                    Your new file:
-                  </p>
-                  <Button type="link" onClick={handleGetPreUrlTemp} icon={<EyeOutlined />} className="pl-0">
-                    {file.name}
-                  </Button>
-                  <h2 className="text-red-500 mt-2">* Please check your file carefully before submitting.*</h2>
-                </div>
-              )}
+             
             </Card>
           </TabPane>
+
+          <TabPane tab="Eigakan policy movie" key="7">
+            <Card className="p-4 shadow-md">
+              <p>By submitting your movie, you agree to the following policy:</p>
+              <p>
+                If you do not check the box, we will pay you based on the number of views your video receives. If you
+                check the box, we will create a contract and contact you for further details.
+              </p>
+
+              <Form.Item name="isContract" valuePropName="checked">
+                <Checkbox disabled>I agree to create a contract and be contacted</Checkbox>
+              </Form.Item>
+              <h2 className="text-red-600">*If not just press next button to continue update your movie*</h2>
+            </Card>
+          </TabPane>
+        
         </Tabs>
         <div className="flex justify-between mt-6">
           {activeTab !== "1" && (

@@ -141,19 +141,7 @@ const MovieAdmin = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Movie List</h1>
-        <Link to="/admin/createMovie">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            size="large"
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            Create Movie
-          </Button>
-        </Link>
-      </div>
+      
 
       <div className="flex flex-wrap gap-4 mb-6">
         <Input

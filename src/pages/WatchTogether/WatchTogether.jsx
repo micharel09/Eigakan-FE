@@ -478,7 +478,7 @@ const WatchTogetherPage = () => {
         }
     };
 
-    // Gửi ngay lập tức khi có người mới vào
+   
     syncTime();
 
     // Nếu interval đã tồn tại, không cần tạo mới
@@ -505,12 +505,12 @@ const WatchTogetherPage = () => {
 
         // Kiểm tra xem player có đang pause không
         playerRef.current.getPaused((isPaused) => {
-            if (isPaused) return; // Nếu đang pause thì không đồng bộ
+            if (isPaused) return; 
 
             playerRef.current.getCurrentTime((current) => {
                 const diff = Math.abs(current - data.currentTime);
 
-                if (diff > 0.5) { // Nếu lệch hơn 0.5s thì mới đồng bộ
+                if (diff > 0.5) { 
                     console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
                     notification.info({
                       message: "Success",
@@ -529,6 +529,7 @@ const WatchTogetherPage = () => {
     };
   }, [isPlayerReady, connection]);
 
+  
   const sendMessage = async (text) => {
     if (!connection || !text.trim()) return;
 
