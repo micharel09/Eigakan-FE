@@ -29,6 +29,7 @@ import useMediaStream from "../../hooks/useMediaStream";
 import usePlayer from "../../hooks/usePlayer";
 import Player from "./components/Player";
 import Bottom from "./components/Bottom";
+import CopySection from "./components/CopySection";
 
 const WatchTogetherPage = () => {
   const { movieId } = useParams();
@@ -108,7 +109,7 @@ const WatchTogetherPage = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-        setUser(JSON.parse(storedUser));  // Cập nhật state với user từ localStorage
+      setUser(JSON.parse(storedUser)); // Cập nhật state với user từ localStorage
     }
   }, []);
 
@@ -140,7 +141,6 @@ const WatchTogetherPage = () => {
           )
           .then(() => {
             console.log("Joined SignalR room:", roomId);
-
           })
           .catch((error) => {
             console.error("Error joining room:", error);
@@ -154,47 +154,49 @@ const WatchTogetherPage = () => {
         // Lắng nghe sự kiện UserJoined
         newConnection.on("UserJoined", (joinedUser) => {
           if (joinedUser.id === user.id) return;
-              
-           // ✅ Cập nhật danh sách người dùng
+
+          // ✅ Cập nhật danh sách người dùng
           setRoomUsers((prev) => {
-              if (prev.some((u) => u.id === joinedUser.id)) {
-                  return prev;
-              }
-      
-              console.log("Adding new user to room:", joinedUser);
-              return [...prev, joinedUser];
+            if (prev.some((u) => u.id === joinedUser.id)) {
+              return prev;
+            }
+
+            console.log("Adding new user to room:", joinedUser);
+            return [...prev, joinedUser];
           });
 
-           // Chỉ cập nhật host nếu host hiện tại đã rời phòng
+          // Chỉ cập nhật host nếu host hiện tại đã rời phòng
           setIsHost((prevIsHost) => {
             if (prevIsHost) {
-                console.log("👑 Host hiện tại không đổi:", prevIsHost);
-                return prevIsHost; // Giữ nguyên host
+              console.log("👑 Host hiện tại không đổi:", prevIsHost);
+              return prevIsHost; // Giữ nguyên host
             }
             console.log("🔄 Cập nhật host mới:", joinedUser.isHost);
             return joinedUser.isHost;
           });
-              
+
           const joinMessage = {
-              id: `join-${joinedUser.id}-${Date.now()}`,
-              text: `${joinedUser.userName} joined the room ${joinedUser.isHost ? "(Host)" : ""}`,
-              sender: { userName: "System" },
-              timestamp: new Date(),
-              type: "system",
+            id: `join-${joinedUser.id}-${Date.now()}`,
+            text: `${joinedUser.userName} joined the room ${
+              joinedUser.isHost ? "(Host)" : ""
+            }`,
+            sender: { userName: "System" },
+            timestamp: new Date(),
+            type: "system",
           };
-      
+
           setMessages((prev) => {
-              const recentDuplicate = prev.some(
-                  (msg) =>
-                      msg.type === "system" &&
-                      msg.text === joinMessage.text &&
-                      new Date(msg.timestamp).getTime() > Date.now() - 5000
-              );
-      
-              if (recentDuplicate) {
-                  return prev;
-              }
-              return [...prev, joinMessage];
+            const recentDuplicate = prev.some(
+              (msg) =>
+                msg.type === "system" &&
+                msg.text === joinMessage.text &&
+                new Date(msg.timestamp).getTime() > Date.now() - 5000
+            );
+
+            if (recentDuplicate) {
+              return prev;
+            }
+            return [...prev, joinMessage];
           });
         });
 
@@ -309,24 +311,23 @@ const WatchTogetherPage = () => {
             }
           }
         });
-      
+
         //=================================================================
         // Thông báo hostchanged
         newConnection.on("HostChanged", (data) => {
-        
           // Cập nhật trạng thái host dựa trên UserId mới
           setIsHost(data.UserId === user.id);
           console.log("🔄 Updated isHost:", data.UserId === user.id);
-        
+
           setMessages((prev) => {
             const hostMessage = {
               id: `host-${data.UserId}-${Date.now()}`,
-              text: `${data.message}`, 
+              text: `${data.message}`,
               sender: { userName: "System" },
               timestamp: new Date(),
               type: "system",
             };
-        
+
             // Kiểm tra trùng lặp trong vòng 5 giây gần đây
             const recentDuplicate = prev.some(
               (msg) =>
@@ -334,7 +335,7 @@ const WatchTogetherPage = () => {
                 msg.text === hostMessage.text &&
                 new Date(msg.timestamp).getTime() > Date.now() - 5000
             );
-        
+
             if (recentDuplicate) {
               return prev;
             }
@@ -342,7 +343,7 @@ const WatchTogetherPage = () => {
           });
         });
 
-         //=================================================================
+        //=================================================================
         // sự kiện nhận tin nhắn
         newConnection.on("ReceiveMessage", (message) => {
           console.log("Received message:", message);
@@ -372,27 +373,27 @@ const WatchTogetherPage = () => {
           ) {
             setUnreadMessages((prev) => prev + 1);
           }
-        });      
-        
-        //=================================================================
-        // sự kiện play/pause từ host
-        newConnection.on("SyncPlayPause", (data) => { 
-          if (playerRef.current) {
-              if (data.action === "play") {
-                  playerRef.current.play();
-                  console.log("🎬 Sync: Playing video");
-              } else if (data.action === "pause") {
-                  playerRef.current.pause();
-                  notification.info({
-                    message: "Success",
-                    description: "Host has paused the video",
-                  })
-                  console.log("⏸ Sync: Stoping video");
-              }
-          }
         });
 
-      }).catch((error) => console.error("SignalR Connection Error:", error));
+        //=================================================================
+        // sự kiện play/pause từ host
+        newConnection.on("SyncPlayPause", (data) => {
+          if (playerRef.current) {
+            if (data.action === "play") {
+              playerRef.current.play();
+              console.log("🎬 Sync: Playing video");
+            } else if (data.action === "pause") {
+              playerRef.current.pause();
+              notification.info({
+                message: "Success",
+                description: "Host has paused the video",
+              });
+              console.log("⏸ Sync: Stoping video");
+            }
+          }
+        });
+      })
+      .catch((error) => console.error("SignalR Connection Error:", error));
 
     return () => {
       if (newConnection) {
@@ -412,70 +413,76 @@ const WatchTogetherPage = () => {
     if (!iframeRef.current) return;
 
     const handleLoad = () => {
-        console.log("✅ Iframe loaded:", iframeRef.current);
+      console.log("✅ Iframe loaded:", iframeRef.current);
 
-        try {
-            playerRef.current = new playerjs.Player(iframeRef.current);
-        } catch (error) {
-            console.error("❌ Error initializing Player.js:", error);
-        }
+      try {
+        playerRef.current = new playerjs.Player(iframeRef.current);
+      } catch (error) {
+        console.error("❌ Error initializing Player.js:", error);
+      }
 
-        if (playerRef.current) {
-            playerRef.current.on("ready", () => {
-                console.log("🎬 Player is ready!");
-                setIsPlayerReady(true);
-            });
-        }
+      if (playerRef.current) {
+        playerRef.current.on("ready", () => {
+          console.log("🎬 Player is ready!");
+          setIsPlayerReady(true);
+        });
+      }
     };
 
     iframeRef.current.addEventListener("load", handleLoad);
 
     return () => {
-        iframeRef.current?.removeEventListener("load", handleLoad);
-        playerRef.current = null;
-        setIsPlayerReady(false); // Reset khi unmount
+      iframeRef.current?.removeEventListener("load", handleLoad);
+      playerRef.current = null;
+      setIsPlayerReady(false); // Reset khi unmount
     };
   }, [movieUrl]);
- 
+
   useEffect(() => {
     if (!isPlayerReady || !playerRef.current) {
-        console.log("⏳ Player chưa sẵn sàng, đợi chút...");
-        return;
+      console.log("⏳ Player chưa sẵn sàng, đợi chút...");
+      return;
     }
 
     console.log("🔥 Host status changed:", isHost);
 
     if (isHost) {
-        console.log("👑 You are the host! Enabling controls...");
-        playerRef.current.on("play", () => {
-          console.log("▶️ Video is playing");
-          connection.invoke("SyncPlayPause", { action: "play" }).catch(err => console.error(err));
+      console.log("👑 You are the host! Enabling controls...");
+      playerRef.current.on("play", () => {
+        console.log("▶️ Video is playing");
+        connection
+          .invoke("SyncPlayPause", { action: "play" })
+          .catch((err) => console.error(err));
       });
-      
+
       playerRef.current.on("pause", () => {
-          console.log("⏸ Video is paused");
-          connection.invoke("SyncPlayPause", { action: "pause" }).catch(err => console.error(err));
+        console.log("⏸ Video is paused");
+        connection
+          .invoke("SyncPlayPause", { action: "pause" })
+          .catch((err) => console.error(err));
       });
 
-        playerRef.current.on("seeked", (time) => console.log("⏩ Seeked to:", time));
+      playerRef.current.on("seeked", (time) =>
+        console.log("⏩ Seeked to:", time)
+      );
     } else {
-        console.log("❌ Not a host, disabling controls...");
+      console.log("❌ Not a host, disabling controls...");
     }
-  }, [isHost, isPlayerReady]);  
+  }, [isHost, isPlayerReady]);
 
-  //Host gửi thời gian hiện tại 
+  //Host gửi thời gian hiện tại
   useEffect(() => {
     if (!isHost || !isPlayerReady || !connection) return;
 
     console.log("🚀 Bắt đầu đồng bộ thời gian...");
 
     const syncTime = () => {
-        if (playerRef.current) {
-            playerRef.current.getCurrentTime((time) => {
-                console.log("⏳ Gửi thời gian hiện tại:", time);
-                connection.invoke("SyncTime", { currentTime: time });
-            });
-        }
+      if (playerRef.current) {
+        playerRef.current.getCurrentTime((time) => {
+          console.log("⏳ Gửi thời gian hiện tại:", time);
+          connection.invoke("SyncTime", { currentTime: time });
+        });
+      }
     };
 
     // Gửi ngay lập tức khi có người mới vào
@@ -485,47 +492,47 @@ const WatchTogetherPage = () => {
     let interval = null;
 
     if (!interval) {
-        interval = setInterval(syncTime, 5000);
+      interval = setInterval(syncTime, 5000);
     }
 
     return () => {
-        if (interval) clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
-
-   }, [isHost, isPlayerReady]);  
+  }, [isHost, isPlayerReady]);
 
   // Nhận thời gian từ host và đồng bộ
   useEffect(() => {
     if (!isPlayerReady) return;
 
     const handleSyncTime = (data) => {
-        console.log("⏳ Nhận thời gian từ host:", data.currentTime);
+      console.log("⏳ Nhận thời gian từ host:", data.currentTime);
 
-        if (!playerRef.current) return;
+      if (!playerRef.current) return;
 
-        // Kiểm tra xem player có đang pause không
-        playerRef.current.getPaused((isPaused) => {
-            if (isPaused) return; // Nếu đang pause thì không đồng bộ
+      // Kiểm tra xem player có đang pause không
+      playerRef.current.getPaused((isPaused) => {
+        if (isPaused) return; // Nếu đang pause thì không đồng bộ
 
-            playerRef.current.getCurrentTime((current) => {
-                const diff = Math.abs(current - data.currentTime);
+        playerRef.current.getCurrentTime((current) => {
+          const diff = Math.abs(current - data.currentTime);
 
-                if (diff > 0.5) { // Nếu lệch hơn 0.5s thì mới đồng bộ
-                    console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
-                    notification.info({
-                      message: "Success",
-                      description: "Auto synced with host",
-                    })
-                    playerRef.current.setCurrentTime(data.currentTime);
-                }
+          if (diff > 0.5) {
+            // Nếu lệch hơn 0.5s thì mới đồng bộ
+            console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
+            notification.info({
+              message: "Success",
+              description: "Auto synced with host",
             });
+            playerRef.current.setCurrentTime(data.currentTime);
+          }
         });
+      });
     };
 
     connection.on("SyncTime", handleSyncTime);
 
     return () => {
-        connection.off("SyncTime", handleSyncTime);
+      connection.off("SyncTime", handleSyncTime);
     };
   }, [isPlayerReady, connection]);
 
@@ -550,51 +557,53 @@ const WatchTogetherPage = () => {
   };
 
   const handleLeaveRoom = async () => {
-    if (isLeavingRoom.current) return
-    isLeavingRoom.current = true
+    if (isLeavingRoom.current) return;
+    isLeavingRoom.current = true;
 
     try {
       // Cleanup local media streams
       if (localStream) {
-        localStream.getTracks().forEach((track) => track.stop())
+        localStream.getTracks().forEach((track) => track.stop());
       }
 
       // Leave room via API
-      await roomService.leaveRoom(roomId)
+      await roomService.leaveRoom(roomId);
 
       // Leave SignalR room and stop connection
       if (connection) {
         try {
-          await connection.invoke("LeaveRoom", roomId)
-          await connection.stop()
+          await connection.invoke("LeaveRoom", roomId);
+          await connection.stop();
         } catch (error) {
-          console.error("Error leaving SignalR room:", error)
+          console.error("Error leaving SignalR room:", error);
         }
       }
 
       notification.success({
         message: "Success",
         description: "You have left the room",
-      })
+      });
 
       // Navigate back to movie page
-      navigate(`/movie/${movieId}`)
+      navigate(`/movie/${movieId}`);
     } catch (error) {
-      console.error("Error leaving room:", error)
+      console.error("Error leaving room:", error);
       notification.error({
         message: "Error",
         description: "Failed to leave room: " + error.message,
-      })
+      });
     } finally {
-      isLeavingRoom.current = false
+      isLeavingRoom.current = false;
     }
-  }
+  };
 
   const handleSync = () => {
     if (connection) {
-      connection.invoke("RequestCurrentTime", roomId).catch((err) => console.error("❌ Sync Error:", err))
+      connection
+        .invoke("RequestCurrentTime", roomId)
+        .catch((err) => console.error("❌ Sync Error:", err));
     }
-  }
+  };
 
   //skip video
   const handleSeek10Minutes = () => {
@@ -888,6 +897,11 @@ const WatchTogetherPage = () => {
           {/* Video Controls */}
           <div className="bg-gray-900 p-4 border-t border-gray-800">
             <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Left Controls - Room ID */}
+              <div className="flex items-center gap-3">
+                {roomId && <CopySection roomId={roomId} inline={true} />}
+              </div>
+
               {/* Center Controls - Video Playback */}
               <div className="flex items-center gap-3">
                 <Tooltip title="Skip 10 seconds">
