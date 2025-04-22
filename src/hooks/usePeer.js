@@ -18,6 +18,8 @@ const usePeer = (roomId) => {
           debug: 3,
           config: {
             iceServers: [
+              { urls: "stun:stun.l.google.com:19302" },
+              { urls: "stun:global.stun.twilio.com:3478" },
               {
                 urls: "turn:relay1.expressturn.com:3478",
                 username: "efFDB6RN2B8A74ZT0I",

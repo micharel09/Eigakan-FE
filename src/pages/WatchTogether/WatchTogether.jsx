@@ -711,62 +711,46 @@ const WatchTogetherPage = () => {
 
   useEffect(() => {
     if (!socket) return;
-
-    const handleToggleAudio = (data) => {
-      console.log(
-        `user with id ${data.userId} toggled audio to ${data.isMuted}`
-      );
+    const handleToggleAudio = (userId) => {
+      console.log(`user with id ${userId} toggled audio`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
-        if (copy[data.userId]) {
-          copy[data.userId].muted = data.isMuted;
+        if (copy[userId]) {
+          copy[userId].muted = !copy[userId].muted;
         }
         return { ...copy };
       });
     };
 
-    const handleToggleVideo = (data) => {
-      console.log(
-        `user with id ${data.userId} toggled video to ${data.isVideoOff}`
-      );
+    const handleToggleVideo = (userId) => {
+      console.log(`user with id ${userId} toggled video`);
       setPlayers((prev) => {
         const copy = cloneDeep(prev);
-        if (copy[data.userId]) {
-          copy[data.userId].playing = !data.isVideoOff;
+        if (copy[userId]) {
+          copy[userId].playing = !copy[userId].playing;
         }
         return { ...copy };
       });
     };
 
-    // Xử lý khi nhận danh sách participants với trạng thái
-    const handleRoomParticipants = (data) => {
-      console.log("Received room participants with states:", data.participants);
-
-      // Cập nhật trạng thái cho mỗi participant
-      data.participants.forEach((participant) => {
-        if (participant.id !== myId && players[participant.id]) {
-          setPlayers((prev) => ({
-            ...prev,
-            [participant.id]: {
-              ...prev[participant.id],
-              muted: participant.isMuted || false,
-              playing: !(participant.isVideoOff || false),
-            },
-          }));
-        }
-      });
+    const handleUserLeave = (userId) => {
+      console.log(`user ${userId} is leaving the room`);
+      users[userId]?.close();
+      const playersCopy = cloneDeep(players);
+      if (playersCopy[userId]) {
+        delete playersCopy[userId];
+      }
+      setPlayers(playersCopy);
     };
-
     socket.on("user-toggle-audio", handleToggleAudio);
     socket.on("user-toggle-video", handleToggleVideo);
-    socket.on("room-participants", handleRoomParticipants);
-
+    socket.on("user-leave", handleUserLeave);
     return () => {
       socket.off("user-toggle-audio", handleToggleAudio);
       socket.off("user-toggle-video", handleToggleVideo);
-      socket.off("room-participants", handleRoomParticipants);
+      socket.off("user-leave", handleUserLeave);
     };
-  }, [players, setPlayers, socket, myId]);
+  }, [players, setPlayers, socket, users]);
 
   useEffect(() => {
     if (!peer || !stream) return;
