@@ -220,6 +220,39 @@ const BuyAdSlot = () => {
     });
   };
 
+  // Check video duration
+  const checkVideoDuration = (file) => {
+    return new Promise((resolve, reject) => {
+      // Only check if it's a video file
+      if (!file.type.startsWith("video/")) {
+        resolve(true);
+        return;
+      }
+
+      // Create temporary URL for the video
+      const videoUrl = URL.createObjectURL(file);
+      const video = document.createElement("video");
+
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(videoUrl);
+
+        // Check duration (in seconds)
+        if (video.duration < 15) {
+          reject(new Error("Video must be at least 15 seconds long"));
+        } else {
+          resolve(true);
+        }
+      };
+
+      video.onerror = () => {
+        URL.revokeObjectURL(videoUrl);
+        reject(new Error("Unable to read video information"));
+      };
+
+      video.src = videoUrl;
+    });
+  };
+
   // Handle file upload
   const handleFileUpload = async ({ file }) => {
     if (file.status === "uploading") {
@@ -231,6 +264,20 @@ const BuyAdSlot = () => {
       try {
         // Check if file is a video or image
         const isVideoFile = file.originFileObj.type.startsWith("video/");
+
+        // Check video duration if it's a video file
+        if (isVideoFile) {
+          try {
+            await checkVideoDuration(file.originFileObj);
+          } catch (durationError) {
+            notification.error({
+              message: "Error",
+              description: durationError.message,
+            });
+            setUploadLoading(false);
+            return;
+          }
+        }
 
         // Upload to Cloudinary via API - use appropriate method based on file type
         let response;
@@ -1029,6 +1076,9 @@ const BuyAdSlot = () => {
 
                     <div className="text-gray-400 text-xs">
                       <p>Supported formats: JPG, PNG, GIF, MP4, MOV</p>
+                      <p className="mt-1 text-yellow-400">
+                        Note: Videos must be at least 15 seconds long
+                      </p>
                     </div>
                   </div>
                 )}

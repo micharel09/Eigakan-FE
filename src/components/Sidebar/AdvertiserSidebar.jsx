@@ -1,4 +1,4 @@
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 import React, { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
@@ -8,14 +8,31 @@ import {
   FileTextOutlined,
   WalletOutlined,
   DollarOutlined,
+  RightOutlined,
+  PictureOutlined,
+  VideoCameraOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 function AdvertiserSidebar() {
   const [user, setUser] = useState(authService.getCurrentUser() || {});
+  const [adsManagementOpen, setAdsManagementOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Auto-open ads management menu if we're on one of its child routes
+    const isAdsManagementChildRoute = [
+      "/advertiser/ad-management",
+      "/advertiser/payment-history",
+      "/advertiser/media-management",
+    ].some((route) => location.pathname.includes(route));
+
+    if (isAdsManagementChildRoute) {
+      setAdsManagementOpen(true);
+    }
+
     const updateUser = () => {
       setUser(authService.getCurrentUser() || {});
     };
@@ -25,11 +42,38 @@ function AdvertiserSidebar() {
     return () => {
       authService.removeListener(updateUser);
     };
-  }, []);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     authService.logout();
     navigate("/login");
+  };
+
+  const toggleAdsManagement = () => {
+    setAdsManagementOpen(!adsManagementOpen);
+  };
+
+  // Animation variants for dropdown menu
+  const menuItemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { opacity: 1, x: 0 },
+  };
+
+  const menuVariants = {
+    hidden: { height: 0, opacity: 0 },
+    visible: {
+      height: "auto",
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        when: "beforeChildren",
+      },
+    },
+  };
+
+  // Check if current path is active
+  const isActive = (path) => {
+    return location.pathname.includes(path);
   };
 
   return (
@@ -77,39 +121,82 @@ function AdvertiserSidebar() {
           </li>
 
           <li>
-            <Link
-              to="/advertiser/ad-management"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
+            <button
+              onClick={toggleAdsManagement}
+              className={`flex w-full flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800`}
             >
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
                 <RiSlideshow3Line />
               </span>
               <span className="text-sm font-medium">Ads Management</span>
-            </Link>
-          </li>
-
-          <li>
-            <Link
-              to="/advertiser/payment-history"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
-            >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-                <FileTextOutlined />
+              <span
+                className="ml-auto mr-4 transition-transform duration-300"
+                style={{
+                  transform: adsManagementOpen
+                    ? "rotate(90deg)"
+                    : "rotate(0deg)",
+                }}
+              >
+                <RightOutlined />
               </span>
-              <span className="text-sm font-medium">Ad Purchase Items</span>
-            </Link>
-          </li>
-
-          <li>
-            <Link
-              to="/advertiser/transactions"
-              className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-500 hover:text-gray-800"
-            >
-              <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
-                <DollarOutlined />
-              </span>
-              <span className="text-sm font-medium">AdPurchase Transaction </span>
-            </Link>
+            </button>
+            <AnimatePresence>
+              {adsManagementOpen && (
+                <motion.ul
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  variants={menuVariants}
+                  className="ml-6 overflow-hidden"
+                >
+                  <motion.li variants={menuItemVariants}>
+                    <Link
+                      to="/advertiser/ad-management"
+                      className={`flex items-center text-sm py-3 px-4 rounded-lg my-1 ${
+                        isActive("/advertiser/ad-management")
+                          ? "bg-purple-100 text-purple-600 font-medium"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-500 mr-3">
+                        <VideoCameraOutlined />
+                      </div>
+                      <span>Media Management</span>
+                    </Link>
+                  </motion.li>
+                  <motion.li variants={menuItemVariants}>
+                    <Link
+                      to="/advertiser/payment-history"
+                      className={`flex items-center text-sm py-3 px-4 rounded-lg my-1 ${
+                        isActive("/advertiser/payment-history")
+                          ? "bg-blue-100 text-blue-600 font-medium"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-500 mr-3">
+                        <FileTextOutlined />
+                      </div>
+                      <span>Ad Purchase Items</span>
+                    </Link>
+                  </motion.li>
+                  <motion.li variants={menuItemVariants}>
+                    <Link
+                      to="/advertiser/transactions"
+                      className={`flex items-center text-sm py-3 px-4 rounded-lg my-1 ${
+                        isActive("/advertiser/transactions")
+                          ? "bg-orange-100 text-orange-600 font-medium"
+                          : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-500 mr-3">
+                        <HistoryOutlined />
+                      </div>
+                      <span>Payment History</span>
+                    </Link>
+                  </motion.li>
+                </motion.ul>
+              )}
+            </AnimatePresence>
           </li>
 
           <li>

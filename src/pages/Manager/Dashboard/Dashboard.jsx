@@ -702,7 +702,7 @@ const ManagerDashboard = () => {
             value={stats.activeAdPackages}
             icon={<PictureOutlined style={{ color: colorMap.green }} />}
             color="green"
-            linkTo="/manager/adpackage"
+            linkTo="/manager/ad-package"
           />
         </div>
       )}
