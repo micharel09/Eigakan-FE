@@ -347,7 +347,32 @@ export const useAdDisplay = ({
     const initializeAds = async () => {
       // Get all ads from API without limiting the number
       const ads = await getAdSequence();
-      console.log("Loaded all ads from API:", ads.length, "ads");
+      // Format ad positions for better readability in console
+      const formattedPositions = ads.map((ad) => {
+        const seconds = ad.position || AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME;
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+
+        if (minutes >= 60) {
+          const hours = Math.floor(minutes / 60);
+          const remainingMinutes = minutes % 60;
+          return `${hours}h:${remainingMinutes
+            .toString()
+            .padStart(2, "0")}m:${remainingSeconds
+            .toString()
+            .padStart(2, "0")}s (${seconds}s)`;
+        }
+        return `${minutes}m:${remainingSeconds
+          .toString()
+          .padStart(2, "0")}s (${seconds}s)`;
+      });
+
+      console.log(
+        "Loaded all ads from API:",
+        ads.length,
+        "ads at positions:",
+        formattedPositions
+      );
       setMidrollAdSequence(ads);
     };
 
@@ -365,7 +390,27 @@ export const useAdDisplay = ({
     const positions = midrollAdSequence.map(
       (ad) => ad.position || AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME
     );
-    console.log("Ad positions from API:", positions);
+
+    // Convert seconds to minutes:seconds or hours:minutes:seconds format for better readability
+    const formattedPositions = positions.map((seconds) => {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60);
+
+      if (minutes >= 60) {
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        return `${hours}h:${remainingMinutes
+          .toString()
+          .padStart(2, "0")}m:${remainingSeconds
+          .toString()
+          .padStart(2, "0")}s (${seconds}s)`;
+      }
+      return `${minutes}m:${remainingSeconds
+        .toString()
+        .padStart(2, "0")}s (${seconds}s)`;
+    });
+
+    console.log("Ad positions from API:", formattedPositions);
     return positions;
   }, [midrollAdSequence]);
 

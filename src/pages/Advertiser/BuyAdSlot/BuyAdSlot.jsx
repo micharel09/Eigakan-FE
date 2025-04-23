@@ -975,9 +975,23 @@ const BuyAdSlot = () => {
                               )}
                             </div>
                             <div className="mt-2 p-2 bg-gray-700 text-left text-sm">
-                              <p className="text-white truncate">
-                                {media.content || "No description"}
-                              </p>
+                              <div className="flex justify-between items-center mb-1">
+                                <p className="text-white truncate">
+                                  {media.content || "No description"}
+                                </p>
+                                <Tag
+                                  color={
+                                    media.status === "ACTIVE"
+                                      ? "green"
+                                      : media.status === "PENDING"
+                                      ? "orange"
+                                      : "red"
+                                  }
+                                  className="ml-1 text-xs"
+                                >
+                                  {media.status || "PENDING"}
+                                </Tag>
+                              </div>
                             </div>
                           </div>
                         ))}
