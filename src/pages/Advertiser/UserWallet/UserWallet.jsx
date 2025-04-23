@@ -34,6 +34,7 @@ import {
   ShoppingOutlined,
   PlusCircleOutlined,
   BankOutlined,
+  EyeOutlined, EyeInvisibleOutlined
 } from "@ant-design/icons";
 import userWalletService from "../../../apis/UserWallet/userWallet";
 import walletHistoryService from "../../../apis/UserWallet/walletHistory";
@@ -56,7 +57,8 @@ const UserWallet = () => {
     pageSize: 5,
     total: 0,
   });
-
+  const [showWalletId, setShowWalletId] = useState(false);
+  const [showUserId, setShowUserId] = useState(false);
   // Deposit states
   const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
   const [depositAmount, setDepositAmount] = useState(100000);
@@ -346,13 +348,18 @@ const UserWallet = () => {
                 }
               >
                 <div className="flex flex-col gap-4">
-                  <div>
-                    <Text type="secondary">Wallet ID:</Text>
-                    <div className="font-mono bg-gray-50 p-2 rounded mt-1 text-sm break-all">
-                      {walletData.id}
-                    </div>
+                <div>
+                  <Text type="secondary">Wallet ID:</Text>
+                  <div className="font-mono bg-gray-50 p-2 rounded mt-1 text-sm break-all flex items-center justify-between">
+                    <span>{showWalletId ? walletData.id : '••••••••••••'}</span>
+                    <span
+                      onClick={() => setShowWalletId(!showWalletId)}
+                      className="ml-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                    >
+                      {showWalletId ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                    </span>
                   </div>
-
+                </div>
                   <div>
                     <Text type="secondary">Status:</Text>
                     <div className="mt-1">
@@ -366,9 +373,15 @@ const UserWallet = () => {
                   </div>
 
                   <div>
-                    <Text type="secondary">User ID:</Text>
-                    <div className="font-mono bg-gray-50 p-2 rounded mt-1 text-sm break-all">
-                      {walletData.userId}
+                  <Text type="secondary">User ID:</Text>
+                    <div className="font-mono bg-gray-50 p-2 rounded mt-1 text-sm break-all flex items-center justify-between">
+                      <span>{showUserId ? walletData.userId : '••••••••••••'}</span>
+                      <span
+                        onClick={() => setShowUserId(!showUserId)}
+                        className="ml-2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                      >
+                        {showUserId ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -407,7 +420,7 @@ const UserWallet = () => {
               title={
                 <div className="flex items-center">
                   <CreditCardOutlined className="mr-2 text-[#FF009F]" />
-                  <span>Transaction History</span>
+                  <span>Wallet Transaction History</span>
                 </div>
               }
               className="shadow-sm"

@@ -160,13 +160,6 @@ const PaymentHistory = () => {
       sorter: (a, b) => a.totalPrice - b.totalPrice,
     },
     {
-      title: "Payment Method",
-      dataIndex: "paymentMethod",
-      key: "paymentMethod",
-      render: (method) => <Tag color="blue">{method}</Tag>,
-      width: "15%",
-    },
-    {
       title: "Status",
       dataIndex: "status",
       key: "status",
@@ -206,7 +199,7 @@ const PaymentHistory = () => {
 
       <div className="flex justify-between items-center mb-6">
         <Title level={2} className="m-0">
-          <FileTextOutlined className="mr-2" /> Payment History
+          <FileTextOutlined className="mr-2" /> AdPurchase Transaction History
         </Title>
         <Button
           onClick={handleRefresh}
@@ -246,7 +239,7 @@ const PaymentHistory = () => {
 
       <Card className="shadow-sm">
         <div className="flex justify-between items-center mb-4">
-          <Text className="text-lg font-medium">Your Payment Transactions</Text>
+          <Text className="text-lg font-medium">Your AdPurchase Transactions</Text>
           <Badge
             status={loading ? "processing" : "success"}
             text={loading ? "Loading..." : "Updated"}
