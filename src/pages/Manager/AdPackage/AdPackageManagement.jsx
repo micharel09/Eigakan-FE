@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Component } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   Button,
@@ -22,6 +23,7 @@ import {
   Row,
   Col,
   Statistic,
+  Descriptions,
 } from "antd";
 import {
   EditOutlined,
@@ -37,16 +39,23 @@ import {
   PlayCircleOutlined,
   DollarOutlined,
   ClockCircleOutlined,
+  ShoppingOutlined,
+  FileTextOutlined,
+  ReloadOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 import AdPackageService from "../../../apis/AdPackage/adpackage";
 import adMediaService from "../../../apis/AdMedia/adMedia";
 import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
 import { Helmet } from "react-helmet";
 import dayjs from "dayjs";
+import { theme } from "antd";
+import { Collapse, Divider } from "antd";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
+const { Panel } = Collapse;
 
 // Error Boundary Component to catch errors in child components
 class ErrorBoundary extends Component {
@@ -115,6 +124,7 @@ const isVideoUrl = (url) => {
 };
 
 const AdPackageManagement = () => {
+  const navigate = useNavigate();
   const [adPackages, setAdPackages] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -163,6 +173,9 @@ const AdPackageManagement = () => {
     total: 0,
   });
   const [totalPaymentAmount, setTotalPaymentAmount] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalViews, setTotalViews] = useState(0);
+  const { token } = theme.useToken();
 
   // Fetch AdPackages
   const fetchAdPackages = async (
@@ -286,6 +299,26 @@ const AdPackageManagement = () => {
             0
           );
           setTotalPaymentAmount(total);
+
+          // Calculate total items and views
+          let itemCount = 0;
+          let viewCount = 0;
+
+          allTransactions.forEach((transaction) => {
+            if (
+              transaction.adPurchaseItems &&
+              transaction.adPurchaseItems.length > 0
+            ) {
+              itemCount += transaction.adPurchaseItems.length;
+
+              transaction.adPurchaseItems.forEach((item) => {
+                viewCount += item.viewQuantity || 0;
+              });
+            }
+          });
+
+          setTotalItems(itemCount);
+          setTotalViews(viewCount);
         }
       } catch (error) {
         console.error("Error fetching total payment data:", error);
@@ -319,21 +352,28 @@ const AdPackageManagement = () => {
     }
   };
 
+  // Fetch all data when component mounts
   useEffect(() => {
     fetchAdPackages();
-    if (activeTab === "2") {
-      fetchAdMedia();
-    } else if (activeTab === "3") {
-      fetchAdPaymentHistory();
-    }
+    fetchAdMedia();
+    fetchAdPaymentHistory();
+  }, []);
+
+  // Update active tab
+  useEffect(() => {
+    // This effect is only for updating the active tab
+    // Data is already loaded in the initial effect
   }, [activeTab]);
 
   // Handle tab change
   const handleTabChange = (key) => {
     setActiveTab(key);
-    if (key === "2" && adMediaList.length === 0) {
+    // Refresh data when switching tabs
+    if (key === "1") {
+      fetchAdPackages();
+    } else if (key === "2") {
       fetchAdMedia();
-    } else if (key === "3" && adPaymentList.length === 0) {
+    } else if (key === "3") {
       fetchAdPaymentHistory();
     }
   };
@@ -450,6 +490,46 @@ const AdPackageManagement = () => {
   // Format date
   const formatDateTime = (dateString) => {
     return dayjs(dateString).format("MMM D, YYYY HH:mm");
+  };
+
+  // Get status icon
+  const getStatusIcon = (status) => {
+    switch (status?.toUpperCase()) {
+      case "SUCCESS":
+        return <CheckCircleOutlined />;
+      case "PENDING":
+        return <ClockCircleOutlined />;
+      case "CANCELED":
+        return <CloseCircleOutlined />;
+      case "ACTIVE":
+        return <CheckCircleOutlined />;
+      case "EXPIRED":
+        return <ClockCircleOutlined />;
+      case "REJECTED":
+        return <CloseCircleOutlined />;
+      default:
+        return <ClockCircleOutlined />;
+    }
+  };
+
+  // Get status color
+  const getStatusColor = (status) => {
+    switch (status?.toUpperCase()) {
+      case "SUCCESS":
+        return "success";
+      case "PENDING":
+        return "warning";
+      case "CANCELED":
+        return "error";
+      case "ACTIVE":
+        return "success";
+      case "EXPIRED":
+        return "default";
+      case "REJECTED":
+        return "error";
+      default:
+        return "default";
+    }
   };
 
   // Handle approve ad media
@@ -1125,159 +1205,497 @@ const AdPackageManagement = () => {
               </Button>
             </div>
 
-            {/* Total amount card */}
+            {/* Statistics cards */}
             <Row gutter={[16, 16]} className="mb-6">
               <Col xs={24} md={8}>
-                <Card>
+                <Card hoverable style={{ transition: "all 0.3s ease" }}>
                   <Statistic
                     title="Total Successful Payments"
                     value={totalPaymentAmount}
                     precision={0}
                     formatter={(value) => formatVND(value)}
-                    prefix={<DollarOutlined />}
+                    prefix={<DollarOutlined style={{ color: "#52c41a" }} />}
                     loading={adPaymentTotalLoading}
+                    valueStyle={{ color: "#52c41a" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} md={8}>
+                <Card hoverable style={{ transition: "all 0.3s ease" }}>
+                  <Statistic
+                    title="Total Ad Items"
+                    value={totalItems}
+                    prefix={<ShoppingOutlined style={{ color: "#1890ff" }} />}
+                    loading={adPaymentTotalLoading}
+                    valueStyle={{ color: "#1890ff" }}
+                    suffix={totalItems > 1 ? "items" : "item"}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} md={8}>
+                <Card hoverable style={{ transition: "all 0.3s ease" }}>
+                  <Statistic
+                    title="Total Ad Views Purchased"
+                    value={totalViews}
+                    formatter={(value) => `${value.toLocaleString()}`}
+                    prefix={<EyeOutlined style={{ color: "#722ed1" }} />}
+                    loading={adPaymentTotalLoading}
+                    valueStyle={{ color: "#722ed1" }}
+                    suffix="views"
                   />
                 </Card>
               </Col>
             </Row>
 
-            {/* Ad Payment History Table */}
-            <Table
-              columns={[
-                {
-                  title: "Transaction ID",
-                  dataIndex: "id",
-                  key: "id",
-                  width: "15%",
-                  render: (text) => (
-                    <Tooltip title={text}>
-                      <span className="text-xs font-mono">
-                        {text.substring(0, 8)}...
-                        {text.substring(text.length - 4)}
-                      </span>
-                    </Tooltip>
-                  ),
-                },
-                {
-                  title: "User ID",
-                  dataIndex: "userId",
-                  key: "userId",
-                  width: "15%",
-                  render: (text) => (
-                    <Tooltip title={text}>
-                      <span className="text-xs font-mono">
-                        {text.substring(0, 8)}...
-                        {text.substring(text.length - 4)}
-                      </span>
-                    </Tooltip>
-                  ),
-                },
-                {
-                  title: "Amount",
-                  dataIndex: "totalPrice",
-                  key: "totalPrice",
-                  width: "15%",
-                  render: (price) => (
-                    <span className="font-medium">{formatVND(price)}</span>
-                  ),
-                  sorter: (a, b) => a.totalPrice - b.totalPrice,
-                },
-                {
-                  title: "Payment Method",
-                  dataIndex: "paymentMethod",
-                  key: "paymentMethod",
-                  width: "15%",
-                  render: (method) => <Tag color="blue">{method}</Tag>,
-                },
-                {
-                  title: "Status",
-                  dataIndex: "status",
-                  key: "status",
-                  width: "15%",
-                  render: (status) => {
-                    let color = "default";
-                    let icon = null;
+            {/* Ad Payment History with Collapse */}
+            <Card style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={{ fontSize: 16, fontWeight: 500 }}>
+                  Payment Transactions
+                </Text>
+                <Badge
+                  status={adPaymentLoading ? "processing" : "success"}
+                  text={adPaymentLoading ? "Loading..." : "Updated"}
+                />
+              </div>
 
-                    switch (status?.toUpperCase()) {
-                      case "SUCCESS":
-                        color = "success";
-                        icon = <CheckCircleOutlined />;
-                        break;
-                      case "PENDING":
-                        color = "warning";
-                        icon = <ClockCircleOutlined />;
-                        break;
-                      case "CANCELED":
-                        color = "error";
-                        icon = <CloseCircleOutlined />;
-                        break;
-                      default:
-                        color = "default";
-                        icon = <ClockCircleOutlined />;
-                    }
+              <div style={{ marginBottom: 24 }}>
+                <Collapse bordered={false} expandIconPosition="end">
+                  {filteredAdPayment.map((transaction) => (
+                    <Panel
+                      key={transaction.id}
+                      header={
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr",
+                            gap: 16,
+                            width: "100%",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div>
+                            <Tooltip title={transaction.id}>
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                {transaction.id.substring(0, 8)}...
+                                {transaction.id.substring(
+                                  transaction.id.length - 4
+                                )}
+                              </span>
+                            </Tooltip>
+                          </div>
+                          <div>
+                            <span style={{ fontWeight: 500 }}>
+                              {formatVND(transaction.totalPrice)}
+                            </span>
+                          </div>
+                          <div>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                              }}
+                            >
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: 10, marginBottom: 2 }}
+                              >
+                                Payment Method
+                              </Text>
+                              <Tag
+                                color="cyan"
+                                style={{
+                                  margin: 0,
+                                  maxWidth: "100px",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <DollarOutlined style={{ marginRight: 4 }} />
+                                {transaction.paymentMethod || "VNPay"}
+                              </Tag>
+                            </div>
+                          </div>
+                          <div>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                              }}
+                            >
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: 10, marginBottom: 2 }}
+                              >
+                                Payment Status
+                              </Text>
+                              <Tag
+                                icon={getStatusIcon(transaction.status)}
+                                color={getStatusColor(transaction.status)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  width: "fit-content",
+                                  margin: 0,
+                                  maxWidth: "100px",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                }}
+                              >
+                                <span style={{ marginLeft: 4 }}>
+                                  {transaction.status}
+                                </span>
+                              </Tag>
+                            </div>
+                          </div>
+                          {transaction.adPurchaseItems &&
+                            transaction.adPurchaseItems.length > 0 && (
+                              <div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                  }}
+                                >
+                                  <Text
+                                    type="secondary"
+                                    style={{ fontSize: 10, marginBottom: 2 }}
+                                  >
+                                    Ad Item Status
+                                  </Text>
+                                  <Tag
+                                    icon={getStatusIcon(
+                                      transaction.adPurchaseItems[0].status
+                                    )}
+                                    color={getStatusColor(
+                                      transaction.adPurchaseItems[0].status
+                                    )}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      width: "fit-content",
+                                      margin: 0,
+                                      maxWidth: "100px",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                    }}
+                                  >
+                                    <span style={{ marginLeft: 4 }}>
+                                      {transaction.adPurchaseItems[0].status}
+                                    </span>
+                                  </Tag>
+                                </div>
+                              </div>
+                            )}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <span>{formatDateTime(transaction.createAt)}</span>
+                            {transaction.adPurchaseItems &&
+                              transaction.adPurchaseItems.length > 0 && (
+                                <Tag
+                                  color="purple"
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <ShoppingOutlined
+                                    style={{ marginRight: 4 }}
+                                  />
+                                  {transaction.adPurchaseItems.length}{" "}
+                                  {transaction.adPurchaseItems.length > 1
+                                    ? "items"
+                                    : "item"}
+                                </Tag>
+                              )}
+                          </div>
+                        </div>
+                      }
+                    >
+                      <div className="p-4 bg-white">
+                        {transaction.adPurchaseItems &&
+                          transaction.adPurchaseItems.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                              <Text
+                                strong
+                                style={{
+                                  fontSize: 16,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  marginBottom: 16,
+                                }}
+                              >
+                                <ShoppingOutlined
+                                  style={{
+                                    marginRight: 8,
+                                    color: token.colorPrimary,
+                                  }}
+                                />
+                                Purchase Items (
+                                {transaction.adPurchaseItems.length})
+                              </Text>
+                              <div
+                                style={{
+                                  padding: 16,
+                                  backgroundColor: "white",
+                                }}
+                              >
+                                {transaction.adPurchaseItems.map((item) => (
+                                  <Card
+                                    key={item.id}
+                                    style={{
+                                      marginBottom: 16,
+                                      borderRadius: 8,
+                                      cursor: "pointer",
+                                      transition: "all 0.3s ease",
+                                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                                      ":hover": {
+                                        boxShadow: "0 3px 6px rgba(0,0,0,0.1)",
+                                      },
+                                    }}
+                                    bodyStyle={{ padding: 0 }}
+                                    onClick={() =>
+                                      navigate(
+                                        `/manager/ad-purchase-item/${item.id}`
+                                      )
+                                    }
+                                    hoverable
+                                  >
+                                    <div
+                                      style={{
+                                        padding: "12px 16px",
+                                        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                                        backgroundColor: token.colorBgLayout,
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      <Space>
+                                        <Text strong>Purchase Item</Text>
+                                        <Tag
+                                          icon={<EyeOutlined />}
+                                          color="blue"
+                                        >
+                                          {item.viewQuantity} views
+                                        </Tag>
+                                        <Tag
+                                          icon={getStatusIcon(item.status)}
+                                          color={getStatusColor(item.status)}
+                                        >
+                                          {item.status}
+                                        </Tag>
+                                      </Space>
+                                      <Space>
+                                        <Text type="secondary">
+                                          ID: {item.id.substring(0, 8)}...
+                                        </Text>
+                                        <Button
+                                          type="link"
+                                          size="small"
+                                          icon={<LinkOutlined />}
+                                          onClick={() =>
+                                            navigate(
+                                              `/manager/ad-purchase-item/${item.id}`
+                                            )
+                                          }
+                                        >
+                                          Details
+                                        </Button>
+                                      </Space>
+                                    </div>
+                                    <div style={{ padding: "0 16px 16px" }}>
+                                      <Row
+                                        gutter={16}
+                                        style={{ marginTop: 16 }}
+                                      >
+                                        <Col span={12}>
+                                          <Card
+                                            size="small"
+                                            style={{
+                                              backgroundColor:
+                                                token.colorBgLayout,
+                                              border: `1px solid ${token.colorBorderSecondary}`,
+                                            }}
+                                          >
+                                            <Text type="secondary">
+                                              Price Per View
+                                            </Text>
+                                            <div
+                                              style={{
+                                                fontWeight: 500,
+                                                fontSize: 16,
+                                              }}
+                                            >
+                                              {formatVND(item.pricePerView)}
+                                            </div>
+                                          </Card>
+                                        </Col>
+                                        <Col span={12}>
+                                          <Card
+                                            size="small"
+                                            style={{
+                                              backgroundColor:
+                                                token.colorBgLayout,
+                                              border: `1px solid ${token.colorBorderSecondary}`,
+                                            }}
+                                          >
+                                            <Text type="secondary">
+                                              Total Price
+                                            </Text>
+                                            <div
+                                              style={{
+                                                fontWeight: 500,
+                                                fontSize: 16,
+                                              }}
+                                            >
+                                              {formatVND(item.price)}
+                                            </div>
+                                          </Card>
+                                        </Col>
+                                      </Row>
 
-                    return (
-                      <Tag
-                        icon={icon}
-                        color={color}
-                        className="flex items-center w-fit"
-                      >
-                        <span className="ml-1">{status}</span>
-                      </Tag>
-                    );
-                  },
-                  filters: [
-                    { text: "Success", value: "SUCCESS" },
-                    { text: "Pending", value: "PENDING" },
-                    { text: "Canceled", value: "CANCELED" },
-                  ],
-                  onFilter: (value, record) =>
-                    record.status.toUpperCase() === value,
-                },
-                {
-                  title: "Created Date",
-                  dataIndex: "createAt",
-                  key: "createAt",
-                  width: "20%",
-                  render: (text) => formatDateTime(text),
-                  sorter: (a, b) => new Date(a.createAt) - new Date(b.createAt),
-                  defaultSortOrder: "descend",
-                },
-              ]}
-              dataSource={filteredAdPayment}
-              rowKey="id"
-              loading={adPaymentLoading}
-              pagination={{
-                current: adPaymentPagination.current,
-                pageSize: adPaymentPagination.pageSize,
-                total: adPaymentPagination.total,
-                onChange: handleAdPaymentPaginationChange,
-                showSizeChanger: true,
-                pageSizeOptions: ["5", "10", "20"],
-                showTotal: (total) => (
-                  <span>
-                    {adPaymentTotalLoading ? (
-                      <>
-                        <Spin size="small" className="mr-2" />
-                        Calculating total...
-                      </>
-                    ) : (
-                      `Total ${total} items`
-                    )}
-                  </span>
-                ),
-              }}
-              locale={{
-                emptyText: adPaymentLoading ? (
-                  <Spin size="large" />
-                ) : (
+                                      <Descriptions
+                                        column={1}
+                                        size="small"
+                                        bordered
+                                        style={{ marginTop: 16 }}
+                                      >
+                                        <Descriptions.Item label="View Quantity">
+                                          <Space>
+                                            <EyeOutlined
+                                              style={{ color: token.colorInfo }}
+                                            />
+                                            <Text strong>
+                                              {item.viewQuantity} views
+                                            </Text>
+                                          </Space>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Price Per View">
+                                          <Space>
+                                            <DollarOutlined
+                                              style={{
+                                                color: token.colorSuccess,
+                                              }}
+                                            />
+                                            <Text>
+                                              {formatVND(item.pricePerView)}
+                                            </Text>
+                                          </Space>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Total Price">
+                                          <Space>
+                                            <DollarOutlined
+                                              style={{
+                                                color: token.colorSuccess,
+                                              }}
+                                            />
+                                            <Text strong>
+                                              {formatVND(item.price)}
+                                            </Text>
+                                          </Space>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label="Status">
+                                          <Tag
+                                            icon={getStatusIcon(item.status)}
+                                            color={getStatusColor(item.status)}
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              width: "fit-content",
+                                            }}
+                                          >
+                                            {item.status}
+                                          </Tag>
+                                        </Descriptions.Item>
+                                      </Descriptions>
+                                    </div>
+                                  </Card>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    </Panel>
+                  ))}
+                </Collapse>
+
+                {filteredAdPayment.length === 0 && !adPaymentLoading && (
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="No payment history found"
+                    description="No transactions found"
                   />
-                ),
-              }}
-            />
+                )}
+              </div>
+
+              <Divider style={{ margin: "16px 0" }} />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <Space>
+                  <Button
+                    type="primary"
+                    disabled={adPaymentPagination.current === 1}
+                    onClick={() =>
+                      fetchAdPaymentHistory(
+                        adPaymentPagination.current - 1,
+                        adPaymentPagination.pageSize
+                      )
+                    }
+                  >
+                    Previous
+                  </Button>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      margin: "0 12px",
+                    }}
+                  >
+                    <span style={{ color: token.colorTextSecondary }}>
+                      Page {adPaymentPagination.current} of{" "}
+                      {Math.ceil(
+                        adPaymentPagination.total / adPaymentPagination.pageSize
+                      )}
+                    </span>
+                  </div>
+                  <Button
+                    type="primary"
+                    disabled={
+                      adPaymentPagination.current >=
+                      Math.ceil(
+                        adPaymentPagination.total / adPaymentPagination.pageSize
+                      )
+                    }
+                    onClick={() =>
+                      fetchAdPaymentHistory(
+                        adPaymentPagination.current + 1,
+                        adPaymentPagination.pageSize
+                      )
+                    }
+                  >
+                    Next
+                  </Button>
+                </Space>
+              </div>
+            </Card>
           </TabPane>
         </Tabs>
       </Card>
