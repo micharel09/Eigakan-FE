@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Typography, Spin, Button } from "antd";
+import { Typography, Spin, Button, Progress, Modal } from "antd";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   CheckOutlined,
@@ -8,8 +8,12 @@ import {
   CalendarOutlined,
   HomeOutlined,
   CrownOutlined,
+  LogoutOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import subscriptionService from "../../apis/Subscription/subscription";
+import { useAuth } from "../../hooks";
+import { motion } from "framer-motion";
 
 const { Title, Text } = Typography;
 
@@ -19,6 +23,12 @@ function PaymentSuccess() {
   const [paymentInfo, setPaymentInfo] = useState(null);
   const navigate = useNavigate();
   const apiCalled = useRef(false);
+  const { handleLogout } = useAuth();
+
+  // Logout timer state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+  const countdownRef = useRef(null);
 
   const vnpResponseCode = searchParams.get("vnp_ResponseCode");
   const isCancelledPayment = vnpResponseCode === "24";
@@ -34,6 +44,30 @@ function PaymentSuccess() {
       verifyPayment();
     }
   }, [searchParams]);
+
+  // Handle automatic logout with countdown when payment is successful
+  useEffect(() => {
+    if (paymentInfo?.success) {
+      setShowLogoutModal(true);
+
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownRef.current);
+            handleLogout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    };
+  }, [paymentInfo?.success, handleLogout]);
 
   const verifyPayment = async () => {
     if (apiCalled.current) return;
@@ -84,6 +118,13 @@ function PaymentSuccess() {
   };
 
   const handleNavigateToHome = () => navigate("/homescreen");
+
+  const handleManualLogout = () => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+    handleLogout();
+  };
 
   if (loading) {
     return (
@@ -229,6 +270,70 @@ function PaymentSuccess() {
           </div>
         </div>
 
+        {/* Important Membership Notice */}
+        <div className="mt-6 bg-[#FF009F]/10 border border-[#FF009F]/20 rounded-xl p-4">
+          <div className="flex items-start">
+            <InfoCircleOutlined className="text-[#FF009F] text-lg mt-0.5 mr-3" />
+            <div>
+              <Text className="!text-white font-medium block mb-1">
+                Important: Membership Activation Required
+              </Text>
+              <Text className="!text-gray-300">
+                You need to log out and log back in for your VIP Membership to
+                take full effect. You will be automatically logged out in a few
+                seconds.
+              </Text>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-center mt-8 space-x-4">
+          <Button
+            type="primary"
+            size="large"
+            onClick={handleNavigateToHome}
+            style={{
+              backgroundColor: "var(--eigakan-primary, #FF009F)",
+              borderColor: "var(--eigakan-primary, #FF009F)",
+              boxShadow: "0 4px 6px rgba(255, 0, 159, 0.2)",
+            }}
+            className="text-white hover:text-white border-none hover:shadow-lg"
+          >
+            <HomeOutlined /> Back to Home
+          </Button>
+          <Button
+            type="default"
+            size="large"
+            onClick={handleManualLogout}
+            style={{
+              backgroundColor: "#374151",
+              borderColor: "#374151",
+              color: "white",
+            }}
+            className="hover:bg-[#4b5563] hover:border-[#4b5563] hover:text-white"
+          >
+            <LogoutOutlined /> Log Out Now
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderFailureContent = () => (
+    <div className="w-full max-w-4xl rounded-2xl overflow-hidden">
+      <div className="p-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CloseOutlined className="text-3xl text-white" />
+          </div>
+          <Title level={2} className="!text-white m-0">
+            Payment Failed
+          </Title>
+          <Text className="text-gray-400">{paymentInfo.message}</Text>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex justify-center mt-8 space-x-4">
           <Button
@@ -249,50 +354,82 @@ function PaymentSuccess() {
     </div>
   );
 
-  const renderFailureContent = () => (
-    <div className="w-full max-w-md bg-[#1f2937] rounded-2xl overflow-hidden p-6">
-      <div className="flex flex-col items-center justify-center">
-        <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center mb-4">
-          <CloseOutlined className="text-2xl text-white" />
-        </div>
-        <Title level={2} className="!text-white text-center">
-          {isCancelledPayment ? "Payment Cancelled" : "Payment Failed"}
-        </Title>
-        <Text className="text-gray-300 text-center mb-6">
-          {paymentInfo?.message ||
-            "There was an issue with your payment. Please try again."}
-        </Text>
-
-        <div className="flex flex-col w-full space-y-3">
-          <Button
-            type="primary"
-            size="large"
-            onClick={() => navigate("/subscription-plans")}
-            style={{
-              backgroundColor: "var(--eigakan-primary, #FF009F)",
-              borderColor: "var(--eigakan-primary, #FF009F)",
-              boxShadow: "0 4px 6px rgba(255, 0, 159, 0.2)",
-            }}
-            className="text-white hover:text-white border-none hover:shadow-lg"
-          >
-            {isCancelledPayment ? "Select Plan" : "Try Again"}
-          </Button>
-          <Button
-            size="large"
-            icon={<HomeOutlined />}
-            onClick={handleNavigateToHome}
-            className="bg-[#374151] text-white border-none hover:bg-[#374151]/90 hover:text-white"
-          >
-            Back to Home
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-[calc(100vh-200px)] bg-[#1a1f2d] flex items-center justify-center p-4 text-white">
+    <div className="min-h-[calc(100vh-200px)] bg-[#1a1f2d] flex items-center justify-center p-4">
       {paymentInfo?.success ? renderSuccessContent() : renderFailureContent()}
+
+      {/* Automatic Logout Modal */}
+      <Modal
+        title={
+          <div className="flex items-center">
+            <LogoutOutlined className="text-[#FF009F] mr-2" />
+            <span>VIP Membership Activation</span>
+          </div>
+        }
+        open={showLogoutModal}
+        closable={false}
+        footer={null}
+        maskClosable={false}
+        centered
+        className="membership-activation-modal"
+      >
+        <div className="py-2">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="mb-5">
+              <div className="text-center mb-3">
+                <CrownOutlined className="text-3xl text-[#FF009F]" />
+              </div>
+              <Text className="block text-center text-base mb-1">
+                Your VIP membership is now active!
+              </Text>
+              <Text className="block text-center text-gray-500">
+                You will be automatically logged out in {countdown} seconds to
+                complete the activation process.
+              </Text>
+            </div>
+
+            <Progress
+              percent={countdown * 10}
+              showInfo={false}
+              strokeColor={{
+                "0%": "#FF009F",
+                "100%": "#FF6B9F",
+              }}
+              trailColor="#f0f0f0"
+              className="mb-4"
+            />
+
+            <div className="rounded-lg bg-blue-50 p-3 mb-4 border border-blue-100">
+              <div className="flex">
+                <InfoCircleOutlined className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                <Text className="text-blue-700 text-sm">
+                  After logging out, please log back in to enjoy all your VIP
+                  benefits.
+                </Text>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                type="primary"
+                onClick={handleManualLogout}
+                style={{
+                  backgroundColor: "#FF009F",
+                  borderColor: "#FF009F",
+                }}
+                size="large"
+                className="min-w-[120px]"
+              >
+                Log Out Now
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </Modal>
     </div>
   );
 }
