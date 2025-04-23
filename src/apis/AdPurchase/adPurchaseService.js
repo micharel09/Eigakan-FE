@@ -13,6 +13,12 @@ const adPurchaseService = {
       return response.data;
     }),
 
+    getAllAdPurchaseItems: (page = 1, pageSize = 10) =>
+      makeAuthenticatedRequest(async (headers) => {
+        const response = await axios.get(`${AD_PURCHASE_ITEM_URL}/GetAllAdPurchaseItems?page=${page}&pageSize=${pageSize}`, { headers });
+        return response.data;
+      }),
+
   // ===== AdPurchaseTransaction API =====
   createAdPurchase: (data) =>
     makeAuthenticatedRequest(async (headers) => {
