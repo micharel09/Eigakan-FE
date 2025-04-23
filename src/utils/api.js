@@ -68,4 +68,5 @@ export const API_URLS = {
   USER_WALLET: `${API_BASE_URL}/UserWallet`,
   WALLET_TRANSACTION: `${API_BASE_URL}/WalletTransaction`,
   AD_PURCHASE_ITEM: `${API_BASE_URL}/AdPurchaseItem`,
+  ADMIN_DASHBOARD: `${API_BASE_URL}/AdminDasboard`,
 };
