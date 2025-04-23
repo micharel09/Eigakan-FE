@@ -16,7 +16,7 @@ const ProcessStatus = ({ movieStatus, contractStatus, isFilmVipOrTrailer }) => {
 
   if (movieStatus === "WAITING_FOR_REVIEWING") currentStep = 1;
   if (movieStatus === "ACCEPTED_NEGOTIATING" || contractStatus === "WAITING_FOR_REVIEWING") currentStep = 2;
-  if (contractStatus === "SIGNED" || movieStatus === "WAITING_FOR_UPLOADING") currentStep = 3;
+  if (contractStatus === "SIGNED" ) currentStep = 3;
   if (isFilmVipOrTrailer) currentStep = 4;
   if (movieStatus === "ACTIVE") currentStep = 5; // Step 5 chỉ active nếu movieStatus là ACTIVE
 
@@ -32,7 +32,6 @@ const ProcessStatus = ({ movieStatus, contractStatus, isFilmVipOrTrailer }) => {
     { title: "Create Movie", description: "Movie is created and waiting for review.", icon: <FileSearchOutlined /> },
     { title: "Review movie & Create contract", description: "Admin reviews movie and creates contract.", icon: <FileDoneOutlined /> },
     { title: "Sign", description: "Publisher signs contract and uploads video.", icon: <UploadOutlined /> },
-    { title: "Upload", description: "Publisher uploads the video.", icon: <UploadOutlined /> },
     { title: "Active", description: "Movie is approved and published.", icon: <CheckCircleOutlined /> },
   ];
 

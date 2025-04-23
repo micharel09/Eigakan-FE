@@ -612,7 +612,7 @@ const MovieDetail = () => {
                         </>
                       )}
 
-                      {(movie?.status === "WAITING_FOR_UPLOADING" ||
+                      {(movie?.contracts?.some(c => c.status === "SIGNED") ||
                         movie?.status === "ACTIVE" ||
                         movie?.status === "ARCHIVED") && (
                         <>
