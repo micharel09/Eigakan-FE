@@ -59,6 +59,7 @@ import SelectAdPackage from "../pages/Advertiser/SelectAdPackage/SelectAdPackage
 import PaymentWallet from "../pages/Payment/PaymentWallet";
 import { Navigate } from "react-router-dom";
 import AdPurchaseItems from "../pages/Advertiser/AdPurchaseItems/AdPurchaseItems.jsx";
+import AdPurchaseItemDetails from "../pages/Advertiser/AdPurchaseItems/AdPurchaseItemDetails.jsx";
 import PaymentHistory from "../pages/Advertiser/PaymentHistory/PaymentHistory.jsx";
 import UserWallet from "../pages/Advertiser/UserWallet/UserWallet";
 import MediaManagement from "../pages/Advertiser/MediaManagement/MediaManagement";
@@ -69,6 +70,7 @@ import MovieEarning from "../pages/Admin/Movie/MovieEarning.jsx";
 import UserEarning from "../pages/Admin/User/UserEarning.jsx";
 import PublisherEarning from "../pages/Publisher/UserEarning/PublisherEarning.jsx";
 import AdPackageManagement from "../pages/Manager/AdPackage/AdPackageManagement.jsx";
+import ManagerAdPurchaseItemDetails from "../pages/Manager/AdPurchaseItems/AdPurchaseItemDetails.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -375,6 +377,17 @@ const routes = [
   },
 
   {
+    path: "/manager/ad-purchase-item/:id",
+    element: (
+      <PrivateRoute requiredRole="MANAGER">
+        <ManagerAdPurchaseItemDetails />
+      </PrivateRoute>
+    ),
+    layout: "ManagerLayout",
+    private: true,
+  },
+
+  {
     path: "/manager/subscription",
     element: (
       <PrivateRoute requiredRole="MANAGER">
@@ -397,7 +410,7 @@ const routes = [
   },
 
   {
-    path: "/manager/adpackage",
+    path: "/manager/ad-package",
     element: (
       <PrivateRoute requiredRole="MANAGER">
         <AdPackageManagement />
@@ -601,6 +614,16 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="ADVERTISER">
         <AdPurchaseItems />
+      </PrivateRoute>
+    ),
+    layout: "AdvertiserLayout",
+  },
+
+  {
+    path: "/advertiser/ad-purchase-item/:id",
+    element: (
+      <PrivateRoute requiredRole="ADVERTISER">
+        <AdPurchaseItemDetails />
       </PrivateRoute>
     ),
     layout: "AdvertiserLayout",

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   Table,
@@ -12,6 +13,11 @@ import {
   Statistic,
   Row,
   Col,
+  Collapse,
+  Descriptions,
+  Divider,
+  Space,
+  theme,
 } from "antd";
 import { Helmet } from "react-helmet";
 import {
@@ -21,13 +27,22 @@ import {
   CloseCircleOutlined,
   DollarOutlined,
   FileTextOutlined,
+  EyeOutlined,
+  DownOutlined,
+  RightOutlined,
+  ShoppingOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
+const { Panel } = Collapse;
+const { useToken } = theme;
 
 const PaymentHistory = () => {
+  const { token } = useToken();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -37,6 +52,8 @@ const PaymentHistory = () => {
     total: 0,
   });
   const [totalAmount, setTotalAmount] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalViews, setTotalViews] = useState(0);
 
   const fetchTransactions = async (page = 1, pageSize = 5) => {
     try {
@@ -75,6 +92,26 @@ const PaymentHistory = () => {
           0
         );
         setTotalAmount(total);
+
+        // Calculate total items and views
+        let itemCount = 0;
+        let viewCount = 0;
+
+        allResponse.data.forEach((transaction) => {
+          if (
+            transaction.adPurchaseItems &&
+            transaction.adPurchaseItems.length > 0
+          ) {
+            itemCount += transaction.adPurchaseItems.length;
+
+            transaction.adPurchaseItems.forEach((item) => {
+              viewCount += item.viewQuantity || 0;
+            });
+          }
+        });
+
+        setTotalItems(itemCount);
+        setTotalViews(viewCount);
       } else {
         setError(response.message || "Failed to load transaction data");
       }
@@ -98,6 +135,10 @@ const PaymentHistory = () => {
     fetchTransactions(pagination.current, pagination.pageSize);
   };
 
+  const goToItemDetails = (itemId) => {
+    navigate(`/advertiser/ad-purchase-item/${itemId}?from=transactions`);
+  };
+
   const getStatusColor = (status) => {
     switch (status?.toUpperCase()) {
       case "SUCCESS":
@@ -106,6 +147,8 @@ const PaymentHistory = () => {
         return "warning";
       case "CANCELED":
         return "error";
+      case "ACTIVE":
+        return "success";
       default:
         return "default";
     }
@@ -119,6 +162,8 @@ const PaymentHistory = () => {
         return <ClockCircleOutlined />;
       case "CANCELED":
         return <CloseCircleOutlined />;
+      case "ACTIVE":
+        return <CheckCircleOutlined />;
       default:
         return <ClockCircleOutlined />;
     }
@@ -135,77 +180,323 @@ const PaymentHistory = () => {
     }).format(price);
   };
 
-  const columns = [
-    {
-      title: "Transaction ID",
-      dataIndex: "id",
-      key: "id",
-      render: (text) => (
-        <Tooltip title={text}>
-          <span className="text-xs font-mono">
-            {text.substring(0, 8)}...{text.substring(text.length - 4)}
-          </span>
-        </Tooltip>
-      ),
-      width: "15%",
-    },
-    {
-      title: "Amount",
-      dataIndex: "totalPrice",
-      key: "totalPrice",
-      render: (price) => (
-        <span className="font-medium">{formatVND(price)}</span>
-      ),
-      width: "15%",
-      sorter: (a, b) => a.totalPrice - b.totalPrice,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => (
-        <Tag
-          icon={getStatusIcon(status)}
-          color={getStatusColor(status)}
-          className="flex items-center w-fit"
+  // Render transaction details including purchase items
+  const renderTransactionDetails = (record) => {
+    const hasItems =
+      record.adPurchaseItems && record.adPurchaseItems.length > 0;
+
+    if (!hasItems) {
+      return (
+        <div
+          style={{
+            padding: "16px 0",
+            textAlign: "center",
+            color: token.colorTextSecondary,
+          }}
         >
-          <span className="ml-1">{status}</span>
-        </Tag>
-      ),
-      width: "15%",
-      filters: [
-        { text: "Success", value: "SUCCESS" },
-        { text: "Pending", value: "PENDING" },
-        { text: "Canceled", value: "CANCELED" },
-      ],
-      onFilter: (value, record) => record.status.toUpperCase() === value,
-    },
-    {
-      title: "Created Date",
-      dataIndex: "createAt",
-      key: "createAt",
-      render: (text) => formatDate(text),
-      width: "20%",
-      sorter: (a, b) => new Date(a.createAt) - new Date(b.createAt),
-      defaultSortOrder: "descend",
-    },
-  ];
+          No purchase items available for this transaction
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ padding: 16, backgroundColor: "white" }}>
+        <div style={{ marginBottom: 16 }}>
+          <Text
+            strong
+            style={{ fontSize: 16, display: "flex", alignItems: "center" }}
+          >
+            <ShoppingOutlined
+              style={{ marginRight: 8, color: token.colorPrimary }}
+            />
+            Purchase Items ({record.adPurchaseItems.length})
+          </Text>
+        </div>
+
+        {record.adPurchaseItems.map((item) => (
+          <Card
+            key={item.id}
+            style={{
+              marginBottom: 16,
+              borderRadius: 8,
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              ":hover": {
+                boxShadow: "0 3px 6px rgba(0,0,0,0.1)",
+              },
+            }}
+            bodyStyle={{ padding: 0 }}
+            onClick={() => goToItemDetails(item.id)}
+            hoverable
+          >
+            <div
+              style={{
+                padding: "12px 16px",
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                backgroundColor: token.colorBgLayout,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Space>
+                <Text strong>Purchase Item</Text>
+                <Tag icon={<EyeOutlined />} color="blue">
+                  {item.viewQuantity} views
+                </Tag>
+                <Tag
+                  icon={getStatusIcon(item.status)}
+                  color={getStatusColor(item.status)}
+                >
+                  {item.status}
+                </Tag>
+              </Space>
+              <Space>
+                <Text type="secondary">ID: {item.id.substring(0, 8)}...</Text>
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<LinkOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToItemDetails(item.id);
+                  }}
+                >
+                  Details
+                </Button>
+              </Space>
+            </div>
+            <div style={{ padding: "0 16px 16px" }}>
+              <Row gutter={16} style={{ marginTop: 16 }}>
+                <Col span={12}>
+                  <Card
+                    size="small"
+                    style={{
+                      backgroundColor: token.colorBgLayout,
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                    }}
+                  >
+                    <Text type="secondary">Price Per View</Text>
+                    <div style={{ fontWeight: 500, fontSize: 16 }}>
+                      {formatVND(item.pricePerView)}
+                    </div>
+                  </Card>
+                </Col>
+                <Col span={12}>
+                  <Card
+                    size="small"
+                    style={{
+                      backgroundColor: token.colorBgLayout,
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                    }}
+                  >
+                    <Text type="secondary">Total Price</Text>
+                    <div style={{ fontWeight: 500, fontSize: 16 }}>
+                      {formatVND(item.price)}
+                    </div>
+                  </Card>
+                </Col>
+              </Row>
+
+              <Descriptions
+                column={1}
+                size="small"
+                bordered
+                style={{ marginTop: 16 }}
+              >
+                <Descriptions.Item label="View Quantity">
+                  <Space>
+                    <EyeOutlined style={{ color: token.colorInfo }} />
+                    <Text strong>{item.viewQuantity} views</Text>
+                  </Space>
+                </Descriptions.Item>
+                <Descriptions.Item label="Price Per View">
+                  <Space>
+                    <DollarOutlined style={{ color: token.colorSuccess }} />
+                    <Text>{formatVND(item.pricePerView)}</Text>
+                  </Space>
+                </Descriptions.Item>
+                <Descriptions.Item label="Total Price">
+                  <Space>
+                    <DollarOutlined style={{ color: token.colorSuccess }} />
+                    <Text strong>{formatVND(item.price)}</Text>
+                  </Space>
+                </Descriptions.Item>
+                <Descriptions.Item label="Status">
+                  <Tag
+                    icon={getStatusIcon(item.status)}
+                    color={getStatusColor(item.status)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      width: "fit-content",
+                    }}
+                  >
+                    {item.status}
+                  </Tag>
+                </Descriptions.Item>
+              </Descriptions>
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  // Custom panel header with transaction information
+  const customPanelHeader = (transaction) => {
+    // Get status of first item (if exists)
+    const firstItem =
+      transaction.adPurchaseItems && transaction.adPurchaseItems.length > 0
+        ? transaction.adPurchaseItems[0]
+        : null;
+
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr",
+          gap: 16,
+          width: "100%",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <Tooltip title={transaction.id}>
+            <span style={{ fontSize: 12, fontFamily: "monospace" }}>
+              {transaction.id.substring(0, 8)}...
+              {transaction.id.substring(transaction.id.length - 4)}
+            </span>
+          </Tooltip>
+        </div>
+        <div>
+          <span style={{ fontWeight: 500 }}>
+            {formatVND(transaction.totalPrice)}
+          </span>
+        </div>
+        <div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <Text type="secondary" style={{ fontSize: 10, marginBottom: 2 }}>
+              Payment Method
+            </Text>
+            <Tag
+              color="cyan"
+              style={{
+                margin: 0,
+                maxWidth: "100px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <DollarOutlined style={{ marginRight: 4 }} />
+              {transaction.paymentMethod || "VNPay"}
+            </Tag>
+          </div>
+        </div>
+        <div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <Text type="secondary" style={{ fontSize: 10, marginBottom: 2 }}>
+              Payment Status
+            </Text>
+            <Tag
+              icon={getStatusIcon(transaction.status)}
+              color={getStatusColor(transaction.status)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                width: "fit-content",
+                margin: 0,
+                maxWidth: "100px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              <span style={{ marginLeft: 4 }}>{transaction.status}</span>
+            </Tag>
+          </div>
+        </div>
+        {firstItem && (
+          <div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <Text type="secondary" style={{ fontSize: 10, marginBottom: 2 }}>
+                Ad Item Status
+              </Text>
+              <Tag
+                icon={getStatusIcon(firstItem.status)}
+                color={getStatusColor(firstItem.status)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  width: "fit-content",
+                  margin: 0,
+                  maxWidth: "100px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                <span style={{ marginLeft: 4 }}>{firstItem.status}</span>
+              </Tag>
+            </div>
+          </div>
+        )}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span>{formatDate(transaction.createAt)}</span>
+          {transaction.adPurchaseItems &&
+            transaction.adPurchaseItems.length > 0 && (
+              <Tag
+                color="purple"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: "pointer",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (transaction.adPurchaseItems.length === 1) {
+                    goToItemDetails(transaction.adPurchaseItems[0].id);
+                  }
+                }}
+              >
+                <ShoppingOutlined style={{ marginRight: 4 }} />
+                {transaction.adPurchaseItems.length}{" "}
+                {transaction.adPurchaseItems.length > 1 ? "items" : "item"}
+              </Tag>
+            )}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="payment-history-page p-6">
+    <div style={{ padding: 24 }}>
       <Helmet>
         <title>Payment History | EIGAKAN</title>
       </Helmet>
 
-      <div className="flex justify-between items-center mb-6">
-        <Title level={2} className="m-0">
-          <FileTextOutlined className="mr-2" /> AdPurchase Transaction History
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 24,
+        }}
+      >
+        <Title level={2} style={{ margin: 0 }}>
+          <FileTextOutlined style={{ marginRight: 8 }} /> Payment History
         </Title>
         <Button
           onClick={handleRefresh}
           icon={<ReloadOutlined />}
           loading={loading}
-          className="bg-white hover:bg-gray-50"
+          style={{ backgroundColor: "white" }}
         >
           Refresh
         </Button>
@@ -217,58 +508,128 @@ const PaymentHistory = () => {
           description={error}
           type="error"
           showIcon
-          className="mb-6"
+          style={{ marginBottom: 24 }}
           closable
         />
       )}
 
-      <Row gutter={[16, 16]} className="mb-6">
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={8}>
-          <Card>
+          <Card hoverable style={{ transition: "all 0.3s ease" }}>
             <Statistic
               title="Total Successful Payments"
               value={totalAmount}
               precision={0}
               formatter={(value) => formatVND(value)}
-              prefix={<DollarOutlined />}
+              prefix={<DollarOutlined style={{ color: "#52c41a" }} />}
               loading={loading}
+              valueStyle={{ color: "#52c41a" }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card hoverable style={{ transition: "all 0.3s ease" }}>
+            <Statistic
+              title="Total Ad Items"
+              value={totalItems}
+              prefix={<ShoppingOutlined style={{ color: "#1890ff" }} />}
+              loading={loading}
+              valueStyle={{ color: "#1890ff" }}
+              suffix={totalItems > 1 ? "items" : "item"}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} md={8}>
+          <Card hoverable style={{ transition: "all 0.3s ease" }}>
+            <Statistic
+              title="Total Ad Views Purchased"
+              value={totalViews}
+              formatter={(value) => `${value.toLocaleString()}`}
+              prefix={<EyeOutlined style={{ color: "#722ed1" }} />}
+              loading={loading}
+              valueStyle={{ color: "#722ed1" }}
+              suffix="views"
             />
           </Card>
         </Col>
       </Row>
 
-      <Card className="shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <Text className="text-lg font-medium">Your AdPurchase Transactions</Text>
+      <Card style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: 500 }}>
+            Your Payment Transactions
+          </Text>
           <Badge
             status={loading ? "processing" : "success"}
             text={loading ? "Loading..." : "Updated"}
           />
         </div>
 
-        <Table
-          dataSource={transactions}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            ...pagination,
-            showSizeChanger: true,
-            pageSizeOptions: [5, 10, 20],
-            pageSize: 5,
-            showTotal: (total) => `Total ${total} items`,
-          }}
-          onChange={handleTableChange}
-          locale={{
-            emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No transactions found"
-              />
-            ),
-          }}
-          className="payment-history-table"
-        />
+        <div style={{ marginBottom: 24 }}>
+          <Collapse bordered={false} expandIconPosition="end">
+            {transactions.map((transaction) => (
+              <Panel
+                key={transaction.id}
+                header={customPanelHeader(transaction)}
+              >
+                {renderTransactionDetails(transaction)}
+              </Panel>
+            ))}
+          </Collapse>
+
+          {transactions.length === 0 && !loading && (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="No transactions found"
+            />
+          )}
+        </div>
+
+        <Divider style={{ margin: "16px 0" }} />
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Space>
+            <Button
+              type="primary"
+              disabled={pagination.current === 1}
+              onClick={() =>
+                fetchTransactions(pagination.current - 1, pagination.pageSize)
+              }
+            >
+              Previous
+            </Button>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                margin: "0 12px",
+              }}
+            >
+              <span style={{ color: token.colorTextSecondary }}>
+                Page {pagination.current} of{" "}
+                {Math.ceil(pagination.total / pagination.pageSize)}
+              </span>
+            </div>
+            <Button
+              type="primary"
+              disabled={
+                pagination.current >=
+                Math.ceil(pagination.total / pagination.pageSize)
+              }
+              onClick={() =>
+                fetchTransactions(pagination.current + 1, pagination.pageSize)
+              }
+            >
+              Next
+            </Button>
+          </Space>
+        </div>
       </Card>
     </div>
   );
