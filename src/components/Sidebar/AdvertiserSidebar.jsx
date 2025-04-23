@@ -108,7 +108,7 @@ function AdvertiserSidebar() {
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
                 <DollarOutlined />
               </span>
-              <span className="text-sm font-medium">Payment History</span>
+              <span className="text-sm font-medium">AdPurchase Transaction </span>
             </Link>
           </li>
 

@@ -358,14 +358,6 @@ const AdPurchaseItems = () => {
       width: "15%",
       sorter: (a, b) => new Date(a.createdDate) - new Date(b.createdDate),
     },
-    {
-      title: "Expiry Date",
-      dataIndex: "expiredDate",
-      key: "expiredDate",
-      render: (text) => formatDate(text),
-      width: "15%",
-      sorter: (a, b) => new Date(a.expiredDate) - new Date(b.expiredDate),
-    },
   ];
 
   return (
