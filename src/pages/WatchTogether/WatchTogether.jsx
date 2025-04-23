@@ -17,6 +17,8 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import movieService from "../../apis/Movie/movie";
 import roomService from "../../apis/Room/room";
+import movieCountService from "../../apis/MovieCount/MovieCount";
+import movieHistoryService from "../../apis/MovieHistory/MovieHistory";
 import ChatBox from "../ChatBox/ChatBox";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { cloneDeep } from "lodash";
@@ -27,6 +29,7 @@ import {
 import usePeer from "../../hooks/usePeer";
 import useMediaStream from "../../hooks/useMediaStream";
 import usePlayer from "../../hooks/usePlayer";
+import { useViewCounter } from "../../hooks";
 import Player from "./components/Player";
 import Bottom from "./components/Bottom";
 import CopySection from "./components/CopySection";
@@ -70,6 +73,13 @@ const WatchTogetherPage = () => {
     toggleVideo,
     leaveRoom: disconnectFromRoom,
   } = usePlayer(myId, roomId, peer);
+
+  // Sử dụng hook useViewCounter để tăng lượt xem và lưu lịch sử xem phim
+  useViewCounter({
+    movie,
+    isTrailer: false,
+    playerRef: iframeRef, // Sử dụng iframe ref cho intersection observer
+  });
 
   const [users, setUsers] = useState({});
   const [showMyVideo, setShowMyVideo] = useState(true);
@@ -485,7 +495,6 @@ const WatchTogetherPage = () => {
       }
     };
 
-   
     syncTime();
 
     // Nếu interval đã tồn tại, không cần tạo mới
@@ -509,23 +518,23 @@ const WatchTogetherPage = () => {
 
       if (!playerRef.current) return;
 
-        // Kiểm tra xem player có đang pause không
-        playerRef.current.getPaused((isPaused) => {
-            if (isPaused) return; 
+      // Kiểm tra xem player có đang pause không
+      playerRef.current.getPaused((isPaused) => {
+        if (isPaused) return;
 
         playerRef.current.getCurrentTime((current) => {
           const diff = Math.abs(current - data.currentTime);
 
-                if (diff > 0.5) { 
-                    console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
-                    notification.info({
-                      message: "Success",
-                      description: "Auto synced with host",
-                    })
-                    playerRef.current.setCurrentTime(data.currentTime);
-                }
+          if (diff > 0.5) {
+            console.log("⏩ Đồng bộ thời gian với host:", data.currentTime);
+            notification.info({
+              message: "Success",
+              description: "Auto synced with host",
             });
+            playerRef.current.setCurrentTime(data.currentTime);
+          }
         });
+      });
     };
 
     connection.on("SyncTime", handleSyncTime);
@@ -535,7 +544,6 @@ const WatchTogetherPage = () => {
     };
   }, [isPlayerReady, connection]);
 
-  
   const sendMessage = async (text) => {
     if (!connection || !text.trim()) return;
 
