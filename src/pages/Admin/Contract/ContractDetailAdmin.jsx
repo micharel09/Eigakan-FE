@@ -227,7 +227,7 @@ const ContractDetailAdmin = () => {
 
   // Check if upload button should be shown
   const showUpdateButton =
-    contract?.status === "DENIED" && contract.movie && contract.movie.isFilmVipOrTrailer === false
+    contract?.status === "DENIED" && contract.movie 
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
