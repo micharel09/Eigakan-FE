@@ -197,7 +197,7 @@ const ActionButton = memo(({ icon, children, primary = false, onClick }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ type: "spring", stiffness: 400, damping: 10 }}
     onClick={onClick}
-    className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 
+    className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
     ${
       primary
         ? "bg-[#FF009F] hover:bg-[#e0008e] text-white"
@@ -854,6 +854,7 @@ const MoviePage = () => {
   const [roomId, setRoomId] = useState("");
   const [hostedRooms, setHostedRooms] = useState([]);
   const navigate = useNavigate();
+  // Lấy thông tin người dùng từ Redux store
   const user = useSelector((state) => state.auth.user);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const [isJoining, setIsJoining] = useState(false);
@@ -1004,6 +1005,7 @@ const MoviePage = () => {
     fetchHostedRooms();
   }, [user, movieId]);
 
+  // Cleanup effect
   useEffect(() => {
     return () => {
       // Clean up any event listeners or timers if needed
@@ -1011,8 +1013,13 @@ const MoviePage = () => {
   }, []);
 
   const handleCreateRoom = useCallback(async () => {
-    if (isCreatingRoom || !isAuthenticated) {
-      if (!isAuthenticated) {
+    // Kiểm tra trạng thái xác thực trực tiếp từ localStorage
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+    const isUserAuthenticated = isAuthenticated || (!!token && !!storedUser);
+
+    if (isCreatingRoom || !isUserAuthenticated) {
+      if (!isUserAuthenticated) {
         notification.error({
           message: "Authentication required",
           description: "Please login to create a watch room",
@@ -1025,7 +1032,12 @@ const MoviePage = () => {
     try {
       setIsCreatingRoom(true);
 
-      if (!user || !user.userId) {
+      // Lấy thông tin người dùng từ Redux hoặc từ localStorage
+      const storedUserStr = localStorage.getItem("user");
+      const currentUser =
+        user || (storedUserStr ? JSON.parse(storedUserStr) : null);
+
+      if (!currentUser || !currentUser.userId) {
         notification.error({
           message: "User data missing",
           description: "Cannot create room without user ID",
@@ -1044,7 +1056,7 @@ const MoviePage = () => {
       });
 
       const roomData = {
-        hostId: user.userId.replace(/^userid:\s*/i, ""),
+        hostId: currentUser.userId.replace(/^userid:\s*/i, ""),
         movieID: movieId,
         fileUrl: filmMedia?.url,
       };
