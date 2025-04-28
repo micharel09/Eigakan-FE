@@ -13,12 +13,8 @@ const initialFormState = {
 };
 
 const QUICK_LOGIN_CREDENTIALS = {
-  ADMIN: { email: "admin@gmail.com", password: "2" },
   VIPMEMBER: { email: "user5@gmail.com", password: "123" },
   MEMBER: { email: "user6@gmail.com", password: "123" },
-  MANAGER: { email: "minhquan.sguy@gmail.com", password: "123" },
-  PUBLISHER: { email: "minhtuankf@gmail.com", password: "1" },
-  ADVERTISER: { email: "minhquan.riotgs@gmail.com", password: "123" },
 };
 
 const LoginPage = () => {
@@ -346,12 +342,8 @@ const SignUpLinks = () => (
  */
 const getButtonColor = (role) => {
   const colors = {
-    ADMIN: "bg-orange-500 hover:bg-orange-600",
     VIPMEMBER: "bg-pink-500 hover:bg-pink-600",
     MEMBER: "bg-green-500 hover:bg-green-600",
-    MANAGER: "bg-blue-500 hover:bg-blue-600",
-    PUBLISHER: "bg-purple-500 hover:bg-purple-600",
-    ADVERTISER: "bg-red-500 hover:bg-red-600",
   };
   return colors[role] || "bg-gray-500 hover:bg-gray-600";
 };
