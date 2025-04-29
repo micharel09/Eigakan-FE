@@ -129,7 +129,7 @@ const WatchTogetherPage = () => {
 
     const newConnection = new HubConnectionBuilder()
       .withUrl(
-        `https://eigakan2222-001-site1.jtempurl.com/roomHub?roomId=${roomId}`
+        `https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/roomHub?roomId=${roomId}`
       )
       .withAutomaticReconnect()
       .build();

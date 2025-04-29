@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { notification, Spin, Table } from "antd"
+import { useState, useEffect } from "react";
+import { notification, Spin, Table } from "antd";
 import {
   FileProtectOutlined,
   ReloadOutlined,
@@ -17,26 +17,38 @@ import {
   BarChartOutlined,
   PieChartOutlined,
   LineChartOutlined,
-} from "@ant-design/icons"
-import adminDashboardService from "../../../apis/AdminDashboard/adminDashboard"
-import userEarningService from "../../../apis/UserEarning/userEarning"
-import movieEarningService from "../../../apis/MovieEarning/movieEarning"
-import axios from "axios"
-import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService"
+} from "@ant-design/icons";
+import adminDashboardService from "../../../apis/AdminDashboard/adminDashboard";
+import userEarningService from "../../../apis/UserEarning/userEarning";
+import movieEarningService from "../../../apis/MovieEarning/movieEarning";
+import axios from "axios";
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
 
 // Format currency to VND
 const formatVND = (price) => {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
-  }).format(price)
-}
+  }).format(price);
+};
 
 // Stat Card Component
-const StatCard = ({ title, value, icon, color, subValue, subTitle, loading, trend, onClick }) => {
+const StatCard = ({
+  title,
+  value,
+  icon,
+  color,
+  subValue,
+  subTitle,
+  loading,
+  trend,
+  onClick,
+}) => {
   return (
     <div
-      className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 h-full ${onClick ? "cursor-pointer" : ""}`}
+      className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 h-full ${
+        onClick ? "cursor-pointer" : ""
+      }`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-3">
@@ -50,7 +62,9 @@ const StatCard = ({ title, value, icon, color, subValue, subTitle, loading, tren
         {trend !== undefined && (
           <div
             className={`px-2 py-1 text-xs font-medium rounded-full flex items-center ${
-              trend >= 0 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+              trend >= 0
+                ? "bg-green-50 text-green-600"
+                : "bg-red-50 text-red-600"
             }`}
           >
             {trend >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
@@ -80,7 +94,11 @@ const StatCard = ({ title, value, icon, color, subValue, subTitle, loading, tren
             <div
               className="h-1.5 rounded-full"
               style={{
-                width: `${typeof subValue === "number" && typeof value === "number" ? (subValue / value) * 100 : 0}%`,
+                width: `${
+                  typeof subValue === "number" && typeof value === "number"
+                    ? (subValue / value) * 100
+                    : 0
+                }%`,
                 backgroundColor: color,
               }}
             ></div>
@@ -88,8 +106,8 @@ const StatCard = ({ title, value, icon, color, subValue, subTitle, loading, tren
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
 // Section Header Component
 const SectionHeader = ({ title, viewAllLink, onRefresh }) => (
@@ -119,12 +137,12 @@ const SectionHeader = ({ title, viewAllLink, onRefresh }) => (
       )}
     </div>
   </div>
-)
+);
 
 const Dashboard = () => {
   // Main dashboard data
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -134,190 +152,191 @@ const Dashboard = () => {
     acceptedUserRegisters: 0,
     totalContracts: 0,
     signedContracts: 0,
-  })
+  });
 
   // User Earnings data
-  const [userEarningsLoading, setUserEarningsLoading] = useState(true)
+  const [userEarningsLoading, setUserEarningsLoading] = useState(true);
   const [userEarningsData, setUserEarningsData] = useState({
     totalEarnings: 0,
     finalEarnings: 0,
     webEarnings: 0,
-  })
+  });
 
   // Movie Earnings data
-  const [movieEarningsLoading, setMovieEarningsLoading] = useState(true)
+  const [movieEarningsLoading, setMovieEarningsLoading] = useState(true);
   const [movieEarningsData, setMovieEarningsData] = useState({
     totalViews: 0,
     totalEarnings: 0,
     totalEarningsMovieContract: 0,
-  })
+  });
 
-  const [advertiseItemLoading, setadvertiseItemLoading] = useState(true)
+  const [advertiseItemLoading, setadvertiseItemLoading] = useState(true);
   const [advertiseItemData, setadvertiseItemData] = useState({
     totalConsumed: 0,
     totalPurchased: 0,
-  })
+  });
 
   // Subscription data
-  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState({
     totalSubscription: 0,
     totalActiveAmount: 0,
     totalAmount: 0,
-  })
+  });
 
   // Selected section for detailed view
-  const [selectedSection, setSelectedSection] = useState(null)
+  const [selectedSection, setSelectedSection] = useState(null);
 
   // Fetch main dashboard data
   const fetchDashboardData = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
-      const response = await adminDashboardService.getDashboardAdminOverall()
+      const response = await adminDashboardService.getDashboardAdminOverall();
 
       if (response && response.success && response.data) {
-        setDashboardData(response.data)
+        setDashboardData(response.data);
       } else {
-        throw new Error("Invalid response format")
+        throw new Error("Invalid response format");
       }
     } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-      setError(error.message || "Failed to fetch dashboard data")
+      console.error("Error fetching dashboard data:", error);
+      setError(error.message || "Failed to fetch dashboard data");
       notification.error({
         message: "Error",
         description: "Could not fetch dashboard data. Please try again later.",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Fetch user earnings data
   const fetchUserEarningsData = async () => {
     try {
-      setUserEarningsLoading(true)
-      const response = await userEarningService.getUserEarnings(1, 10)
+      setUserEarningsLoading(true);
+      const response = await userEarningService.getUserEarnings(1, 10);
 
       if (response && response.data) {
         setUserEarningsData({
           totalEarnings: response.data.totalEarnings || 0,
           finalEarnings: response.data.finalEarning || 0,
           webEarnings: response.data.webEarnings || 0,
-        })
+        });
       }
     } catch (error) {
-      console.error("Error fetching user earnings data:", error)
+      console.error("Error fetching user earnings data:", error);
       notification.error({
         message: "Error",
         description: "Could not fetch user earnings data.",
-      })
+      });
     } finally {
-      setUserEarningsLoading(false)
+      setUserEarningsLoading(false);
     }
-  }
+  };
 
   // Fetch movie earnings data
   const fetchMovieEarningsData = async () => {
     try {
-      setMovieEarningsLoading(true)
-      const response = await movieEarningService.getAllMovieEarning(1, 5)
+      setMovieEarningsLoading(true);
+      const response = await movieEarningService.getAllMovieEarning(1, 5);
 
       if (response?.success && response.data) {
         setMovieEarningsData({
           totalViews: response.data.totalView || 0,
           totalEarnings: response.data.totalEarnings || 0,
-          totalEarningsMovieContract: response.data.totalEarningsMovieContract || 0,
-        })
+          totalEarningsMovieContract:
+            response.data.totalEarningsMovieContract || 0,
+        });
       }
     } catch (error) {
-      console.error("Error fetching movie earnings data:", error)
+      console.error("Error fetching movie earnings data:", error);
       notification.error({
         message: "Error",
         description: "Could not fetch movie earnings data.",
-      })
+      });
     } finally {
-      setMovieEarningsLoading(false)
+      setMovieEarningsLoading(false);
     }
-  }
+  };
 
   // Fetch subscription data
   const fetchSubscriptionData = async () => {
     try {
-      setSubscriptionLoading(true)
-      const token = localStorage.getItem("token")
+      setSubscriptionLoading(true);
+      const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://eigakan2222-001-site1.jtempurl.com/api/SubscriptionPurchasePayment?page=1&pageSize=5",
+        "https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/SubscriptionPurchasePayment?page=1&pageSize=5",
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        },
-      )
+        }
+      );
 
       if (response?.data?.success) {
         setSubscriptionData({
           totalSubscription: response?.data?.data?.total || 0,
           totalActiveAmount: response?.data?.data?.activeSubscriptionCount || 0,
           totalAmount: response?.data?.data?.totalEarnings || 0,
-        })
+        });
       }
     } catch (error) {
-      console.error("Error fetching subscription data:", error)
+      console.error("Error fetching subscription data:", error);
       notification.error({
         message: "Error",
         description: "Could not fetch subscription data.",
-      })
+      });
     } finally {
-      setSubscriptionLoading(false)
+      setSubscriptionLoading(false);
     }
-  }
+  };
 
   const fetchAdvertiseItemData = async () => {
     try {
-      setadvertiseItemLoading(true)
-      const response = await adPurchaseService.getAllAdPurchaseItems(1, 5)
+      setadvertiseItemLoading(true);
+      const response = await adPurchaseService.getAllAdPurchaseItems(1, 5);
 
       if (response?.success && response.data) {
         setadvertiseItemData({
           totalConsumed: response.totalConsumed || 0,
           totalPurchased: response.totalPurchased || 0,
-        })
+        });
       }
     } catch (error) {
-      console.error("Error fetching ad purchase data:", error)
+      console.error("Error fetching ad purchase data:", error);
       notification.error({
         message: "Error",
         description: "Could not fetch ad purchase data.",
-      })
+      });
     } finally {
-      setadvertiseItemLoading(false)
+      setadvertiseItemLoading(false);
     }
-  }
+  };
 
   // Fetch all data on component mount
   useEffect(() => {
-    fetchDashboardData()
-    fetchUserEarningsData()
-    fetchMovieEarningsData()
-    fetchSubscriptionData()
-    fetchAdvertiseItemData()
-  }, [])
+    fetchDashboardData();
+    fetchUserEarningsData();
+    fetchMovieEarningsData();
+    fetchSubscriptionData();
+    fetchAdvertiseItemData();
+  }, []);
 
   // Refresh all data
   const handleRefreshAll = () => {
-    fetchDashboardData()
-    fetchUserEarningsData()
-    fetchMovieEarningsData()
-    fetchSubscriptionData()
-    fetchAdvertiseItemData()
+    fetchDashboardData();
+    fetchUserEarningsData();
+    fetchMovieEarningsData();
+    fetchSubscriptionData();
+    fetchAdvertiseItemData();
     notification.success({
       message: "Refreshed",
       description: "Dashboard data has been refreshed.",
       duration: 2,
-    })
-  }
+    });
+  };
 
   // Calculate total revenue
   const totalRevenue = {
@@ -330,7 +349,7 @@ const Dashboard = () => {
       (movieEarningsData.totalEarningsMovieContract || 0) +
       (advertiseItemData.totalConsumed || 0) +
       (subscriptionData.totalAmount || 0),
-  }
+  };
 
   // Revenue table columns
   const revenueColumns = [
@@ -340,7 +359,10 @@ const Dashboard = () => {
       key: "source",
       render: (text, record) => (
         <div className="flex items-center">
-          <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: record.color }}></span>
+          <span
+            className="w-3 h-3 rounded-full mr-2"
+            style={{ backgroundColor: record.color }}
+          ></span>
           {text}
         </div>
       ),
@@ -358,13 +380,16 @@ const Dashboard = () => {
       render: (text, record) => (
         <div className="flex items-center">
           <div className="w-24 bg-gray-100 rounded-full h-2 mr-3">
-            <div className="h-2 rounded-full" style={{ width: `${text}%`, backgroundColor: record.color }}></div>
+            <div
+              className="h-2 rounded-full"
+              style={{ width: `${text}%`, backgroundColor: record.color }}
+            ></div>
           </div>
           <span>{text.toFixed(1)}%</span>
         </div>
       ),
     },
-  ]
+  ];
 
   // Revenue table data
   const revenueData = [
@@ -372,28 +397,36 @@ const Dashboard = () => {
       key: "1",
       source: "Web Share(No Contract Movies)",
       amount: totalRevenue.webEarnings,
-      percentage: totalRevenue.total ? (totalRevenue.webEarnings / totalRevenue.total) * 100 : 0,
+      percentage: totalRevenue.total
+        ? (totalRevenue.webEarnings / totalRevenue.total) * 100
+        : 0,
       color: "#1890ff",
     },
     {
       key: "2",
       source: "Movie with contract",
       amount: totalRevenue.movieContractEarnings,
-      percentage: totalRevenue.total ? (totalRevenue.movieContractEarnings / totalRevenue.total) * 100 : 0,
+      percentage: totalRevenue.total
+        ? (totalRevenue.movieContractEarnings / totalRevenue.total) * 100
+        : 0,
       color: "#722ed1",
     },
     {
       key: "3",
       source: "Ad Revenue",
       amount: totalRevenue.adRevenue,
-      percentage: totalRevenue.total ? (totalRevenue.adRevenue / totalRevenue.total) * 100 : 0,
+      percentage: totalRevenue.total
+        ? (totalRevenue.adRevenue / totalRevenue.total) * 100
+        : 0,
       color: "#f5222d",
     },
     {
       key: "4",
       source: "Subscription Revenue",
       amount: totalRevenue.subscriptionRevenue,
-      percentage: totalRevenue.total ? (totalRevenue.subscriptionRevenue / totalRevenue.total) * 100 : 0,
+      percentage: totalRevenue.total
+        ? (totalRevenue.subscriptionRevenue / totalRevenue.total) * 100
+        : 0,
       color: "#52c41a",
     },
     {
@@ -403,7 +436,7 @@ const Dashboard = () => {
       percentage: 100,
       color: "#faad14",
     },
-  ]
+  ];
 
   // If there's an error but we're not loading, show error state
   if (error && !loading) {
@@ -418,7 +451,7 @@ const Dashboard = () => {
           Try Again
         </button>
       </div>
-    )
+    );
   }
 
   return (
@@ -450,19 +483,33 @@ const Dashboard = () => {
           {/* Dashboard Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-1">Dashboard</h1>
-              <p className="text-gray-500">Welcome back! Here's an overview of your platform.</p>
+              <h1 className="text-3xl font-bold text-gray-800 mb-1">
+                Dashboard
+              </h1>
+              <p className="text-gray-500">
+                Welcome back! Here's an overview of your platform.
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={handleRefreshAll}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                disabled={loading || userEarningsLoading || movieEarningsLoading || subscriptionLoading}
+                disabled={
+                  loading ||
+                  userEarningsLoading ||
+                  movieEarningsLoading ||
+                  subscriptionLoading
+                }
               >
                 <ReloadOutlined
                   className={`${
-                    loading || userEarningsLoading || movieEarningsLoading || subscriptionLoading ? "animate-spin" : ""
+                    loading ||
+                    userEarningsLoading ||
+                    movieEarningsLoading ||
+                    subscriptionLoading
+                      ? "animate-spin"
+                      : ""
                   }`}
                 />
                 <span>Refresh All</span>
@@ -472,7 +519,10 @@ const Dashboard = () => {
 
           {/* Revenue Summary Section */}
           <div className="mb-8">
-            <SectionHeader title="Revenue Summary" onRefresh={handleRefreshAll} />
+            <SectionHeader
+              title="Revenue Summary"
+              onRefresh={handleRefreshAll}
+            />
 
             <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -482,7 +532,9 @@ const Dashboard = () => {
                       <BarChartOutlined className="mr-2 text-blue-600" />
                       Total Revenue
                     </h3>
-                    <div className="text-2xl font-bold text-blue-600">{formatVND(totalRevenue.total)}</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {formatVND(totalRevenue.total)}
+                    </div>
                   </div>
                 </div>
 
@@ -505,12 +557,20 @@ const Dashboard = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <div className="text-gray-500 text-sm font-medium">View Count Earnings</div>
+                      <div className="text-gray-500 text-sm font-medium">
+                        View Count Earnings
+                      </div>
                       {userEarningsLoading || movieEarningsLoading ? (
                         <Spin size="small" />
                       ) : (
-                        <div className="text-2xl font-bold" style={{ color: "#4096ff" }}>
-                          {formatVND(totalRevenue.webEarnings + totalRevenue.movieContractEarnings)}
+                        <div
+                          className="text-2xl font-bold"
+                          style={{ color: "#4096ff" }}
+                        >
+                          {formatVND(
+                            totalRevenue.webEarnings +
+                              totalRevenue.movieContractEarnings
+                          )}
                         </div>
                       )}
                     </div>
@@ -519,14 +579,25 @@ const Dashboard = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-500">Web Share<br /> (No Contract Movies)</span>
-                            <span className="font-semibold">{formatVND(totalRevenue.webEarnings)}</span>
+                            <span className="text-gray-500">
+                              Web Share
+                              <br /> (No Contract Movies)
+                            </span>
+                            <span className="font-semibold">
+                              {formatVND(totalRevenue.webEarnings)}
+                            </span>
                           </div>
                           <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
                             <div
                               className="h-1.5 rounded-full"
                               style={{
-                                width: `${totalRevenue.total ? (totalRevenue.webEarnings / totalRevenue.total) * 100 : 0}%`,
+                                width: `${
+                                  totalRevenue.total
+                                    ? (totalRevenue.webEarnings /
+                                        totalRevenue.total) *
+                                      100
+                                    : 0
+                                }%`,
                                 backgroundColor: "#1890ff",
                               }}
                             ></div>
@@ -535,14 +606,24 @@ const Dashboard = () => {
 
                         <div>
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-500">Movies <br /> with contract</span>
-                            <span className="font-semibold">{formatVND(totalRevenue.movieContractEarnings)}</span>
+                            <span className="text-gray-500">
+                              Movies <br /> with contract
+                            </span>
+                            <span className="font-semibold">
+                              {formatVND(totalRevenue.movieContractEarnings)}
+                            </span>
                           </div>
                           <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
                             <div
                               className="h-1.5 rounded-full"
                               style={{
-                                width: `${totalRevenue.total ? (totalRevenue.movieContractEarnings / totalRevenue.total) * 100 : 0}%`,
+                                width: `${
+                                  totalRevenue.total
+                                    ? (totalRevenue.movieContractEarnings /
+                                        totalRevenue.total) *
+                                      100
+                                    : 0
+                                }%`,
                                 backgroundColor: "#722ed1",
                               }}
                             ></div>
@@ -550,7 +631,6 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </div>
-                    
                   </div>
                 </div>
 
@@ -577,7 +657,12 @@ const Dashboard = () => {
                 columns={revenueColumns}
                 dataSource={revenueData}
                 pagination={false}
-                loading={userEarningsLoading || movieEarningsLoading || advertiseItemLoading || subscriptionLoading}
+                loading={
+                  userEarningsLoading ||
+                  movieEarningsLoading ||
+                  advertiseItemLoading ||
+                  subscriptionLoading
+                }
                 className="revenue-table"
               />
             </div>
@@ -585,7 +670,11 @@ const Dashboard = () => {
 
           {/* Platform Overview Section */}
           <div className="mb-8">
-            <SectionHeader title="Platform Overview" viewAllLink="/platform-stats" onRefresh={fetchDashboardData} />
+            <SectionHeader
+              title="Platform Overview"
+              viewAllLink="/platform-stats"
+              onRefresh={fetchDashboardData}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
@@ -640,7 +729,11 @@ const Dashboard = () => {
 
           {/* User Earnings Section */}
           <div className="mb-8">
-            <SectionHeader title="User Earnings" viewAllLink="/user-earnings" onRefresh={fetchUserEarningsData} />
+            <SectionHeader
+              title="User Earnings"
+              viewAllLink="/user-earnings"
+              onRefresh={fetchUserEarningsData}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <StatCard
@@ -674,7 +767,11 @@ const Dashboard = () => {
 
           {/* Movie Earnings Section */}
           <div className="mb-8">
-            <SectionHeader title="Movie Earnings" viewAllLink="/movie-earnings" onRefresh={fetchMovieEarningsData} />
+            <SectionHeader
+              title="Movie Earnings"
+              viewAllLink="/movie-earnings"
+              onRefresh={fetchMovieEarningsData}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <StatCard
@@ -748,7 +845,11 @@ const Dashboard = () => {
 
           {/* Ads Section */}
           <div className="mb-8">
-            <SectionHeader title="Advertisement" viewAllLink="/ads" onRefresh={fetchAdvertiseItemData} />
+            <SectionHeader
+              title="Advertisement"
+              viewAllLink="/ads"
+              onRefresh={fetchAdvertiseItemData}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <StatCard
@@ -779,7 +880,7 @@ const Dashboard = () => {
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

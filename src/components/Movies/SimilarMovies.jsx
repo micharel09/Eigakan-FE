@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import movieService from "../../apis/Movie/movie";
 import "swiper/css";
 import "swiper/css/navigation";
-import { Tag } from "antd";
 import { FileText } from "lucide-react";
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
@@ -44,13 +43,12 @@ const MovieCard = memo(({ movie, onClick }) => (
                   .split(",")
                   .slice(0, 2)
                   .map((genre, idx) => (
-                    <Tag
+                    <span
                       key={idx}
-                      className="bg-[#FF009F]/20 border-[#FF009F]/40 text-[9px] py-0"
-                      bordered={false}
+                      className="bg-[#FF009F]/20 border border-[#FF009F]/40 text-[9px] px-1.5 py-0 rounded-sm text-white"
                     >
                       {genre.trim()}
-                    </Tag>
+                    </span>
                   ))}
               </div>
             )}
@@ -163,11 +161,23 @@ const SimilarMovies = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-4 flex items-center"
+          className="mb-4"
         >
-          <Tag color="#FF009F" className="mr-2">
-            {matchingGenre}
-          </Tag>
+          <div className="flex flex-wrap gap-2 mb-2">
+            <span className="px-3 py-1 bg-[#FF009F] text-white rounded-full text-xs font-medium cursor-pointer hover:bg-[#e0008e] transition-colors mr-2">
+              {matchingGenre}
+            </span>
+            {/* Thêm các tab khác nếu cần */}
+            <span className="px-3 py-1 bg-gray-800 text-white rounded-full text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
+              Action
+            </span>
+            <span className="px-3 py-1 bg-gray-800 text-white rounded-full text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
+              Comedy
+            </span>
+            <span className="px-3 py-1 bg-gray-800 text-white rounded-full text-xs font-medium cursor-pointer hover:bg-gray-700 transition-colors">
+              Drama
+            </span>
+          </div>
           <span className="text-sm text-gray-400">
             More movies you might like based on this genre
           </span>
