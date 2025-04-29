@@ -108,7 +108,8 @@ const BuyAdSlot = () => {
         }
 
         // Load user's existing media
-        const mediaResponse = await adMediaByLoginService.getAdMediaByLogin();
+        const mediaResponse =
+          await adMediaByLoginService.getMediaStatusExpiredByLogin();
         if (mediaResponse && mediaResponse.success && mediaResponse.data) {
           setUserMedia(mediaResponse.data);
         }
@@ -176,7 +177,8 @@ const BuyAdSlot = () => {
     if (newMediaType === "existing") {
       try {
         setLoading(true);
-        const mediaResponse = await adMediaByLoginService.getAdMediaByLogin();
+        const mediaResponse =
+          await adMediaByLoginService.getMediaStatusExpiredByLogin();
         if (mediaResponse && mediaResponse.success && mediaResponse.data) {
           setUserMedia(mediaResponse.data);
         }
@@ -858,9 +860,9 @@ const BuyAdSlot = () => {
               </p>
             </div>
 
-            <Row gutter={[24, 24]}>
+            <Row gutter={[16, 16]}>
               {/* Left Column - Media Selection */}
-              <Col xs={24} lg={14}>
+              <Col xs={24} md={24} lg={14}>
                 <Radio.Group
                   onChange={handleMediaTypeChange}
                   value={mediaType}
@@ -902,110 +904,164 @@ const BuyAdSlot = () => {
                 />
 
                 {mediaType === "existing" && (
-                  <div className="h-[calc(100vh-380px)] overflow-y-auto pr-2 hide-scrollbar">
-                    {userMedia && userMedia.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {userMedia.map((media) => (
-                          <div
-                            key={media.id}
-                            className={`relative cursor-pointer rounded-lg overflow-hidden transition-all duration-300 ${
-                              selectedMediaId === media.id
-                                ? "ring-4 ring-[#FF009F]"
-                                : "hover:scale-105"
-                            }`}
-                            onClick={() => handleMediaSelection(media.id)}
-                          >
-                            <div className="aspect-video relative">
-                              {isVideo(media.url) ? (
-                                <div className="w-full h-full bg-gray-700 relative group">
-                                  {/* Video thumbnail always visible */}
-                                  <video
-                                    src={media.url}
-                                    className="w-full h-full object-cover"
-                                    muted
-                                    preload="metadata"
-                                    poster=""
-                                    onLoadedData={(e) => {
-                                      // Capture the first frame as thumbnail
-                                      try {
-                                        e.target.currentTime = 0.5; // Set to 0.5 seconds to avoid black frame
-                                      } catch (err) {
-                                        console.error(
-                                          "Error setting video time:",
-                                          err
-                                        );
-                                      }
-                                    }}
-                                  />
-
-                                  {/* Play button overlay always visible */}
-                                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center pointer-events-none">
-                                    <PlayCircleOutlined className="text-5xl text-white opacity-80" />
-                                  </div>
-
-                                  {/* Video preview on hover - plays the video */}
-                                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="bg-gray-700 p-4 rounded-lg border border-gray-600 mb-4">
+                    <h5 className="text-white font-semibold mb-3">
+                      Your Media Library
+                    </h5>
+                    <div className="max-h-[350px] overflow-y-auto pr-2 hide-scrollbar">
+                      {userMedia && userMedia.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                          {userMedia.map((media) => (
+                            <div
+                              key={media.id}
+                              className={`relative cursor-pointer rounded-lg overflow-hidden transition-all duration-300 bg-gray-800 border ${
+                                selectedMediaId === media.id
+                                  ? "ring-2 ring-[#FF009F] border-[#FF009F]"
+                                  : "border-gray-600 hover:border-gray-500"
+                              }`}
+                              onClick={() => handleMediaSelection(media.id)}
+                            >
+                              <div className="aspect-video relative">
+                                {isVideo(media.url) ? (
+                                  <div className="w-full h-full bg-gray-700 relative group">
+                                    {/* Video thumbnail always visible */}
                                     <video
                                       src={media.url}
                                       className="w-full h-full object-cover"
                                       muted
-                                      loop
                                       preload="metadata"
-                                      onMouseOver={(e) => {
-                                        e.target.play();
-                                      }}
-                                      onMouseOut={(e) => {
-                                        e.target.pause();
-                                        e.target.currentTime = 0;
+                                      poster=""
+                                      onLoadedData={(e) => {
+                                        // Capture the first frame as thumbnail
+                                        try {
+                                          e.target.currentTime = 0.5; // Set to 0.5 seconds to avoid black frame
+                                        } catch (err) {
+                                          console.error(
+                                            "Error setting video time:",
+                                            err
+                                          );
+                                        }
                                       }}
                                     />
+
+                                    {/* Play button overlay always visible */}
+                                    <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center pointer-events-none">
+                                      <PlayCircleOutlined className="text-3xl text-white opacity-80" />
+                                    </div>
+
+                                    {/* Video preview on hover - plays the video */}
+                                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                      <video
+                                        src={media.url}
+                                        className="w-full h-full object-cover"
+                                        muted
+                                        loop
+                                        preload="metadata"
+                                        onMouseOver={(e) => {
+                                          e.target.play();
+                                        }}
+                                        onMouseOut={(e) => {
+                                          e.target.pause();
+                                          e.target.currentTime = 0;
+                                        }}
+                                      />
+                                    </div>
                                   </div>
+                                ) : (
+                                  <img
+                                    src={media.url}
+                                    alt={`Media ${media.id}`}
+                                    className="object-cover h-full w-full"
+                                  />
+                                )}
+                                {selectedMediaId === media.id && (
+                                  <div className="absolute inset-0 bg-[#FF009F]/20 flex items-center justify-center">
+                                    <CheckCircleOutlined className="text-2xl text-white" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="p-2 bg-gray-800 text-left text-xs">
+                                <div className="flex justify-between items-center">
+                                  <p className="text-white truncate max-w-[70%]">
+                                    {media.content || "No description"}
+                                  </p>
+                                  <Tag
+                                    color={
+                                      media.status === "ACTIVE"
+                                        ? "green"
+                                        : media.status === "PENDING"
+                                        ? "orange"
+                                        : "red"
+                                    }
+                                    className="ml-1 text-xs"
+                                  >
+                                    {media.status || "PENDING"}
+                                  </Tag>
                                 </div>
-                              ) : (
-                                <img
-                                  src={media.url}
-                                  alt={`Media ${media.id}`}
-                                  className="object-cover h-full w-full"
-                                />
-                              )}
-                              {selectedMediaId === media.id && (
-                                <div className="absolute inset-0 bg-[#FF009F]/20 flex items-center justify-center">
-                                  <CheckCircleOutlined className="text-4xl text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="mt-2 p-2 bg-gray-700 text-left text-sm">
-                              <div className="flex justify-between items-center mb-1">
-                                <p className="text-white truncate">
-                                  {media.content || "No description"}
-                                </p>
-                                <Tag
-                                  color={
-                                    media.status === "ACTIVE"
-                                      ? "green"
-                                      : media.status === "PENDING"
-                                      ? "orange"
-                                      : "red"
-                                  }
-                                  className="ml-1 text-xs"
-                                >
-                                  {media.status || "PENDING"}
-                                </Tag>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <Empty
-                        description={
-                          <span className="text-gray-400">
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-gray-800 rounded-lg py-8 px-4 flex flex-col items-center justify-center min-h-[200px]">
+                          <PictureOutlined className="text-gray-500 text-4xl mb-3" />
+                          <p className="text-gray-300 font-medium mb-1">
                             No media found in your library
-                          </span>
-                        }
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        className="my-8"
-                      />
+                          </p>
+                          <p className="text-gray-500 text-xs mb-4">
+                            Try uploading a new media instead
+                          </p>
+                          <button
+                            onClick={() =>
+                              handleMediaTypeChange({
+                                target: { value: "new" },
+                              })
+                            }
+                            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-md transition-colors flex items-center"
+                          >
+                            <CloudUploadOutlined className="mr-2" />
+                            Upload New Media
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {selectedMediaId && (
+                      <div className="mt-3 p-3 bg-gray-800 rounded-lg border border-gray-600 flex items-center">
+                        <div className="w-12 h-12 mr-3 overflow-hidden rounded-md flex-shrink-0">
+                          {isVideo(
+                            userMedia.find(
+                              (media) => media.id === selectedMediaId
+                            )?.url
+                          ) ? (
+                            <div className="w-full h-full bg-gray-900 flex items-center justify-center">
+                              <VideoCameraOutlined className="text-white" />
+                            </div>
+                          ) : (
+                            <img
+                              src={
+                                userMedia.find(
+                                  (media) => media.id === selectedMediaId
+                                )?.url
+                              }
+                              alt="Selected Media"
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white text-sm font-medium mb-1">
+                            Selected Media:
+                          </p>
+                          <p className="text-gray-300 text-sm truncate">
+                            {userMedia.find(
+                              (media) => media.id === selectedMediaId
+                            )?.content || "No description"}
+                          </p>
+                        </div>
+                        <Tag color="#FF009F" className="ml-2">
+                          Ready to add
+                        </Tag>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1099,7 +1155,7 @@ const BuyAdSlot = () => {
               </Col>
 
               {/* Right Column - View Quantity & Cart */}
-              <Col xs={24} lg={10}>
+              <Col xs={24} md={24} lg={10}>
                 {/* View Quantity Selector */}
                 <div className="bg-gray-700 p-6 rounded-lg border border-gray-600 mb-6">
                   <h4 className="text-white font-bold text-lg mb-4">

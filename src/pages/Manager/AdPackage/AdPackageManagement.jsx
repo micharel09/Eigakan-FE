@@ -1361,45 +1361,7 @@ const AdPackageManagement = () => {
                               </Tag>
                             </div>
                           </div>
-                          {transaction.adPurchaseItems &&
-                            transaction.adPurchaseItems.length > 0 && (
-                              <div>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                  }}
-                                >
-                                  <Text
-                                    type="secondary"
-                                    style={{ fontSize: 10, marginBottom: 2 }}
-                                  >
-                                    Ad Item Status
-                                  </Text>
-                                  <Tag
-                                    icon={getStatusIcon(
-                                      transaction.adPurchaseItems[0].status
-                                    )}
-                                    color={getStatusColor(
-                                      transaction.adPurchaseItems[0].status
-                                    )}
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      width: "fit-content",
-                                      margin: 0,
-                                      maxWidth: "100px",
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                    }}
-                                  >
-                                    <span style={{ marginLeft: 4 }}>
-                                      {transaction.adPurchaseItems[0].status}
-                                    </span>
-                                  </Tag>
-                                </div>
-                              </div>
-                            )}
+
                           <div
                             style={{
                               display: "flex",
@@ -1613,19 +1575,6 @@ const AdPackageManagement = () => {
                                               {formatVND(item.price)}
                                             </Text>
                                           </Space>
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Status">
-                                          <Tag
-                                            icon={getStatusIcon(item.status)}
-                                            color={getStatusColor(item.status)}
-                                            style={{
-                                              display: "flex",
-                                              alignItems: "center",
-                                              width: "fit-content",
-                                            }}
-                                          >
-                                            {item.status}
-                                          </Tag>
                                         </Descriptions.Item>
                                       </Descriptions>
                                     </div>
