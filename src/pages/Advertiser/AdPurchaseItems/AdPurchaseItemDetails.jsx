@@ -321,16 +321,16 @@ const AdPurchaseItemDetails = () => {
                   {formatVND(itemDetails.price)}
                 </Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Price Per View">
-                <Text strong style={{ color: token.colorPrimary }}>
-                  {formatVND(itemDetails.pricePerView)}
-                </Text>
-              </Descriptions.Item>
               <Descriptions.Item label="Created Date">
                 <Space>
                   <CalendarOutlined />
                   {formatDate(itemDetails.createdDate)}
                 </Space>
+              </Descriptions.Item>
+              <Descriptions.Item label="Price Per View">
+                <Text strong style={{ color: token.colorPrimary }}>
+                  {formatVND(itemDetails.pricePerView)}
+                </Text>
               </Descriptions.Item>
               <Descriptions.Item label="Expiry Date">
                 <Space>
@@ -338,15 +338,6 @@ const AdPurchaseItemDetails = () => {
                   {formatDate(itemDetails.expiredDate)}
                 </Space>
               </Descriptions.Item>
-              <Descriptions.Item label="Ad Media Status">
-                <Tag
-                  icon={getStatusIcon(itemDetails.adMediaStatus)}
-                  color={getStatusColor(itemDetails.adMediaStatus)}
-                >
-                  {itemDetails.adMediaStatus}
-                </Tag>
-              </Descriptions.Item>
-
               <Descriptions.Item label="Refunded Price">
                 {itemDetails.refundedPrice !== null ? (
                   <Text style={{ color: token.colorSuccess }}>
@@ -355,11 +346,6 @@ const AdPurchaseItemDetails = () => {
                 ) : (
                   <Text type="secondary">N/A</Text>
                 )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Transaction ID" span={2}>
-                <Text copyable style={{ fontFamily: "monospace" }}>
-                  {itemDetails.adPurchaseTransactionId}
-                </Text>
               </Descriptions.Item>
             </Descriptions>
           </Card>
@@ -401,6 +387,24 @@ const AdPurchaseItemDetails = () => {
                   />
                 )}
               </div>
+              <Descriptions
+                bordered
+                column={{ xxl: 1, xl: 1, lg: 1, md: 1, sm: 1, xs: 1 }}
+                size="small"
+                style={{ marginTop: 16 }}
+              >
+                <Descriptions.Item label="Ad Media ID">
+                  <Text copyable style={{ fontFamily: "monospace" }}>
+                    {itemDetails.adMediaId}
+                  </Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="User Full Name">
+                  <Space>
+                    <UserOutlined />
+                    {itemDetails.userFullName || "N/A"}
+                  </Space>
+                </Descriptions.Item>
+              </Descriptions>
             </Card>
           )}
         </Col>

@@ -323,19 +323,6 @@ const PaymentHistory = () => {
                     <Text strong>{formatVND(item.price)}</Text>
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="Status">
-                  <Tag
-                    icon={getStatusIcon(item.status)}
-                    color={getStatusColor(item.status)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      width: "fit-content",
-                    }}
-                  >
-                    {item.status}
-                  </Tag>
-                </Descriptions.Item>
               </Descriptions>
             </div>
           </Card>
@@ -346,12 +333,6 @@ const PaymentHistory = () => {
 
   // Custom panel header with transaction information
   const customPanelHeader = (transaction) => {
-    // Get status of first item (if exists)
-    const firstItem =
-      transaction.adPurchaseItems && transaction.adPurchaseItems.length > 0
-        ? transaction.adPurchaseItems[0]
-        : null;
-
     return (
       <div
         style={{
@@ -417,30 +398,7 @@ const PaymentHistory = () => {
             </Tag>
           </div>
         </div>
-        {firstItem && (
-          <div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <Text type="secondary" style={{ fontSize: 10, marginBottom: 2 }}>
-                Ad Item Status
-              </Text>
-              <Tag
-                icon={getStatusIcon(firstItem.status)}
-                color={getStatusColor(firstItem.status)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  width: "fit-content",
-                  margin: 0,
-                  maxWidth: "100px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                <span style={{ marginLeft: 4 }}>{firstItem.status}</span>
-              </Tag>
-            </div>
-          </div>
-        )}
+
         <div
           style={{
             display: "flex",
