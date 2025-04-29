@@ -40,7 +40,7 @@ const MovieAdmin = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://eigakan2222-001-site1.jtempurl.com/api/Movie/GetListAllMovie?pageNumber=0&pageSize=1000",
+        "https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/Movie/GetListAllMovie?pageNumber=0&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -141,8 +141,6 @@ const MovieAdmin = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      
-
       <div className="flex flex-wrap gap-4 mb-6">
         <Input
           placeholder="Search by title..."

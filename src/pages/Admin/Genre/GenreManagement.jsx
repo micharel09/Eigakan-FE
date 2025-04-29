@@ -67,7 +67,7 @@ const GenreManagement = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://eigakan2222-001-site1.jtempurl.com/api/Genre?page=0&pageSize=1000",
+        "https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/Genre?page=0&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,

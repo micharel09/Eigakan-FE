@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Space, notification, Switch, Tag, Input, Modal,Select } from "antd";
+import {
+  Table,
+  Button,
+  Space,
+  notification,
+  Switch,
+  Tag,
+  Input,
+  Modal,
+  Select,
+} from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import UserApi from "../../../apis/User/user";
 import axios from "axios";
@@ -21,12 +31,12 @@ const User = () => {
   const [fullName, setFullName] = useState("");
   const [roleId, setRoleId] = useState("");
   const [email, setEmail] = useState("");
-  
+
   const fetchAllUsers = async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://eigakan2222-001-site1.jtempurl.com/api/User/GetAllUser?page=0&pageSize=1000",
+        "https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/User/GetAllUser?page=0&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -100,7 +110,6 @@ const User = () => {
       setLoading(false); // Tắt trạng thái loading sau khi xử lý xong
     }
   };
-
 
   // Gọi API lần đầu khi component mount
   useEffect(() => {
@@ -304,10 +313,13 @@ const User = () => {
           <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
           <Button onClick={() => setSortedInfo({})}>Clear sorters</Button>
         </Space>
-        <Button type="primary" onClick={() => setIsAcceptModalVisible(true)} loading={loading}>
-        Create User
-      </Button>
-
+        <Button
+          type="primary"
+          onClick={() => setIsAcceptModalVisible(true)}
+          loading={loading}
+        >
+          Create User
+        </Button>
       </div>
 
       <div className="flex justify-center mb-6">
@@ -329,8 +341,8 @@ const User = () => {
         onChange={handleTableChange}
       />
 
-       {/* Create user Modal */}
-       <Modal
+      {/* Create user Modal */}
+      <Modal
         title="create account user"
         open={isAcceptModalVisible}
         onOk={handleCreateUser}
@@ -375,10 +387,7 @@ const User = () => {
           </div>
         </div>
       </Modal>
-   
     </div>
-
-    
   );
 };
 
