@@ -117,7 +117,7 @@ const BuyAdSlot = () => {
         console.error("Error loading initial data:", error);
         notification.error({
           message: "Error",
-          description: "Failed to load necessary data. Please try again.",
+          description: error.message || error,
         });
       } finally {
         setLoading(false);
@@ -186,7 +186,7 @@ const BuyAdSlot = () => {
         console.error("Error loading media data:", error);
         notification.error({
           message: "Error",
-          description: "Failed to load your media library. Please try again.",
+          description: error.message || error,
         });
       } finally {
         setLoading(false);
@@ -310,8 +310,8 @@ const BuyAdSlot = () => {
       } catch (error) {
         console.error("Error uploading file:", error);
         notification.error({
-          message: "Error",
-          description: "Failed to upload the file to Cloudinary.",
+          message: "Upload Error",
+          description: error.message || error,
         });
         setUploadLoading(false);
       }
@@ -320,7 +320,7 @@ const BuyAdSlot = () => {
     if (file.status === "error") {
       notification.error({
         message: "Upload Error",
-        description: "Failed to upload file.",
+        description: file.error?.message || file.error || "Upload failed",
       });
       setUploadLoading(false);
     }
@@ -331,16 +331,16 @@ const BuyAdSlot = () => {
     // Validate media selection
     if (mediaType === "existing" && !selectedMediaId) {
       notification.error({
-        message: "Error",
-        description: "Please select an existing media.",
+        message: "Validation Error",
+        description: "Please select an existing media from your library.",
       });
       return false;
     }
 
     if (mediaType === "new" && !newMediaFile) {
       notification.error({
-        message: "Error",
-        description: "Please upload a new media file.",
+        message: "Validation Error",
+        description: "Please upload a new media file before proceeding.",
       });
       return false;
     }
@@ -351,8 +351,9 @@ const BuyAdSlot = () => {
       (!newMediaContent || newMediaContent.trim() === "")
     ) {
       notification.error({
-        message: "Error",
-        description: "Please enter a description for your media.",
+        message: "Validation Error",
+        description:
+          "Media description is required. Please enter a description for your media.",
       });
       return false;
     }
@@ -362,8 +363,9 @@ const BuyAdSlot = () => {
       (!selectedMediaContent || selectedMediaContent.trim() === "")
     ) {
       notification.error({
-        message: "Error",
-        description: "The selected media must have a description.",
+        message: "Validation Error",
+        description:
+          "The selected media must have a description. Please select another media or add a description.",
       });
       return false;
     }
@@ -371,8 +373,8 @@ const BuyAdSlot = () => {
     // Validate view quantity
     if (!viewQuantity || !currentPackage) {
       notification.error({
-        message: "Error",
-        description: "Please select a valid view quantity.",
+        message: "Validation Error",
+        description: "Please select a valid view quantity and package.",
       });
       return false;
     }
@@ -470,9 +472,9 @@ const BuyAdSlot = () => {
       // Validate that we have items to purchase
       if (adMediaItems.length === 0) {
         notification.error({
-          message: "Error",
+          message: "Cart Empty",
           description:
-            "No media items added to cart. Please add at least one item.",
+            "Your cart is empty. Please add at least one media item before proceeding to payment.",
         });
         setSubmitting(false);
         return;
@@ -515,15 +517,14 @@ const BuyAdSlot = () => {
       } else {
         notification.error({
           message: "Error",
-          description:
-            response.message || "Failed to process your ad purchase.",
+          description: response.message || "Purchase failed",
         });
       }
     } catch (error) {
       console.error("Error submitting purchase:", error);
       notification.error({
-        message: "Error",
-        description: "Failed to submit your ad purchase. Please try again.",
+        message: "Purchase Error",
+        description: error.message || error,
       });
     } finally {
       setSubmitting(false);
