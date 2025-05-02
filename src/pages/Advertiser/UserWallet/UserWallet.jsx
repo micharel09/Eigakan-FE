@@ -81,7 +81,7 @@ const UserWallet = () => {
     try {
       // Call hidden API with large pageSize to get all data
       const response = await axios.get(
-        "https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/WalletTransaction/MyHistoryWallet?page=1&pageSize=1000&sortBy=createDate&sortDirection=desc",
+        "https://eigakan-001-site1.ktempurl.com/api/WalletTransaction/MyHistoryWallet?page=1&pageSize=1000&sortBy=createDate&sortDirection=desc",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

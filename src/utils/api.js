@@ -28,7 +28,7 @@ export const makePublicRequest = async (apiCall, returnFullResponse = false) => 
 /**
  * Base API URL
  */
-export const API_BASE_URL = "https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api";
+export const API_BASE_URL = "https://eigakan-001-site1.ktempurl.com/api";
 
 /**
  * Base URLs for different API endpoints

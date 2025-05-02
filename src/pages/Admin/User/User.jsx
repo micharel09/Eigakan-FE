@@ -36,7 +36,7 @@ const User = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/User/GetAllUser?page=0&pageSize=1000",
+        "https://eigakan-001-site1.ktempurl.com/api/User/GetAllUser?page=0&pageSize=1000",
         {
           headers: {
             Authorization: `Bearer ${token}`,

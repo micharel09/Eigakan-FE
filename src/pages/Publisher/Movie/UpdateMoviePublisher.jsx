@@ -596,7 +596,7 @@ const UpdateMoviePublisher = () => {
     try {
       // Create video in Bunny CDN
       const createResponse = await fetch(
-        "https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/Upload/upload_VideoBunny",
+        "https://eigakan-001-site1.ktempurl.com/api/Upload/upload_VideoBunny",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
