@@ -24,7 +24,7 @@ movieService.getListMovieByUserId = async (
   try {
     const token = localStorage.getItem("token");
     const response = await axios.get(
-      `https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/Movie/GetListMovieByUserId`,
+      `https://eigakan-001-site1.ktempurl.com/api/Movie/GetListMovieByUserId`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -96,7 +96,7 @@ const UserDetail = () => {
             // Gọi API trực tiếp thay vì qua phương thức có thể lỗi
             const token = localStorage.getItem("token");
             const response = await axios.get(
-              `https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/contracts/GetAllContractByUserId`,
+              `https://eigakan-001-site1.ktempurl.com/api/contracts/GetAllContractByUserId`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -137,7 +137,7 @@ const UserDetail = () => {
 
             const token = localStorage.getItem("token");
             const response = await axios.get(
-              `https://demoapi1-efhhd3b5hrhefagu.canadacentral-01.azurewebsites.net/api/Movie/GetListMovieByUserId`,
+              `https://eigakan-001-site1.ktempurl.com/api/Movie/GetListMovieByUserId`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
