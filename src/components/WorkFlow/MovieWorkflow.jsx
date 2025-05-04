@@ -16,15 +16,9 @@ const { Step } = Steps;
  *
  * @param {string} movieStatus - Current status of the movie
  * @param {string} contractStatus - Current status of the contract (if any)
- * @param {boolean} isFilmVipOrTrailer - Whether the movie has film or trailer media
  * @param {boolean} isContract - Whether the movie requires a contract
  */
-const ProcessStatus = ({
-  movieStatus,
-  contractStatus,
-  isFilmVipOrTrailer = false,
-  isContract = true,
-}) => {
+const ProcessStatus = ({ movieStatus, contractStatus, isContract = true }) => {
   // Define all possible workflow steps
   const steps = [
     {
@@ -48,6 +42,11 @@ const ProcessStatus = ({
       icon: <CheckCircleOutlined />,
     },
   ];
+
+  // If movie doesn't have contract, remove the "Sign & Upload" step
+  if (!isContract) {
+    steps.splice(2, 1);
+  }
 
   // Update steps title and description based on movie status, contract status and isContract flag
 
@@ -78,7 +77,7 @@ const ProcessStatus = ({
 
   // Update step 3 title and description
   if (movieStatus === "WAITING_FOR_UPLOADING") {
-    steps[2].title = "WAITING_FOR_UPLOADING";
+    steps[2].title = "Upload Media";
     steps[2].description = "Movie is waiting for media upload.";
   }
 
@@ -94,12 +93,12 @@ const ProcessStatus = ({
 
     // Special cases
     if (movieStatus === "REJECTED") {
-      state.stoppedAtStep = 1; // Movie rejected at step 1
+      state.stoppedAtStep = 0; // Movie rejected at step 1
       return state;
     }
 
     if (contractStatus === "DENIED") {
-      state.stoppedAtStep = 1; // Contract denied at step 2 (but we use 1 for the Steps component)
+      state.stoppedAtStep = 1; // Contract denied at step 2
       return state;
     }
 
@@ -109,36 +108,31 @@ const ProcessStatus = ({
       if (!isContract) {
         state.currentStep = 1; // At step 2 (index 1) - waiting for review without contract
       } else {
-        state.currentStep = 0; // At step 1 (index 0) - normal flow with contract
+        state.currentStep = 1; // At step 2 (index 1) - movie created, waiting for review with contract
       }
     } else if (movieStatus === "WAITING_FOR_UPLOADING") {
       // Movie has been accepted and is waiting for media upload
       if (!isContract) {
         // No contract case - all steps are completed except the last one
-        state.currentStep = 2; // At step 3 (index 2) - waiting for upload
+        state.currentStep = 2; // At step 3 (index 2) - waiting for active
       } else if (contractStatus === "SIGNED") {
         state.currentStep = 2; // At step 3 (index 2) - waiting for upload
       }
     } else if (movieStatus === "ACCEPTED_NEGOTIATING") {
       if (!isContract) {
         // No contract case
-        state.currentStep = 2; // Move to step 3 (index 2) - contract step is skipped
+        state.currentStep = 2; // At step 3 (index 2) - contract step is skipped
       } else if (contractStatus === "WAITING_FOR_REVIEWING") {
         state.currentStep = 1; // At step 2 (index 1)
       } else if (contractStatus === "SIGNED") {
-        state.currentStep = 2; // At step 3 (index 2)
-
-        // If movie has required media, we're still at step 3
-        if (isFilmVipOrTrailer) {
-          state.currentStep = 2;
-        }
+        state.currentStep = 3; // At step 4 (index 3) - contract is signed, waiting for active
       } else {
         state.currentStep = 1; // Default to step 2 if no specific contract status
       }
     }
 
     if (state.isActive) {
-      state.currentStep = 3; // At step 4 (index 3)
+      state.currentStep = 3; // At step 4 (index 3) - the last step
     }
 
     return state;
@@ -176,7 +170,7 @@ const ProcessStatus = ({
         stepProps.icon = <CloseCircleOutlined style={{ color: "red" }} />;
         stepProps.status = "error";
       }
-      // Step 3+ remain in wait state
+      // Step 3 remains in wait state
       return stepProps;
     }
 
@@ -191,10 +185,32 @@ const ProcessStatus = ({
       return stepProps;
     }
 
-    // Special case: No contract and waiting for review
-    if (!isContract && movieStatus === "WAITING_FOR_REVIEWING") {
+    // Special case: Contract signed
+    if (contractStatus === "SIGNED" && !isActive) {
       if (index === 0) {
         // Step 1: Completed
+        stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
+        stepProps.status = "finish";
+      } else if (index === 1) {
+        // Step 2: Completed (contract signed)
+        stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
+        stepProps.status = "finish";
+      } else if (index === 2) {
+        // Step 3: Completed (contract signed and media uploaded)
+        stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
+        stepProps.status = "finish";
+      } else if (index === 3 && movieStatus !== "ACTIVE") {
+        // Step 4: In progress (waiting to be active)
+        stepProps.icon = <LoadingOutlined style={{ color: "blue" }} />;
+        stepProps.status = "process";
+      }
+      return stepProps;
+    }
+
+    // Special case: Movie is waiting for review
+    if (movieStatus === "WAITING_FOR_REVIEWING") {
+      if (index === 0) {
+        // Step 1: Completed (movie created)
         stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
         stepProps.status = "finish";
       } else if (index === 1) {
@@ -202,12 +218,12 @@ const ProcessStatus = ({
         stepProps.icon = <LoadingOutlined style={{ color: "blue" }} />;
         stepProps.status = "process";
       }
-      // Step 3+ remain in wait state
+      // Step 3-4 remain in wait state
       return stepProps;
     }
 
-    // Special case: No contract and waiting for uploading
-    if (!isContract && movieStatus === "WAITING_FOR_UPLOADING") {
+    // Special case: Movie is waiting for uploading
+    if (movieStatus === "WAITING_FOR_UPLOADING") {
       if (index <= 1) {
         // Step 1-2: Completed
         stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
@@ -221,18 +237,22 @@ const ProcessStatus = ({
       return stepProps;
     }
 
-    // Special case: No contract and accepted
-    if (!isContract && movieStatus === "ACCEPTED_NEGOTIATING") {
+    // Special case: Movie is in negotiation
+    if (movieStatus === "ACCEPTED_NEGOTIATING") {
       if (index <= 1) {
         // Step 1-2: Completed
         stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
         stepProps.status = "finish";
-      } else if (index === 2) {
-        // Step 3: In progress
+      } else if (index === 2 && contractStatus === "SIGNED") {
+        // Step 3: Completed (contract signed and media uploaded)
+        stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
+        stepProps.status = "finish";
+      } else if (index === 3 && contractStatus === "SIGNED") {
+        // Step 4: In progress (waiting to be active)
         stepProps.icon = <LoadingOutlined style={{ color: "blue" }} />;
         stepProps.status = "process";
       }
-      // Step 4+ remain in wait state
+      // Step 4 remains in wait state
       return stepProps;
     }
 
