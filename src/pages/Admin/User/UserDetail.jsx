@@ -294,11 +294,11 @@ const UserDetail = () => {
         render: (status) => (
           <Tag
             color={
-              status === "ACCEPTED"
+              status === "SIGNED"
                 ? "green"
-                : status === "PENDING"
+                : status === "WAITING_FOR_REVIEWING"
                 ? "orange"
-                : status === "REJECTED"
+                : status === "DENIED"
                 ? "red"
                 : "default"
             }
@@ -308,9 +308,9 @@ const UserDetail = () => {
         ),
       },
       {
-        title: "Creation Date",
-        dataIndex: "createdDate",
-        key: "createdDate",
+        title: "Start Date",
+        dataIndex: "startDate",
+        key: "startDate",
         render: (date) => new Date(date).toLocaleString(),
       },
       {
@@ -381,7 +381,7 @@ const UserDetail = () => {
             color={
               status === "ACTIVE"
                 ? "green"
-                : status === "PENDING"
+                : status === "ACCEPTED_NEGOTIATING"
                 ? "orange"
                 : status === "REJECTED"
                 ? "red"
@@ -392,12 +392,7 @@ const UserDetail = () => {
           </Tag>
         ),
       },
-      {
-        title: "Release Date",
-        dataIndex: "releaseDate",
-        key: "releaseDate",
-        render: (date) => (date ? new Date(date).toLocaleDateString() : "N/A"),
-      },
+ 
       {
         title: "Actions",
         key: "actions",

@@ -861,6 +861,15 @@ const UpdateMoviePublisher = () => {
                 label="Release Year"
                 rules={[
                   { required: true, message: "Please input the release year!" },
+                  {
+                    validator: (_, value) => {
+                      const currentYear = new Date().getFullYear();
+                      if (value && (value > currentYear || value < 1888)) {
+                        return Promise.reject(new Error(`Release year must be between 1888 and ${currentYear}.`));
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
                 normalize={(value) => value?.toString()}
               >
@@ -922,7 +931,7 @@ const UpdateMoviePublisher = () => {
             </Card>
           </TabPane>
 
-          <TabPane tab="Persons" key="3">
+          <TabPane tab="Actors" key="3">
             <Card className="p-4 shadow-md">
               <div className="mb-4">
                 <h3 className="text-lg font-medium mb-2">Current Cast</h3>
