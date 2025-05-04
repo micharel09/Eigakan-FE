@@ -41,7 +41,7 @@ const Slider = () => {
       if (!movies[nextIndex]) return;
 
       const img = new Image();
-      img.src = movies[nextIndex].medias?.[0]?.url || "/placeholder.svg";
+      img.src = movies[nextIndex].medias?.[1]?.url || "/placeholder.svg";
     },
     [movies]
   );
@@ -176,7 +176,7 @@ const Slider = () => {
                     initial={{ scale: 1.02 }}
                     animate={{ scale: 1.05 }}
                     transition={{ duration: 8, ease: "easeOut" }}
-                    src={movie.medias?.[0]?.url || "/placeholder.svg"}
+                    src={movie.medias?.[1]?.url || "/placeholder.svg"}
                     alt={movie.title}
                     className="w-full h-full object-cover"
                     loading={index === 0 ? "eager" : "lazy"}
@@ -349,7 +349,7 @@ const SliderNavigation = ({ movies, currentIndex, setCurrentIndex }) => {
             className="relative"
           >
             <img
-              src={movie.medias?.[0]?.url || "/placeholder.svg"}
+              src={movie.medias?.[1]?.url || "/placeholder.svg"}
               alt={movie.title}
               className={`w-24 h-14 object-cover rounded-md cursor-pointer transition-all duration-300
               ${

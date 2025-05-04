@@ -163,11 +163,22 @@ const CreateMovie = () => {
                 <TextArea rows={4} />
               </Form.Item>
               
-              <Form.Item 
-                name="releaseYear" 
-                label="Release Year" 
-                rules={[{ required: true, message: "Please input the release year!" }]}
-                normalize={(value) => value?.toString()} // Chuyển số thành string
+              <Form.Item
+                name="releaseYear"
+                label="Release Year"
+                rules={[
+                  { required: true, message: "Please input the release year!" },
+                  {
+                    validator: (_, value) => {
+                      const currentYear = new Date().getFullYear();
+                      if (value && (value > currentYear || value < 1888)) {
+                        return Promise.reject(new Error(`Release year must be between 1888 and ${currentYear}.`));
+                      }
+                      return Promise.resolve();
+                    },
+                  },
+                ]}
+                normalize={(value) => value?.toString()}
               >
                 <InputNumber className="w-full" />
               </Form.Item>

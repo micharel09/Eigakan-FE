@@ -441,7 +441,7 @@ const MovieDetailPublisher = () => {
                         <Tag color="green">{movie?.genreNames}</Tag>
                         <Tag color={movie?.status === "ACTIVE" ? "success" : "warning"}>{movie?.status}</Tag>
                         <Tag color={movie?.isContract === true ? "success" : "red"}>
-                          {movie?.isContract ? "Contracted" : "Not Contracted"}
+                          {movie?.isContract ? "Has Contract" : "Not Contract"}
                         </Tag>
                       </div>
                     </div>
@@ -462,7 +462,7 @@ const MovieDetailPublisher = () => {
                         type="primary"
                         className="bg-blue-500 hover:bg-blue-600"
                       >
-                        View File
+                        View File Copy-right
                       </Button>
 
                       {!hiddenStatuses.includes(movie?.status) && (

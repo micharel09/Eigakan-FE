@@ -655,7 +655,8 @@ const MovieHero = memo(
         </motion.div>
 
         {/* Movie Info Container */}
-        <div className="relative container mx-auto px-4 py-32 sm:py-40 md:py-48 lg:py-56">
+        <div className="relative container mx-auto px-4 py-32 sm:py-40 md:py-48 lg:py-56 z-10">
+          
           <div className="flex flex-col md:flex-row gap-8">
             {/* Poster with subtle shadow */}
             <motion.div
@@ -826,8 +827,10 @@ const MovieHero = memo(
                   Watch Together
                 </ActionButton>
               </div>
+
             </motion.div>
           </div>
+
         </div>
       </div>
     );

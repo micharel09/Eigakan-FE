@@ -193,10 +193,10 @@ const CreateMoviePublisher = () => {
       }
 
       if (response?.data?.status) {
-        form.setFieldsValue({
+        modalForm.setFieldsValue({
           image: [file],
           picture: response.data.data[0].url,
-        });
+        });       
         notification.success({
           message: "Upload Successful",
           description: "Image has been uploaded successfully",
@@ -910,8 +910,17 @@ const CreateMoviePublisher = () => {
                 label="Release Year"
                 rules={[
                   { required: true, message: "Please input the release year!" },
+                  {
+                    validator: (_, value) => {
+                      const currentYear = new Date().getFullYear();
+                      if (value && (value > currentYear || value < 1888)) {
+                        return Promise.reject(new Error(`Release year must be between 1888 and ${currentYear}.`));
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
-                normalize={(value) => value?.toString()} // Chuyển số thành string
+                normalize={(value) => value?.toString()}
               >
                 <InputNumber className="w-full" />
               </Form.Item>
@@ -1028,12 +1037,12 @@ const CreateMoviePublisher = () => {
             </Card>
           </TabPane>
 
-          <TabPane tab="Persons" key="3">
+          <TabPane tab="Actors" key="3">
             <Card className="p-4 shadow-md">
               <Form.Item name="persons" label="Actors">
                 <Select
                   showSearch
-                  placeholder="Select person"
+                  placeholder="Select actors"
                   mode="multiple"
                   optionLabelProp="label"
                   onSearch={(value) => setSearchText(value)}
