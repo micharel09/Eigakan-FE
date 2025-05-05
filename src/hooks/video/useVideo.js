@@ -1,16 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 
-/**
- * Custom hook to handle video player functionality
- * @param {Object} options - Configuration options
- * @param {string} options.videoUrl - URL of the video to play
- * @param {Function} options.onTimeUpdate - Callback for time update events
- * @param {Function} options.onPlay - Callback for play events
- * @param {Function} options.onPause - Callback for pause events
- * @param {Function} options.onEnded - Callback for video end events
- * @param {Function} options.onReady - Callback for player ready event
- * @returns {Object} Video player state and control functions
- */
 export const useVideo = ({
   videoUrl,
   onTimeUpdate,

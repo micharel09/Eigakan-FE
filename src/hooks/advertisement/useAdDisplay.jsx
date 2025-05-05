@@ -2,17 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import ScreenfullUtils from "../../utils/ScreenfullUtils";
 import adMediaService from "../../apis/AdMedia/adMedia";
 
-// Constants for ad display
 export const AD_CONSTANTS = {
-  SKIP_AD_DELAY_SECONDS: 5, // Number of seconds before end when skip button appears
-  AD_AUTO_CLOSE_DELAY: 15000, // Time before ad auto-closes
-  AD_COUNTDOWN_SECONDS: 15, // Countdown duration for ads
-  FULLSCREEN_RETRY_DELAY: 500, // Delay before retrying fullscreen
-  VOLUME_FADE_DELAY: 1500, // Delay for volume fade in
-  MIDROLL_AD_TRIGGER_TIME: 20, // Seconds after start to trigger midroll ad
+  SKIP_AD_DELAY_SECONDS: 5, // secs before end when skip appears
+  AD_AUTO_CLOSE_DELAY: 15000, // Delay before auto-closing ads
+  AD_COUNTDOWN_SECONDS: 15,
+  FULLSCREEN_RETRY_DELAY: 500,
+  VOLUME_FADE_DELAY: 1500,
 };
 
-// Utility to create ad UI elements using DOM API and Tailwind
+// UI
 export const AdUIUtils = {
   // Create ad container
   createAdContainer: (wasFullscreen = false, fullscreenElementId = null) => {
@@ -29,61 +27,39 @@ export const AdUIUtils = {
     return container;
   },
 
-  // Create skip button with standardized behavior
   createSkipButton: () => {
     const button = document.createElement("button");
     button.textContent = "Skip Ad";
     button.className =
-      "absolute right-5 top-20 py-2 px-4 bg-white/20 border-none rounded text-white font-bold cursor-pointer hidden skip-button";
+      "absolute right-[160px] top-20 py-2 px-4 bg-white/20 hover:bg-white/30 border-none rounded text-white font-bold cursor-pointer hidden z-[9999] transition-colors duration-200 skip-button";
 
-    // Set high z-index to ensure it's above other elements
-    button.style.zIndex = "9999";
-
-    // Initially hidden - will be shown in the last few seconds
+    // Sử dụng style.display để thực sự ẩn nút
     button.style.display = "none";
-
-    // Add hover effect
-    button.onmouseover = () => {
-      button.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
-    };
-    button.onmouseout = () => {
-      button.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
-    };
 
     return button;
   },
 
-  // Setup skip button with standardized behavior for all ad types
   setupSkipButton: (skipButton, adContainer, onSkip) => {
-    // Don't force display here - let the countdown control visibility
-    // skipButton.style.display = "block";
+    // Đảm bảo nút skip được ẩn ban đầu
+    skipButton.style.display = "none";
 
-    // Set high z-index to ensure it's above all other elements
-    skipButton.style.zIndex = "9999";
+    // Thêm animation class cho nút skip
+    skipButton.classList.add("animate-pulse");
 
-    // Add pulse animation to make it more noticeable when it appears
-    skipButton.style.transition = "all 0.3s ease-in-out";
-    skipButton.style.transform = "scale(1)";
-    skipButton.style.animation = "pulse 2s infinite ease-in-out";
-
-    // Use addEventListener for better event handling
     skipButton.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // Call the provided callback function
       if (typeof onSkip === "function") {
         onSkip(adContainer);
       }
     });
 
-    // Add to container
     adContainer.appendChild(skipButton);
 
     return skipButton;
   },
 
-  // Create ad label
   createAdLabel: () => {
     const label = document.createElement("div");
     label.textContent = "Advertisement";
@@ -93,59 +69,35 @@ export const AdUIUtils = {
     return label;
   },
 
-  // Create countdown timer
   createCountdownTimer: (totalSeconds) => {
     const countdown = document.createElement("div");
     countdown.className =
-      "absolute left-1/2 -translate-x-1/2 bottom-5 bg-black/60 text-white py-2 px-4 rounded text-sm";
-    countdown.style.transform = "translateX(-50%)";
-    countdown.style.zIndex = "9998"; // High z-index but below skip button
-    countdown.style.fontWeight = "bold";
-    countdown.style.backdropFilter = "blur(2px)";
-    countdown.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.3)";
+      "absolute right-5 top-20 bg-black/60 text-white py-2 px-4 rounded text-sm font-bold z-[9998] backdrop-blur-sm shadow-md";
     countdown.textContent = `Ad ends in: ${totalSeconds}s`;
 
     return countdown;
   },
 
-  // Create image ad container
   createImageAdContainer: () => {
     const container = document.createElement("div");
     container.className =
-      "w-full h-full flex justify-center items-center bg-black";
-    container.style.animation = "fadeIn 0.5s ease-in-out";
+      "w-full h-full flex justify-center items-center bg-black opacity-0 scale-95 transition-all duration-500 ease-in-out";
 
-    // Add animations if not already present
-    if (!document.getElementById("ad-animations")) {
-      const style = document.createElement("style");
-      style.id = "ad-animations";
-      style.textContent = `
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    // Use setTimeout to trigger the animation with classes instead of keyframes
+    setTimeout(() => {
+      container.classList.remove("opacity-0", "scale-95");
+      container.classList.add("opacity-100", "scale-100");
+    }, 10);
 
     return container;
   },
 
-  // Create ad image
   createAdImage: (imageUrl, fallbackImageUrl) => {
     const image = document.createElement("img");
     image.src = imageUrl;
     image.className =
-      "max-w-[80%] max-h-[80%] object-contain rounded-lg shadow-lg";
-    image.style.animation = "pulse 3s infinite ease-in-out";
+      "max-w-[80%] max-h-[80%] object-contain rounded-lg shadow-lg animate-pulse";
 
-    // Handle error if image fails to load
     image.onerror = () => {
       image.onerror = null;
       image.src = fallbackImageUrl;
@@ -154,33 +106,31 @@ export const AdUIUtils = {
     return image;
   },
 
-  // Create URL label
   createUrlLabel: () => {
     const label = document.createElement("div");
     label.textContent = "Click to learn more";
     label.className =
-      "absolute bottom-12 left-0 right-0 text-center text-white bg-black/60 py-2 text-sm rounded w-64 mx-auto";
+      "absolute bottom-12 left-0 right-0 text-center text-white bg-black/60 py-2 text-sm rounded w-64 mx-auto backdrop-blur-sm";
 
     return label;
   },
 
-  // Handle fullscreen for ads using ScreenfullUtils
   handleFullscreen: {
-    // Check if currently in fullscreen mode
     isFullscreen: () => ScreenfullUtils.isFullscreen(),
 
-    // Request fullscreen for an element
+    getFullscreenElement: () => ScreenfullUtils.getFullscreenElement(),
+
     requestFullscreen: (element) => {
       if (element) {
+        console.log("Requesting fullscreen for element:", element);
         return ScreenfullUtils.requestFullscreen(element);
       }
+      console.error("No element provided for fullscreen");
       return Promise.resolve(false);
     },
 
-    // Exit fullscreen
     exitFullscreen: () => ScreenfullUtils.exitFullscreen(),
 
-    // Toggle fullscreen for an element
     toggleFullscreen: (element) => {
       if (element) {
         return ScreenfullUtils.toggleFullscreen(element);
@@ -190,38 +140,22 @@ export const AdUIUtils = {
   },
 };
 
-/**
- * Custom hook to handle advertisement display for WatchPage
- * @param {Object} options - Configuration options
- * @param {boolean} options.isAuthenticated - Whether the user is authenticated (not used directly but kept for API compatibility)
- * @param {string} options.userRole - User role to determine if ads should be shown
- * @param {string} options.movieId - ID of the movie being watched
- * @returns {Object} Ad state and control functions needed for WatchPage
- * @returns {Array} midrollAdSequence - Sequence of midroll ads to display
- * @returns {Function} shouldShowAds - Function to check if ads should be shown based on user role
- * @returns {Function} getAdSequence - Function to get a sequence of ads for midroll
- */
-export const useAdDisplay = ({
-  isAuthenticated = false,
-  userRole = null,
-  movieId = null,
-}) => {
-  // Only keep necessary state and logic for WatchPage
+// Main hook
+export const useAdDisplay = ({ userRole = null, movieId = null }) => {
+  // State for ads
   const [midrollAdSequence, setMidrollAdSequence] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Check if ads should be shown based on user role
+  // Determine if ads should be shown based on user role
   const shouldShowAds = useCallback(
     () => !userRole || userRole === "MEMBER",
     [userRole]
   );
 
-  // Convert API data to the required ad format
   const mapApiDataToAdFormat = useCallback((apiData) => {
     console.log("API Data received:", apiData);
 
-    // Check API data structure
     if (!apiData) {
       console.error("API data is null or undefined");
       return [];
@@ -266,8 +200,6 @@ export const useAdDisplay = ({
         title: content,
         // If it's a video, set the video field, otherwise set the image field
         ...(isVideo ? { video: url } : { image: url }),
-        alternativeImage:
-          "https://placehold.co/800x450/3A0033/FFFFFF?text=Alternative+Ad", // Fallback image for ads
         redirectUrl: redirectUrl, // Use redirectUrl from API if available
         content: content,
         slotLocation: "CENTER",
@@ -349,7 +281,7 @@ export const useAdDisplay = ({
       const ads = await getAdSequence();
       // Format ad positions for better readability in console
       const formattedPositions = ads.map((ad) => {
-        const seconds = ad.position || AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME;
+        const seconds = ad.position || 0;
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = Math.floor(seconds % 60);
 
@@ -382,14 +314,12 @@ export const useAdDisplay = ({
   // Get ad positions from midrollAdSequence
   const getAdPositions = useCallback(() => {
     if (!midrollAdSequence || midrollAdSequence.length === 0) {
-      // If no ads, return default position
-      return [AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME];
+      // If no ads, return empty array
+      return [];
     }
 
     // Get positions of all ads
-    const positions = midrollAdSequence.map(
-      (ad) => ad.position || AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME
-    );
+    const positions = midrollAdSequence.map((ad) => ad.position || 0);
 
     // Convert seconds to minutes:seconds or hours:minutes:seconds format for better readability
     const formattedPositions = positions.map((seconds) => {

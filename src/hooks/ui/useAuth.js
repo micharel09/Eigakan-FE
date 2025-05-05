@@ -2,10 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import authService from "../../apis/Auth/auth";
 
-/**
- * Custom hook for authentication and user state management
- * Handles user data, authentication status, and role-based access control
- */
 const useAuth = () => {
   const [user, setUser] = useState(() => {
     const userData = localStorage.getItem("user");
@@ -14,7 +10,6 @@ const useAuth = () => {
   
   const navigate = useNavigate();
   
-  // Define role constants
   const ROLES = {
     ADMIN: "ADMIN",
     MANAGER: "MANAGER",
@@ -23,8 +18,6 @@ const useAuth = () => {
     MEMBER: "MEMBER",
     VIP_MEMBER: "VIP MEMBER",
   };
-
-  // Memoize token and role values
   const token = useMemo(() => localStorage.getItem("token"), []);
   const role = useMemo(() => user?.roleName || localStorage.getItem("role"), [user]);
   
@@ -40,21 +33,13 @@ const useAuth = () => {
   
   // Memoize user authentication status
   const isAuthenticated = useMemo(() => !!token && !!user, [token, user]);
-
-  // Setup user update from auth service
   useEffect(() => {
     const updateUser = () => {
       const currentUser = authService.getCurrentUser();
       setUser(currentUser);
     };
-    
-    // Add listener for auth changes
-    authService.addListener(updateUser);
-    
-    // Initial check
+    authService.addListener(updateUser)
     updateUser();
-    
-    // Clean up listener
     return () => authService.removeListener(updateUser);
   }, []);
   

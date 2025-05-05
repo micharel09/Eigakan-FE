@@ -1,12 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import movieHistoryService from "../../apis/MovieHistory/MovieHistory";
 
-/**
- * Custom hook to handle movie watch history
- * @param {Object} options - Configuration options
- * @param {boolean} options.isAuthenticated - Whether the user is authenticated
- * @returns {Object} Watch history state and control functions
- */
 export const useWatchHistory = ({ 
   isAuthenticated = false 
 }) => {

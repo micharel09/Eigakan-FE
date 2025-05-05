@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import PropTypes from "prop-types";
 import { CrownOutlined } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { Modal, Input, notification } from "antd";
@@ -9,32 +8,18 @@ import {
   X,
   Film,
   User,
-  Home,
   Search,
   Users,
   Newspaper,
-  Bookmark,
-  Clock,
   TrendingUp,
   LayoutDashboard,
   UsersRound,
-  ChevronDown,
 } from "lucide-react";
 
-import authService from "../../apis/Auth/auth";
 import roomService from "../../apis/Room/room";
 import SearchBar from "./SearchBar";
 import ProfileMenu from "./ProfileMenu";
 import { useAuth, useScrollEffect, usePath } from "../../hooks";
-
-const ROLES = {
-  ADMIN: "ADMIN",
-  MANAGER: "MANAGER",
-  PUBLISHER: "PUBLISHER",
-  ADVERTISER: "ADVERTISER",
-  MEMBER: "MEMBER",
-  VIP_MEMBER: "VIP MEMBER",
-};
 
 const NAV_LINKS = [
   { path: "/homescreen", label: "Movies", icon: <Film className="h-4 w-4" /> },
@@ -119,9 +104,9 @@ const ActionButton = React.memo(
       <motion.button
         onClick={onClick}
         className={`
-          flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 
-          rounded-full ${baseClasses} text-white 
-          transition-all duration-300 border 
+          flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5
+          rounded-full ${baseClasses} text-white
+          transition-all duration-300 border
           relative overflow-hidden group z-10
           hover:shadow-lg hover:shadow-[#FF009F]/10
         `}
@@ -140,22 +125,22 @@ const ActionButton = React.memo(
       >
         <div
           className={`
-          absolute inset-0 bg-gradient-to-r 
+          absolute inset-0 bg-gradient-to-r
           ${
             isSpecial
               ? "from-[#FF009F]/0 via-[#FF009F]/10 to-[#FF009F]/0"
               : "from-white/0 via-white/5 to-white/0"
           }
-          opacity-0 group-hover:opacity-100 
-          transition-opacity duration-700 
+          opacity-0 group-hover:opacity-100
+          transition-opacity duration-700
           pointer-events-none
         `}
         />
         {React.cloneElement(icon, {
           className: `
-            w-3.5 h-3.5 md:w-4 md:h-4 
+            w-3.5 h-3.5 md:w-4 md:h-4
             ${isSpecial ? "text-[#FF009F]" : "text-[#FF009F]"}
-            group-hover:scale-110 transition-transform duration-300 
+            group-hover:scale-110 transition-transform duration-300
             relative z-20
           `,
         })}
@@ -185,7 +170,6 @@ const Navbar = () => {
     isManager,
     isPublisher,
     isAdvertiser,
-    isVipMember,
     isMember,
   } = useAuth();
 
@@ -208,10 +192,6 @@ const Navbar = () => {
   const isMoviePage = useMemo(
     () => location.pathname.includes("/movie/"),
     [location.pathname]
-  );
-  const role = useMemo(
-    () => user?.roleName || localStorage.getItem("role"),
-    [user]
   );
 
   // Memoize dashboard path calculation
@@ -728,11 +708,6 @@ const Navbar = () => {
       </AnimatePresence>
     </div>
   );
-};
-
-Navbar.propTypes = {
-  setShowSearch: PropTypes.func,
-  setSidebarOpen: PropTypes.func,
 };
 
 export default Navbar;

@@ -43,10 +43,8 @@ const createRouter = () => {
   // Create a router configuration that includes both the persistent layout and route-specific layouts
   return createBrowserRouter([
     {
-      // Root path with PersistentLayout that contains the navbar
       path: "/",
       element: <PersistentLayout />,
-      // Child routes will be rendered inside the Outlet in PersistentLayout
       children: routes.map((route) => ({
         path: route.path === "/" ? "" : route.path,
         element: renderWithLayout(route),
