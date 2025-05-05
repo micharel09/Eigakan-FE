@@ -11,7 +11,6 @@ import App from "./App";
 const container = document.getElementById("root");
 let root;
 
-// Kiểm tra và tạo `root` chỉ một lần
 if (!root) {
   root = createRoot(container);
 }

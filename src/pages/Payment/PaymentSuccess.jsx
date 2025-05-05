@@ -370,7 +370,14 @@ function PaymentSuccess() {
         closable={false}
         footer={null}
         maskClosable={false}
-        centered
+        centered={false}
+        style={{
+          position: "absolute",
+          right: 20,
+          bottom: 20,
+          width: 400,
+          boxShadow: "0 0 20px rgba(255, 0, 159, 0.3)",
+        }}
         className="membership-activation-modal"
       >
         <div className="py-2">
@@ -378,7 +385,23 @@ function PaymentSuccess() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
+            className="relative"
           >
+            <motion.div
+              className="absolute inset-0 rounded-lg"
+              animate={{
+                boxShadow: [
+                  "0 0 0px rgba(255, 0, 159, 0)",
+                  "0 0 15px rgba(255, 0, 159, 0.5)",
+                  "0 0 0px rgba(255, 0, 159, 0)",
+                ],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatType: "loop",
+              }}
+            ></motion.div>
             <div className="mb-5">
               <div className="text-center mb-3">
                 <CrownOutlined className="text-3xl text-[#FF009F]" />
@@ -387,8 +410,12 @@ function PaymentSuccess() {
                 Your VIP membership is now active!
               </Text>
               <Text className="block text-center text-gray-500">
-                You will be automatically logged out in {countdown} seconds to
-                complete the activation process.
+                Please review your payment details above.
+              </Text>
+              <Text className="block text-center text-gray-500 mt-2">
+                You will be automatically logged out in{" "}
+                <span className="font-bold text-[#FF009F]">{countdown}</span>{" "}
+                seconds to complete the activation process.
               </Text>
             </div>
 

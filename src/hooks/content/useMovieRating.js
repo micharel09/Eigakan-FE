@@ -2,13 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { notification } from "antd";
 import ratingService from "../../apis/Movie/rating";
 
-/**
- * Custom hook to handle movie rating functionality
- * @param {Object} options - Configuration options
- * @param {string} options.movieId - ID of the current movie
- * @param {boolean} options.isAuthenticated - Whether the user is authenticated
- * @returns {Object} Rating state and control functions
- */
 export const useMovieRating = ({ 
   movieId, 
   isAuthenticated = false 
