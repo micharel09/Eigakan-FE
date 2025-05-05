@@ -1325,39 +1325,7 @@ const AdPackageManagement = () => {
                                 }}
                               >
                                 <DollarOutlined style={{ marginRight: 4 }} />
-                                {transaction.paymentMethod || "VNPay"}
-                              </Tag>
-                            </div>
-                          </div>
-                          <div>
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                              }}
-                            >
-                              <Text
-                                type="secondary"
-                                style={{ fontSize: 10, marginBottom: 2 }}
-                              >
-                                Payment Status
-                              </Text>
-                              <Tag
-                                icon={getStatusIcon(transaction.status)}
-                                color={getStatusColor(transaction.status)}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  width: "fit-content",
-                                  margin: 0,
-                                  maxWidth: "100px",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                }}
-                              >
-                                <span style={{ marginLeft: 4 }}>
-                                  {transaction.status}
-                                </span>
+                                {transaction.paymentMethod || "WALLET"}
                               </Tag>
                             </div>
                           </div>
@@ -1435,11 +1403,7 @@ const AdPackageManagement = () => {
                                       },
                                     }}
                                     bodyStyle={{ padding: 0 }}
-                                    onClick={() =>
-                                      navigate(
-                                        `/manager/ad-purchase-item/${item.id}`
-                                      )
-                                    }
+                                   
                                     hoverable
                                   >
                                     <div
@@ -1552,6 +1516,18 @@ const AdPackageManagement = () => {
                                             </Text>
                                           </Space>
                                         </Descriptions.Item>
+
+                                        <Descriptions.Item label="Remaining View">
+                                          <Space>
+                                            <EyeOutlined
+                                              style={{ color: token.colorInfo }}
+                                            />
+                                            <Text strong>
+                                              {item.remainingViews} views
+                                            </Text>
+                                          </Space>
+                                        </Descriptions.Item>
+
                                         <Descriptions.Item label="Price Per View">
                                           <Space>
                                             <DollarOutlined
