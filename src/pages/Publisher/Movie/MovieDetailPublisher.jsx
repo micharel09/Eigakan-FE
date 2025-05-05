@@ -569,7 +569,7 @@ const MovieDetailPublisher = () => {
                         View File Copy-right
                       </Button>
                               <Modal
-                                title="View Contract"
+                                title="View File"
                                 open={showFileModal}
                                 onCancel={() => setShowFileModal(false)}
                                 footer={null}
