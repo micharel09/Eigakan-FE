@@ -203,7 +203,22 @@ const MovieEarning = () => {
             </Card>
           </Col>
         </Row>
-
+        <Row className="mb-4">
+          <Col span={24}>
+            <Card size="small" className="p-2">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-red-100"></div>
+                  <Text>Movies with contract</Text>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-green-100"></div>
+                  <Text>Movies without contract</Text>
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
         <Row gutter={[16, 16]} className="mb-4">
           <Col xs={24} md={12}>
             <Input
@@ -230,6 +245,11 @@ const MovieEarning = () => {
           pagination={pagination}
           onChange={handleTableChange}
           scroll={{ x: 800 }}
+          rowClassName={(record) =>
+            record.isCotract
+              ? "bg-red-100" // Màu nền cho các dòng có contract (red)
+              : "bg-green-100" // Màu nền cho các dòng không có contract (green)
+          }
         />
       </Card>
     </div>

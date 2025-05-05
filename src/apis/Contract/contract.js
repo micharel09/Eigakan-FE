@@ -16,7 +16,7 @@ const contractApi = {
       return response.data;
     }),
 
-  getAllContractByLogin: (page = 1, pageSize = 10) =>
+  getAllContractByLogin: (page = 1, pageSize = 1000) =>
     makeAuthenticatedRequest(async (headers) => {
       try {
         const response = await axios.get(`${API_URL}/GetAllContractUserByLogin`, {

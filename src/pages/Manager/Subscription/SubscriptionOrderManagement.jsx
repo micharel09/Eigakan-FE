@@ -125,11 +125,6 @@ const SubscriptionOrderManagement = () => {
       dataIndex: "userName",
       key: "userName",
       width: "20%",
-      render: (fullName, record) => (
-        <a href={`/user/${record.userId}`} className="text-blue-400">
-          {fullName}
-        </a>
-      ),
     },
     {
       title: "Payment Method",
