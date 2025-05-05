@@ -2,14 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import movieCountService from "../../apis/MovieCount/MovieCount";
 import movieHistoryService from "../../apis/MovieHistory/MovieHistory";
 
-/**
- * Custom hook to handle movie view counting and history tracking
- * @param {Object} options - Configuration options
- * @param {Object} options.movie - Movie object
- * @param {boolean} options.isTrailer - Whether the current view is a trailer
- * @param {React.RefObject} options.playerRef - Reference to player element for intersection observation
- * @returns {Object} View counter state and control functions
- */
 export const useViewCounter = ({ 
   movie, 
   isTrailer = false,
