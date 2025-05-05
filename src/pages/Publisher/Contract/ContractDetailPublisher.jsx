@@ -32,7 +32,8 @@ const ContractDetailPublisher = () => {
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false)
   const [reason, setReason] = useState("")
   const [signToken, setSignedToken] = useState("")
-
+  const [fileUrl, setFileUrl] = useState(null);
+  const [showFileModal, setShowFileModal] = useState(false);
   useEffect(() => {
     fetchContractDetail()
   }, [])
@@ -77,30 +78,59 @@ const ContractDetailPublisher = () => {
     }
   }
 
-  const handleGetPreUrl = async (isTemp) => {
+  // const handleGetPreUrl = async (isTemp) => {
+  //   try {
+  //     if (!contract?.fileUrl) {
+  //       throw new Error("File URL not found.")
+  //     }
+  //     const extractLink = extractUrl(contract.fileUrl)
+  //     console.log("Extracted link:", extractLink)
+
+  //     if (!extractLink?.userId || !extractLink?.fileName) {
+  //       throw new Error("Failed to extract userId or fileName from URL")
+  //     }
+
+  //     const response = await uploadFileApi.getPreFileContract(extractLink.userId, extractLink.fileName)
+
+  //     console.log("PreUrl:", response.data)
+  //     window.open(response.data.url, "_blank")
+  //   } catch (error) {
+  //     console.error("Error fetching preUrl:", error)
+  //     notification.error({
+  //       message: "Error",
+  //       description: error.message || "Failed to get file URL.",
+  //     })
+  //   }
+  // }
+  const handleGetPreUrl = async () => {
     try {
       if (!contract?.fileUrl) {
-        throw new Error("File URL not found.")
+        throw new Error("File URL not found.");
       }
-      const extractLink = extractUrl(contract.fileUrl)
-      console.log("Extracted link:", extractLink)
-
+      const extractLink = extractUrl(contract.fileUrl);
+      console.log("Extracted link:", extractLink);
+  
       if (!extractLink?.userId || !extractLink?.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL")
+        throw new Error("Failed to extract userId or fileName from URL");
       }
-
-      const response = await uploadFileApi.getPreFileContract(extractLink.userId, extractLink.fileName)
-
-      console.log("PreUrl:", response.data)
-      window.open(response.data.url, "_blank")
+  
+      const response = await uploadFileApi.getPreFileContract(
+        extractLink.userId,
+        extractLink.fileName
+      );
+  
+      console.log("PreUrl:", response.data);
+      setFileUrl(response.data.url);        // 👈 Gán URL
+      setShowFileModal(true);              // 👈 Mở modal
     } catch (error) {
-      console.error("Error fetching preUrl:", error)
+      console.error("Error fetching preUrl:", error);
       notification.error({
         message: "Error",
         description: error.message || "Failed to get file URL.",
-      })
+      });
     }
-  }
+  };
+  
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -313,14 +343,43 @@ const ContractDetailPublisher = () => {
                 label={<span className="font-semibold">Contract File</span>}
                 labelStyle={{ backgroundColor: "#f9fafb" }}
               >
-                <Button
+                {/* <Button
                   type="primary"
                   onClick={() => handleGetPreUrl(false)}
                   icon={<FileTextOutlined />}
                   className="bg-blue-500 hover:bg-blue-600"
                 >
                   View Contract
-                </Button>
+                </Button> */}
+
+<Button
+  type="primary"
+  onClick={handleGetPreUrl}
+  icon={<FileTextOutlined />}
+  className="bg-blue-500 hover:bg-blue-600"
+>
+  View Contract
+</Button><Modal
+  title="Contract Preview"
+  open={showFileModal}
+  onCancel={() => setShowFileModal(false)}
+  footer={null}
+  width="80%"
+>
+  {fileUrl ? (
+    <iframe
+      src={fileUrl}
+      title="Contract Preview"
+      width="100%"
+      height="500px"
+      style={{ border: "none" }}
+    />
+  ) : (
+    <div className="flex justify-center items-center">
+      <Spin size="large" />
+    </div>
+  )}
+</Modal>
               </Descriptions.Item>
 
               <Descriptions.Item
