@@ -25,10 +25,10 @@ function PaymentSuccess() {
   const apiCalled = useRef(false);
   const { handleLogout } = useAuth();
 
-  // Logout timer state
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [countdown, setCountdown] = useState(10);
+  // Logout timer state - changed from modal to inline notification
+  const [countdown, setCountdown] = useState(30); // Extended from 10 to 30 seconds
   const countdownRef = useRef(null);
+  const [showCountdown, setShowCountdown] = useState(false);
 
   const vnpResponseCode = searchParams.get("vnp_ResponseCode");
   const isCancelledPayment = vnpResponseCode === "24";
@@ -48,18 +48,21 @@ function PaymentSuccess() {
   // Handle automatic logout with countdown when payment is successful
   useEffect(() => {
     if (paymentInfo?.success) {
-      setShowLogoutModal(true);
+      setShowCountdown(true);
 
-      countdownRef.current = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdownRef.current);
-            handleLogout();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      // Start the countdown after a 3 second delay to give user time to see success screen
+      setTimeout(() => {
+        countdownRef.current = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(countdownRef.current);
+              handleLogout();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }, 3000);
     }
 
     return () => {
@@ -270,22 +273,58 @@ function PaymentSuccess() {
           </div>
         </div>
 
-        {/* Important Membership Notice */}
-        <div className="mt-6 bg-[#FF009F]/10 border border-[#FF009F]/20 rounded-xl p-4">
-          <div className="flex items-start">
-            <InfoCircleOutlined className="text-[#FF009F] text-lg mt-0.5 mr-3" />
-            <div>
-              <Text className="!text-white font-medium block mb-1">
-                Important: Membership Activation Required
-              </Text>
-              <Text className="!text-gray-300">
-                You need to log out and log back in for your VIP Membership to
-                take full effect. You will be automatically logged out in a few
-                seconds.
-              </Text>
+        {/* Logout notification - now appears inline instead of in a modal */}
+        {showCountdown && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-6 bg-gradient-to-r from-[#372248] to-[#2e1e3d] border border-[#FF009F]/30 rounded-xl p-5 shadow-lg"
+          >
+            <div className="flex items-start">
+              <div className="mr-4 flex-shrink-0">
+                <div className="w-12 h-12 bg-[#FF009F]/20 rounded-full flex items-center justify-center">
+                  <CrownOutlined className="text-xl text-[#FF009F]" />
+                </div>
+              </div>
+              <div className="flex-grow">
+                <Text className="!text-white font-medium text-lg block mb-1">
+                  VIP Membership Activation
+                </Text>
+                <Text className="!text-gray-300 block mb-3">
+                  To complete your membership activation, you will be
+                  automatically logged out in{" "}
+                  <span className="text-[#FF009F] font-bold">{countdown}</span>{" "}
+                  seconds. Please log back in to enjoy all your VIP benefits.
+                </Text>
+                <div className="mb-4">
+                  <Progress
+                    percent={(countdown / 30) * 100} // Assuming 30 seconds max
+                    showInfo={false}
+                    strokeColor={{
+                      "0%": "#FF009F",
+                      "100%": "#FF6B9F",
+                    }}
+                    trailColor="rgba(255, 255, 255, 0.1)"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="primary"
+                    onClick={handleManualLogout}
+                    size="middle"
+                    style={{
+                      backgroundColor: "#FF009F",
+                      borderColor: "#FF009F",
+                    }}
+                  >
+                    <LogoutOutlined /> Log Out Now
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex justify-center mt-8 space-x-4">
@@ -301,19 +340,6 @@ function PaymentSuccess() {
             className="text-white hover:text-white border-none hover:shadow-lg"
           >
             <HomeOutlined /> Back to Home
-          </Button>
-          <Button
-            type="default"
-            size="large"
-            onClick={handleManualLogout}
-            style={{
-              backgroundColor: "#374151",
-              borderColor: "#374151",
-              color: "white",
-            }}
-            className="hover:bg-[#4b5563] hover:border-[#4b5563] hover:text-white"
-          >
-            <LogoutOutlined /> Log Out Now
           </Button>
         </div>
       </div>
@@ -357,106 +383,6 @@ function PaymentSuccess() {
   return (
     <div className="min-h-[calc(100vh-200px)] bg-[#1a1f2d] flex items-center justify-center p-4">
       {paymentInfo?.success ? renderSuccessContent() : renderFailureContent()}
-
-      {/* Automatic Logout Modal */}
-      <Modal
-        title={
-          <div className="flex items-center">
-            <LogoutOutlined className="text-[#FF009F] mr-2" />
-            <span>VIP Membership Activation</span>
-          </div>
-        }
-        open={showLogoutModal}
-        closable={false}
-        footer={null}
-        maskClosable={false}
-        centered={false}
-        style={{
-          position: "absolute",
-          right: 20,
-          bottom: 20,
-          width: 400,
-          boxShadow: "0 0 20px rgba(255, 0, 159, 0.3)",
-        }}
-        className="membership-activation-modal"
-      >
-        <div className="py-2">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="relative"
-          >
-            <motion.div
-              className="absolute inset-0 rounded-lg"
-              animate={{
-                boxShadow: [
-                  "0 0 0px rgba(255, 0, 159, 0)",
-                  "0 0 15px rgba(255, 0, 159, 0.5)",
-                  "0 0 0px rgba(255, 0, 159, 0)",
-                ],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "loop",
-              }}
-            ></motion.div>
-            <div className="mb-5">
-              <div className="text-center mb-3">
-                <CrownOutlined className="text-3xl text-[#FF009F]" />
-              </div>
-              <Text className="block text-center text-base mb-1">
-                Your VIP membership is now active!
-              </Text>
-              <Text className="block text-center text-gray-500">
-                Please review your payment details above.
-              </Text>
-              <Text className="block text-center text-gray-500 mt-2">
-                You will be automatically logged out in{" "}
-                <span className="font-bold text-[#FF009F]">{countdown}</span>{" "}
-                seconds to complete the activation process.
-              </Text>
-            </div>
-
-            <Progress
-              percent={countdown * 10}
-              showInfo={false}
-              strokeColor={{
-                "0%": "#FF009F",
-                "100%": "#FF6B9F",
-              }}
-              trailColor="#f0f0f0"
-              className="mb-4"
-            />
-
-            <div className="rounded-lg bg-blue-50 p-3 mb-4 border border-blue-100">
-              <div className="flex">
-                <InfoCircleOutlined className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                <Text className="text-blue-700 text-sm">
-                  After logging out, please log back in to enjoy all your VIP
-                  benefits.
-                </Text>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <Button
-                type="primary"
-                onClick={handleManualLogout}
-                style={{
-                  backgroundColor: "#FF009F",
-                  borderColor: "#FF009F",
-                }}
-                size="large"
-                className="min-w-[120px]"
-              >
-                Log Out Now
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </Modal>
     </div>
   );
 }
