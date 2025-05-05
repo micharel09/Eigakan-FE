@@ -154,9 +154,7 @@ const WatchPage = () => {
         // Phát quảng cáo khi đạt đến một thời điểm cụ thể
         if (role !== "VIP MEMBER" && mainPlayerRef.current) {
           // Kiểm tra xem có đạt đến vị trí quảng cáo nào không
-          const positions = adPositions || [
-            AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME,
-          ];
+          const positions = adPositions || [];
 
           // Tìm vị trí quảng cáo phù hợp để hiển thị
           const adPositionToShow = positions.find((position) => {
@@ -245,13 +243,11 @@ const WatchPage = () => {
   // Lấy vị trí quảng cáo trực tiếp từ midrollAdSequence
   const adPositions = useMemo(() => {
     if (!midrollAdSequence || midrollAdSequence.length === 0) {
-      return [AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME]; // Giá trị mặc định
+      return []; // Không có quảng cáo mặc định
     }
 
     // Lấy vị trí của tất cả quảng cáo
-    const positions = midrollAdSequence.map(
-      (ad) => ad.position || AD_CONSTANTS.MIDROLL_AD_TRIGGER_TIME
-    );
+    const positions = midrollAdSequence.map((ad) => ad.position || 0);
     console.log("Ad positions from sequence:", positions);
     return positions;
   }, [midrollAdSequence]);
@@ -337,19 +333,8 @@ const WatchPage = () => {
     }
   };
 
-  const getVideoContainerStyle = () => {
-    // Tất cả các role đều dùng chung một kích thước video
-    return {
-      width: "100vw",
-      height: "97vh",
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 15,
-    };
-  };
+  // Sử dụng Tailwind classes thay vì inline styles
+  const videoContainerClasses = "fixed inset-0 w-screen h-[97vh] z-[15]";
 
   // Get video URLs directly
   const directMovieUrl =
@@ -704,13 +689,40 @@ const WatchPage = () => {
         if (wasFullscreen === true) {
           console.log("Restoring fullscreen after ad");
           setTimeout(() => {
+            // Tìm element để đưa vào fullscreen
             const elementToFullscreen =
               iframeRef.current ||
               document.getElementById("video-container") ||
               document.querySelector(".video-container");
 
             if (elementToFullscreen) {
-              AdUIUtils.handleFullscreen.requestFullscreen(elementToFullscreen);
+              console.log(
+                "Requesting fullscreen for element:",
+                elementToFullscreen
+              );
+
+              // Sử dụng Promise để xử lý kết quả
+              AdUIUtils.handleFullscreen
+                .requestFullscreen(elementToFullscreen)
+                .then((success) => {
+                  console.log(
+                    "Fullscreen request result:",
+                    success ? "success" : "failed"
+                  );
+                })
+                .catch((error) => {
+                  console.error("Error requesting fullscreen:", error);
+
+                  // Thử lại sau 500ms nếu thất bại
+                  setTimeout(() => {
+                    console.log("Retrying fullscreen request");
+                    AdUIUtils.handleFullscreen.requestFullscreen(
+                      elementToFullscreen
+                    );
+                  }, 500);
+                });
+            } else {
+              console.error("No element found to restore fullscreen");
             }
           }, AD_CONSTANTS.FULLSCREEN_RETRY_DELAY);
         } else {
@@ -743,7 +755,7 @@ const WatchPage = () => {
             !skipButtonShown
           ) {
             skipButton.style.display = "block";
-            skipButton.style.animation = "fadeIn 0.5s ease-in-out";
+            skipButton.classList.add("animate-fadeIn");
             skipButtonShown = true;
           }
         }
@@ -779,26 +791,14 @@ const WatchPage = () => {
       if (currentAd.video && currentAd.video.trim() !== "") {
         console.log("Creating video ad with URL:", currentAd.video);
 
-        // Tạo container cho video để dễ dàng style
+        // Tạo container cho video với Tailwind classes
         const videoContainer = document.createElement("div");
-        videoContainer.className = "video-ad-container";
-        videoContainer.style.width = "100%";
-        videoContainer.style.height = "100%";
-        videoContainer.style.display = "flex";
-        videoContainer.style.justifyContent = "center";
-        videoContainer.style.alignItems = "center";
-        videoContainer.style.backgroundColor = "#000";
-        videoContainer.style.position = "relative";
+        videoContainer.className =
+          "video-ad-container w-full h-full flex justify-center items-center bg-black relative";
 
-        // Tạo video element
+        // Tạo video element với Tailwind classes
         const videoElement = document.createElement("video");
-        Object.assign(videoElement.style, {
-          width: "100%",
-          height: "100%",
-          objectFit: "contain",
-          backgroundColor: "#000",
-          zIndex: "1",
-        });
+        videoElement.className = "w-full h-full object-contain bg-black z-[1]";
 
         // Thiết lập các thuộc tính của video
         videoElement.controls = false;
@@ -813,16 +813,9 @@ const WatchPage = () => {
         // Tạo fallback image trong trường hợp video không tải được
         const fallbackImage = document.createElement("img");
         fallbackImage.src =
-          currentAd.alternativeImage ||
-          "https://placehold.co/800x450/FF009F/FFFFFF?text=Alternative+Ad";
-        fallbackImage.style.display = "none";
-        fallbackImage.style.width = "100%";
-        fallbackImage.style.height = "100%";
-        fallbackImage.style.objectFit = "contain";
-        fallbackImage.style.position = "absolute";
-        fallbackImage.style.top = "0";
-        fallbackImage.style.left = "0";
-        fallbackImage.style.zIndex = "0";
+          currentAd.alternativeImage || AD_CONSTANTS.FALLBACK_IMAGE_URL;
+        fallbackImage.className =
+          "hidden w-full h-full object-contain absolute inset-0 z-0";
 
         // Hàm để đảm bảo video được phát
         const ensureVideoPlayback = () => {
@@ -900,12 +893,7 @@ const WatchPage = () => {
         // Thêm overlay click nếu có URL
         if (currentAd.redirectUrl?.trim()) {
           const clickOverlay = document.createElement("div");
-          Object.assign(clickOverlay.style, {
-            position: "absolute",
-            inset: "0",
-            cursor: "pointer",
-            zIndex: "1", // Lower z-index than skip button
-          });
+          clickOverlay.className = "absolute inset-0 cursor-pointer z-[1]";
 
           // Standardized click handler for ad overlays
           clickOverlay.addEventListener("click", (e) => {
@@ -926,17 +914,16 @@ const WatchPage = () => {
         // Quảng cáo hình ảnh
         console.log("Displaying image ad with URL:", currentAd.image);
 
-        // Tạo container cho hình ảnh để dễ dàng style
+        // Tạo container cho hình ảnh với Tailwind classes
         const imageContainer = document.createElement("div");
-        imageContainer.className = "image-ad-container";
-        imageContainer.style.width = "100%";
-        imageContainer.style.height = "100%";
-        imageContainer.style.display = "flex";
-        imageContainer.style.justifyContent = "center";
-        imageContainer.style.alignItems = "center";
-        imageContainer.style.backgroundColor = "#000";
-        imageContainer.style.position = "relative";
-        imageContainer.style.animation = "fadeIn 0.5s ease-in-out";
+        imageContainer.className =
+          "image-ad-container w-full h-full flex justify-center items-center bg-black relative transition-opacity duration-500 ease-in-out opacity-0";
+
+        // Sử dụng setTimeout để tạo hiệu ứng fade in
+        setTimeout(() => {
+          imageContainer.classList.remove("opacity-0");
+          imageContainer.classList.add("opacity-100");
+        }, 10);
 
         // Tạo style cho animation nếu chưa có
         if (!document.getElementById("ad-animations")) {
@@ -957,16 +944,11 @@ const WatchPage = () => {
           document.head.appendChild(style);
         }
 
-        // Tạo hình ảnh quảng cáo
+        // Tạo hình ảnh quảng cáo với Tailwind classes
         const adImage = document.createElement("img");
         adImage.src = currentAd.image;
-        adImage.className = "ad-image";
-        adImage.style.maxWidth = "80%";
-        adImage.style.maxHeight = "80%";
-        adImage.style.objectFit = "contain";
-        adImage.style.borderRadius = "8px";
-        adImage.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
-        adImage.style.animation = "pulse 3s infinite ease-in-out";
+        adImage.className =
+          "ad-image max-w-[80%] max-h-[80%] object-contain rounded-lg shadow-lg animate-pulse";
 
         // Xử lý lỗi nếu hình ảnh không tải được
         adImage.onerror = () => {
@@ -978,33 +960,21 @@ const WatchPage = () => {
 
         // Xử lý URL chuyển hướng nếu có
         if (currentAd.redirectUrl?.trim()) {
-          // Tạo wrapper cho hình ảnh
+          // Tạo wrapper cho hình ảnh với Tailwind classes
           const linkWrapper = document.createElement("a");
           linkWrapper.href = currentAd.redirectUrl;
           linkWrapper.target = "_blank";
-          linkWrapper.style.display = "block";
-          linkWrapper.style.cursor = "pointer";
+          linkWrapper.className = "block cursor-pointer";
 
           // Thêm hình ảnh vào wrapper
           linkWrapper.appendChild(adImage);
           imageContainer.appendChild(linkWrapper);
 
-          // Thêm nhãn URL
+          // Thêm nhãn URL với Tailwind classes
           const urlLabel = document.createElement("div");
           urlLabel.textContent = "Click to learn more";
-          urlLabel.className = "url-label";
-          urlLabel.style.position = "absolute";
-          urlLabel.style.bottom = "12px";
-          urlLabel.style.left = "0";
-          urlLabel.style.right = "0";
-          urlLabel.style.textAlign = "center";
-          urlLabel.style.color = "white";
-          urlLabel.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
-          urlLabel.style.padding = "8px";
-          urlLabel.style.borderRadius = "4px";
-          urlLabel.style.width = "200px";
-          urlLabel.style.margin = "0 auto";
-          urlLabel.style.fontSize = "14px";
+          urlLabel.className =
+            "url-label absolute bottom-3 left-0 right-0 text-center text-white bg-black/60 py-2 text-sm rounded w-52 mx-auto";
           imageContainer.appendChild(urlLabel);
         } else {
           // Nếu không có URL, chỉ thêm hình ảnh vào container
@@ -1017,35 +987,21 @@ const WatchPage = () => {
         // Trường hợp không có video hoặc hình ảnh, hiển thị fallback
         console.log("No video or image found in ad, using fallback", currentAd);
 
-        // Tạo container cho fallback
+        // Tạo container cho fallback với Tailwind classes
         const fallbackContainer = document.createElement("div");
-        fallbackContainer.className = "fallback-ad-container";
-        fallbackContainer.style.width = "100%";
-        fallbackContainer.style.height = "100%";
-        fallbackContainer.style.display = "flex";
-        fallbackContainer.style.flexDirection = "column";
-        fallbackContainer.style.justifyContent = "center";
-        fallbackContainer.style.alignItems = "center";
-        fallbackContainer.style.backgroundColor = "#3A0033";
-        fallbackContainer.style.color = "white";
-        fallbackContainer.style.textAlign = "center";
-        fallbackContainer.style.padding = "20px";
+        fallbackContainer.className =
+          "fallback-ad-container w-full h-full flex flex-col justify-center items-center bg-[#3A0033] text-white text-center p-5";
 
-        // Tạo tiêu đề cho fallback
+        // Tạo tiêu đề cho fallback với Tailwind classes
         const fallbackTitle = document.createElement("h2");
         fallbackTitle.textContent = "Alternative Ad";
-        fallbackTitle.style.fontSize = "32px";
-        fallbackTitle.style.fontWeight = "bold";
-        fallbackTitle.style.marginBottom = "16px";
-        fallbackTitle.style.color = "#FF009F";
+        fallbackTitle.className = "text-3xl font-bold mb-4 text-[#FF009F]";
 
-        // Tạo nội dung cho fallback
+        // Tạo nội dung cho fallback với Tailwind classes
         const fallbackContent = document.createElement("p");
         fallbackContent.textContent =
           currentAd.content || "Advertisement content";
-        fallbackContent.style.fontSize = "18px";
-        fallbackContent.style.maxWidth = "80%";
-        fallbackContent.style.lineHeight = "1.5";
+        fallbackContent.className = "text-lg max-w-[80%] leading-relaxed";
 
         // Thêm các phần tử vào container
         fallbackContainer.appendChild(fallbackTitle);
@@ -1057,23 +1013,8 @@ const WatchPage = () => {
           fallbackButton.href = currentAd.redirectUrl;
           fallbackButton.target = "_blank";
           fallbackButton.textContent = "Learn More";
-          fallbackButton.style.display = "inline-block";
-          fallbackButton.style.marginTop = "20px";
-          fallbackButton.style.padding = "10px 20px";
-          fallbackButton.style.backgroundColor = "#FF009F";
-          fallbackButton.style.color = "white";
-          fallbackButton.style.borderRadius = "4px";
-          fallbackButton.style.textDecoration = "none";
-          fallbackButton.style.fontWeight = "bold";
-          fallbackButton.style.transition = "background-color 0.3s";
-
-          // Thêm hover effect
-          fallbackButton.onmouseover = () => {
-            fallbackButton.style.backgroundColor = "#D1007F";
-          };
-          fallbackButton.onmouseout = () => {
-            fallbackButton.style.backgroundColor = "#FF009F";
-          };
+          fallbackButton.className =
+            "inline-block mt-5 py-2.5 px-5 bg-[#FF009F] hover:bg-[#D1007F] text-white rounded font-bold no-underline transition-colors duration-300";
 
           fallbackContainer.appendChild(fallbackButton);
         }
@@ -1086,17 +1027,8 @@ const WatchPage = () => {
       if (currentAd.content?.trim()) {
         const contentDiv = document.createElement("div");
         contentDiv.textContent = currentAd.content;
-        Object.assign(contentDiv.style, {
-          position: "absolute",
-          bottom: "100px",
-          left: "0",
-          width: "100%",
-          textAlign: "center",
-          color: "white",
-          fontSize: "18px",
-          padding: "10px",
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-        });
+        contentDiv.className =
+          "absolute bottom-[100px] left-0 w-full text-center text-white text-lg py-2.5 px-2 bg-black/50";
         adContainer.appendChild(contentDiv);
       }
 
@@ -1159,17 +1091,39 @@ const WatchPage = () => {
       // Nếu đang ở chế độ fullscreen, thoát khỏi fullscreen trước khi hiển thị quảng cáo
       if (isCurrentlyFullscreen) {
         console.log("Exiting fullscreen before showing ad");
-        AdUIUtils.handleFullscreen.exitFullscreen().then(() => {
-          // Sau khi thoát khỏi fullscreen, hiển thị quảng cáo
-          setTimeout(() => {
-            // Use the displayAd function to show mid-roll ad
+
+        // Lưu lại element đang ở chế độ fullscreen
+        const currentFullscreenElement =
+          AdUIUtils.handleFullscreen.getFullscreenElement() ||
+          fullscreenElement ||
+          document.getElementById("video-container");
+
+        console.log("Current fullscreen element:", currentFullscreenElement);
+
+        // Thoát khỏi fullscreen và hiển thị quảng cáo
+        AdUIUtils.handleFullscreen
+          .exitFullscreen()
+          .then(() => {
+            console.log("Successfully exited fullscreen");
+            // Sau khi thoát khỏi fullscreen, hiển thị quảng cáo
+            setTimeout(() => {
+              // Use the displayAd function to show mid-roll ad
+              displayAd({
+                wasFullscreen: true, // Đánh dấu là đã ở chế độ fullscreen trước đó
+                fullscreenElement: currentFullscreenElement,
+                adIndex: adToShow, // Truyền index của quảng cáo cần hiển thị
+              });
+            }, 100); // Chờ một chút để đảm bảo thoát khỏi fullscreen hoàn tất
+          })
+          .catch((error) => {
+            console.error("Error exiting fullscreen:", error);
+            // Nếu có lỗi khi thoát fullscreen, vẫn hiển thị quảng cáo
             displayAd({
-              wasFullscreen: true, // Đánh dấu là đã ở chế độ fullscreen trước đó
-              fullscreenElement: fullscreenElement,
-              adIndex: adToShow, // Truyền index của quảng cáo cần hiển thị
+              wasFullscreen: true,
+              fullscreenElement: currentFullscreenElement,
+              adIndex: adToShow,
             });
-          }, 100); // Chờ một chút để đảm bảo thoát khỏi fullscreen hoàn tất
-        });
+          });
       } else {
         // Nếu không ở chế độ fullscreen, hiển thị quảng cáo ngay
         console.log("Showing ad in non-fullscreen mode");
@@ -1375,7 +1329,7 @@ const WatchPage = () => {
         <div className="w-full h-full grid grid-cols-[1fr]">
           {/* Center Video Column - Centered for all roles */}
           <div className="relative flex items-center justify-center h-full py-2">
-            <div style={getVideoContainerStyle()} className="relative">
+            <div className={`${videoContainerClasses} relative`}>
               {/* Pre-roll ad - được xử lý thông qua AdUIUtils trong useEffect */}
               <iframe
                 ref={iframeRef}

@@ -13,6 +13,7 @@ export default {
         'fade-up': 'fadeUp 0.5s ease-out forwards',
         'gradient-x': 'gradient-x 3s ease-in-out infinite',
         'shimmer': 'shimmer 2.5s infinite linear',
+        'fadeIn': 'fadeIn 0.5s ease-in-out forwards',
       },
       keyframes: {
         slowZoom: {
@@ -22,6 +23,10 @@ export default {
         fadeUp: {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
         'gradient-x': {
           '0%, 100%': {

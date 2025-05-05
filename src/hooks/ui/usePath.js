@@ -1,14 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
-/**
- * Custom hook for path and route related functionality
- * Provides utilities for checking active routes and path matching
- */
 const usePath = () => {
   const location = useLocation();
-  
-  // Current path memo
   const currentPath = useMemo(() => location.pathname, [location.pathname]);
   
   // Check if path is included in current location path
@@ -48,7 +42,6 @@ const usePath = () => {
   );
   
   // Extract path parameters for a dynamic route
-  // Example: extractParams("/user/:id", "/user/123") returns { id: "123" }
   const extractParams = useCallback(
     (routePattern, pathToMatch = location.pathname) => {
       const routeParts = routePattern.split("/").filter(Boolean);

@@ -4,14 +4,6 @@ import UserApi from "../../apis/User/user";
 import ratingService from "../../apis/Movie/rating";
 import movieService from "../../apis/Movie/movie";
 
-/**
- * Custom hook to handle movie comments functionality
- * @param {Object} options - Configuration options
- * @param {string} options.movieId - ID of the current movie
- * @param {boolean} options.isAuthenticated - Whether the user is authenticated
- * @param {Object} options.movie - Movie object containing comments
- * @returns {Object} Comments state and control functions
- */
 export const useMovieComments = ({
   movieId,
   isAuthenticated = false,
@@ -23,7 +15,7 @@ export const useMovieComments = ({
   const [submittingComment, setSubmittingComment] = useState(false);
 
   /**
-   * Submit a new comment for the current movie
+   * Submit a comment for the current movie
    */
   const handleCommentSubmit = useCallback(async (e) => {
     if (e) e.preventDefault();

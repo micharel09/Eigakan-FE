@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
 
-/**
- * Custom hook for handling scroll-related effects
- * @param {number} threshold - The scroll threshold in pixels to trigger the effect (default: 10)
- * @param {function} callback - Optional callback function to execute when threshold is crossed
- * @returns {boolean} isScrolled - Whether the page has been scrolled past the threshold
- */
 const useScrollEffect = (threshold = 10, callback = null) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollY, setScrollY] = useState(0);

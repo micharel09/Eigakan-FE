@@ -1,14 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 
-/**
- * Custom hook to manage video playback position
- * @param {Object} options - Configuration options
- * @param {string} options.movieId - ID of the current movie
- * @param {boolean} options.isTrailer - Whether the current video is a trailer
- * @param {number} options.duration - Total duration of the video
- * @param {boolean} options.playerReady - Whether the player is ready
- * @returns {Object} Playback position state and control functions
- */
 export const usePlaybackPosition = ({ 
   movieId, 
   isTrailer = false, 

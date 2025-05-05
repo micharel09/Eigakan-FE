@@ -98,7 +98,7 @@ const movieService = {
     }
   },
 
-  async getListMovieByLogin(pageNumber = 1, pageSize = 10) {
+  async getListMovieByLogin(pageNumber = 1, pageSize = 1000) {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/GetListMovieByLogin`, {
