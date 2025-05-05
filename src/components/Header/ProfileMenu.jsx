@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { CrownOutlined, HistoryOutlined } from "@ant-design/icons";
 
-// Animation variants for dropdown menu - updated for smooth animations
 const dropdownVariants = {
   hidden: {
     opacity: 0,
@@ -44,16 +43,6 @@ const dropdownVariants = {
   },
 };
 
-/**
- * ProfileMenu Component
- *
- * Displays user profile menu with dropdown functionality
- *
- * @param {Object} user - User data object
- * @param {boolean} showProfileMenu - Whether the profile menu is visible
- * @param {Function} handleLogout - Function to handle logout action
- * @param {Function} handleProfileClick - Function to handle profile button click
- */
 function ProfileMenu({
   user,
   showProfileMenu,

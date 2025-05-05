@@ -32,7 +32,7 @@ const ProcessStatus = ({ movieStatus, contractStatus, isContract = true }) => {
       icon: <FileDoneOutlined />,
     },
     {
-      title: "Sign & Upload",
+      title: "Sign Contract",
       description: "Publisher signs contract and uploads video.",
       icon: <UploadOutlined />,
     },
@@ -79,6 +79,12 @@ const ProcessStatus = ({ movieStatus, contractStatus, isContract = true }) => {
   if (movieStatus === "WAITING_FOR_UPLOADING") {
     steps[2].title = "Upload Media";
     steps[2].description = "Movie is waiting for media upload.";
+  } else if (
+    movieStatus === "ACCEPTED_NEGOTIATING" &&
+    contractStatus === "WAITING_FOR_REVIEWING"
+  ) {
+    steps[2].title = "Sign Contract";
+    steps[2].description = "Contract is being reviewed by admin.";
   }
 
   // Determine the current workflow state
@@ -123,7 +129,7 @@ const ProcessStatus = ({ movieStatus, contractStatus, isContract = true }) => {
         // No contract case
         state.currentStep = 2; // At step 3 (index 2) - contract step is skipped
       } else if (contractStatus === "WAITING_FOR_REVIEWING") {
-        state.currentStep = 1; // At step 2 (index 1)
+        state.currentStep = 2; // At step 3 (index 2) - waiting for contract review
       } else if (contractStatus === "SIGNED") {
         state.currentStep = 3; // At step 4 (index 3) - contract is signed, waiting for active
       } else {
@@ -239,14 +245,20 @@ const ProcessStatus = ({ movieStatus, contractStatus, isContract = true }) => {
 
     // Special case: Movie is in negotiation
     if (movieStatus === "ACCEPTED_NEGOTIATING") {
-      if (index <= 1) {
+      if (index === 0 || index === 1) {
         // Step 1-2: Completed
         stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
         stepProps.status = "finish";
-      } else if (index === 2 && contractStatus === "SIGNED") {
-        // Step 3: Completed (contract signed and media uploaded)
-        stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
-        stepProps.status = "finish";
+      } else if (index === 2) {
+        if (contractStatus === "SIGNED") {
+          // Step 3: Completed (contract signed and media uploaded)
+          stepProps.icon = <CheckCircleOutlined style={{ color: "green" }} />;
+          stepProps.status = "finish";
+        } else if (contractStatus === "WAITING_FOR_REVIEWING") {
+          // Step 3: In progress (waiting for contract review)
+          stepProps.icon = <LoadingOutlined style={{ color: "blue" }} />;
+          stepProps.status = "process";
+        }
       } else if (index === 3 && contractStatus === "SIGNED") {
         // Step 4: In progress (waiting to be active)
         stepProps.icon = <LoadingOutlined style={{ color: "blue" }} />;
