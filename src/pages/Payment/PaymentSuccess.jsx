@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Typography, Spin, Button, Progress, Modal } from "antd";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import {
   CheckOutlined,
   CloseOutlined,
@@ -10,6 +10,7 @@ import {
   CrownOutlined,
   LogoutOutlined,
   InfoCircleOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import subscriptionService from "../../apis/Subscription/subscription";
 import { useAuth } from "../../hooks";
@@ -22,6 +23,7 @@ function PaymentSuccess() {
   const [loading, setLoading] = useState(true);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const apiCalled = useRef(false);
   const { handleLogout } = useAuth();
 
@@ -29,9 +31,31 @@ function PaymentSuccess() {
   const [countdown, setCountdown] = useState(30); // Extended from 10 to 30 seconds
   const countdownRef = useRef(null);
   const [showCountdown, setShowCountdown] = useState(false);
+  // State to track if logout is pending
+  const [logoutPending, setLogoutPending] = useState(false);
+  // State for navigation block modal
+  const [showNavigationModal, setShowNavigationModal] = useState(false);
+  const [attemptedNavigation, setAttemptedNavigation] = useState(null);
 
   const vnpResponseCode = searchParams.get("vnp_ResponseCode");
   const isCancelledPayment = vnpResponseCode === "24";
+
+  // Prevent navigation when logout is pending
+  useEffect(() => {
+    const preventNavigation = (e) => {
+      if (logoutPending) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    window.addEventListener("beforeunload", preventNavigation);
+
+    return () => {
+      window.removeEventListener("beforeunload", preventNavigation);
+    };
+  }, [logoutPending]);
 
   useEffect(() => {
     if (isCancelledPayment) {
@@ -49,6 +73,7 @@ function PaymentSuccess() {
   useEffect(() => {
     if (paymentInfo?.success) {
       setShowCountdown(true);
+      setLogoutPending(true);
 
       // Start the countdown after a 3 second delay to give user time to see success screen
       setTimeout(() => {
@@ -120,7 +145,15 @@ function PaymentSuccess() {
     });
   };
 
-  const handleNavigateToHome = () => navigate("/homescreen");
+  // Override the navigation to home to show a warning modal
+  const handleNavigateToHome = () => {
+    if (logoutPending) {
+      setAttemptedNavigation("/homescreen");
+      setShowNavigationModal(true);
+    } else {
+      navigate("/homescreen");
+    }
+  };
 
   const handleManualLogout = () => {
     if (countdownRef.current) {
@@ -128,6 +161,77 @@ function PaymentSuccess() {
     }
     handleLogout();
   };
+
+  // Custom navigation handler for any navigation attempt
+  const handleAnyNavigation = (path) => {
+    if (logoutPending) {
+      setAttemptedNavigation(path);
+      setShowNavigationModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  // Override the React Router's useNavigate function
+  useEffect(() => {
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    function patchedPushState(...args) {
+      const newPath = args[2];
+      if (logoutPending && newPath !== location.pathname) {
+        setAttemptedNavigation(newPath);
+        setShowNavigationModal(true);
+        return;
+      }
+      return originalPushState.apply(history, args);
+    }
+
+    function patchedReplaceState(...args) {
+      const newPath = args[2];
+      if (logoutPending && newPath !== location.pathname) {
+        setAttemptedNavigation(newPath);
+        setShowNavigationModal(true);
+        return;
+      }
+      return originalReplaceState.apply(history, args);
+    }
+
+    history.pushState = patchedPushState;
+    history.replaceState = patchedReplaceState;
+
+    return () => {
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, [logoutPending, location.pathname]);
+
+  // Handle navigation links clicks
+  useEffect(() => {
+    const handleLinkClick = (e) => {
+      if (logoutPending) {
+        const link = e.target.closest("a");
+        if (link) {
+          const href = link.getAttribute("href");
+          if (
+            href &&
+            !href.startsWith("javascript:") &&
+            !href.startsWith("#")
+          ) {
+            e.preventDefault();
+            setAttemptedNavigation(href);
+            setShowNavigationModal(true);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick, true);
+
+    return () => {
+      document.removeEventListener("click", handleLinkClick, true);
+    };
+  }, [logoutPending]);
 
   if (loading) {
     return (
@@ -383,6 +487,53 @@ function PaymentSuccess() {
   return (
     <div className="min-h-[calc(100vh-200px)] bg-[#1a1f2d] flex items-center justify-center p-4">
       {paymentInfo?.success ? renderSuccessContent() : renderFailureContent()}
+
+      {/* Navigation Block Modal */}
+      <Modal
+        title={
+          <div className="flex items-center text-[#FF009F]">
+            <ExclamationCircleOutlined className="mr-2" />
+            <span>Activation In Progress</span>
+          </div>
+        }
+        open={showNavigationModal}
+        closable={true}
+        onCancel={() => setShowNavigationModal(false)}
+        footer={[
+          <Button key="back" onClick={() => setShowNavigationModal(false)}>
+            Stay on Page
+          </Button>,
+          <Button
+            key="logout"
+            type="primary"
+            onClick={handleManualLogout}
+            style={{
+              backgroundColor: "#FF009F",
+              borderColor: "#FF009F",
+            }}
+          >
+            Log Out Now
+          </Button>,
+        ]}
+        centered
+      >
+        <div className="py-2">
+          <div className="mb-4 bg-amber-50 p-3 rounded-lg border border-amber-100">
+            <div className="flex">
+              <InfoCircleOutlined className="text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+              <Text className="text-amber-800">
+                You need to log out for your VIP membership to be activated
+                properly. Please log out now or wait for automatic logout in{" "}
+                {countdown} seconds.
+              </Text>
+            </div>
+          </div>
+          <Text>
+            Navigating away from this page before logging out may cause issues
+            with your membership activation.
+          </Text>
+        </div>
+      </Modal>
     </div>
   );
 }

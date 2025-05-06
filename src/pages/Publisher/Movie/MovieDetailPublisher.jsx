@@ -57,19 +57,20 @@ const hiddenStatuses = [
 ];
 
 const MovieDetailPublisher = () => {
-  const [movie, setMovie] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState({ visible: false, type: "" });
-  const [editMovie, setEditMovie] = useState(null);
-  const [genres, setGenres] = useState([]);
-  const [persons, setPersons] = useState([]);
-  const [movieEarnings, setMovieEarnings] = useState([]);
-  const [totalEarnings, setTotalEarnings] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-
-  const { id } = useParams();
+  const [movie, setMovie] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [modal, setModal] = useState({ visible: false, type: "" })
+  const [editMovie, setEditMovie] = useState(null)
+  const [genres, setGenres] = useState([])
+  const [persons, setPersons] = useState([])
+  const [movieEarnings, setMovieEarnings] = useState([])
+  const [totalEarnings, setTotalEarnings] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(5)
+  const [fileUrl, setFileUrl] = useState(null);
+  const [showFileModal, setShowFileModal] =useState(false);
+  const { id } = useParams()
 
   useEffect(() => {
     fetchMovieDetails();
@@ -387,14 +388,29 @@ const MovieDetailPublisher = () => {
     );
   };
 
+  // const handleGetPreUrl = async () => {
+  //   try {
+  //     const extractLink = extractUrl(movie?.fileUrl)
+  //     if (extractLink === null) {
+  //       notification.error({ message: "An error occurred!" })
+  //       return
+  //     }
+
+  //     if (!extractLink || !extractLink.userId || !extractLink.fileName) {
+  //       throw new Error("Failed to extract userId or fileName from URL")
+  //     }
+  //     const response = await uploadFileApi.getPreFileUrlMovie(extractLink.userId, extractLink.fileName)
+  //     console.log("PreUrl:", response.data)
+  //     window.open(response.data.url, "_blank")
+  //   } catch (error) {
+  //     notification.error({ message: error.message || "Not found" })
+  //     console.error("Error fetching preUrl:", error)
+  //   }
+  // }
+
   const handleGetPreUrl = async () => {
     try {
       const extractLink = extractUrl(movie?.fileUrl);
-      if (extractLink === null) {
-        notification.error({ message: "An error occurred!" });
-        return;
-      }
-
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
         throw new Error("Failed to extract userId or fileName from URL");
       }
@@ -402,22 +418,36 @@ const MovieDetailPublisher = () => {
         extractLink.userId,
         extractLink.fileName
       );
-      console.log("PreUrl:", response.data);
-      window.open(response.data.url, "_blank");
+      setFileUrl(response.data.url);
+      setShowFileModal(true); // 👈 mở modal tại đây
     } catch (error) {
       notification.error({ message: error.message || "Not found" });
       console.error("Error fetching preUrl:", error);
     }
   };
+  // const handleGetPreUrlTemp = async () => {
+  //   try {
+  //     const extractLink = extractUrl(movie?.fileUrl)
+  //     if (extractLink === null) {
+  //       notification.error({ message: "An error occurred!" })
+  //       return
+  //     }
+
+  //     if (!extractLink || !extractLink.userId || !extractLink.fileName) {
+  //       throw new Error("Failed to extract userId or fileName from URL")
+  //     }
+  //     const response = await uploadFileApi.getPreFileUrlTemp(extractLink.userId, extractLink.fileName)
+  //     console.log("PreUrl:", response.data)
+  //     window.open(response.data.url, "_blank")
+  //   } catch (error) {
+  //     notification.error({ message: error.message || "Not found" })
+  //     console.error("Error fetching preUrl:", error)
+  //   }
+  // }
 
   const handleGetPreUrlTemp = async () => {
     try {
       const extractLink = extractUrl(movie?.fileUrl);
-      if (extractLink === null) {
-        notification.error({ message: "An error occurred!" });
-        return;
-      }
-
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
         throw new Error("Failed to extract userId or fileName from URL");
       }
@@ -425,14 +455,13 @@ const MovieDetailPublisher = () => {
         extractLink.userId,
         extractLink.fileName
       );
-      console.log("PreUrl:", response.data);
-      window.open(response.data.url, "_blank");
+      setFileUrl(response.data.url);
+      setShowFileModal(true); // 👈 mở modal tại đây
     } catch (error) {
       notification.error({ message: error.message || "Not found" });
       console.error("Error fetching preUrl:", error);
     }
   };
-
   const columns = [
     {
       title: "Week (from - to)",
@@ -539,7 +568,28 @@ const MovieDetailPublisher = () => {
                       >
                         View File Copy-right
                       </Button>
-
+                              <Modal
+                                title="View File"
+                                open={showFileModal}
+                                onCancel={() => setShowFileModal(false)}
+                                footer={null}
+                                width="80%"
+                                height="80%"
+                              >
+                                {fileUrl ? (
+                                  <iframe
+                                    src={fileUrl}
+                                    title="File Preview"
+                                    width="100%"
+                                    height="500px"
+                                    style={{ border: "none" }}
+                                  />
+                                ) : (
+                                  <div className="flex justify-center items-center">
+                                    <Spin size="large" />
+                                  </div>
+                                )}
+                              </Modal>
                       {!hiddenStatuses.includes(movie?.status) && (
                         <Link
                           key={movie.id}
