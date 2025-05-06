@@ -7,6 +7,7 @@ import {
   FormOutlined,
   SolutionOutlined,
   PictureOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import UserApi from "../../../apis/User/user";
 import { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ import { useParams, Link } from "react-router-dom";
 import contractApi from "../../../apis/Contract/contract";
 import movieService from "../../../apis/Movie/movie";
 import axios from "axios";
+import PaymentHistoryTab from "./PaymentHistoryTab";
 
 // Extend movieService với phương thức lấy danh sách phim theo userId
 movieService.getListMovieByUserId = async (
@@ -193,6 +195,7 @@ const UserDetail = () => {
     if (key === "Contract" || key === "Movie") {
       fetchTabData(key.toLowerCase());
     }
+    // PaymentHistory tab handles its own data fetching
   };
 
   const handleTableChange = (newPagination) => {
@@ -205,6 +208,7 @@ const UserDetail = () => {
     if (stateKey === "contract" || stateKey === "movie") {
       fetchTabData(stateKey, newPagination.current, newPagination.pageSize);
     }
+    // PaymentHistory tab handles its own pagination
   };
 
   useEffect(() => {
@@ -220,6 +224,8 @@ const UserDetail = () => {
         return renderContract();
       case "Movie":
         return renderMovie();
+      case "PaymentHistory":
+        return <PaymentHistoryTab userId={id} />;
       default:
         return renderProfile();
     }
@@ -392,7 +398,7 @@ const UserDetail = () => {
           </Tag>
         ),
       },
- 
+
       {
         title: "Actions",
         key: "actions",
@@ -499,6 +505,15 @@ const UserDetail = () => {
                   <span className="flex items-center gap-2">
                     <PictureOutlined />
                     Movie
+                  </span>
+                ),
+              },
+              {
+                key: "PaymentHistory",
+                label: (
+                  <span className="flex items-center gap-2">
+                    <DollarOutlined />
+                    Payment History
                   </span>
                 ),
               },
