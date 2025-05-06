@@ -1,15 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  User,
-  LogOut,
-  LayoutDashboard,
-  Heart,
-  Tv,
-  Search,
-  ShoppingCart,
-} from "lucide-react";
+import { User, LogOut, LayoutDashboard, ShoppingCart } from "lucide-react";
 import { CrownOutlined, HistoryOutlined } from "@ant-design/icons";
 
 const dropdownVariants = {
@@ -96,11 +88,17 @@ function ProfileMenu({
       icon: <User />,
       label: "Profile Settings",
     },
-    {
-      to: "/subscription-history",
-      icon: <HistoryOutlined />,
-      label: "Subscription History",
-    },
+    // Only show Subscription History for non-Advertiser roles
+    ...(isAdvertiser
+      ? []
+      : [
+          {
+            to: "/subscription-history",
+            icon: <HistoryOutlined />,
+            label: "Subscription History",
+          },
+        ]),
+    // Add Buy AdSlot for Advertiser role
     ...(isAdvertiser
       ? [
           {
@@ -159,7 +157,7 @@ function ProfileMenu({
             {/* VIP Glow Effect */}
             {isVipMember && (
               <div
-                className="absolute inset-0 rounded-full bg-[#FF009F]/20 
+                className="absolute inset-0 rounded-full bg-[#FF009F]/20
                 animate-pulse pointer-events-none"
               />
             )}
@@ -172,7 +170,7 @@ function ProfileMenu({
           {isVipMember && (
             <span
               className="ml-2 inline-flex items-center px-1.5 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium
-              bg-gradient-to-r from-[#FF009F] to-[#FF4D4D] 
+              bg-gradient-to-r from-[#FF009F] to-[#FF4D4D]
               shadow-lg shadow-[#FF009F]/30
               border border-[#FF009F]/20
               animate-gradient-x"
@@ -207,9 +205,9 @@ function ProfileMenu({
               <div className="relative">
                 {/* Menu Triangle Pointer */}
                 <div
-                  className="absolute -top-1 right-4 sm:right-7 w-3 h-3 
+                  className="absolute -top-1 right-4 sm:right-7 w-3 h-3
                   bg-gradient-to-br from-[#1A1A2E] to-[#16162a]
-                  backdrop-blur-lg rotate-45 transform origin-center 
+                  backdrop-blur-lg rotate-45 transform origin-center
                   border-t border-l border-[#FF009F]/20"
                 />
 
@@ -246,7 +244,7 @@ function ProfileMenu({
                     {shouldShowDashboardButton && (
                       <Link
                         to={getDashboardPath()}
-                        className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                        className="flex items-center px-4 py-2.5 text-sm text-white/80
                           hover:bg-[#FF009F]/10 hover:text-white transition-all duration-200 group relative"
                         onClick={handleMenuItemClick}
                         role="menuitem"
@@ -258,11 +256,11 @@ function ProfileMenu({
                     )}
 
                     {/* Menu Items from configuration */}
-                    {menuItems.map((item, index) => (
+                    {menuItems.map((item) => (
                       <Link
                         key={`${item.to}-${item.label}`}
                         to={item.to}
-                        className="flex items-center px-4 py-2.5 text-sm text-white/80 
+                        className="flex items-center px-4 py-2.5 text-sm text-white/80
                           hover:bg-[#FF009F]/10 hover:text-white transition-all duration-200 group relative"
                         onClick={handleMenuItemClick}
                         role="menuitem"

@@ -43,10 +43,12 @@ import {
   FileTextOutlined,
   ReloadOutlined,
   LinkOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import AdPackageService from "../../../apis/AdPackage/adpackage";
 import adMediaService from "../../../apis/AdMedia/adMedia";
 import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
+import UserApi from "../../../apis/User/user";
 import { Helmet } from "react-helmet";
 import dayjs from "dayjs";
 import { theme } from "antd";
@@ -175,6 +177,8 @@ const AdPackageManagement = () => {
   const [totalPaymentAmount, setTotalPaymentAmount] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
+  const [userDetails, setUserDetails] = useState({});
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
   const { token } = theme.useToken();
 
   // Fetch AdPackages
@@ -265,6 +269,44 @@ const AdPackageManagement = () => {
     }
   };
 
+  // Fetch user details by ID
+  const fetchUserDetails = async (userId) => {
+    if (!userId || userDetails[userId]) return;
+
+    try {
+      const response = await UserApi.getUserDetail(userId);
+      if (response && response.success && response.data) {
+        setUserDetails((prev) => ({
+          ...prev,
+          [userId]: response.data,
+        }));
+      }
+    } catch (error) {
+      console.error(`Error fetching user details for ID ${userId}:`, error);
+    }
+  };
+
+  // Fetch user details for all transactions
+  const fetchAllUserDetails = async (transactions) => {
+    if (!transactions || transactions.length === 0) return;
+
+    setLoadingUserDetails(true);
+    try {
+      // Get unique user IDs
+      const userIds = [
+        ...new Set(transactions.map((transaction) => transaction.userId)),
+      ];
+
+      // Fetch user details for each unique user ID
+      const promises = userIds.map((userId) => fetchUserDetails(userId));
+      await Promise.all(promises);
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    } finally {
+      setLoadingUserDetails(false);
+    }
+  };
+
   // Fetch Ad Payment History
   const fetchAdPaymentHistory = async (
     page = adPaymentPagination.current,
@@ -327,14 +369,18 @@ const AdPackageManagement = () => {
       }
 
       if (response && response.success) {
-        setAdPaymentList(response.data || []);
-        setFilteredAdPayment(response.data || []);
+        const transactions = response.data || [];
+        setAdPaymentList(transactions);
+        setFilteredAdPayment(transactions);
         setAdPaymentPagination({
           ...adPaymentPagination,
           total: response.total || totalItems,
           current: page,
           pageSize: pageSize,
         });
+
+        // Fetch user details for all transactions
+        fetchAllUserDetails(transactions);
       } else {
         notification.error({
           message: "Error",
@@ -1253,8 +1299,38 @@ const AdPackageManagement = () => {
                 />
               </div>
 
+              {/* Table header */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.5fr 1fr 1fr 1fr 0.5fr",
+                  gap: 16,
+                  width: "100%",
+                  alignItems: "center",
+                  padding: "12px 16px",
+                  backgroundColor: token.colorBgLayout,
+                  borderRadius: "8px 8px 0 0",
+                  fontWeight: 600,
+                  marginBottom: 1,
+                  borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                }}
+              >
+                <div>Transaction ID / User</div>
+                <div>Amount</div>
+                <div>Payment Method</div>
+                <div>Date</div>
+                <div style={{ textAlign: "center" }}>Items</div>
+              </div>
+
               <div style={{ marginBottom: 24 }}>
-                <Collapse bordered={false} expandIconPosition="end">
+                <Collapse
+                  bordered={false}
+                  expandIconPosition="end"
+                  style={{
+                    backgroundColor: "white",
+                    borderRadius: "0 0 8px 8px",
+                  }}
+                >
                   {filteredAdPayment.map((transaction) => (
                     <Panel
                       key={transaction.id}
@@ -1262,32 +1338,13 @@ const AdPackageManagement = () => {
                         <div
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr",
+                            gridTemplateColumns: "1.5fr 1fr 1fr 1fr 0.5fr",
                             gap: 16,
                             width: "100%",
                             alignItems: "center",
                           }}
                         >
-                          <div>
-                            <Tooltip title={transaction.id}>
-                              <span
-                                style={{
-                                  fontSize: 12,
-                                  fontFamily: "monospace",
-                                }}
-                              >
-                                {transaction.id.substring(0, 8)}...
-                                {transaction.id.substring(
-                                  transaction.id.length - 4
-                                )}
-                              </span>
-                            </Tooltip>
-                          </div>
-                          <div>
-                            <span style={{ fontWeight: 500 }}>
-                              {formatVND(transaction.totalPrice)}
-                            </span>
-                          </div>
+                          {/* Transaction ID and User Info */}
                           <div>
                             <div
                               style={{
@@ -1295,44 +1352,106 @@ const AdPackageManagement = () => {
                                 flexDirection: "column",
                               }}
                             >
-                              <Text
-                                type="secondary"
-                                style={{ fontSize: 10, marginBottom: 2 }}
-                              >
-                                Payment Method
-                              </Text>
-                              <Tag
-                                color="cyan"
-                                style={{
-                                  margin: 0,
-                                  maxWidth: "100px",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                <DollarOutlined style={{ marginRight: 4 }} />
-                                {transaction.paymentMethod || "WALLET"}
-                              </Tag>
+                              <Tooltip title={transaction.id}>
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontFamily: "monospace",
+                                    color: token.colorTextSecondary,
+                                  }}
+                                >
+                                  {transaction.id.substring(0, 8)}...
+                                  {transaction.id.substring(
+                                    transaction.id.length - 4
+                                  )}
+                                </span>
+                              </Tooltip>
+                              {transaction.userId &&
+                              userDetails[transaction.userId] ? (
+                                <Tooltip
+                                  title={`User ID: ${transaction.userId}`}
+                                >
+                                  <span
+                                    style={{
+                                      fontSize: 12,
+                                      color: token.colorPrimary,
+                                      marginTop: 4,
+                                    }}
+                                  >
+                                    {userDetails[transaction.userId].fullName ||
+                                      "Unknown User"}
+                                  </span>
+                                </Tooltip>
+                              ) : (
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    color: token.colorTextSecondary,
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  {loadingUserDetails
+                                    ? "Loading user..."
+                                    : "Unknown User"}
+                                </span>
+                              )}
                             </div>
                           </div>
 
+                          {/* Amount */}
+                          <div>
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                fontSize: 15,
+                                color: token.colorTextHeading,
+                              }}
+                            >
+                              {formatVND(transaction.totalPrice)}
+                            </span>
+                          </div>
+
+                          {/* Payment Method */}
+                          <div>
+                            <Tag
+                              color="cyan"
+                              style={{
+                                margin: 0,
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              <DollarOutlined style={{ marginRight: 4 }} />
+                              {transaction.paymentMethod || "VNPay"}
+                            </Tag>
+                          </div>
+
+                          {/* Date */}
                           <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                            }}
+                            style={{ display: "flex", alignItems: "center" }}
                           >
-                            <span>{formatDateTime(transaction.createAt)}</span>
+                            <CalendarOutlined
+                              style={{
+                                marginRight: 6,
+                                color: token.colorTextSecondary,
+                              }}
+                            />
+                            <span style={{ color: token.colorTextSecondary }}>
+                              {formatDateTime(transaction.createAt)}
+                            </span>
+                          </div>
+
+                          {/* Items Count */}
+                          <div style={{ textAlign: "center" }}>
                             {transaction.adPurchaseItems &&
                               transaction.adPurchaseItems.length > 0 && (
                                 <Tag
                                   color="purple"
                                   style={{
-                                    display: "flex",
+                                    display: "inline-flex",
                                     alignItems: "center",
                                     cursor: "pointer",
+                                    borderRadius: "4px",
                                   }}
                                 >
                                   <ShoppingOutlined
@@ -1390,7 +1509,6 @@ const AdPackageManagement = () => {
                                       },
                                     }}
                                     bodyStyle={{ padding: 0 }}
-                                   
                                     hoverable
                                   >
                                     <div
@@ -1403,8 +1521,27 @@ const AdPackageManagement = () => {
                                         alignItems: "center",
                                       }}
                                     >
-                                      <Space>
-                                        <Text strong>Purchase Item</Text>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "8px",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                          }}
+                                        >
+                                          <ShoppingOutlined
+                                            style={{
+                                              marginRight: "8px",
+                                              color: token.colorPrimary,
+                                            }}
+                                          />
+                                          <Text strong>Purchase Item</Text>
+                                        </div>
                                         <Tag
                                           icon={<EyeOutlined />}
                                           color="blue"
@@ -1417,15 +1554,20 @@ const AdPackageManagement = () => {
                                         >
                                           {item.status}
                                         </Tag>
-                                      </Space>
-                                      <Space>
+                                      </div>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "8px",
+                                        }}
+                                      >
                                         <Text type="secondary">
                                           ID: {item.id.substring(0, 8)}...
                                         </Text>
                                         <Button
-                                          type="link"
+                                          type="primary"
                                           size="small"
-                                          icon={<LinkOutlined />}
                                           onClick={() =>
                                             navigate(
                                               `/manager/ad-purchase-item/${item.id}`
@@ -1434,112 +1576,182 @@ const AdPackageManagement = () => {
                                         >
                                           Details
                                         </Button>
-                                      </Space>
+                                      </div>
                                     </div>
-                                    <div style={{ padding: "0 16px 16px" }}>
-                                      <Row
-                                        gutter={16}
-                                        style={{ marginTop: 16 }}
+                                    <div style={{ padding: "16px" }}>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: "16px",
+                                        }}
                                       >
-                                        <Col span={12}>
-                                          <Card
-                                            size="small"
+                                        {/* First row: View Quantity and Remaining Views */}
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            gap: "16px",
+                                          }}
+                                        >
+                                          <div
                                             style={{
+                                              flex: "1",
+                                              minWidth: "240px",
                                               backgroundColor:
                                                 token.colorBgLayout,
-                                              border: `1px solid ${token.colorBorderSecondary}`,
+                                              padding: "16px",
+                                              borderRadius: "8px",
                                             }}
                                           >
-                                            <Text type="secondary">
-                                              Price Per View
-                                            </Text>
+                                            <div
+                                              style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                marginBottom: "8px",
+                                              }}
+                                            >
+                                              <EyeOutlined
+                                                style={{
+                                                  color: token.colorInfo,
+                                                  marginRight: "8px",
+                                                }}
+                                              />
+                                              <Text type="secondary">
+                                                View Quantity
+                                              </Text>
+                                            </div>
                                             <div
                                               style={{
                                                 fontWeight: 500,
                                                 fontSize: 16,
                                               }}
                                             >
-                                              {formatVND(item.pricePerView)}
-                                            </div>
-                                          </Card>
-                                        </Col>
-                                        <Col span={12}>
-                                          <Card
-                                            size="small"
-                                            style={{
-                                              backgroundColor:
-                                                token.colorBgLayout,
-                                              border: `1px solid ${token.colorBorderSecondary}`,
-                                            }}
-                                          >
-                                            <Text type="secondary">
-                                              Total Price
-                                            </Text>
-                                            <div
-                                              style={{
-                                                fontWeight: 500,
-                                                fontSize: 16,
-                                              }}
-                                            >
-                                              {formatVND(item.price)}
-                                            </div>
-                                          </Card>
-                                        </Col>
-                                      </Row>
-
-                                      <Descriptions
-                                        column={1}
-                                        size="small"
-                                        bordered
-                                        style={{ marginTop: 16 }}
-                                      >
-                                        <Descriptions.Item label="View Quantity">
-                                          <Space>
-                                            <EyeOutlined
-                                              style={{ color: token.colorInfo }}
-                                            />
-                                            <Text strong>
                                               {item.viewQuantity} views
-                                            </Text>
-                                          </Space>
-                                        </Descriptions.Item>
+                                            </div>
+                                          </div>
 
-                                        <Descriptions.Item label="Remaining View">
-                                          <Space>
-                                            <EyeOutlined
-                                              style={{ color: token.colorInfo }}
-                                            />
-                                            <Text strong>
+                                          <div
+                                            style={{
+                                              flex: "1",
+                                              minWidth: "240px",
+                                              backgroundColor:
+                                                token.colorBgLayout,
+                                              padding: "16px",
+                                              borderRadius: "8px",
+                                            }}
+                                          >
+                                            <div
+                                              style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                marginBottom: "8px",
+                                              }}
+                                            >
+                                              <EyeOutlined
+                                                style={{
+                                                  color: token.colorInfo,
+                                                  marginRight: "8px",
+                                                }}
+                                              />
+                                              <Text type="secondary">
+                                                Remaining Views
+                                              </Text>
+                                            </div>
+                                            <div
+                                              style={{
+                                                fontWeight: 500,
+                                                fontSize: 16,
+                                              }}
+                                            >
                                               {item.remainingViews} views
-                                            </Text>
-                                          </Space>
-                                        </Descriptions.Item>
+                                            </div>
+                                          </div>
+                                        </div>
 
-                                        <Descriptions.Item label="Price Per View">
-                                          <Space>
-                                            <DollarOutlined
+                                        {/* Second row: Price Per View and Total Price */}
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            gap: "16px",
+                                          }}
+                                        >
+                                          <div
+                                            style={{
+                                              flex: "1",
+                                              minWidth: "240px",
+                                              backgroundColor:
+                                                token.colorBgLayout,
+                                              padding: "16px",
+                                              borderRadius: "8px",
+                                            }}
+                                          >
+                                            <div
                                               style={{
-                                                color: token.colorSuccess,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                marginBottom: "8px",
                                               }}
-                                            />
-                                            <Text>
+                                            >
+                                              <DollarOutlined
+                                                style={{
+                                                  color: token.colorSuccess,
+                                                  marginRight: "8px",
+                                                }}
+                                              />
+                                              <Text type="secondary">
+                                                Price Per View
+                                              </Text>
+                                            </div>
+                                            <div
+                                              style={{
+                                                fontWeight: 500,
+                                                fontSize: 16,
+                                              }}
+                                            >
                                               {formatVND(item.pricePerView)}
-                                            </Text>
-                                          </Space>
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Total Price">
-                                          <Space>
-                                            <DollarOutlined
+                                            </div>
+                                          </div>
+
+                                          <div
+                                            style={{
+                                              flex: "1",
+                                              minWidth: "240px",
+                                              backgroundColor:
+                                                token.colorBgLayout,
+                                              padding: "16px",
+                                              borderRadius: "8px",
+                                            }}
+                                          >
+                                            <div
                                               style={{
-                                                color: token.colorSuccess,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                marginBottom: "8px",
                                               }}
-                                            />
-                                            <Text strong>
+                                            >
+                                              <DollarOutlined
+                                                style={{
+                                                  color: token.colorSuccess,
+                                                  marginRight: "8px",
+                                                }}
+                                              />
+                                              <Text type="secondary">
+                                                Total Price
+                                              </Text>
+                                            </div>
+                                            <div
+                                              style={{
+                                                fontWeight: 500,
+                                                fontSize: 16,
+                                              }}
+                                            >
                                               {formatVND(item.price)}
-                                            </Text>
-                                          </Space>
-                                        </Descriptions.Item>
-                                      </Descriptions>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
                                     </div>
                                   </Card>
                                 ))}
