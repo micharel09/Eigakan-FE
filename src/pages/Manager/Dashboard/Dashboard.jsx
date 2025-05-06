@@ -1,804 +1,308 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+"use client"
+
+import { useState, useEffect } from "react"
+import { notification, Spin } from "antd"
 import {
-  Card,
-  Tabs,
-  Statistic,
-  Row,
-  Col,
-  Spin,
-  Select,
-  Typography,
-  Table,
-  Tag,
-  Button,
-  Tooltip,
-  notification,
-  Skeleton,
-  Divider,
-} from "antd";
-import {
-  UserOutlined,
-  PlaySquareOutlined,
-  DollarOutlined,
-  StarOutlined,
-  ShoppingOutlined,
-  RiseOutlined,
-  CalendarOutlined,
   ReloadOutlined,
+  CheckCircleOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
-  SearchOutlined,
-  SyncOutlined,
-  ArrowRightOutlined,
-  BellOutlined,
-  FileTextOutlined,
-  PictureOutlined,
-} from "@ant-design/icons";
-import { Line, Bar, Pie, Doughnut } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip as ChartTooltip,
-  Legend,
-  Filler,
-} from "chart.js";
-import subscriptionService from "../../../apis/Subscription/subscription";
-import NewsApi from "../../../apis/News/news";
-import adPackageService from "../../../apis/AdPackage/adpackage";
-import { Helmet } from "react-helmet";
-import { Link } from "react-router-dom";
+  DollarOutlined,
+  CreditCardOutlined,
+  PieChartOutlined,
+} from "@ant-design/icons"
+import axios from "axios"
+import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService"
 
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  ChartTooltip,
-  Legend,
-  Filler
-);
+// Format currency to VND
+const formatVND = (price) => {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(price)
+}
 
-const { TabPane } = Tabs;
-const { Title: TitleTypography, Text } = Typography;
-const { Option } = Select;
-
-const colorMap = {
-  blue: "#1890ff",
-  purple: "#722ed1",
-  green: "#52c41a",
-  red: "#f5222d",
-  orange: "#fa8c16",
-  cyan: "#13c2c2",
-};
-
-const StatCard = ({ title, value, icon, color, linkTo }) => (
-  <Card
-    bordered={false}
-    className={`h-full shadow-sm hover:shadow-md transition-shadow border-l-4 border-${color}-500 relative overflow-hidden`}
-    bodyStyle={{ padding: "16px" }}
-  >
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-500 text-sm mb-1">{title}</p>
-        <p className={`text-${color}-500 text-2xl font-bold`}>{value}</p>
-      </div>
-      <div
-        className={`w-10 h-10 rounded-full bg-${color}-100 flex items-center justify-center`}
-      >
-        {icon}
-      </div>
-    </div>
-
-    {linkTo && (
-      <div className="mt-3 pt-2 border-t border-gray-100">
-        <Link
-          to={linkTo}
-          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md bg-${color}-50 hover:bg-${color}-100 text-${color}-600 transition-all duration-300 group text-xs`}
+// Stat Card Component
+const StatCard = ({ title, value, icon, color, subValue, subTitle, loading, trend, onClick }) => {
+  return (
+    <div
+      className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 p-6 h-full ${
+        onClick ? "cursor-pointer" : ""
+      }`}
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div
+          className="w-12 h-12 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: `${color}15` }}
         >
-          <span className="font-medium">View Details</span>
+          <span style={{ color }}>{icon}</span>
+        </div>
+
+        {trend !== undefined && (
           <div
-            className={`w-5 h-5 rounded-full bg-${color}-500 flex items-center justify-center transform group-hover:translate-x-1 transition-transform duration-300`}
+            className={`px-2 py-1 text-xs font-medium rounded-full flex items-center ${
+              trend >= 0 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+            }`}
           >
-            <ArrowRightOutlined className="text-white text-xs" />
+            {trend >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+            <span className="ml-1">{Math.abs(trend)}%</span>
           </div>
-        </Link>
+        )}
       </div>
-    )}
-  </Card>
-);
+
+      <div className="space-y-1">
+        <div className="text-gray-500 text-sm font-medium">{title}</div>
+        {loading ? (
+          <Spin size="small" />
+        ) : (
+          <div className="text-2xl font-bold" style={{ color }}>
+            {value}
+          </div>
+        )}
+      </div>
+
+      {subValue !== undefined && subTitle && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">{subTitle}</span>
+            <span className="font-semibold">{subValue}</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+            <div
+              className="h-1.5 rounded-full"
+              style={{
+                width: `${typeof subValue === "number" && typeof value === "number" ? (subValue / value) * 100 : 0}%`,
+                backgroundColor: color,
+              }}
+            ></div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Section Header Component
+const SectionHeader = ({ title, viewAllLink, onRefresh }) => (
+  <div className="flex justify-between items-center mb-4">
+    <div className="flex items-center">
+      <div className="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+      <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+    </div>
+    <div className="flex items-center gap-3">
+      {onRefresh && (
+        <button
+          onClick={onRefresh}
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          title="Refresh data"
+        >
+          <ReloadOutlined className="text-gray-500" />
+        </button>
+      )}
+      {viewAllLink && (
+        <a
+          href={viewAllLink}
+          className="text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium flex items-center"
+        >
+          View All
+          <ArrowUpOutlined className="ml-1 transform rotate-45" />
+        </a>
+      )}
+    </div>
+  </div>
+)
 
 const ManagerDashboard = () => {
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [chartsLoading, setChartsLoading] = useState(true);
+  // Advertisement data
+  const [advertiseItemLoading, setAdvertiseItemLoading] = useState(true)
+  const [advertiseItemData, setAdvertiseItemData] = useState({
+    totalConsumed: 0,
+    totalPurchased: 0,
+  })
 
-  // State for each data type
-  const [subscriptionData, setSubscriptionData] = useState([]);
-  const [newsData, setNewsData] = useState([]);
-  const [adPackageData, setAdPackageData] = useState([]);
+  // Subscription data
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
+  const [subscriptionData, setSubscriptionData] = useState({
+    totalSubscription: 0,
+    totalActiveAmount: 0,
+    totalAmount: 0,
+  })
 
-  const [timeRange, setTimeRange] = useState("week");
-
-  // Stats for display on cards
-  const [stats, setStats] = useState({
-    activeSubscriptions: 0,
-    totalNews: 0,
-    activeAdPackages: 0,
-  });
-
-  // Chart data states
-  const [packageDistribution, setPackageDistribution] = useState(null);
-  const [newsDistribution, setNewsDistribution] = useState(null);
-  const [adPackageDistribution, setAdPackageDistribution] = useState(null);
-
-  // Chart configuration
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: {
-      duration: 500,
-      easing: "easeOutQuad",
-    },
-    transitions: {
-      active: {
-        animation: {
-          duration: 300,
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        position: "top",
-        labels: {
-          font: {
-            family: "'Inter', sans-serif",
-            size: 12,
-          },
-          usePointStyle: true,
-          padding: 20,
-        },
-      },
-      tooltip: {
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        titleFont: {
-          family: "'Inter', sans-serif",
-          size: 14,
-        },
-        bodyFont: {
-          family: "'Inter', sans-serif",
-          size: 13,
-        },
-        padding: 12,
-        cornerRadius: 8,
-        displayColors: true,
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-          drawBorder: false,
-        },
-        ticks: {
-          font: {
-            family: "'Inter', sans-serif",
-            size: 11,
-          },
-          color: "#64748b",
-        },
-      },
-      y: {
-        grid: {
-          color: "rgba(226, 232, 240, 0.5)",
-        },
-        ticks: {
-          font: {
-            family: "'Inter', sans-serif",
-            size: 11,
-          },
-          color: "#64748b",
-        },
-      },
-    },
-  };
-
-  // Table columns configuration
-  const newsColumns = [
-    {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
-      ellipsis: true,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => (
-        <Tag color={status === "Active" ? "green" : "orange"}>{status}</Tag>
-      ),
-    },
-    {
-      title: "Created Date",
-      key: "createdDate",
-      render: (_, record) => {
-        // Try both createDate and createAt fields
-        const dateValue = record.createDate || record.createAt;
-        return dateValue ? new Date(dateValue).toLocaleDateString() : "N/A";
-      },
-    },
-  ];
-
-  // Fetch all necessary data
-  const fetchAllData = useCallback(async () => {
-    setStatsLoading(true);
-
+  // Fetch subscription data
+  const fetchSubscriptionData = async () => {
     try {
-      // Fetch subscription packages
-      const subscriptionResponse = await subscriptionService.getAllPackages(
-        1,
-        100
-      );
-      console.log("Subscription response:", subscriptionResponse);
-      const packages = subscriptionResponse?.data?.subscriptionpackage || [];
-      setSubscriptionData(packages);
+      setSubscriptionLoading(true)
+      const token = localStorage.getItem("token")
+      const response = await axios.get(
+        "https://eigakan-001-site1.ktempurl.com/api/SubscriptionPurchasePayment?page=1&pageSize=5",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
 
-      // Fetch news - Handle different possible response structures
-      const newsResponse = await NewsApi.getAllNews();
-      console.log("Raw news response:", newsResponse);
-
-      // Try different potential paths to the data
-      let news = [];
-      if (newsResponse?.data?.data) {
-        // Structure: { success: true, data: [...], message: "..." }
-        news = newsResponse.data.data;
-      } else if (Array.isArray(newsResponse?.data)) {
-        // Structure: { data: [...] }
-        news = newsResponse.data;
-      } else if (newsResponse?.data) {
-        // Structure might have data directly in the response
-        news = newsResponse.data;
+      if (response?.data?.success) {
+        setSubscriptionData({
+          totalSubscription: response?.data?.data?.total || 0,
+          totalActiveAmount: response?.data?.data?.activeSubscriptionCount || 0,
+          totalAmount: response?.data?.data?.totalEarnings || 0,
+        })
       }
-
-      console.log("Processed news data:", news);
-      setNewsData(news);
-
-      // Fetch ad packages
-      const adPackageResponse = await adPackageService.getAllAdPackages(1, 100);
-      console.log("Ad package response:", adPackageResponse);
-      const adPackages = adPackageResponse?.adPackages || [];
-      setAdPackageData(adPackages);
-
-      // Calculate statistics
-      const activeSubscriptions = packages.filter(
-        (pkg) => pkg.status === "Active"
-      ).length;
-      const totalNews = news.length;
-      const activeAdPackages = adPackages.filter(
-        (pkg) => pkg.status === "Active"
-      ).length;
-
-      setStats({
-        activeSubscriptions,
-        totalNews,
-        activeAdPackages,
-      });
-
-      return true;
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      console.error("Error fetching subscription data:", error)
       notification.error({
         message: "Error",
-        description: "Failed to load dashboard data. Please try again.",
-      });
-      return false;
+        description: "Could not fetch subscription data.",
+      })
     } finally {
-      setStatsLoading(false);
+      setSubscriptionLoading(false)
     }
-  }, []);
+  }
 
-  // Prepare subscription package distribution data
-  const preparePackageDistributionData = useCallback(() => {
-    if (!subscriptionData || subscriptionData.length === 0) {
-      return {
-        labels: ["Basic", "Standard", "Premium"],
-        datasets: [
-          {
-            data: [1, 1, 1],
-            backgroundColor: [
-              "rgba(255, 99, 132, 0.8)",
-              "rgba(255, 206, 86, 0.8)",
-              "rgba(54, 162, 235, 0.8)",
-            ],
-            borderColor: [
-              "rgba(255, 99, 132, 1)",
-              "rgba(255, 206, 86, 1)",
-              "rgba(54, 162, 235, 1)",
-            ],
-            borderWidth: 1,
-          },
-        ],
-      };
-    }
-
-    // Count packages by name instead of status
-    const packageCounts = {};
-
-    subscriptionData.forEach((pkg) => {
-      const packageName = pkg.packageName || "Unknown";
-      packageCounts[packageName] = (packageCounts[packageName] || 0) + 1;
-    });
-
-    const labels = Object.keys(packageCounts);
-    const data = Object.values(packageCounts);
-
-    // Create color arrays based on the number of package types
-    const backgroundColors = labels.map((_, index) => {
-      const colors = [
-        "rgba(255, 99, 132, 0.8)",
-        "rgba(255, 206, 86, 0.8)",
-        "rgba(54, 162, 235, 0.8)",
-        "rgba(75, 192, 192, 0.8)",
-      ];
-      return colors[index % colors.length];
-    });
-
-    const borderColors = backgroundColors.map((color) =>
-      color.replace("0.8", "1")
-    );
-
-    return {
-      labels,
-      datasets: [
-        {
-          data,
-          backgroundColor: backgroundColors,
-          borderColor: borderColors,
-          borderWidth: 1,
-        },
-      ],
-    };
-  }, [subscriptionData]);
-
-  // Prepare news distribution data by status
-  const prepareNewsDistributionData = useCallback(() => {
-    if (!newsData || newsData.length === 0) {
-      return {
-        labels: ["Active", "Deleted"],
-        datasets: [
-          {
-            data: [1, 1],
-            backgroundColor: [
-              "rgba(75, 192, 192, 0.8)",
-              "rgba(153, 102, 255, 0.8)",
-            ],
-            borderColor: ["rgba(75, 192, 192, 1)", "rgba(153, 102, 255, 1)"],
-            borderWidth: 1,
-          },
-        ],
-      };
-    }
-
-    console.log("Preparing news distribution from data:", newsData);
-
-    // Count news by status
-    const statusCounts = {};
-    newsData.forEach((news) => {
-      const status = news.status || "Unknown";
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
-    });
-
-    console.log("News status counts:", statusCounts);
-
-    const labels = Object.keys(statusCounts);
-    const data = Object.values(statusCounts);
-
-    // Create colors array based on number of statuses
-    const backgroundColors = labels.map((_, index) => {
-      const colors = [
-        "rgba(75, 192, 192, 0.8)",
-        "rgba(153, 102, 255, 0.8)",
-        "rgba(255, 159, 64, 0.8)",
-      ];
-      return colors[index % colors.length];
-    });
-
-    const borderColors = backgroundColors.map((color) =>
-      color.replace("0.8", "1")
-    );
-
-    return {
-      labels,
-      datasets: [
-        {
-          data,
-          backgroundColor: backgroundColors,
-          borderColor: borderColors,
-          borderWidth: 1,
-        },
-      ],
-    };
-  }, [newsData]);
-
-  // Prepare ad package distribution data
-  const prepareAdPackageDistributionData = useCallback(() => {
-    if (!adPackageData || adPackageData.length === 0) {
-      return {
-        labels: ["Vip", "SuperVip", "UltraVip"],
-        datasets: [
-          {
-            data: [1, 1, 1],
-            backgroundColor: [
-              "rgba(255, 206, 86, 0.8)",
-              "rgba(75, 192, 192, 0.8)",
-              "rgba(153, 102, 255, 0.8)",
-            ],
-            borderColor: [
-              "rgba(255, 206, 86, 1)",
-              "rgba(75, 192, 192, 1)",
-              "rgba(153, 102, 255, 1)",
-            ],
-            borderWidth: 1,
-          },
-        ],
-      };
-    }
-
-    // Count ad packages by package name
-    const packageNameCounts = {};
-
-    adPackageData.forEach((pkg) => {
-      const packageName = pkg.packageName || "Unknown";
-      packageNameCounts[packageName] =
-        (packageNameCounts[packageName] || 0) + 1;
-    });
-
-    const labels = Object.keys(packageNameCounts);
-    const data = Object.values(packageNameCounts);
-
-    // Create colors array
-    const backgroundColors = labels.map((_, index) => {
-      const colors = [
-        "rgba(255, 206, 86, 0.8)",
-        "rgba(75, 192, 192, 0.8)",
-        "rgba(153, 102, 255, 0.8)",
-        "rgba(255, 159, 64, 0.8)",
-      ];
-      return colors[index % colors.length];
-    });
-
-    const borderColors = backgroundColors.map((color) =>
-      color.replace("0.8", "1")
-    );
-
-    return {
-      labels,
-      datasets: [
-        {
-          data,
-          backgroundColor: backgroundColors,
-          borderColor: borderColors,
-          borderWidth: 1,
-        },
-      ],
-    };
-  }, [adPackageData]);
-
-  // Process and prepare chart data
-  const processCharts = useCallback(() => {
-    setChartsLoading(true);
-
+  // Fetch advertisement data
+  const fetchAdvertiseItemData = async () => {
     try {
-      // Prepare all chart data
-      const packageData = preparePackageDistributionData();
-      setPackageDistribution(packageData);
+      setAdvertiseItemLoading(true)
+      const response = await adPurchaseService.getAllAdPurchaseItems(1, 5)
 
-      const newsData = prepareNewsDistributionData();
-      setNewsDistribution(newsData);
-
-      const adPackageData = prepareAdPackageDistributionData();
-      setAdPackageDistribution(adPackageData);
+      if (response?.success && response.data) {
+        setAdvertiseItemData({
+          totalConsumed: response.totalConsumed || 0,
+          totalPurchased: response.totalPurchased || 0,
+        })
+      }
     } catch (error) {
-      console.error("Error processing chart data:", error);
+      console.error("Error fetching ad purchase data:", error)
       notification.error({
         message: "Error",
-        description: "Failed to process dashboard charts. Please try again.",
-      });
+        description: "Could not fetch ad purchase data.",
+      })
     } finally {
-      setChartsLoading(false);
+      setAdvertiseItemLoading(false)
     }
-  }, [
-    preparePackageDistributionData,
-    prepareNewsDistributionData,
-    prepareAdPackageDistributionData,
-  ]);
+  }
 
-  // Process and prepare chart data after data is loaded
+  // Fetch all data on component mount
   useEffect(() => {
-    if (
-      subscriptionData.length > 0 ||
-      newsData.length > 0 ||
-      adPackageData.length > 0
-    ) {
-      processCharts();
-    }
-  }, [subscriptionData, newsData, adPackageData, processCharts]);
+    fetchSubscriptionData()
+    fetchAdvertiseItemData()
+  }, [])
 
-  // Initial data loading
-  useEffect(() => {
-    const initializeDashboard = async () => {
-      setLoading(true);
-      await fetchAllData();
-      setLoading(false);
-    };
+  // Refresh all data
+  const handleRefreshAll = () => {
+    fetchSubscriptionData()
+    fetchAdvertiseItemData()
+    notification.success({
+      message: "Refreshed",
+      description: "Dashboard data has been refreshed.",
+      duration: 2,
+    })
+  }
 
-    initializeDashboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array to run only once on mount
-
-  // Handle refresh button click
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    const success = await fetchAllData();
-    if (success) {
-      processCharts();
-      notification.success({
-        message: "Refresh successful",
-        description: "Dashboard data has been updated.",
-      });
-    }
-    setRefreshing(false);
-  };
-
-  // Memoize chart data to prevent unnecessary renders
-  const memoizedPackageDistribution = useMemo(
-    () => packageDistribution,
-    [packageDistribution]
-  );
-
-  const memoizedNewsDistribution = useMemo(
-    () => newsDistribution,
-    [newsDistribution]
-  );
-
-  const memoizedAdPackageDistribution = useMemo(
-    () => adPackageDistribution,
-    [adPackageDistribution]
-  );
-
-  // Skeleton loaders
-  const renderSkeletonChart = () => (
-    <div className="bg-white p-4 rounded-xl shadow-md">
-      <div className="w-[150px] h-6 mb-4 bg-gray-200 rounded relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"></div>
-      </div>
-      <div className="w-full h-[300px] bg-gray-200 rounded relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"></div>
-      </div>
-    </div>
-  );
-
-  const renderSkeletonCard = () => (
-    <div className="bg-white p-5 rounded-xl shadow-sm">
-      <div className="w-[60px] h-4 mb-2 bg-gray-200 rounded relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"></div>
-      </div>
-      <div className="w-[120px] h-6 bg-gray-200 rounded relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"></div>
-      </div>
-    </div>
-  );
-
-  // Recent News Articles section
-  const renderNewsTable = () => {
-    // Debugging
-    console.log("Rendering news table with data:", newsData);
-
-    if (newsData.length > 0) {
-      console.log("Sample news item:", newsData[0]);
-      console.log("News item createDate:", newsData[0].createDate);
-    }
-
-    return (
-      <div className="grid grid-cols-1 gap-3">
-        <Card
-          title={
-            <span className="text-sm font-medium">Recent News Articles</span>
-          }
-          className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
-          bodyStyle={{ padding: "12px" }}
-          headStyle={{ padding: "8px 12px" }}
-          extra={
-            <Link
-              to="/manager/news"
-              className="text-xs text-blue-500 hover:text-blue-700"
-            >
-              View All
-            </Link>
-          }
-        >
-          {newsData && newsData.length > 0 ? (
-            <Table
-              dataSource={newsData.slice(0, 5)}
-              rowKey="id"
-              size="small"
-              pagination={false}
-              columns={newsColumns}
-            />
-          ) : (
-            <div className="py-5 flex flex-col items-center">
-              <p className="text-gray-500">No news articles found</p>
-            </div>
-          )}
-        </Card>
-      </div>
-    );
-  };
+  // Calculate total revenue
+  const totalRevenue = {
+    adRevenue: advertiseItemData.totalConsumed || 0,
+    subscriptionRevenue: subscriptionData.totalAmount || 0,
+    total: (advertiseItemData.totalConsumed || 0) + (subscriptionData.totalAmount || 0),
+  }
 
   return (
-    <div className="p-2 md:p-4 space-y-4 bg-gray-50 min-h-screen overflow-x-hidden">
-      <Helmet>
-        <title>Manager Dashboard - EIGAKAN</title>
-      </Helmet>
-
-      <div className="flex justify-between items-center mb-2">
-        <h1 className="text-lg md:text-xl font-bold text-gray-800">
-          Manager Dashboard
-        </h1>
-
-        <div className="flex items-center gap-2">
-          <Tooltip title="Refresh dashboard data">
-            <Button
-              type="primary"
-              shape="circle"
-              size="small"
-              icon={refreshing ? <SyncOutlined spin /> : <ReloadOutlined />}
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center justify-center"
-            />
-          </Tooltip>
-        </div>
-      </div>
-
-      {/* Statistics Cards */}
-      {statsLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i}>{renderSkeletonCard()}</div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <StatCard
-            title="Active Subscription Packages"
-            value={stats.activeSubscriptions}
-            icon={<PlaySquareOutlined style={{ color: colorMap.blue }} />}
-            color="blue"
-            linkTo="/manager/subscription"
-          />
-
-          <StatCard
-            title="News Articles"
-            value={stats.totalNews}
-            icon={<FileTextOutlined style={{ color: colorMap.purple }} />}
-            color="purple"
-            linkTo="/manager/news"
-          />
-
-          <StatCard
-            title="Active Ad Packages"
-            value={stats.activeAdPackages}
-            icon={<PictureOutlined style={{ color: colorMap.green }} />}
-            color="green"
-            linkTo="/manager/ad-package"
-          />
-        </div>
-      )}
-
-      {/* Charts */}
-      {!loading && !chartsLoading ? (
-        <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            {/* Subscription Packages Distribution Chart */}
-            <Card
-              title={
-                <span className="text-sm font-medium">
-                  Subscription Package Types
-                </span>
-              }
-              className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
-              bodyStyle={{ height: 280, padding: "12px" }}
-              headStyle={{ padding: "8px 12px" }}
-            >
-              <div className="w-full h-full">
-                {memoizedPackageDistribution && (
-                  <Doughnut
-                    data={memoizedPackageDistribution}
-                    options={{
-                      ...chartOptions,
-                      maintainAspectRatio: false,
-                      cutout: "65%",
-                      animation: { duration: 0 },
-                    }}
-                  />
-                )}
-              </div>
-            </Card>
-
-            {/* News Distribution Chart */}
-            <Card
-              title={
-                <span className="text-sm font-medium">
-                  News Status Distribution
-                </span>
-              }
-              className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
-              bodyStyle={{ height: 280, padding: "12px" }}
-              headStyle={{ padding: "8px 12px" }}
-            >
-              <div className="w-full h-full">
-                {memoizedNewsDistribution && (
-                  <Pie
-                    data={memoizedNewsDistribution}
-                    options={{
-                      ...chartOptions,
-                      maintainAspectRatio: false,
-                      animation: { duration: 0 },
-                    }}
-                  />
-                )}
-              </div>
-            </Card>
-
-            {/* Ad Packages Distribution Chart */}
-            <Card
-              title={
-                <span className="text-sm font-medium">Ad Package Types</span>
-              }
-              className="rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
-              bodyStyle={{ height: 280, padding: "12px" }}
-              headStyle={{ padding: "8px 12px" }}
-            >
-              <div className="w-full h-full">
-                {memoizedAdPackageDistribution && (
-                  <Doughnut
-                    data={memoizedAdPackageDistribution}
-                    options={{
-                      ...chartOptions,
-                      maintainAspectRatio: false,
-                      cutout: "65%",
-                      animation: { duration: 0 },
-                    }}
-                  />
-                )}
-              </div>
-            </Card>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Dashboard Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-1">Dashboard</h1>
+            <p className="text-gray-500">Welcome back! Here's an overview of your platform.</p>
           </div>
 
-          {/* Recent Activity (Tables) */}
-          {renderNewsTable()}
-        </>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i}>{renderSkeletonChart()}</div>
-          ))}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefreshAll}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={advertiseItemLoading || subscriptionLoading}
+            >
+              <ReloadOutlined className={`${advertiseItemLoading || subscriptionLoading ? "animate-spin" : ""}`} />
+              <span>Refresh All</span>
+            </button>
+          </div>
         </div>
-      )}
-    </div>
-  );
-};
 
-export default ManagerDashboard;
+        {/* Subscription Orders Section */}
+        <div className="mb-8">
+          <SectionHeader
+            title="Subscription Orders"
+            viewAllLink="/subscription-orders"
+            onRefresh={fetchSubscriptionData}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <StatCard
+              title="Total Subscriptions"
+              value={subscriptionData.totalSubscription.toLocaleString()}
+              subValue={subscriptionData.totalActiveAmount}
+              subTitle="Active Subscriptions"
+              icon={<CreditCardOutlined style={{ fontSize: 20 }} />}
+              color="#2f54eb"
+              loading={subscriptionLoading}
+              trend={3}
+            />
+
+            <StatCard
+              title="Active Subscriptions"
+              value={subscriptionData.totalActiveAmount.toLocaleString()}
+              icon={<CheckCircleOutlined style={{ fontSize: 20 }} />}
+              color="#52c41a"
+              loading={subscriptionLoading}
+              trend={5}
+            />
+
+            <StatCard
+              title="Total Revenue"
+              value={formatVND(subscriptionData.totalAmount)}
+              icon={<DollarOutlined style={{ fontSize: 20 }} />}
+              color="#faad14"
+              loading={subscriptionLoading}
+              trend={11}
+            />
+          </div>
+        </div>
+
+        {/* Ads Section */}
+        <div className="mb-8">
+          <SectionHeader title="Advertisement" viewAllLink="/ads" onRefresh={fetchAdvertiseItemData} />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <StatCard
+              title="Total Consumed"
+              value={formatVND(advertiseItemData.totalConsumed)}
+              icon={<PieChartOutlined style={{ fontSize: 20 }} />}
+              color="#f5222d"
+              loading={advertiseItemLoading}
+              trend={7}
+            />
+
+            <StatCard
+              title="Total Purchased"
+              value={formatVND(advertiseItemData.totalPurchased)}
+              icon={<DollarOutlined style={{ fontSize: 20 }} />}
+              color="#52c41a"
+              loading={advertiseItemLoading}
+              trend={4}
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-gray-400 text-xs mt-12 pb-6">
+          <p>© 2025 Eigakan Manager Dashboard. All rights reserved.</p>
+          <p>Last updated: {new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ManagerDashboard

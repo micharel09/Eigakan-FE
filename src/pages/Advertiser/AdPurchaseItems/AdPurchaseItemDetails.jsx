@@ -98,6 +98,8 @@ const AdPurchaseItemDetails = () => {
         return "warning";
       case "CANCELED":
       case "EXPIRED":
+      case "REFUNDED":
+        case "REJECTED":
         return "error";
       default:
         return "default";
@@ -305,6 +307,7 @@ const AdPurchaseItemDetails = () => {
                   {itemDetails.id}
                 </Text>
               </Descriptions.Item>
+
               <Descriptions.Item label="Status">
                 <Tag
                   icon={getStatusIcon(itemDetails.status)}
@@ -312,6 +315,7 @@ const AdPurchaseItemDetails = () => {
                 >
                   {itemDetails.status}
                 </Tag>
+
               </Descriptions.Item>
               <Descriptions.Item label="Ad Package">
                 <Tag color="purple">{itemDetails.adPackageName}</Tag>
@@ -332,10 +336,9 @@ const AdPurchaseItemDetails = () => {
                   {formatVND(itemDetails.pricePerView)}
                 </Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Expiry Date">
-                <Space>
-                  <CalendarOutlined />
-                  {formatDate(itemDetails.expiredDate)}
+              <Descriptions.Item label="Remaining Views">
+                <Space>                 
+                  {itemDetails.remainingViews}
                 </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Refunded Price">

@@ -32,6 +32,7 @@ import uploadFileApi from "../../apis/Upload/upload";
 import HistoryTab from "./HistoryTab";
 import BillingTab from "./BillingTab";
 import subscriptionService from "../../apis/Subscription/subscription";
+import moment from 'moment';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -289,9 +290,15 @@ const Profile = () => {
                 <Radio value={true}>Male</Radio>
                 <Radio value={false}>Female</Radio>
               </Radio.Group>
-            </Form.Item>
+            </Form.Item>      
             <Form.Item label="Birthday" name="birthday">
-              <DatePicker format="YYYY-MM-DD" />
+              <DatePicker 
+                format="YYYY-MM-DD"
+                disabledDate={(current) => {
+                  // Disable ngày lớn hơn hôm nay
+                  return current && current > moment().endOf('day');
+                }}
+              />
             </Form.Item>
           </Form>
         </Modal>

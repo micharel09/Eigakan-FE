@@ -295,12 +295,6 @@ const AdPurchaseItemDetails = () => {
                   {formatVND(itemDetails.pricePerView)}
                 </Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Expiry Date">
-                <Space>
-                  <CalendarOutlined />
-                  {formatDate(itemDetails.expiredDate)}
-                </Space>
-              </Descriptions.Item>
               <Descriptions.Item label="Refunded Price">
                 {itemDetails.refundedPrice !== null ? (
                   <Text style={{ color: token.colorSuccess }}>

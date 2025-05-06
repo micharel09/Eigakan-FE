@@ -156,7 +156,7 @@ const SubscriptionPlans = () => {
                       {formatVND(pkg.price)}
                     </span>
                     <span className="text-gray-400 ml-1">
-                      /{pkg.duration} ngày
+                      /{pkg.duration} days
                     </span>
                   </div>
                 </div>
