@@ -196,7 +196,7 @@ const CreateMoviePublisher = () => {
         modalForm.setFieldsValue({
           image: [file],
           picture: response.data.data[0].url,
-        });       
+        });
         notification.success({
           message: "Upload Successful",
           description: "Image has been uploaded successfully",
@@ -914,7 +914,11 @@ const CreateMoviePublisher = () => {
                     validator: (_, value) => {
                       const currentYear = new Date().getFullYear();
                       if (value && (value > currentYear || value < 1888)) {
-                        return Promise.reject(new Error(`Release year must be between 1888 and ${currentYear}.`));
+                        return Promise.reject(
+                          new Error(
+                            `Release year must be between 1888 and ${currentYear}.`
+                          )
+                        );
                       }
                       return Promise.resolve();
                     },
@@ -930,9 +934,40 @@ const CreateMoviePublisher = () => {
                 label="Duration (minutes)"
                 rules={[
                   { required: true, message: "Please input the duration!" },
+                  {
+                    type: "number",
+                    min: 1,
+                    message: "Duration must be at least 1 minute!",
+                  },
+                  {
+                    type: "number",
+                    max: 600,
+                    message: "Duration cannot exceed 600 minutes (10 hours)!",
+                  },
+                  {
+                    validator: (_, value) => {
+                      if (value && !Number.isInteger(Number(value))) {
+                        return Promise.reject(
+                          new Error("Duration must be a whole number!")
+                        );
+                      }
+                      if (value && (isNaN(value) || value <= 0)) {
+                        return Promise.reject(
+                          new Error("Please enter a valid positive number!")
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
+                normalize={(value) => (value ? parseInt(value, 10) : value)}
               >
-                <InputNumber min={1} className="w-full" />
+                <InputNumber
+                  min={1}
+                  max={600}
+                  precision={0}
+                  className="w-full"
+                />
               </Form.Item>
 
               <Form.Item
@@ -1016,16 +1051,37 @@ const CreateMoviePublisher = () => {
                     required: true,
                     message: "Please select at least one genre!",
                   },
+                  {
+                    validator: (_, value) => {
+                      if (value && value.length > 5) {
+                        return Promise.reject(
+                          new Error("You can select maximum 5 genres!")
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
               >
                 <Select
                   mode="multiple"
                   showSearch
-                  placeholder="Select genres"
+                  placeholder="Select genres (maximum 5)"
                   optionLabelProp="label"
+                  maxTagCount={5}
+                  maxTagTextLength={10}
                   filterOption={(input, option) =>
                     option?.label?.toLowerCase().includes(input.toLowerCase())
                   }
+                  onChange={(value) => {
+                    if (value.length > 5) {
+                      notification.warning({
+                        message: "Maximum 5 genres allowed",
+                        description: "You can only select up to 5 genres.",
+                      });
+                      return form.setFieldsValue({ genres: value.slice(0, 5) });
+                    }
+                  }}
                 >
                   {genres.map((g) => (
                     <Option key={g.id} value={g.id} label={g.name}>

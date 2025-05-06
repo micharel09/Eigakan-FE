@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -17,7 +17,7 @@ import {
   Empty,
   Tag,
   Progress,
-} from "antd"
+} from "antd";
 import {
   UploadOutlined,
   PlusOutlined,
@@ -27,76 +27,76 @@ import {
   VideoCameraOutlined,
   CheckCircleOutlined,
   EyeOutlined,
-} from "@ant-design/icons"
-import { useNavigate, useParams } from "react-router-dom"
-import genreService from "../../../apis/Genre/genre"
-import personService from "../../../apis/Person/person"
-import uploadFileApi from "../../../apis/Upload/upload"
-import movieApi from "../../../apis/Movie/movie"
-import { extractUrl } from "../../../utils/extractUrl"
+} from "@ant-design/icons";
+import { useNavigate, useParams } from "react-router-dom";
+import genreService from "../../../apis/Genre/genre";
+import personService from "../../../apis/Person/person";
+import uploadFileApi from "../../../apis/Upload/upload";
+import movieApi from "../../../apis/Movie/movie";
+import { extractUrl } from "../../../utils/extractUrl";
 
-const { Option } = Select
-const { TextArea } = Input
-const { TabPane } = Tabs
-const { Dragger } = Upload
+const { Option } = Select;
+const { TextArea } = Input;
+const { TabPane } = Tabs;
+const { Dragger } = Upload;
 
 // Maximum number of media items allowed per type
-const MAX_MEDIA_PER_TYPE = 2
+const MAX_MEDIA_PER_TYPE = 2;
 
 const UpdateMovieAdmin = () => {
-  const [form] = Form.useForm()
-  const navigate = useNavigate()
-  const { id } = useParams()
-  const [genres, setGenres] = useState([])
-  const [persons, setPersons] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [fetchingData, setFetchingData] = useState(true)
-  const [activeTab, setActiveTab] = useState("1")
-  const [medias, setMedias] = useState([])
-  const [file, setFile] = useState(null)
-  const [fileUrl, setFileUrl] = useState("")
-  const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [currentUploadIndex, setCurrentUploadIndex] = useState(null)
-  const [moviePersons, setMoviePersons] = useState([])
-  const [originalGenreNames, setOriginalGenreNames] = useState("")
+  const [form] = Form.useForm();
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [genres, setGenres] = useState([]);
+  const [persons, setPersons] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [fetchingData, setFetchingData] = useState(true);
+  const [activeTab, setActiveTab] = useState("1");
+  const [medias, setMedias] = useState([]);
+  const [file, setFile] = useState(null);
+  const [fileUrl, setFileUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentUploadIndex, setCurrentUploadIndex] = useState(null);
+  const [moviePersons, setMoviePersons] = useState([]);
+  const [originalGenreNames, setOriginalGenreNames] = useState("");
 
   useEffect(() => {
-    fetchGenres()
-    fetchPersons()
+    fetchGenres();
+    fetchPersons();
     if (id) {
-      fetchMovieDetails()
+      fetchMovieDetails();
     }
-  }, [id])
+  }, [id]);
 
   const fetchGenres = async () => {
     try {
-      const response = await genreService.getGenres()
-      setGenres(response.data)
+      const response = await genreService.getGenres();
+      setGenres(response.data);
     } catch (error) {
-      console.error("Error fetching genres:", error)
-      notification.error({ message: "Failed to fetch genres" })
+      console.error("Error fetching genres:", error);
+      notification.error({ message: "Failed to fetch genres" });
     }
-  }
+  };
 
   const fetchPersons = async (pageNumber = 1, pageSize = 1000) => {
     try {
-      const response = await personService.getAllPerson(pageNumber, pageSize)
-      setPersons(response.data)
+      const response = await personService.getAllPerson(pageNumber, pageSize);
+      setPersons(response.data);
     } catch (error) {
-      console.error("Error fetching persons:", error)
-      notification.error({ message: "Failed to fetch persons" })
+      console.error("Error fetching persons:", error);
+      notification.error({ message: "Failed to fetch persons" });
     }
-  }
+  };
 
   const fetchMovieDetails = async () => {
-    setFetchingData(true)
+    setFetchingData(true);
     try {
-      const response = await movieApi.getMovieById(id)
-      const movieData = response.data
+      const response = await movieApi.getMovieById(id);
+      const movieData = response.data;
 
       // Extract genre IDs from genreNames string
-      const genreIds = await extractGenreIdsFromNames(movieData.genreNames)
+      const genreIds = await extractGenreIdsFromNames(movieData.genreNames);
 
       // Set form values
       form.setFieldsValue({
@@ -111,77 +111,83 @@ const UpdateMovieAdmin = () => {
         genres: genreIds,
         status: movieData.status,
         persons: movieData.person.map((p) => p.id),
-      })
+      });
 
       // Set file URL
-      setFileUrl(movieData.fileUrl || "")
+      setFileUrl(movieData.fileUrl || "");
 
       // Set medias
-      setMedias(movieData.medias || [])
+      setMedias(movieData.medias || []);
 
       // Set persons
-      setMoviePersons(movieData.person || [])
+      setMoviePersons(movieData.person || []);
 
       // Set original genre names
-      setOriginalGenreNames(movieData.genreNames || "")
+      setOriginalGenreNames(movieData.genreNames || "");
     } catch (error) {
-      console.error("Error fetching movie details:", error)
-      notification.error({ message: "Failed to fetch movie details" })
+      console.error("Error fetching movie details:", error);
+      notification.error({ message: "Failed to fetch movie details" });
     } finally {
-      setFetchingData(false)
+      setFetchingData(false);
     }
-  }
+  };
 
   // Helper function to extract genre IDs from comma-separated genre names
   const extractGenreIdsFromNames = async (genreNamesString) => {
-    if (!genreNamesString) return []
+    if (!genreNamesString) return [];
 
-    const genreNames = genreNamesString.split(", ")
-    const matchedGenres = genres.filter((genre) => genreNames.some((name) => name.trim() === genre.name))
+    const genreNames = genreNamesString.split(", ");
+    const matchedGenres = genres.filter((genre) =>
+      genreNames.some((name) => name.trim() === genre.name)
+    );
 
-    return matchedGenres.map((genre) => genre.id)
-  }
+    return matchedGenres.map((genre) => genre.id);
+  };
 
   const onFinish = async (values) => {
-    setLoading(true)
+    setLoading(true);
     try {
       const movieData = {
         id,
         ...values,
         medias: medias.filter((media) => media.name && media.url && media.type),
         fileUrl,
-      }
+      };
 
-      await movieApi.updateMovie(id, movieData)
-      notification.success({ message: "Movie updated successfully" })
-      navigate(`/admin/movie/${id}`)
+      await movieApi.updateMovie(id, movieData);
+      notification.success({ message: "Movie updated successfully" });
+      navigate(`/admin/movie/${id}`);
     } catch (error) {
-      console.error("Error updating movie:", error)
-      notification.error({ message: "Failed to update movie" })
+      console.error("Error updating movie:", error);
+      notification.error({ message: "Failed to update movie" });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const onFinishFailed = (errorInfo) => {
-    console.log("Form validation failed:", errorInfo)
-    notification.error({ message: "Please fill out all required fields" })
-  }
+    console.log("Form validation failed:", errorInfo);
+    notification.error({ message: "Please fill out all required fields" });
+  };
 
   // Count media by type
   const countMediaByType = (type) => {
     if (type === "picture") {
-      return medias.filter((media) => media.type === "BANNER" || media.type === "POSTER").length
+      return medias.filter(
+        (media) => media.type === "BANNER" || media.type === "POSTER"
+      ).length;
     } else if (type === "video") {
-      return medias.filter((media) => media.type === "TRAILER" || media.type === "FILMVIP").length
+      return medias.filter(
+        (media) => media.type === "TRAILER" || media.type === "FILMVIP"
+      ).length;
     }
-    return 0
-  }
+    return 0;
+  };
 
   // Check if we can add more media of a specific type
   const canAddMoreMedia = (type) => {
-    return countMediaByType(type) < MAX_MEDIA_PER_TYPE
-  }
+    return countMediaByType(type) < MAX_MEDIA_PER_TYPE;
+  };
 
   // Modify the addMedia function to accept a type parameter
   const addMedia = (type) => {
@@ -190,147 +196,166 @@ const UpdateMovieAdmin = () => {
       notification.warning({
         message: "Media limit reached",
         description: `You can only add up to ${MAX_MEDIA_PER_TYPE} ${type} media items.`,
-      })
-      return
+      });
+      return;
     }
 
     // Create a new media object with the specified type
-    const newMedia = { name: "", url: "", type: type === "picture" ? "POSTER" : "TRAILER" }
-    setMedias([...medias, newMedia])
-  }
+    const newMedia = {
+      name: "",
+      url: "",
+      type: type === "picture" ? "POSTER" : "TRAILER",
+    };
+    setMedias([...medias, newMedia]);
+  };
 
   const handleMediaChange = (index, field, value) => {
-    const updatedMedias = [...medias]
-    updatedMedias[index][field] = value
-    setMedias(updatedMedias)
-  }
+    const updatedMedias = [...medias];
+    updatedMedias[index][field] = value;
+    setMedias(updatedMedias);
+  };
 
   const handleUpload = async (index, file) => {
-    setUploading(true)
-    setProgress(0)
-    setCurrentUploadIndex(index)
+    setUploading(true);
+    setProgress(0);
+    setCurrentUploadIndex(index);
 
     try {
       if (file.type.startsWith("video/")) {
         // Upload Video to Bunny CDN
-        const createResponse = await fetch("https://eigakan-001-site1.ktempurl.com/api/Upload/upload_VideoBunny", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: file.name }),
-        })
+        const createResponse = await fetch(
+          "https://eigakan-001-site1.ktempurl.com/api/Upload/upload_VideoBunny",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: file.name }),
+          }
+        );
 
-        const createData = await createResponse.json()
-        if (!createResponse.ok) throw new Error("Could not create video")
+        const createData = await createResponse.json();
+        if (!createResponse.ok) throw new Error("Could not create video");
 
-        const videoId = createData.videoUrl
-        console.log("Video ID:", videoId)
+        const videoId = createData.videoUrl;
+        console.log("Video ID:", videoId);
 
-        const xhr = new XMLHttpRequest()
-        xhr.open("PUT", `https://video.bunnycdn.com/library/384568/videos/${videoId}`, true)
-        xhr.setRequestHeader("AccessKey", "5dd7b859-f5cf-4d94-a0b71073f51a-3048-4dfd")
-        xhr.setRequestHeader("Content-Type", "application/octet-stream")
+        const xhr = new XMLHttpRequest();
+        xhr.open(
+          "PUT",
+          `https://video.bunnycdn.com/library/384568/videos/${videoId}`,
+          true
+        );
+        xhr.setRequestHeader(
+          "AccessKey",
+          "5dd7b859-f5cf-4d94-a0b71073f51a-3048-4dfd"
+        );
+        xhr.setRequestHeader("Content-Type", "application/octet-stream");
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100)
-            setProgress(percentComplete)
+            const percentComplete = Math.round(
+              (event.loaded / event.total) * 100
+            );
+            setProgress(percentComplete);
           }
-        }
+        };
 
         xhr.onload = () => {
-          setUploading(false)
-          setCurrentUploadIndex(null)
+          setUploading(false);
+          setCurrentUploadIndex(null);
           if (xhr.status === 200) {
-            const newVideoUrl = `https://iframe.mediadelivery.net/embed/384568/${videoId}`
-            handleMediaChange(index, "url", newVideoUrl)
+            const newVideoUrl = `https://iframe.mediadelivery.net/embed/384568/${videoId}`;
+            handleMediaChange(index, "url", newVideoUrl);
             notification.success({
               message: "Success",
               description: "Video uploaded successfully!",
-            })
+            });
           } else {
             notification.error({
               message: "Error",
               description: "Failed to upload video",
-            })
+            });
           }
-        }
+        };
 
         xhr.onerror = () => {
-          setUploading(false)
-          setCurrentUploadIndex(null)
+          setUploading(false);
+          setCurrentUploadIndex(null);
           notification.error({
             message: "Error",
             description: "Error uploading video",
-          })
-        }
+          });
+        };
 
-        xhr.send(file)
+        xhr.send(file);
       } else {
         // Upload Image using the existing API
-        const url = await uploadFileApi.UploadPicture(file)
-        handleMediaChange(index, "url", url.data[0].url)
-        setUploading(false)
-        setCurrentUploadIndex(null)
+        const url = await uploadFileApi.UploadPicture(file);
+        handleMediaChange(index, "url", url.data[0].url);
+        setUploading(false);
+        setCurrentUploadIndex(null);
         notification.success({
           message: "Success",
           description: "Image uploaded successfully!",
-        })
+        });
       }
     } catch (error) {
-      setUploading(false)
-      setCurrentUploadIndex(null)
-      console.error(error)
+      setUploading(false);
+      setCurrentUploadIndex(null);
+      console.error(error);
       notification.error({
         message: "Error",
         description: "Failed to upload file: " + error.message,
-      })
+      });
     }
-  }
+  };
 
   const handleUploadFile = async (info) => {
-    const selectedFile = info.file
-    setUploading(true)
+    const selectedFile = info.file;
+    setUploading(true);
 
     try {
-      const response = await uploadFileApi.UploadFileTemp(selectedFile)
-      const uploadedUrl = response.data[0].url
+      const response = await uploadFileApi.UploadFileTemp(selectedFile);
+      const uploadedUrl = response.data[0].url;
 
-      setFile(selectedFile)
-      setFileUrl(uploadedUrl)
-      notification.success({ message: "File uploaded successfully" })
+      setFile(selectedFile);
+      setFileUrl(uploadedUrl);
+      notification.success({ message: "File uploaded successfully" });
     } catch (error) {
-      console.error("Error uploading file:", error)
-      notification.error({ message: "Failed to upload file" })
+      console.error("Error uploading file:", error);
+      notification.error({ message: "Failed to upload file" });
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const handleGetPreUrlTemp = async () => {
     try {
-      const extractLink = extractUrl(fileUrl)
-      console.log("Extracted link:", extractLink)
+      const extractLink = extractUrl(fileUrl);
+      console.log("Extracted link:", extractLink);
 
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL")
+        throw new Error("Failed to extract userId or fileName from URL");
       }
-      const response = await uploadFileApi.getPreFileUrlTemp(extractLink.userId, extractLink.fileName)
-      console.log("PreUrl:", response.data)
-      window.open(response.data.url, "_blank")
+      const response = await uploadFileApi.getPreFileUrlTemp(
+        extractLink.userId,
+        extractLink.fileName
+      );
+      console.log("PreUrl:", response.data);
+      window.open(response.data.url, "_blank");
     } catch (error) {
-      console.error("Error fetching preUrl:", error)
+      console.error("Error fetching preUrl:", error);
     }
-  }
+  };
 
   const removeMedia = (index) => {
-    const updatedMedias = [...medias]
-    updatedMedias.splice(index, 1)
-    setMedias(updatedMedias)
+    const updatedMedias = [...medias];
+    updatedMedias.splice(index, 1);
+    setMedias(updatedMedias);
     notification.success({
       message: "Media removed",
       description: "The media has been removed successfully",
-    })
-  }
+    });
+  };
 
   if (fetchingData) {
     return (
@@ -338,17 +363,22 @@ const UpdateMovieAdmin = () => {
         <LoadingOutlined style={{ fontSize: 48 }} />
         <span className="ml-4 text-xl">Loading movie data...</span>
       </div>
-    )
+    );
   }
 
   // Update the renderMediaPictureTab function to use the type-specific addMedia
   const renderMediaPictureTab = () => {
-    const pictureMedias = medias.filter((media) => media.type === "BANNER" || media.type === "POSTER")
+    const pictureMedias = medias.filter(
+      (media) => media.type === "BANNER" || media.type === "POSTER"
+    );
     // Only show new media items that are for pictures (BANNER or POSTER)
-    const newMedias = medias.filter((m) => !m.id && (m.type === "BANNER" || m.type === "POSTER" || m.type === ""))
+    const newMedias = medias.filter(
+      (m) =>
+        !m.id && (m.type === "BANNER" || m.type === "POSTER" || m.type === "")
+    );
 
     // Check if we've reached the limit for picture media
-    const canAddMorePictures = canAddMoreMedia("picture")
+    const canAddMorePictures = canAddMoreMedia("picture");
 
     return (
       <Card className="p-4 shadow-md border-0">
@@ -373,17 +403,24 @@ const UpdateMovieAdmin = () => {
                         alt={media.name}
                         className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <Tag color={media.type === "BANNER" ? "blue" : "purple"} className="absolute top-2 right-2">
+                      <Tag
+                        color={media.type === "BANNER" ? "blue" : "purple"}
+                        className="absolute top-2 right-2"
+                      >
                         {media.type}
                       </Tag>
                     </div>
                   }
                 >
                   <div className="flex flex-col">
-                    <p className="font-medium truncate text-gray-800">{media.name}</p>
+                    <p className="font-medium truncate text-gray-800">
+                      {media.name}
+                    </p>
                     <div className="flex justify-between items-center mt-3">
                       <span className="text-xs text-gray-500">
-                        {media.type === "BANNER" ? "Website Banner" : "Movie Poster"}
+                        {media.type === "BANNER"
+                          ? "Website Banner"
+                          : "Movie Poster"}
                       </span>
                       <Tooltip title="Remove media">
                         <Button
@@ -400,7 +437,11 @@ const UpdateMovieAdmin = () => {
               ))}
             </div>
           ) : (
-            <Empty description="No media pictures added yet" className="my-8" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            <Empty
+              description="No media pictures added yet"
+              className="my-8"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
           )}
         </div>
 
@@ -422,7 +463,13 @@ const UpdateMovieAdmin = () => {
                     <Input
                       placeholder="Media Name"
                       value={media.name}
-                      onChange={(e) => handleMediaChange(medias.indexOf(media), "name", e.target.value)}
+                      onChange={(e) =>
+                        handleMediaChange(
+                          medias.indexOf(media),
+                          "name",
+                          e.target.value
+                        )
+                      }
                       className="rounded-md"
                       prefix={<span className="text-gray-400 mr-1">Name:</span>}
                     />
@@ -431,13 +478,18 @@ const UpdateMovieAdmin = () => {
                   <div className="flex gap-3 items-center">
                     <Upload
                       showUploadList={false}
-                      beforeUpload={(file) => handleUpload(medias.indexOf(media), file)}
+                      beforeUpload={(file) =>
+                        handleUpload(medias.indexOf(media), file)
+                      }
                       className="flex-shrink-0"
                     >
                       <Button
                         icon={<UploadOutlined />}
                         className="flex items-center"
-                        loading={uploading && currentUploadIndex === medias.indexOf(media)}
+                        loading={
+                          uploading &&
+                          currentUploadIndex === medias.indexOf(media)
+                        }
                       >
                         Upload
                       </Button>
@@ -457,7 +509,9 @@ const UpdateMovieAdmin = () => {
                     <Select
                       placeholder="Type"
                       value={media.type}
-                      onChange={(v) => handleMediaChange(medias.indexOf(media), "type", v)}
+                      onChange={(v) =>
+                        handleMediaChange(medias.indexOf(media), "type", v)
+                      }
                       className="w-32 flex-shrink-0"
                     >
                       <Option value="POSTER">Poster</Option>
@@ -466,7 +520,11 @@ const UpdateMovieAdmin = () => {
                   </div>
                 </div>
                 {uploading && currentUploadIndex === medias.indexOf(media) && (
-                  <Progress percent={progress} status="active" className="mt-2" />
+                  <Progress
+                    percent={progress}
+                    status="active"
+                    className="mt-2"
+                  />
                 )}
               </Card>
             ))}
@@ -486,17 +544,22 @@ const UpdateMovieAdmin = () => {
           </div>
         </div>
       </Card>
-    )
-  }
+    );
+  };
 
   // Update the renderMediaVideoTab function to use the type-specific addMedia
   const renderMediaVideoTab = () => {
-    const videoMedias = medias.filter((media) => media.type === "TRAILER" || media.type === "FILMVIP")
+    const videoMedias = medias.filter(
+      (media) => media.type === "TRAILER" || media.type === "FILMVIP"
+    );
     // Only show new media items that are for videos (TRAILER or FILMVIP)
-    const newMedias = medias.filter((m) => !m.id && (m.type === "TRAILER" || m.type === "FILMVIP" || m.type === ""))
+    const newMedias = medias.filter(
+      (m) =>
+        !m.id && (m.type === "TRAILER" || m.type === "FILMVIP" || m.type === "")
+    );
 
     // Check if we've reached the limit for video media
-    const canAddMoreVideos = canAddMoreMedia("video")
+    const canAddMoreVideos = canAddMoreMedia("video");
 
     return (
       <Card className="p-4 shadow-md border-0">
@@ -517,19 +580,31 @@ const UpdateMovieAdmin = () => {
                   cover={
                     <div className="relative">
                       <div className="aspect-video bg-gray-100">
-                        <iframe src={media.url} className="w-full h-full" title={media.name} allowFullScreen />
+                        <iframe
+                          src={media.url}
+                          className="w-full h-full"
+                          title={media.name}
+                          allowFullScreen
+                        />
                       </div>
-                      <Tag color={media.type === "TRAILER" ? "orange" : "green"} className="absolute top-2 right-2">
+                      <Tag
+                        color={media.type === "TRAILER" ? "orange" : "green"}
+                        className="absolute top-2 right-2"
+                      >
                         {media.type}
                       </Tag>
                     </div>
                   }
                 >
                   <div className="flex flex-col">
-                    <p className="font-medium truncate text-gray-800">{media.name}</p>
+                    <p className="font-medium truncate text-gray-800">
+                      {media.name}
+                    </p>
                     <div className="flex justify-between items-center mt-3">
                       <span className="text-xs text-gray-500">
-                        {media.type === "TRAILER" ? "Movie Trailer" : "Premium Content"}
+                        {media.type === "TRAILER"
+                          ? "Movie Trailer"
+                          : "Premium Content"}
                       </span>
                       <div className="flex gap-2">
                         <Tooltip title="Preview video">
@@ -556,7 +631,11 @@ const UpdateMovieAdmin = () => {
               ))}
             </div>
           ) : (
-            <Empty description="No media videos added yet" className="my-8" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            <Empty
+              description="No media videos added yet"
+              className="my-8"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
           )}
         </div>
 
@@ -578,7 +657,13 @@ const UpdateMovieAdmin = () => {
                     <Input
                       placeholder="Media Name"
                       value={media.name}
-                      onChange={(e) => handleMediaChange(medias.indexOf(media), "name", e.target.value)}
+                      onChange={(e) =>
+                        handleMediaChange(
+                          medias.indexOf(media),
+                          "name",
+                          e.target.value
+                        )
+                      }
                       className="rounded-md"
                       prefix={<span className="text-gray-400 mr-1">Name:</span>}
                     />
@@ -587,13 +672,18 @@ const UpdateMovieAdmin = () => {
                   <div className="flex gap-3 items-center flex-wrap md:flex-nowrap">
                     <Upload
                       showUploadList={false}
-                      beforeUpload={(file) => handleUpload(medias.indexOf(media), file)}
+                      beforeUpload={(file) =>
+                        handleUpload(medias.indexOf(media), file)
+                      }
                       className="flex-shrink-0"
                     >
                       <Button
                         icon={<UploadOutlined />}
                         className="flex items-center"
-                        loading={uploading && currentUploadIndex === medias.indexOf(media)}
+                        loading={
+                          uploading &&
+                          currentUploadIndex === medias.indexOf(media)
+                        }
                       >
                         Upload Video
                       </Button>
@@ -602,7 +692,9 @@ const UpdateMovieAdmin = () => {
                     <Select
                       placeholder="Type"
                       value={media.type}
-                      onChange={(v) => handleMediaChange(medias.indexOf(media), "type", v)}
+                      onChange={(v) =>
+                        handleMediaChange(medias.indexOf(media), "type", v)
+                      }
                       className="w-32 flex-shrink-0"
                     >
                       <Option value="TRAILER">Trailer</Option>
@@ -611,7 +703,11 @@ const UpdateMovieAdmin = () => {
                   </div>
                 </div>
                 {uploading && currentUploadIndex === medias.indexOf(media) && (
-                  <Progress percent={progress} status="active" className="mt-2" />
+                  <Progress
+                    percent={progress}
+                    status="active"
+                    className="mt-2"
+                  />
                 )}
                 {media.url && (
                   <div className="mt-3 flex justify-end">
@@ -643,24 +739,35 @@ const UpdateMovieAdmin = () => {
           </div>
         </div>
       </Card>
-    )
-  }
+    );
+  };
 
   return (
     <div className="p-6 mx-auto bg-white rounded-lg shadow-lg">
       <h1 className="text-2xl font-bold mb-6 text-center">Update Movie</h1>
-      <Form form={form} onFinish={onFinish} onFinishFailed={onFinishFailed} layout="vertical">
+      <Form
+        form={form}
+        onFinish={onFinish}
+        onFinishFailed={onFinishFailed}
+        layout="vertical"
+      >
         <Tabs activeKey={activeTab} onChange={setActiveTab} centered>
           <TabPane tab="Basic Info" key="1">
             <Card className="p-4 shadow-md">
-              <Form.Item name="title" label="Title" rules={[{ required: true, message: "Please input the title!" }]}>
+              <Form.Item
+                name="title"
+                label="Title"
+                rules={[{ required: true, message: "Please input the title!" }]}
+              >
                 <Input />
               </Form.Item>
 
               <Form.Item
                 name="originName"
                 label="Origin Name"
-                rules={[{ required: true, message: "Please input the origin name!" }]}
+                rules={[
+                  { required: true, message: "Please input the origin name!" },
+                ]}
               >
                 <Input />
               </Form.Item>
@@ -672,7 +779,9 @@ const UpdateMovieAdmin = () => {
               <Form.Item
                 name="releaseYear"
                 label="Release Year"
-                rules={[{ required: true, message: "Please input the release year!" }]}
+                rules={[
+                  { required: true, message: "Please input the release year!" },
+                ]}
                 normalize={(value) => value?.toString()}
               >
                 <InputNumber className="w-full" />
@@ -681,24 +790,71 @@ const UpdateMovieAdmin = () => {
               <Form.Item
                 name="duration"
                 label="Duration (minutes)"
-                rules={[{ required: true, message: "Please input the duration!" }]}
+                rules={[
+                  { required: true, message: "Please input the duration!" },
+                  {
+                    type: "number",
+                    min: 1,
+                    message: "Duration must be at least 1 minute!",
+                  },
+                  {
+                    type: "number",
+                    max: 600,
+                    message: "Duration cannot exceed 600 minutes (10 hours)!",
+                  },
+                  {
+                    validator: (_, value) => {
+                      if (value && !Number.isInteger(Number(value))) {
+                        return Promise.reject(
+                          new Error("Duration must be a whole number!")
+                        );
+                      }
+                      if (value && (isNaN(value) || value <= 0)) {
+                        return Promise.reject(
+                          new Error("Please enter a valid positive number!")
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  },
+                ]}
+                normalize={(value) => (value ? parseInt(value, 10) : value)}
               >
-                <InputNumber min={1} className="w-full" />
+                <InputNumber
+                  min={1}
+                  max={600}
+                  precision={0}
+                  className="w-full"
+                />
               </Form.Item>
 
-              <Form.Item name="nation" label="Nation" rules={[{ required: true, message: "Please input the nation!" }]}>
+              <Form.Item
+                name="nation"
+                label="Nation"
+                rules={[
+                  { required: true, message: "Please input the nation!" },
+                ]}
+              >
                 <Input />
               </Form.Item>
 
               <Form.Item
                 name="director"
                 label="Director"
-                rules={[{ required: true, message: "Please input the director!" }]}
+                rules={[
+                  { required: true, message: "Please input the director!" },
+                ]}
               >
                 <Input />
               </Form.Item>
 
-              <Form.Item name="status" label="Status" rules={[{ required: true, message: "Please input the status!" }]}>
+              <Form.Item
+                name="status"
+                label="Status"
+                rules={[
+                  { required: true, message: "Please input the status!" },
+                ]}
+              >
                 <Input readOnly />
               </Form.Item>
             </Card>
@@ -713,24 +869,41 @@ const UpdateMovieAdmin = () => {
                     <p className="text-gray-700">{originalGenreNames}</p>
                   </div>
                 ) : (
-                  <Empty description="No genres information" className="my-4" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  <Empty
+                    description="No genres information"
+                    className="my-4"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
                 )}
               </div>
 
               <div className="mb-4">
-                <h3 className="text-lg font-medium mb-2">Current Selected Genres</h3>
-                {form.getFieldValue("genres") && form.getFieldValue("genres").length > 0 ? (
+                <h3 className="text-lg font-medium mb-2">
+                  Current Selected Genres
+                </h3>
+                {form.getFieldValue("genres") &&
+                form.getFieldValue("genres").length > 0 ? (
                   <div className="flex flex-wrap gap-2 mb-4">
                     {genres
-                      .filter((genre) => form.getFieldValue("genres").includes(genre.id))
+                      .filter((genre) =>
+                        form.getFieldValue("genres").includes(genre.id)
+                      )
                       .map((genre) => (
-                        <Tag key={genre.id} color="blue" className="px-3 py-1 text-sm rounded-full">
+                        <Tag
+                          key={genre.id}
+                          color="blue"
+                          className="px-3 py-1 text-sm rounded-full"
+                        >
                           {genre.name}
                         </Tag>
                       ))}
                   </div>
                 ) : (
-                  <Empty description="No genres selected" className="my-4" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  <Empty
+                    description="No genres selected"
+                    className="my-4"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
                 )}
               </div>
 
@@ -742,17 +915,38 @@ const UpdateMovieAdmin = () => {
                     required: true,
                     message: "Please select at least one genre!",
                   },
+                  {
+                    validator: (_, value) => {
+                      if (value && value.length > 5) {
+                        return Promise.reject(
+                          new Error("You can select maximum 5 genres!")
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
               >
                 <Select
                   mode="multiple"
                   showSearch
-                  placeholder="Select genres"
+                  placeholder="Select genres (maximum 5)"
                   optionLabelProp="label"
+                  maxTagCount={5}
+                  maxTagTextLength={10}
                   onSearch={(value) => setSearchText(value)}
                   filterOption={(input, option) =>
                     option?.label?.toLowerCase().includes(input.toLowerCase())
                   }
+                  onChange={(value) => {
+                    if (value.length > 5) {
+                      notification.warning({
+                        message: "Maximum 5 genres allowed",
+                        description: "You can only select up to 5 genres.",
+                      });
+                      return form.setFieldsValue({ genres: value.slice(0, 5) });
+                    }
+                  }}
                 >
                   {genres.map((g) => (
                     <Select.Option key={g.id} value={g.id} label={g.name}>
@@ -761,7 +955,6 @@ const UpdateMovieAdmin = () => {
                   ))}
                 </Select>
               </Form.Item>
-
             </Card>
           </TabPane>
 
@@ -771,13 +964,19 @@ const UpdateMovieAdmin = () => {
                 <h3 className="text-lg font-medium mb-2">Current Cast</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {moviePersons.map((person) => (
-                    <Card key={person.id} size="small" className="flex items-center">
+                    <Card
+                      key={person.id}
+                      size="small"
+                      className="flex items-center"
+                    >
                       <div className="flex items-center gap-3">
                         <Avatar src={person.picture} size={64} />
                         <div>
                           <p className="font-medium">{person.name}</p>
                           <p className="text-sm text-gray-500">{person.job}</p>
-                          <p className="text-xs text-gray-400">Born: {person.birthday}</p>
+                          <p className="text-xs text-gray-400">
+                            Born: {person.birthday}
+                          </p>
                         </div>
                       </div>
                     </Card>
@@ -797,11 +996,7 @@ const UpdateMovieAdmin = () => {
                   }
                 >
                   {persons.map((p) => (
-                    <Select.Option
-                      key={p.id}
-                      value={p.id}
-                      label={p.name}
-                    >
+                    <Select.Option key={p.id} value={p.id} label={p.name}>
                       <div className="flex items-center gap-2">
                         <Avatar src={p.picture} alt={p.name} />
                         <span>{p.name}</span>
@@ -810,7 +1005,6 @@ const UpdateMovieAdmin = () => {
                   ))}
                 </Select>
               </Form.Item>
-
             </Card>
           </TabPane>
 
@@ -847,7 +1041,12 @@ const UpdateMovieAdmin = () => {
                     <CheckCircleOutlined className="text-green-500" />
                     Current file:
                   </p>
-                  <Button type="link" onClick={handleGetPreUrlTemp} icon={<EyeOutlined />} className="pl-0">
+                  <Button
+                    type="link"
+                    onClick={handleGetPreUrlTemp}
+                    icon={<EyeOutlined />}
+                    className="pl-0"
+                  >
                     View current file
                   </Button>
                 </div>
@@ -859,22 +1058,32 @@ const UpdateMovieAdmin = () => {
 
           <TabPane tab="Eigakan policy movie" key="7">
             <Card className="p-4 shadow-md">
-              <p>By submitting your movie, you agree to the following policy:</p>
               <p>
-                If you do not check the box, we will pay you based on the number of views your video receives. If you
-                check the box, we will create a contract and contact you for further details.
+                By submitting your movie, you agree to the following policy:
+              </p>
+              <p>
+                If you do not check the box, we will pay you based on the number
+                of views your video receives. If you check the box, we will
+                create a contract and contact you for further details.
               </p>
 
               <Form.Item name="isContract" valuePropName="checked">
-                <Checkbox disabled>I agree to create a contract and be contacted</Checkbox>
+                <Checkbox disabled>
+                  I agree to create a contract and be contacted
+                </Checkbox>
               </Form.Item>
-              <h2 className="text-red-600">*If not just press next button to continue update your movie*</h2>
+              <h2 className="text-red-600">
+                *If not just press next button to continue update your movie*
+              </h2>
             </Card>
           </TabPane>
         </Tabs>
         <div className="flex justify-between mt-6">
           {activeTab !== "1" && (
-            <Button onClick={() => setActiveTab(String(Number(activeTab) - 1))} className="hover:bg-gray-100">
+            <Button
+              onClick={() => setActiveTab(String(Number(activeTab) - 1))}
+              className="hover:bg-gray-100"
+            >
               Previous
             </Button>
           )}
@@ -900,7 +1109,7 @@ const UpdateMovieAdmin = () => {
         </div>
       </Form>
     </div>
-  )
-}
+  );
+};
 
-export default UpdateMovieAdmin
+export default UpdateMovieAdmin;

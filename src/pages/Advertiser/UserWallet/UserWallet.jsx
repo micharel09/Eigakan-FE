@@ -34,6 +34,8 @@ import {
   ShoppingOutlined,
   PlusCircleOutlined,
   BankOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
 } from "@ant-design/icons";
 import userWalletService from "../../../apis/UserWallet/userWallet";
 import walletHistoryService from "../../../apis/UserWallet/walletHistory";
@@ -57,9 +59,12 @@ const UserWallet = () => {
     total: 0,
   });
 
-  // Deposit states
+  // States to control visibility of sensitive information
+  const [showWalletId, setShowWalletId] = useState(false);
+  const [showUserId, setShowUserId] = useState(false);
+
+  // States for deposit functionality
   const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
-  const [depositAmount, setDepositAmount] = useState(100000);
   const [depositForm] = Form.useForm();
 
   const fetchWalletData = async () => {
@@ -76,10 +81,10 @@ const UserWallet = () => {
     }
   };
 
-  // Get total number of transactions for pagination
+  // Fetch total number of transactions for pagination
   const fetchTotalTransactions = async () => {
     try {
-      // Call hidden API with large pageSize to get all data
+      // Call API with large pageSize to get all data
       const response = await axios.get(
         "https://eigakan-001-site1.ktempurl.com/api/WalletTransaction/MyHistoryWallet?page=1&pageSize=1000&sortBy=createDate&sortDirection=desc",
         {
@@ -90,7 +95,7 @@ const UserWallet = () => {
       );
 
       if (response.data && response.data.success) {
-        // Also store all transactions for potential use
+        // Store all transactions in window object for potential use
         window.allTransactions = response.data.data || [];
         // Return total count for pagination
         return response.data.data?.length || 0;
@@ -106,19 +111,19 @@ const UserWallet = () => {
     try {
       setLoading((prev) => ({ ...prev, history: true }));
 
-      // Get total count first and all transactions
+      // First get total count and all transactions
       const totalItems = await fetchTotalTransactions();
 
-      // Use the stored all transactions to create paginated data
+      // Use the stored transactions to create paginated data
       if (window.allTransactions && window.allTransactions.length > 0) {
-        // Calculate start and end indices for the current page
+        // Calculate pagination indices for the current page
         const startIndex = (page - 1) * pageSize;
         const endIndex = Math.min(
           startIndex + pageSize,
           window.allTransactions.length
         );
 
-        // Get the slice of data for the current page
+        // Extract the slice of data for the current page
         const paginatedData = window.allTransactions.slice(
           startIndex,
           endIndex
@@ -131,14 +136,14 @@ const UserWallet = () => {
           total: totalItems,
         });
       } else {
-        // Fallback to API if window.allTransactions is not available
+        // Fallback to direct API call if cached transactions are not available
         const response = await walletHistoryService.getWalletHistory(
           page,
           pageSize
         );
 
         if (response.success) {
-          // Sort data by createDate in descending order (newest first)
+          // Sort data by creation date in descending order (newest first)
           const sortedData = [...(response.data || [])].sort((a, b) => {
             return new Date(b.createDate) - new Date(a.createDate);
           });
@@ -147,7 +152,7 @@ const UserWallet = () => {
           setPagination({
             current: page,
             pageSize: pageSize,
-            total: totalItems, // Use actual total count
+            total: totalItems, // Use the actual total count from previous API call
           });
         } else {
           console.error(
@@ -158,7 +163,7 @@ const UserWallet = () => {
       }
     } catch (err) {
       console.error("Error fetching transaction history:", err);
-      // We don't set the main error state here to avoid blocking the wallet display
+      // Don't set the main error state to avoid blocking the wallet display
     } finally {
       setLoading((prev) => ({ ...prev, history: false }));
     }
@@ -233,7 +238,7 @@ const UserWallet = () => {
     fetchTransactionHistory(pagination.current, pagination.pageSize);
   };
 
-  // Handle deposit modal
+  // Functions to handle deposit modal
   const showDepositModal = () => {
     depositForm.resetFields();
     depositForm.setFieldsValue({ amount: 100000 });
@@ -244,7 +249,7 @@ const UserWallet = () => {
     setIsDepositModalVisible(false);
   };
 
-  // Handle deposit submission
+  // Function to handle deposit form submission
   const handleDeposit = async (values) => {
     if (values.amount < 100000) {
       notification.error({
@@ -259,7 +264,7 @@ const UserWallet = () => {
       const response = await walletHistoryService.depositMoney(values.amount);
 
       if (response.success) {
-        // If successful, redirect to the payment URL in the same window
+        // If successful, redirect to the payment gateway URL
         window.location.href = response.message;
         notification.success({
           message: "Deposit Initiated",
@@ -347,9 +352,26 @@ const UserWallet = () => {
               >
                 <div className="flex flex-col gap-4">
                   <div>
-                    <Text type="secondary">Wallet ID:</Text>
+                    <div className="flex justify-between items-center">
+                      <Text type="secondary">Wallet ID:</Text>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={
+                          showWalletId ? (
+                            <EyeOutlined />
+                          ) : (
+                            <EyeInvisibleOutlined />
+                          )
+                        }
+                        onClick={() => setShowWalletId(!showWalletId)}
+                        className="text-gray-500 hover:text-[#FF009F]"
+                      />
+                    </div>
                     <div className="font-mono bg-gray-50 p-2 rounded mt-1 text-sm break-all">
-                      {walletData.id}
+                      {showWalletId
+                        ? walletData.id
+                        : "••••••••••••••••••••••••••••••••"}
                     </div>
                   </div>
 
@@ -366,9 +388,26 @@ const UserWallet = () => {
                   </div>
 
                   <div>
-                    <Text type="secondary">User ID:</Text>
+                    <div className="flex justify-between items-center">
+                      <Text type="secondary">User ID:</Text>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={
+                          showUserId ? (
+                            <EyeOutlined />
+                          ) : (
+                            <EyeInvisibleOutlined />
+                          )
+                        }
+                        onClick={() => setShowUserId(!showUserId)}
+                        className="text-gray-500 hover:text-[#FF009F]"
+                      />
+                    </div>
                     <div className="font-mono bg-gray-50 p-2 rounded mt-1 text-sm break-all">
-                      {walletData.userId}
+                      {showUserId
+                        ? walletData.userId
+                        : "••••••••••••••••••••••••••••••••"}
                     </div>
                   </div>
                 </div>
