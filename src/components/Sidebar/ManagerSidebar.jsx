@@ -166,7 +166,7 @@ const ManagerSidebar = () => {
               <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
                 <ShoppingOutlined className="size-5" />
               </span>
-              <span className="ml-3 text-sm font-medium">Ad Packages</span>
+              <span className="ml-3 text-sm font-medium">Ads Management</span>
             </Link>
           </li>
           <li>

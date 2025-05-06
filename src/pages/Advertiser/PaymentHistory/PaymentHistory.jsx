@@ -311,6 +311,12 @@ const PaymentHistory = () => {
                     <Text strong>{item.viewQuantity} views</Text>
                   </Space>
                 </Descriptions.Item>
+                <Descriptions.Item label="Remaining View">
+                  <Space>
+                    <EyeOutlined style={{ color: token.colorInfo }} />
+                    <Text strong>{item.remainingViews} views</Text>
+                  </Space>
+                </Descriptions.Item>
                 <Descriptions.Item label="Price Per View">
                   <Space>
                     <DollarOutlined style={{ color: token.colorSuccess }} />
@@ -376,28 +382,7 @@ const PaymentHistory = () => {
             </Tag>
           </div>
         </div>
-        <div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <Text type="secondary" style={{ fontSize: 10, marginBottom: 2 }}>
-              Payment Status
-            </Text>
-            <Tag
-              icon={getStatusIcon(transaction.status)}
-              color={getStatusColor(transaction.status)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                width: "fit-content",
-                margin: 0,
-                maxWidth: "100px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              <span style={{ marginLeft: 4 }}>{transaction.status}</span>
-            </Tag>
-          </div>
-        </div>
+
 
         <div
           style={{
@@ -494,19 +479,6 @@ const PaymentHistory = () => {
               loading={loading}
               valueStyle={{ color: "#1890ff" }}
               suffix={totalItems > 1 ? "items" : "item"}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} md={8}>
-          <Card hoverable style={{ transition: "all 0.3s ease" }}>
-            <Statistic
-              title="Total Ad Views Purchased"
-              value={totalViews}
-              formatter={(value) => `${value.toLocaleString()}`}
-              prefix={<EyeOutlined style={{ color: "#722ed1" }} />}
-              loading={loading}
-              valueStyle={{ color: "#722ed1" }}
-              suffix="views"
             />
           </Card>
         </Col>

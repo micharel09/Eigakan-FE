@@ -16,6 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import contractApi from "../../../apis/Contract/contract";
 import axios from "axios";
+import { Helmet } from "react-helmet";
 
 const pageSize = 9; // Số lượng hợp đồng trên mỗi trang
 
@@ -100,8 +101,11 @@ const ContractAdmin = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      <Helmet>
+        <title>Contract Management</title>
+      </Helmet>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Your contract</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Contract Management</h1>
       </div>
 
       <div className="flex flex-wrap gap-4 mb-6">

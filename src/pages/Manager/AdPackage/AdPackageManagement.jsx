@@ -1232,19 +1232,6 @@ const AdPackageManagement = () => {
                   />
                 </Card>
               </Col>
-              <Col xs={24} md={8}>
-                <Card hoverable style={{ transition: "all 0.3s ease" }}>
-                  <Statistic
-                    title="Total Ad Views Purchased"
-                    value={totalViews}
-                    formatter={(value) => `${value.toLocaleString()}`}
-                    prefix={<EyeOutlined style={{ color: "#722ed1" }} />}
-                    loading={adPaymentTotalLoading}
-                    valueStyle={{ color: "#722ed1" }}
-                    suffix="views"
-                  />
-                </Card>
-              </Col>
             </Row>
 
             {/* Ad Payment History with Collapse */}

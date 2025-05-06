@@ -14,6 +14,7 @@ import {
 import { Link } from "react-router-dom";
 import movieService from "../../../apis/Movie/movie";
 import axios from "axios";
+import { Helmet } from "react-helmet";
 
 const MoviePublisher = () => {
   const [movies, setMovies] = useState([]);
@@ -77,6 +78,9 @@ const MoviePublisher = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      <Helmet>
+        <title>Your Movies</title>
+      </Helmet>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Movie List</h1>
         <Link to="/publisher/createMovie">

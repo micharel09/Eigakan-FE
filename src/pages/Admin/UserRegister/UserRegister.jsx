@@ -5,6 +5,7 @@ import UserApi from "../../../apis/User/user";
 import UserRegisterApi from "../../../apis/UserRegister/UserRegister.js";
 import { Progress } from "antd";
 import axios from "axios";
+import { Helmet } from "react-helmet";
 
 const UserRegister = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -90,6 +91,9 @@ const UserRegister = () => {
 
   return (
     <div>
+      <Helmet>
+        <title>UserRegister Management</title>
+      </Helmet>
       <div className="flex justify-center mb-6">
         <Input
           placeholder="Search by name, email or phone..."

@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import movieService from "../../../apis/Movie/movie";
 import genreService from "../../../apis/Genre/genre";
 import axios from "axios";
+import { Helmet } from "react-helmet";
 
 const { Option } = Select;
 
@@ -141,6 +142,12 @@ const MovieAdmin = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      <Helmet>
+        <title>Movie Management</title>
+      </Helmet>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Movie Management</h1>
+      </div>
       <div className="flex flex-wrap gap-4 mb-6">
         <Input
           placeholder="Search by title..."

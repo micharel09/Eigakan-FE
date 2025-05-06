@@ -13,6 +13,7 @@ import {
 import { SearchOutlined } from "@ant-design/icons";
 import UserApi from "../../../apis/User/user";
 import axios from "axios";
+import { Helmet } from "react-helmet";
 
 const User = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -308,6 +309,9 @@ const User = () => {
 
   return (
     <div className="p-4">
+      <Helmet>
+        <title>User Management</title>
+      </Helmet>
       <div className="flex justify-between mb-4">
         <Space>
           <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
