@@ -23,7 +23,6 @@ const subscriptionService = {
     makeAuthenticatedRequest(async (headers) => {
       try {
         const response = await axios.post(`${API_URL}/`, data, { headers });
-        // Nếu status là 201 thì cũng coi như thành công
         return {
           success: response.status === 201 || response.status === 200,
           data: response.data,

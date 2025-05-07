@@ -52,7 +52,6 @@ const genreService = {
         });
         return { success: true };
       } catch (error) {
-        // If status is 400 but actually succeeded
         if (error.response?.status === 400) {
           return { success: true };
         }

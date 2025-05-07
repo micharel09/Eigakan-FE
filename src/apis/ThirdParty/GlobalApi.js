@@ -1,27 +1,18 @@
 import axios from 'axios';
 
 // OMDB API configuration
-const OMDB_API_KEY = 'e51100ff'; // OMDB API key
-const OMDB_BASE_URL = 'https://www.omdbapi.com'; // Changed to HTTPS to ensure secure connections
+const OMDB_API_KEY = 'e51100ff'; 
+const OMDB_BASE_URL = 'https://www.omdbapi.com'; 
 
-// Cache for movie details to avoid redundant API calls
 const movieDetailsCache = new Map();
 const imdbRatingsCache = new Map();
 
 const GlobalApi = {
-  /**
-   * Search for a movie in OMDB API by title and year
-   * @param {string} title - Movie title
-   * @param {string|number} year - Release year
-   * @returns {Promise<Object>} - The closest matching movie
-   */
   searchMovie: async (title, year) => {
     try {
-      // Clean title for better matching
       const cleanTitle = title.toLowerCase().trim();
       const cacheKey = `${cleanTitle}-${year}`;
       
-      // Check cache first
       if (movieDetailsCache.has(cacheKey)) {
         return movieDetailsCache.get(cacheKey);
       }
@@ -74,12 +65,9 @@ const GlobalApi = {
   
   /**
    * Get movie details from OMDB API by IMDB ID
-   * @param {string} imdbId - IMDB movie ID
-   * @returns {Promise<Object>} - Movie details
    */
   getMovieDetails: async (imdbId) => {
     try {
-      // Check cache first
       if (movieDetailsCache.has(`details-${imdbId}`)) {
         return movieDetailsCache.get(`details-${imdbId}`);
       }
@@ -156,14 +144,11 @@ const GlobalApi = {
     }
   },
   
-  /**
-   * Get IMDB rating for a movie
-   * @param {string} imdbId - IMDB ID
-   * @returns {Promise<Object>} - Rating information
-   */
+  
+  //Get IMDB rating for a movie
+   
   getImdbRating: async (imdbId) => {
     try {
-      // Check cache first
       if (imdbRatingsCache.has(imdbId)) {
         return imdbRatingsCache.get(imdbId);
       }
@@ -195,12 +180,8 @@ const GlobalApi = {
     }
   },
   
-  /**
-   * Get IMDB rating by movie title and year
-   * @param {string} title - Movie title
-   * @param {string|number} year - Release year
-   * @returns {Promise<Object>} - Rating information
-   */
+  //  Get IMDB rating by movie title and year
+  
   getImdbRatingByTitleAndYear: async (title, year) => {
     try {
       // Clean title for better matching
@@ -241,11 +222,8 @@ const GlobalApi = {
     }
   },
   
-  /**
-   * Search movies by title
-   * @param {string} title - Search term
-   * @returns {Promise<Array>} - Array of movie results
-   */
+  //  Search movies by title
+   
   searchMovies: async (title) => {
     try {
       const response = await axios.get(OMDB_BASE_URL, {

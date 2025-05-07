@@ -46,11 +46,10 @@ const movieEarningService = {
             ...(endDate && { endDate })
           }
         });
-        // ✅ Trả trực tiếp res.data, không bọc .result nữa
         return res.data.data;
       } catch (err) {
         console.error("Fetch movie earning error:", err);
-        throw err; // giữ nguyên throw để catch ở ngoài xử lý
+        throw err; 
       }
     })
 };
