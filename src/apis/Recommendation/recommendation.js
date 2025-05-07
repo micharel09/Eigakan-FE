@@ -9,7 +9,6 @@ const recommendationService = {
   /**
    * Get recommended movies for the user
    * Based on their watch history and ratings
-   * @returns {Promise<{success: boolean, recommendations: Array, source: string}>}
    */
   getRecommendedMovies: async () => {
     try {
@@ -65,16 +64,12 @@ const recommendationService = {
 
 /**
  * Analyze user preferences based on watch history and ratings
- * @param {Array} movies - List of watched movies
- * @param {Object} ratings - Object containing user ratings for movies
- * @returns {Object} Object containing user preferences
  */
 const getUserPreferences = (movies, ratings) => {
-  // Initialize objects to store user preferences
-  const genres = {};        // Store preference scores for each genre
-  const years = {};         // Store preference scores for release years
-  const titles = new Set(); // Store watched movie titles (for finding similar ones)
-  const recentGenres = new Set(); // Store genres from most recently watched movie
+  const genres = {};       
+  const years = {};       
+  const titles = new Set(); 
+  const recentGenres = new Set(); 
 
   // Sort movies by watch date, most recent first
   const sorted = [...movies].sort((a, b) => new Date(b.createDate || 0) - new Date(a.createDate || 0));
@@ -86,9 +81,8 @@ const getUserPreferences = (movies, ratings) => {
   // Process each movie to calculate preferences
   sorted.forEach(movie => {
     // Calculate weight based on user rating
-    // Example: 5 stars = 1.67 weight, 3 stars = 1 weight, 1 star = 0.33 weight
     const weight = (ratings[movie.id] || 3) / 3;
-    const isRecent = movie === sorted[0]; // Check if it's the most recent movie
+    const isRecent = movie === sorted[0]; 
 
     // Store movie title in watched list
     if (movie.title) titles.add(movie.title.toLowerCase().trim());
@@ -96,9 +90,8 @@ const getUserPreferences = (movies, ratings) => {
     // Process and score each genre
     movie.genreNames?.split(',').forEach(genre => {
       const g = genre.trim();
-      // Recent movie genres get double points
       const boost = recentGenres.has(g) ? 2 : 1;
-      // Accumulate genre score (score = rating weight * time factor)
+      //score = rating weight * time factor
       genres[g] = (genres[g] || 0) + (weight * boost);
     });
 
@@ -117,10 +110,6 @@ const getUserPreferences = (movies, ratings) => {
 
 /**
  * Score and rank unwatched movies based on user preferences
- * @param {Array} movies - List of movies to rank
- * @param {Object} prefs - User preferences
- * @param {Object} ratings - User ratings for watched movies
- * @returns {Array} Scored and sorted list of movies
  */
 const rankMovies = (movies, prefs, ratings) => {
   // Calculate user's average rating
@@ -149,8 +138,7 @@ const rankMovies = (movies, prefs, ratings) => {
         genres.forEach(genre => {
           if (prefs.genres[genre]) {
             matchData.genreMatches++;
-            // Recent genres get 8 points
-            // Other genres get 6 points
+            
             if (prefs.recentGenres.has(genre)) {
               matchData.recentGenreMatches++;
               score += prefs.genres[genre] * 8;
@@ -160,13 +148,11 @@ const rankMovies = (movies, prefs, ratings) => {
           }
         });
 
-        // Bonus points for multiple genre matches
         if (matchData.genreMatches > 1) score += matchData.genreMatches * 2;
         if (matchData.recentGenreMatches > 0) score += matchData.recentGenreMatches * 5;
       }
 
       // Score release year (up to 20 points)
-      // Higher score for years closer to preferred years
       if (movie.releaseYear) {
         Object.keys(prefs.years).forEach(year => {
           const diff = Math.abs(movie.releaseYear - year);

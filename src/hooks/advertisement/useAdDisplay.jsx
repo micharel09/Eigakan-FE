@@ -3,8 +3,8 @@ import ScreenfullUtils from "../../utils/ScreenfullUtils";
 import adMediaService from "../../apis/AdMedia/adMedia";
 
 export const AD_CONSTANTS = {
-  SKIP_AD_DELAY_SECONDS: 5, // secs before end when skip appears
-  AD_AUTO_CLOSE_DELAY: 15000, // Delay before auto-closing ads
+  SKIP_AD_DELAY_SECONDS: 5, 
+  AD_AUTO_CLOSE_DELAY: 15000, 
   AD_COUNTDOWN_SECONDS: 15,
   FULLSCREEN_RETRY_DELAY: 500,
   VOLUME_FADE_DELAY: 1500,
@@ -270,16 +270,12 @@ export const useAdDisplay = ({ userRole = null, movieId = null }) => {
     const ads = await fetchAdsFromApi();
     console.log("Total ads from API:", ads.length);
 
-    // Return all ads from API
     return ads;
   }, [movieId, fetchAdsFromApi]);
 
-  // Initialize midroll ad sequence
   useEffect(() => {
     const initializeAds = async () => {
-      // Get all ads from API without limiting the number
       const ads = await getAdSequence();
-      // Format ad positions for better readability in console
       const formattedPositions = ads.map((ad) => {
         const seconds = ad.position || 0;
         const minutes = Math.floor(seconds / 60);
@@ -314,14 +310,13 @@ export const useAdDisplay = ({ userRole = null, movieId = null }) => {
   // Get ad positions from midrollAdSequence
   const getAdPositions = useCallback(() => {
     if (!midrollAdSequence || midrollAdSequence.length === 0) {
-      // If no ads, return empty array
+      // return empty if no ads
       return [];
     }
 
-    // Get positions of all ads
     const positions = midrollAdSequence.map((ad) => ad.position || 0);
 
-    // Convert seconds to minutes:seconds or hours:minutes:seconds format for better readability
+    // Convert seconds to minutes:seconds or hours:minutes:seconds
     const formattedPositions = positions.map((seconds) => {
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = Math.floor(seconds % 60);
