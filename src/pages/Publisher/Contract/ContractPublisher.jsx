@@ -18,7 +18,7 @@ import contractApi from "../../../apis/Contract/contract";
 import axios from "axios";
 import { Helmet } from "react-helmet"
 
-const pageSize = 10; // Số lượng hợp đồng trên mỗi trang
+const pageSize = 10; // Number of contracts per page
 
 const ContractPublisher = () => {
   const [contracts, setContracts] = useState([]);
@@ -28,24 +28,38 @@ const ContractPublisher = () => {
   const [loading, setLoading] = useState(false);
   const [totalContracts, setTotalContracts] = useState(0);
 
-  // Sửa lại hàm fetchContracts để lấy dữ liệu phân trang
+  // Function to fetch paginated contract data
   const fetchContracts = async (page = 1, size = 10) => {
     setLoading(true);
     try {
       const response = await contractApi.getAllContractByLogin(page, size);
-      console.log("Fetch Contracts Response:", response); // Log để debug
-      if (response) {
+      console.log("Fetch Contracts Response:", response); // Log for debugging
+
+      if (response && response.contracts) {
         setContracts(response.contracts);
-        setTotalContracts(response.total);
+        setTotalContracts(response.total || response.contracts.length);
+      } else if (response && Array.isArray(response)) {
+        // If response is an array
+        setContracts(response);
+        setTotalContracts(response.length);
+      } else {
+        console.error(
+          "Unexpected API response structure in fetchContracts:",
+          response
+        );
+        setContracts([]);
+        setTotalContracts(0);
       }
     } catch (error) {
       console.error("Error fetching contracts:", error);
+      setContracts([]);
+      setTotalContracts(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Sửa lại hàm fetchAllContracts cho search
+  // Function to fetch all contracts for search functionality
   const fetchAllContracts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -57,41 +71,76 @@ const ContractPublisher = () => {
           },
         }
       );
-      console.log("Fetch All Contracts Response:", response); // Log để debug
-      if (response.data && response.data.data) {
-        setAllContracts(response.data.data.contracts || []);
+      console.log("Fetch All Contracts Response:", response); // Log for debugging
+
+      // Check the structure of the returned data
+      if (response.data && response.data.data && response.data.data.contracts) {
+        // If the structure is data.data.contracts
+        setAllContracts(response.data.data.contracts);
+      } else if (response.data && response.data.contracts) {
+        // If the structure is data.contracts
+        setAllContracts(response.data.contracts);
+      } else if (Array.isArray(response.data)) {
+        // If response.data is an array
+        setAllContracts(response.data);
+      } else {
+        console.error("Unexpected API response structure:", response.data);
+        setAllContracts([]);
       }
     } catch (error) {
       console.error("Error fetching all contracts:", error);
+      setAllContracts([]);
     }
   };
 
-  // Load dữ liệu ban đầu
+  // Load initial data
   useEffect(() => {
     fetchContracts(currentPage, pageSize);
     fetchAllContracts();
   }, []);
 
-  // Xử lý search
+  // Handle search functionality
   useEffect(() => {
     if (searchTerm) {
-      const filtered = allContracts.filter(
-        (contract) =>
-          contract.movie?.title
+      console.log("Searching with term:", searchTerm);
+      console.log("All contracts for search:", allContracts);
+
+      if (allContracts && allContracts.length > 0) {
+        const filtered = allContracts.filter((contract) => {
+          // Check each field and log for debugging
+          const titleMatch = contract.movie?.title
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          contract.distributorName
+            .includes(searchTerm.toLowerCase());
+          const distributorMatch = contract.distributorName
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          contract.user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setContracts(filtered);
-      setTotalContracts(filtered.length);
-      setCurrentPage(1);
+            .includes(searchTerm.toLowerCase());
+          const emailMatch = contract.user?.email
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase());
+
+          console.log(`Contract ${contract.id}:`, {
+            title: contract.movie?.title,
+            titleMatch,
+            distributor: contract.distributorName,
+            distributorMatch,
+            email: contract.user?.email,
+            emailMatch,
+          });
+
+          return titleMatch || distributorMatch || emailMatch;
+        });
+
+        console.log("Filtered contracts:", filtered);
+        setContracts(filtered);
+        setTotalContracts(filtered.length);
+        setCurrentPage(1);
+      } else {
+        console.warn("No contracts available for search");
+      }
     } else {
       fetchContracts(currentPage, pageSize);
     }
-  }, [searchTerm]);
+  }, [searchTerm, allContracts]);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

@@ -60,7 +60,16 @@ const AdPurchaseItemDetails = () => {
         const response = await adPurchaseItemService.getAdPurchaseItemsById(id);
 
         if (response.success) {
-          setItemDetails(response.data[0] || null); // The API returns an array, we take the first item
+          // Find the item with matching ID from the response array
+          const matchingItem = response.data.find((item) => item.id === id);
+
+          if (matchingItem) {
+            setItemDetails(matchingItem);
+          } else {
+            // If no matching item found, use the first item as fallback
+            setItemDetails(response.data[0] || null);
+            console.warn("No exact matching item found for ID:", id);
+          }
         } else {
           setError(response.message || "Failed to load item details");
         }
@@ -99,7 +108,7 @@ const AdPurchaseItemDetails = () => {
       case "CANCELED":
       case "EXPIRED":
       case "REFUNDED":
-        case "REJECTED":
+      case "REJECTED":
         return "error";
       default:
         return "default";
@@ -146,6 +155,8 @@ const AdPurchaseItemDetails = () => {
             onClick={() => {
               if (fromPage === "payment-history") {
                 navigate("/advertiser/payment-history");
+              } else if (fromPage === "transactions") {
+                navigate("/advertiser/transactions");
               } else {
                 navigate("/advertiser/transactions");
               }
@@ -154,6 +165,8 @@ const AdPurchaseItemDetails = () => {
           >
             {fromPage === "payment-history"
               ? "Back to Payment History"
+              : fromPage === "transactions"
+              ? "Back to Transactions"
               : "Back to Transactions"}
           </Button>,
         ]}
@@ -174,6 +187,8 @@ const AdPurchaseItemDetails = () => {
             onClick={() => {
               if (fromPage === "payment-history") {
                 navigate("/advertiser/payment-history");
+              } else if (fromPage === "transactions") {
+                navigate("/advertiser/transactions");
               } else {
                 navigate("/advertiser/transactions");
               }
@@ -182,6 +197,8 @@ const AdPurchaseItemDetails = () => {
           >
             {fromPage === "payment-history"
               ? "Back to Payment History"
+              : fromPage === "transactions"
+              ? "Back to Transactions"
               : "Back to Transactions"}
           </Button>,
         ]}
@@ -254,11 +271,15 @@ const AdPurchaseItemDetails = () => {
                 title:
                   fromPage === "payment-history"
                     ? "Payment History"
+                    : fromPage === "transactions"
+                    ? "Transactions"
                     : "Ad Purchase Items",
                 href:
                   fromPage === "payment-history"
+                    ? "/advertiser/payment-history"
+                    : fromPage === "transactions"
                     ? "/advertiser/transactions"
-                    : "/advertiser/payment-history",
+                    : "/advertiser/transactions",
               },
               { title: "Ad Purchase Details" },
             ]}
@@ -276,6 +297,8 @@ const AdPurchaseItemDetails = () => {
           onClick={() => {
             if (fromPage === "payment-history") {
               navigate("/advertiser/payment-history");
+            } else if (fromPage === "transactions") {
+              navigate("/advertiser/transactions");
             } else {
               navigate("/advertiser/transactions");
             }
@@ -283,6 +306,8 @@ const AdPurchaseItemDetails = () => {
         >
           {fromPage === "payment-history"
             ? "Back to Payment History"
+            : fromPage === "transactions"
+            ? "Back to Transactions"
             : "Back to Transactions"}
         </Button>
       </div>
@@ -315,7 +340,6 @@ const AdPurchaseItemDetails = () => {
                 >
                   {itemDetails.status}
                 </Tag>
-
               </Descriptions.Item>
               <Descriptions.Item label="Ad Package">
                 <Tag color="purple">{itemDetails.adPackageName}</Tag>
@@ -337,9 +361,7 @@ const AdPurchaseItemDetails = () => {
                 </Text>
               </Descriptions.Item>
               <Descriptions.Item label="Remaining Views">
-                <Space>                 
-                  {itemDetails.remainingViews}
-                </Space>
+                <Space>{itemDetails.remainingViews}</Space>
               </Descriptions.Item>
               <Descriptions.Item label="Refunded Price">
                 {itemDetails.refundedPrice !== null ? (

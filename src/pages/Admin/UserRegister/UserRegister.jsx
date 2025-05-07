@@ -12,6 +12,8 @@ const UserRegister = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filteredInfo, setFilteredInfo] = useState({});
+  const [sortedInfo, setSortedInfo] = useState({});
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 8,
@@ -84,16 +86,78 @@ const UserRegister = () => {
   }, [searchTerm]);
 
   const handleTableChange = (newPagination, filters, sorter) => {
-    if (!searchTerm) {
+    setFilteredInfo(filters);
+    setSortedInfo(sorter);
+
+    // Kiểm tra nếu có filter hoặc search term
+    const hasFilters = Object.values(filters).some((f) => f && f.length > 0);
+    console.log("Filters:", filters);
+    console.log("Has filters:", hasFilters);
+
+    if (!searchTerm && !hasFilters) {
+      // Nếu không có tìm kiếm và không có filter, gọi API phân trang
       fetchUserRegisters(newPagination.current, newPagination.pageSize);
+    } else {
+      // Nếu có filter hoặc search term, áp dụng filter trên dữ liệu đã có
+      let filteredData = [...allUsers];
+      console.log("All users:", filteredData.length);
+
+      // Áp dụng filter status
+      if (filters.status && filters.status.length > 0) {
+        console.log("Filtering by status:", filters.status);
+        filteredData = filteredData.filter((user) =>
+          filters.status.includes(user.status)
+        );
+        console.log("After status filter:", filteredData.length);
+      }
+
+      // Áp dụng search term nếu có
+      if (searchTerm) {
+        console.log("Filtering by search term:", searchTerm);
+        filteredData = filteredData.filter(
+          (user) =>
+            user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        console.log("After search filter:", filteredData.length);
+      }
+
+      // Cập nhật dữ liệu và phân trang
+      const startIndex = (newPagination.current - 1) * newPagination.pageSize;
+      const endIndex = startIndex + newPagination.pageSize;
+
+      // Lấy dữ liệu cho trang hiện tại
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+      console.log("Paginated data:", paginatedData.length);
+
+      // Cập nhật state
+      setUsers(paginatedData);
+      setPagination({
+        ...newPagination,
+        total: filteredData.length,
+      });
     }
   };
+
+  // Thêm các options cho filters
+  const statusOptions = [
+    { text: "ACCEPTED", value: "ACCEPTED" },
+    { text: "REVIEWING", value: "REVIEWING" },
+    { text: "REJECTED", value: "REJECTED" },
+  ];
 
   return (
     <div>
       <Helmet>
         <title>UserRegister Management</title>
       </Helmet>
+      <div className="flex justify-between mb-4">
+        <Space>
+          <Button onClick={() => setFilteredInfo({})}>Clear filters</Button>
+          <Button onClick={() => setSortedInfo({})}>Clear sorters</Button>
+        </Space>
+      </div>
       <div className="flex justify-center mb-6">
         <Input
           placeholder="Search by name, email or phone..."
@@ -127,6 +191,9 @@ const UserRegister = () => {
             title: "Status",
             dataIndex: "status",
             key: "status",
+            filters: statusOptions,
+            filteredValue: filteredInfo.status || null,
+            onFilter: (value, record) => record.status === value,
             render: (status) => {
               let statusColor = "";
               if (status === "ACCEPTED") {
@@ -151,7 +218,13 @@ const UserRegister = () => {
         ]}
         dataSource={users}
         rowKey={(record) => record.id}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          pageSizeOptions: ["5", "8", "10", "20"],
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`,
+        }}
         loading={loading}
         onChange={handleTableChange}
       />

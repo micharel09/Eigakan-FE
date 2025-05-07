@@ -1,45 +1,43 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Card,
   Tag,
-  Alert,
   Typography,
   Button,
   Badge,
   Empty,
   Tooltip,
-  Statistic,
-  Row,
-  Col,
+  Spin,
   Collapse,
   Divider,
   Space,
   theme,
+  Progress,
+  Image,
 } from "antd";
-import { Helmet } from "react-helmet";
 import {
   ReloadOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
   DollarOutlined,
-  FileTextOutlined,
   EyeOutlined,
   ShoppingOutlined,
   CalendarOutlined,
+  ArrowLeftOutlined,
+  FileImageOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
-import adPurchaseService from "../../../apis/AdPurchase/adPurchaseService";
-import UserApi from "../../../apis/User/user";
+import axios from "axios";
 import dayjs from "dayjs";
+import UserApi from "../../../apis/User/user";
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 const { useToken } = theme;
 
-const PaymentHistory = () => {
+const PaymentHistoryTab = ({ userId }) => {
   const { token } = useToken();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -48,78 +46,75 @@ const PaymentHistory = () => {
     pageSize: 5,
     total: 0,
   });
-  const [totalAmount, setTotalAmount] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalViews, setTotalViews] = useState(0);
   const [userDetails, setUserDetails] = useState({});
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [viewMode, setViewMode] = useState("list"); // "list" or "detail"
+  const [selectedItemDetails, setSelectedItemDetails] = useState(null);
+  const [loadingItemDetails, setLoadingItemDetails] = useState(false);
 
-  const fetchTransactions = async (page = 1, pageSize = 5) => {
+  const fetchTransactions = async (page = 1, pageSize = 10) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch current page data
-      const response =
-        await adPurchaseService.getMyHistoryAdPurchaseTransaction(
-          page,
-          pageSize
+      // Lấy userId từ URL
+      const urlUserId = window.location.pathname.split("/").pop();
+
+      // Gọi API để lấy tất cả giao dịch với pageSize lớn (1000)
+      const allDataResponse = await axios.get(
+        `https://eigakan-001-site1.ktempurl.com/api/AdPurchaseTransaction/GetAllAdPurchaseTransaction?page=1&pageSize=1000`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (allDataResponse.data.success) {
+        // Lọc dữ liệu theo userId từ URL
+        const allFilteredTransactions = allDataResponse.data.data.filter(
+          (transaction) => transaction.userId === urlUserId
         );
 
-      // Fetch all data for accurate total calculation
-      const allResponse =
-        await adPurchaseService.getAllMyHistoryAdPurchaseTransaction();
+        if (allFilteredTransactions.length > 0) {
+          // Tính toán phân trang từ dữ liệu đã lọc
+          const startIndex = (page - 1) * pageSize;
+          const endIndex = startIndex + pageSize;
 
-      if (response.success) {
-        console.log("Transaction data:", response);
-        console.log("All transaction data:", allResponse);
+          // Lấy dữ liệu cho trang hiện tại
+          const paginatedTransactions = allFilteredTransactions.slice(
+            startIndex,
+            endIndex
+          );
 
-        const transactionData = response.data || [];
-        setTransactions(transactionData);
-        setPagination({
-          ...pagination,
-          current: page,
-          pageSize: pageSize,
-          total: allResponse.total || 0,
-        });
+          // Cập nhật state
+          setTransactions(paginatedTransactions);
+          setPagination({
+            ...pagination,
+            current: page,
+            pageSize: pageSize,
+            total: allFilteredTransactions.length,
+          });
 
-        // Fetch user details for all transactions
-        fetchAllUserDetails(transactionData);
-
-        // Calculate total amount from ALL successful transactions
-        const allSuccessfulTransactions = allResponse.data.filter(
-          (item) => item.status === "SUCCESS"
-        );
-        const total = allSuccessfulTransactions.reduce(
-          (sum, item) => sum + (item.totalPrice || 0),
-          0
-        );
-        setTotalAmount(total);
-
-        // Calculate total items and views
-        let itemCount = 0;
-        let viewCount = 0;
-
-        allResponse.data.forEach((transaction) => {
-          if (
-            transaction.adPurchaseItems &&
-            transaction.adPurchaseItems.length > 0
-          ) {
-            itemCount += transaction.adPurchaseItems.length;
-
-            transaction.adPurchaseItems.forEach((item) => {
-              viewCount += item.viewQuantity || 0;
-            });
-          }
-        });
-
-        setTotalItems(itemCount);
-        setTotalViews(viewCount);
+          // Fetch user details for paginated transactions
+          fetchAllUserDetails(paginatedTransactions);
+        } else {
+          // Nếu không có dữ liệu đã lọc, hiển thị trang trống
+          setTransactions([]);
+          setPagination({
+            ...pagination,
+            current: 1,
+            pageSize: pageSize,
+            total: 0,
+          });
+        }
       } else {
-        setError(response.message || "Failed to load transaction data");
+        setError(
+          allDataResponse.data.message || "Failed to load transaction data"
+        );
       }
     } catch (err) {
-      console.error("Error fetching transaction data:", err);
       setError(err.message || "Failed to load transaction data");
     } finally {
       setLoading(false);
@@ -127,8 +122,10 @@ const PaymentHistory = () => {
   };
 
   useEffect(() => {
-    fetchTransactions(pagination.current, pagination.pageSize);
-  }, []);
+    if (userId) {
+      fetchTransactions(pagination.current, pagination.pageSize);
+    }
+  }, [userId]);
 
   // Fetch user details by ID
   const fetchUserDetails = async (userId) => {
@@ -143,7 +140,7 @@ const PaymentHistory = () => {
         }));
       }
     } catch (error) {
-      console.error(`Error fetching user details for ID ${userId}:`, error);
+      // Error fetching user details
     }
   };
 
@@ -162,7 +159,7 @@ const PaymentHistory = () => {
       const promises = userIds.map((userId) => fetchUserDetails(userId));
       await Promise.all(promises);
     } catch (error) {
-      console.error("Error fetching user details:", error);
+      // Error fetching user details
     } finally {
       setLoadingUserDetails(false);
     }
@@ -170,10 +167,49 @@ const PaymentHistory = () => {
 
   const handleRefresh = () => {
     fetchTransactions(pagination.current, pagination.pageSize);
+    setViewMode("list");
+    setSelectedTransaction(null);
+    setSelectedItemDetails(null);
   };
 
-  const goToItemDetails = (itemId) => {
-    navigate(`/advertiser/ad-purchase-item/${itemId}?from=payment-history`);
+  const fetchItemDetails = async (itemId) => {
+    setLoadingItemDetails(true);
+    try {
+      const response = await axios.get(
+        `https://eigakan-001-site1.ktempurl.com/api/AdPurchaseItem/GetAllAdPurchaseItemsById?id=${itemId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        // Find the item with matching ID from the response array
+        const matchingItem = response.data.data.find(
+          (item) => item.id === itemId
+        );
+
+        if (matchingItem) {
+          setSelectedItemDetails(matchingItem);
+        } else {
+          // If no matching item found, use the first item as fallback
+          setSelectedItemDetails(response.data.data[0] || null);
+          console.warn("No exact matching item found for ID:", itemId);
+        }
+      } else {
+        // Failed to load item details
+      }
+    } catch (err) {
+      // Error fetching item details
+    } finally {
+      setLoadingItemDetails(false);
+    }
+  };
+
+  const showItemDetails = (itemId) => {
+    fetchItemDetails(itemId);
+    setViewMode("detail");
   };
 
   const getStatusColor = (status) => {
@@ -186,6 +222,10 @@ const PaymentHistory = () => {
         return "error";
       case "ACTIVE":
         return "success";
+      case "INACTIVE":
+        return "default";
+      case "REFUNDED":
+        return "error";
       default:
         return "default";
     }
@@ -311,14 +351,14 @@ const PaymentHistory = () => {
                 <Button
                   type="primary"
                   size="small"
-                  onClick={() => goToItemDetails(item.id)}
+                  onClick={() => showItemDetails(item.id)}
                 >
                   Details
                 </Button>
               </div>
             </div>
 
-            {/* Item details in a grid layout similar to the image */}
+            {/* Item details in a grid layout */}
             <div style={{ padding: "16px" }}>
               <div
                 style={{
@@ -555,9 +595,8 @@ const PaymentHistory = () => {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  // If there's only one item, navigate to its details
                   if (transaction.adPurchaseItems.length === 1) {
-                    goToItemDetails(transaction.adPurchaseItems[0].id);
+                    showItemDetails(transaction.adPurchaseItems[0].id);
                   }
                 }}
               >
@@ -571,256 +610,370 @@ const PaymentHistory = () => {
     );
   };
 
-  return (
-    <div style={{ padding: 24 }}>
-      <Helmet>
-        <title>Payment History | EIGAKAN</title>
-      </Helmet>
+  // Render item details view
+  const renderItemDetails = () => {
+    if (loadingItemDetails) {
+      return (
+        <div style={{ padding: 24, textAlign: "center", marginTop: 20 }}>
+          <Spin size="large" />
+          <div style={{ marginTop: 20 }}>
+            <Text type="secondary">
+              Loading advertisement purchase details...
+            </Text>
+          </div>
+        </div>
+      );
+    }
 
+    if (!selectedItemDetails) {
+      return (
+        <Empty
+          description="No item details available"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      );
+    }
+
+    // Calculate views used and progress percentage
+    const viewsUsed = Math.min(
+      selectedItemDetails.viewQuantity,
+      Math.max(
+        0,
+        selectedItemDetails.viewQuantity - selectedItemDetails.remainingViews
+      )
+    );
+
+    const viewsUsedPercentage = Math.max(
+      0,
+      Math.min(
+        100,
+        selectedItemDetails.viewQuantity > 0
+          ? (viewsUsed / selectedItemDetails.viewQuantity) * 100
+          : 0
+      )
+    );
+
+    return (
+      <div>
+        <div
+          style={{
+            marginBottom: 16,
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => setViewMode("list")}
+          >
+            Back to Transactions
+          </Button>
+        </div>
+
+        <Card title="Item Information" style={{ marginBottom: 16 }}>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}
+          >
+            <div>
+              <Text type="secondary">ID</Text>
+              <div>
+                <Text copyable style={{ fontFamily: "monospace" }}>
+                  {selectedItemDetails.id}
+                </Text>
+              </div>
+            </div>
+
+            <div>
+              <Text type="secondary">Status</Text>
+              <div>
+                <Tag
+                  icon={getStatusIcon(selectedItemDetails.status)}
+                  color={getStatusColor(selectedItemDetails.status)}
+                >
+                  {selectedItemDetails.status}
+                </Tag>
+              </div>
+            </div>
+
+            <div>
+              <Text type="secondary">Total Price</Text>
+              <div>
+                <Text strong style={{ color: token.colorSuccess }}>
+                  {formatVND(selectedItemDetails.price)}
+                </Text>
+              </div>
+            </div>
+
+            <div>
+              <Text type="secondary">Price Per View</Text>
+              <div>
+                <Text strong style={{ color: token.colorPrimary }}>
+                  {formatVND(selectedItemDetails.pricePerView)}
+                </Text>
+              </div>
+            </div>
+
+            <div>
+              <Text type="secondary">Created Date</Text>
+              <div>
+                <Space>
+                  <CalendarOutlined />
+                  {formatDate(selectedItemDetails.createdDate)}
+                </Space>
+              </div>
+            </div>
+
+            <div>
+              <Text type="secondary">Remaining Views</Text>
+              <div>
+                <Space>{selectedItemDetails.remainingViews}</Space>
+              </div>
+            </div>
+          </div>
+
+          <Divider />
+
+          <div style={{ marginBottom: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: 4,
+              }}
+            >
+              <Text type="secondary">Views Used</Text>
+              <Text strong>
+                {viewsUsed} / {selectedItemDetails.viewQuantity}
+              </Text>
+            </div>
+            <Progress
+              percent={viewsUsedPercentage}
+              status={viewsUsedPercentage >= 100 ? "success" : "active"}
+              strokeColor={{
+                from: "#108ee9",
+                to: "#87d068",
+              }}
+              format={(percent) => `${percent.toFixed(1)}%`}
+            />
+          </div>
+        </Card>
+
+        {selectedItemDetails.adMediaUrl && (
+          <Card title="Advertisement Media">
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              {selectedItemDetails.adMediaUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                <video
+                  src={selectedItemDetails.adMediaUrl}
+                  controls
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: 300,
+                  }}
+                />
+              ) : (
+                <Image
+                  src={selectedItemDetails.adMediaUrl}
+                  alt="Advertisement Media"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: 300,
+                    objectFit: "contain",
+                  }}
+                />
+              )}
+            </div>
+          </Card>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-white rounded-lg p-6 mt-6 shadow-sm">
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 24,
+          marginBottom: 16,
         }}
       >
-        <Title level={2} style={{ margin: 0 }}>
-          <FileTextOutlined style={{ marginRight: 8 }} /> Payment History
-        </Title>
+        <div>
+          <Title level={4} style={{ margin: 0 }}>
+            Payment History
+          </Title>
+        </div>
         <Button
           onClick={handleRefresh}
           icon={<ReloadOutlined />}
           loading={loading}
-          type="primary"
-          ghost
         >
           Refresh
         </Button>
       </div>
 
       {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          style={{ marginBottom: 24, borderRadius: "8px" }}
-          closable
-        />
-      )}
-
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} md={12} lg={8}>
-          <Card
-            hoverable
-            style={{
-              borderRadius: "8px",
-              height: "100%",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-            }}
-          >
-            <Statistic
-              title="Total Successful Payments"
-              value={totalAmount}
-              precision={0}
-              formatter={(value) => formatVND(value)}
-              prefix={<DollarOutlined style={{ color: "#52c41a" }} />}
-              loading={loading}
-              valueStyle={{ color: "#52c41a" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} md={12} lg={8}>
-          <Card
-            hoverable
-            style={{
-              borderRadius: "8px",
-              height: "100%",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-            }}
-          >
-            <Statistic
-              title="Total Ad Items"
-              value={totalItems}
-              prefix={<ShoppingOutlined style={{ color: "#1890ff" }} />}
-              loading={loading}
-              valueStyle={{ color: "#1890ff" }}
-              suffix={totalItems > 1 ? "items" : "item"}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} md={12} lg={8}>
-          <Card
-            hoverable
-            style={{
-              borderRadius: "8px",
-              height: "100%",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-            }}
-          >
-            <Statistic
-              title="Total Ad Views"
-              value={totalViews}
-              prefix={<EyeOutlined style={{ color: "#722ed1" }} />}
-              loading={loading}
-              valueStyle={{ color: "#722ed1" }}
-              suffix="views"
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <Card
-        style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.03)", borderRadius: "8px" }}
-      >
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            padding: "12px 16px",
+            backgroundColor: "#fff2f0",
+            border: "1px solid #ffccc7",
+            borderRadius: "8px",
             marginBottom: 16,
           }}
         >
-          <Text style={{ fontSize: 18, fontWeight: 600 }}>
-            Your Payment Transactions
-          </Text>
-          <Badge
-            status={loading ? "processing" : "success"}
-            text={loading ? "Loading..." : "Updated"}
-          />
+          <Text type="danger">{error}</Text>
         </div>
+      )}
 
-        {/* Table header */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.5fr 1fr 1fr 1fr 0.5fr",
-            gap: 16,
-            width: "100%",
-            alignItems: "center",
-            padding: "12px 16px",
-            backgroundColor: token.colorBgLayout,
-            borderRadius: "8px 8px 0 0",
-            fontWeight: 600,
-            marginBottom: 1,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
-        >
-          <div>Transaction ID / User</div>
-          <div>Amount</div>
-          <div>Payment Method</div>
-          <div>Date</div>
-          <div style={{ textAlign: "center" }}>Items</div>
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
+      {viewMode === "list" ? (
+        <div>
           {loading ? (
             <div style={{ padding: "40px 0", textAlign: "center" }}>
-              <div className="ant-spin ant-spin-spinning">
-                <span className="ant-spin-dot ant-spin-dot-spin">
-                  <i className="ant-spin-dot-item"></i>
-                  <i className="ant-spin-dot-item"></i>
-                  <i className="ant-spin-dot-item"></i>
-                  <i className="ant-spin-dot-item"></i>
-                </span>
-              </div>
+              <Spin size="large" />
               <div style={{ marginTop: 16, color: token.colorTextSecondary }}>
                 Loading transactions...
               </div>
             </div>
           ) : (
             <>
-              <Collapse
-                bordered={false}
-                expandIconPosition="end"
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: "0 0 8px 8px",
-                }}
-              >
-                {transactions.map((transaction) => (
-                  <Panel
-                    key={transaction.id}
-                    header={customPanelHeader(transaction)}
+              {transactions.length > 0 ? (
+                <>
+                  {/* Table header */}
+                  <div
                     style={{
-                      marginBottom: 16,
-                      borderRadius: "8px",
-                      border: `1px solid ${token.colorBorderSecondary}`,
-                      overflow: "hidden",
+                      display: "grid",
+                      gridTemplateColumns: "1.5fr 1fr 1fr 1fr 0.5fr",
+                      gap: 16,
+                      width: "100%",
+                      alignItems: "center",
+                      padding: "12px 16px",
+                      backgroundColor: token.colorBgLayout,
+                      borderRadius: "8px 8px 0 0",
+                      fontWeight: 600,
+                      marginBottom: 1,
+                      borderBottom: `1px solid ${token.colorBorderSecondary}`,
                     }}
                   >
-                    {renderTransactionDetails(transaction)}
-                  </Panel>
-                ))}
-              </Collapse>
+                    <div>Transaction ID</div>
+                    <div>Amount</div>
+                    <div>Payment Method</div>
+                    <div>Date</div>
+                    <div style={{ textAlign: "center" }}>Items</div>
+                  </div>
 
-              {transactions.length === 0 && (
+                  <Collapse
+                    bordered={false}
+                    expandIconPosition="end"
+                    style={{
+                      backgroundColor: "white",
+                      borderRadius: "0 0 8px 8px",
+                    }}
+                  >
+                    {transactions.map((transaction) => (
+                      <Panel
+                        key={transaction.id}
+                        header={customPanelHeader(transaction)}
+                        style={{
+                          marginBottom: 16,
+                          borderRadius: "8px",
+                          border: `1px solid ${token.colorBorderSecondary}`,
+                          overflow: "hidden",
+                        }}
+                      >
+                        {renderTransactionDetails(transaction)}
+                      </Panel>
+                    ))}
+                  </Collapse>
+                </>
+              ) : (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description="No transactions found"
                   style={{ margin: "40px 0" }}
                 />
               )}
+
+              {/* Pagination */}
+              {transactions.length > 0 &&
+                pagination.total > pagination.pageSize && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginTop: "20px",
+                      padding: "10px 0",
+                      borderTop: `1px solid ${token.colorBorderSecondary}`,
+                    }}
+                  >
+                    <div>
+                      <Text type="secondary">
+                        Showing {transactions.length} of {pagination.total}{" "}
+                        transactions
+                      </Text>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      <Button
+                        type="primary"
+                        disabled={pagination.current === 1}
+                        onClick={() =>
+                          fetchTransactions(
+                            pagination.current - 1,
+                            pagination.pageSize
+                          )
+                        }
+                      >
+                        Previous
+                      </Button>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          margin: "0 12px",
+                          backgroundColor: token.colorBgLayout,
+                          padding: "4px 12px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        <span style={{ color: token.colorTextSecondary }}>
+                          Page {pagination.current} of{" "}
+                          {Math.ceil(pagination.total / pagination.pageSize) ||
+                            1}
+                        </span>
+                      </div>
+                      <Button
+                        type="primary"
+                        disabled={
+                          pagination.current >=
+                          Math.ceil(pagination.total / pagination.pageSize)
+                        }
+                        onClick={() =>
+                          fetchTransactions(
+                            pagination.current + 1,
+                            pagination.pageSize
+                          )
+                        }
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
             </>
           )}
         </div>
-
-        <Divider style={{ margin: "16px 0" }} />
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <Text type="secondary">
-              Showing {transactions.length} of {pagination.total} transactions
-            </Text>
-          </div>
-          <Space>
-            <Button
-              type="primary"
-              disabled={pagination.current === 1}
-              onClick={() =>
-                fetchTransactions(pagination.current - 1, pagination.pageSize)
-              }
-            >
-              Previous
-            </Button>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                margin: "0 12px",
-                backgroundColor: token.colorBgLayout,
-                padding: "4px 12px",
-                borderRadius: "4px",
-              }}
-            >
-              <span style={{ color: token.colorTextSecondary }}>
-                Page {pagination.current} of{" "}
-                {Math.ceil(pagination.total / pagination.pageSize) || 1}
-              </span>
-            </div>
-            <Button
-              type="primary"
-              disabled={
-                pagination.current >=
-                Math.ceil(pagination.total / pagination.pageSize)
-              }
-              onClick={() =>
-                fetchTransactions(pagination.current + 1, pagination.pageSize)
-              }
-            >
-              Next
-            </Button>
-          </Space>
-        </div>
-      </Card>
+      ) : (
+        renderItemDetails()
+      )}
     </div>
   );
 };
 
-export default PaymentHistory;
+export default PaymentHistoryTab;

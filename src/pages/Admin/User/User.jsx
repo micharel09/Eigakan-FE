@@ -35,6 +35,7 @@ const User = () => {
 
   const fetchAllUsers = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
       const response = await axios.get(
         "https://eigakan-001-site1.ktempurl.com/api/User/GetAllUser?page=0&pageSize=1000",
@@ -45,6 +46,7 @@ const User = () => {
         }
       );
       if (response.data) {
+        console.log("Fetched all users:", response.data.users?.length || 0);
         setAllUsers(response.data.users || []);
       }
     } catch (error) {
@@ -53,6 +55,8 @@ const User = () => {
         message: "Error",
         description: "Could not fetch users for search",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,8 +118,10 @@ const User = () => {
 
   // Gọi API lần đầu khi component mount
   useEffect(() => {
-    fetchUsers(pagination.current, pagination.pageSize);
+    // Đầu tiên lấy tất cả users để phục vụ cho việc filter
     fetchAllUsers();
+    // Sau đó lấy dữ liệu phân trang
+    fetchUsers(pagination.current, pagination.pageSize);
   }, []);
 
   useEffect(() => {
@@ -168,6 +174,7 @@ const User = () => {
     { text: "PUBLISHER", value: "PUBLISHER" },
     { text: "MANAGER", value: "MANAGER" },
     { text: "VIP MEMBER", value: "VIP MEMBER" },
+    { text: "ADVERTISER", value: "ADVERTISER" },
   ];
 
   const statusOptions = [
@@ -180,9 +187,62 @@ const User = () => {
     setFilteredInfo(filters);
     setSortedInfo(sorter);
 
-    // Chỉ gọi API phân trang khi không có tìm kiếm
-    if (!searchTerm) {
+    // Kiểm tra nếu có filter hoặc search term
+    const hasFilters = Object.values(filters).some((f) => f && f.length > 0);
+    console.log("Filters:", filters);
+    console.log("Has filters:", hasFilters);
+
+    if (!searchTerm && !hasFilters) {
+      // Nếu không có tìm kiếm và không có filter, gọi API phân trang
       fetchUsers(newPagination.current, newPagination.pageSize);
+    } else {
+      // Nếu có filter hoặc search term, áp dụng filter trên dữ liệu đã có
+      let filteredData = [...allUsers];
+      console.log("All users:", filteredData.length);
+
+      // Áp dụng filter role
+      if (filters.role && filters.role.length > 0) {
+        console.log("Filtering by role:", filters.role);
+        filteredData = filteredData.filter((user) =>
+          filters.role.includes(user.roleName)
+        );
+        console.log("After role filter:", filteredData.length);
+      }
+
+      // Áp dụng filter status
+      if (filters.status && filters.status.length > 0) {
+        console.log("Filtering by status:", filters.status);
+        filteredData = filteredData.filter((user) =>
+          filters.status.includes(user.status)
+        );
+        console.log("After status filter:", filteredData.length);
+      }
+
+      // Áp dụng search term nếu có
+      if (searchTerm) {
+        console.log("Filtering by search term:", searchTerm);
+        filteredData = filteredData.filter(
+          (user) =>
+            user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        console.log("After search filter:", filteredData.length);
+      }
+
+      // Cập nhật dữ liệu và phân trang
+      const startIndex = (newPagination.current - 1) * newPagination.pageSize;
+      const endIndex = startIndex + newPagination.pageSize;
+
+      // Lấy dữ liệu cho trang hiện tại
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+      console.log("Paginated data:", paginatedData.length);
+
+      // Cập nhật state
+      setUsers(paginatedData);
+      setPagination({
+        ...newPagination,
+        total: filteredData.length,
+      });
     }
   };
 
@@ -229,19 +289,9 @@ const User = () => {
       title: "Role",
       dataIndex: "roleName",
       key: "role",
-      filters: [
-        { text: "ADMIN", value: "ADMIN" },
-        { text: "MEMBER", value: "MEMBER" },
-        { text: "PUBLISHER", value: "PUBLISHER" },
-        { text: "MANAGER", value: "MANAGER" },
-        { text: "VIP MEMBER", value: "VIP MEMBER" },
-      ],
+      filters: roleOptions,
       filteredValue: filteredInfo.role || null,
-      onFilter: (value, record) => {
-        return (
-          record.roleName?.trim().toUpperCase() === value.trim().toUpperCase()
-        );
-      },
+      onFilter: (value, record) => record.roleName === value,
       render: (roleName) => {
         const color =
           roleName === "ADMIN"
@@ -340,7 +390,13 @@ const User = () => {
         columns={columns}
         dataSource={users}
         rowKey={(record) => record.id}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          pageSizeOptions: ["5", "8", "10", "20"],
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`,
+        }}
         loading={loading}
         onChange={handleTableChange}
       />

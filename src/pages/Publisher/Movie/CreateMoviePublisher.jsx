@@ -992,12 +992,22 @@ const CreateMoviePublisher = () => {
                     required: true,
                     message: "Please select at least one genre!",
                   },
+                  {
+                    validator: (_, value) => {
+                      if (value && value.length > 5) {
+                        return Promise.reject(
+                          new Error("You can select maximum 5 genres!")
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
               >
                 <Select
                   mode="multiple"
                   showSearch
-                  placeholder="Select genres"
+                  placeholder="Select genres (maximum 5)"
                   optionLabelProp="label"
                   filterOption={(input, option) => option?.label?.toLowerCase().includes(input.toLowerCase())}
                 >
