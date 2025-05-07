@@ -33,15 +33,15 @@ const { Title, Text } = Typography;
 const { Meta } = Card;
 
 const ContractDetailPublisher = () => {
-  const { id } = useParams()
-  const [contract, setContract] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [movie, setMovie] = useState(null)
-  const [loadingMovie, setLoadingMovie] = useState(false)
-  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false)
-  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false)
-  const [reason, setReason] = useState("")
-  const [signToken, setSignedToken] = useState("")
+  const { id } = useParams();
+  const [contract, setContract] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [movie, setMovie] = useState(null);
+  const [loadingMovie, setLoadingMovie] = useState(false);
+  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false);
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const [reason, setReason] = useState("");
+  const [signToken, setSignedToken] = useState("");
   const [fileUrl, setFileUrl] = useState(null);
   const [showFileModal, setShowFileModal] = useState(false);
   useEffect(() => {
@@ -119,19 +119,19 @@ const ContractDetailPublisher = () => {
       }
       const extractLink = extractUrl(contract.fileUrl);
       console.log("Extracted link:", extractLink);
-  
+
       if (!extractLink?.userId || !extractLink?.fileName) {
         throw new Error("Failed to extract userId or fileName from URL");
       }
-  
+
       const response = await uploadFileApi.getPreFileContract(
         extractLink.userId,
         extractLink.fileName
       );
-  
+
       console.log("PreUrl:", response.data);
-      setFileUrl(response.data.url);        // 👈 Gán URL
-      setShowFileModal(true);              // 👈 Mở modal
+      setFileUrl(response.data.url); // 👈 Gán URL
+      setShowFileModal(true); // 👈 Mở modal
     } catch (error) {
       console.error("Error fetching preUrl:", error);
       notification.error({
@@ -140,7 +140,6 @@ const ContractDetailPublisher = () => {
       });
     }
   };
-  
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -385,34 +384,46 @@ const ContractDetailPublisher = () => {
                   View Contract
                 </Button> */}
 
-<Button
-  type="primary"
-  onClick={handleGetPreUrl}
-  icon={<FileTextOutlined />}
-  className="bg-blue-500 hover:bg-blue-600"
->
-  View Contract
-</Button><Modal
-  title="Contract Preview"
-  open={showFileModal}
-  onCancel={() => setShowFileModal(false)}
-  footer={null}
-  width="80%"
->
-  {fileUrl ? (
-    <iframe
-      src={fileUrl}
-      title="Contract Preview"
-      width="100%"
-      height="500px"
-      style={{ border: "none" }}
-    />
-  ) : (
-    <div className="flex justify-center items-center">
-      <Spin size="large" />
-    </div>
-  )}
-</Modal>
+                <Button
+                  type="primary"
+                  onClick={handleGetPreUrl}
+                  icon={<FileTextOutlined />}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  View Contract
+                </Button>
+                <Modal
+                  title="Contract Preview"
+                  open={showFileModal}
+                  onCancel={() => setShowFileModal(false)}
+                  footer={null}
+                  width={{ xs: "95%", sm: "90%", md: "85%", lg: "80%" }}
+                  style={{
+                    top: "5vh",
+                    maxWidth: "1400px",
+                    margin: "0 auto",
+                  }}
+                >
+                  {fileUrl ? (
+                    <iframe
+                      src={fileUrl}
+                      title="Contract Preview"
+                      width="100%"
+                      style={{
+                        border: "none",
+                        height: "calc(90vh - 120px)", 
+                        minHeight: "400px", 
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="flex justify-center items-center"
+                      style={{ height: "50vh" }}
+                    >
+                      <Spin size="large" />
+                    </div>
+                  )}
+                </Modal>
               </Descriptions.Item>
 
               <Descriptions.Item

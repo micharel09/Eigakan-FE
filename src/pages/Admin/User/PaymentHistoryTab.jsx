@@ -185,7 +185,18 @@ const PaymentHistoryTab = ({ userId }) => {
       );
 
       if (response.data.success) {
-        setSelectedItemDetails(response.data.data[0] || null);
+        // Find the item with matching ID from the response array
+        const matchingItem = response.data.data.find(
+          (item) => item.id === itemId
+        );
+
+        if (matchingItem) {
+          setSelectedItemDetails(matchingItem);
+        } else {
+          // If no matching item found, use the first item as fallback
+          setSelectedItemDetails(response.data.data[0] || null);
+          console.warn("No exact matching item found for ID:", itemId);
+        }
       } else {
         // Failed to load item details
       }

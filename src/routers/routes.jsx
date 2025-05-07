@@ -71,6 +71,7 @@ import UserEarning from "../pages/Admin/User/UserEarning.jsx";
 import PublisherEarning from "../pages/Publisher/UserEarning/PublisherEarning.jsx";
 import AdPackageManagement from "../pages/Manager/AdPackage/AdPackageManagement.jsx";
 import ManagerAdPurchaseItemDetails from "../pages/Manager/AdPurchaseItems/AdPurchaseItemDetails.jsx";
+import AdminAdPurchaseItemDetails from "../pages/Admin/Ad/AdPurchaseItemDetails.jsx";
 
 const isLoggedIn = () => {
   const loggedIn = localStorage.getItem("user");
@@ -236,6 +237,16 @@ const routes = [
     element: (
       <PrivateRoute requiredRole="ADMIN">
         <AdHistory />
+      </PrivateRoute>
+    ),
+    layout: "AdminLayout",
+  },
+
+  {
+    path: "/admin/ad-purchase-item/:id",
+    element: (
+      <PrivateRoute requiredRole="ADMIN">
+        <AdminAdPurchaseItemDetails />
       </PrivateRoute>
     ),
     layout: "AdminLayout",

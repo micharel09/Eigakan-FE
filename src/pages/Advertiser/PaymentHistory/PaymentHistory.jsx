@@ -173,7 +173,7 @@ const PaymentHistory = () => {
   };
 
   const goToItemDetails = (itemId) => {
-    navigate(`/advertiser/ad-purchase-item/${itemId}?from=transactions`);
+    navigate(`/advertiser/ad-purchase-item/${itemId}?from=payment-history`);
   };
 
   const getStatusColor = (status) => {
@@ -555,6 +555,7 @@ const PaymentHistory = () => {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  // If there's only one item, navigate to its details
                   if (transaction.adPurchaseItems.length === 1) {
                     goToItemDetails(transaction.adPurchaseItems[0].id);
                   }

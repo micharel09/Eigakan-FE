@@ -146,7 +146,7 @@ const AdPurchaseItems = () => {
   };
 
   const handleViewDetails = (id) => {
-    navigate(`/advertiser/ad-purchase-item/${id}?from=payment-history`);
+    navigate(`/advertiser/ad-purchase-item/${id}?from=transactions`);
   };
 
   const columns = [
