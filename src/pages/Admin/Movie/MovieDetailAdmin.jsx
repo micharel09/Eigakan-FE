@@ -68,6 +68,8 @@ const MovieDetail = () => {
   const [fileList, setFileList] = useState([]);
   const [uploadedFileUrl, setUploadedFileUrl] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [fileUrl, setFileUrl] = useState(null);
+  const [showFileModal, setShowFileModal] = useState(false);
 
   const { id } = useParams();
   const [form] = Form.useForm();
@@ -446,8 +448,8 @@ const MovieDetail = () => {
         extractLink.fileName
       );
       console.log("PreUrl:", response.data);
-      //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
+      setFileUrl(response.data.url);
+      setShowFileModal(true);
     } catch (error) {
       notification.error({ message: error.message || "Not found" });
       console.error("Error fetching preUrl:", error);
@@ -469,8 +471,8 @@ const MovieDetail = () => {
         extractLink.fileName
       );
       console.log("PreUrl:", response.data);
-      //setPreUrl(response.data.url);
-      window.open(response.data.url, "_blank");
+      setFileUrl(response.data.url);
+      setShowFileModal(true);
     } catch (error) {
       notification.error({ message: error.message || "Not found" });
       console.error("Error fetching preUrl:", error);
@@ -1136,6 +1138,39 @@ const MovieDetail = () => {
           confirmLoading={loading}
         >
           <h1>Are you sure to active this movie and publish on website?</h1>
+        </Modal>
+        {/* File Preview Modal */}
+        <Modal
+          title="View File"
+          open={showFileModal}
+          onCancel={() => setShowFileModal(false)}
+          footer={null}
+          width={{ xs: "95%", sm: "90%", md: "85%", lg: "80%" }}
+          style={{
+            top: "5vh",
+            maxWidth: "1400px",
+            margin: "0 auto",
+          }}
+        >
+          {fileUrl ? (
+            <iframe
+              src={fileUrl}
+              title="File Preview"
+              width="100%"
+              style={{
+                border: "none",
+                height: "calc(90vh - 120px)", // Responsive height based on viewport
+                minHeight: "400px", // Minimum height
+              }}
+            />
+          ) : (
+            <div
+              className="flex justify-center items-center"
+              style={{ height: "50vh" }}
+            >
+              <Spin size="large" />
+            </div>
+          )}
         </Modal>
       </Content>
     </Layout>

@@ -40,16 +40,14 @@ const ContractDetailAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [movie, setMovie] = useState(null);
   const [loadingMovie, setLoadingMovie] = useState(false);
-  const [isAcceptModalVisible, setIsAcceptModalVisible] = useState(false);
-  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
-  const [reason, setReason] = useState("");
-  const [signToken, setSignedToken] = useState("");
 
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
   const [uploadedFileUrl, setUploadedFileUrl] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [fileUrl, setFileUrl] = useState(null);
+  const [showFileModal, setShowFileModal] = useState(false);
 
   useEffect(() => {
     fetchContractDetail();
@@ -57,11 +55,11 @@ const ContractDetailAdmin = () => {
 
   useEffect(() => {
     if (contract?.movieId) {
-      fetchMovie(contract.movieId);
+      fetchMovie();
     }
   }, [contract?.movieId]);
 
-  const fetchMovie = async (movieId) => {
+  const fetchMovie = async () => {
     setLoadingMovie(true);
     try {
       setMovie(contract.movie);
@@ -90,7 +88,7 @@ const ContractDetailAdmin = () => {
     }
   };
 
-  const handleGetPreUrl = async (isTemp) => {
+  const handleGetPreUrl = async () => {
     try {
       if (!contract?.fileUrl) {
         throw new Error("File URL not found.");
@@ -108,7 +106,8 @@ const ContractDetailAdmin = () => {
       );
 
       console.log("PreUrl:", response.data);
-      window.open(response.data.url, "_blank");
+      setFileUrl(response.data.url); // Gán URL
+      setShowFileModal(true); // Mở modal
     } catch (error) {
       console.error("Error fetching preUrl:", error);
       notification.error({
@@ -365,7 +364,7 @@ const ContractDetailAdmin = () => {
               >
                 <Button
                   type="primary"
-                  onClick={() => handleGetPreUrl(false)}
+                  onClick={handleGetPreUrl}
                   icon={<FileTextOutlined />}
                   className="bg-blue-500 hover:bg-blue-600"
                 >
@@ -624,6 +623,40 @@ const ContractDetailAdmin = () => {
             </div>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Contract Preview Modal */}
+      <Modal
+        title="Contract Preview"
+        open={showFileModal}
+        onCancel={() => setShowFileModal(false)}
+        footer={null}
+        width={{ xs: "95%", sm: "90%", md: "85%", lg: "80%" }}
+        style={{
+          top: "5vh",
+          maxWidth: "1400px",
+          margin: "0 auto",
+        }}
+      >
+        {fileUrl ? (
+          <iframe
+            src={fileUrl}
+            title="Contract Preview"
+            width="100%"
+            style={{
+              border: "none",
+              height: "calc(90vh - 120px)", // Responsive height based on viewport
+              minHeight: "400px", // Minimum height
+            }}
+          />
+        ) : (
+          <div
+            className="flex justify-center items-center"
+            style={{ height: "50vh" }}
+          >
+            <Spin size="large" />
+          </div>
+        )}
       </Modal>
     </div>
   );

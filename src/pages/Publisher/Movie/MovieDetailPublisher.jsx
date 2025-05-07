@@ -57,20 +57,20 @@ const hiddenStatuses = [
 ];
 
 const MovieDetailPublisher = () => {
-  const [movie, setMovie] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState({ visible: false, type: "" })
-  const [editMovie, setEditMovie] = useState(null)
-  const [genres, setGenres] = useState([])
-  const [persons, setPersons] = useState([])
-  const [movieEarnings, setMovieEarnings] = useState([])
-  const [totalEarnings, setTotalEarnings] = useState(0)
-  const [total, setTotal] = useState(0)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(5)
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState({ visible: false, type: "" });
+  const [editMovie, setEditMovie] = useState(null);
+  const [genres, setGenres] = useState([]);
+  const [persons, setPersons] = useState([]);
+  const [movieEarnings, setMovieEarnings] = useState([]);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [fileUrl, setFileUrl] = useState(null);
-  const [showFileModal, setShowFileModal] =useState(false);
-  const { id } = useParams()
+  const [showFileModal, setShowFileModal] = useState(false);
+  const { id } = useParams();
 
   useEffect(() => {
     fetchMovieDetails();
@@ -568,28 +568,38 @@ const MovieDetailPublisher = () => {
                       >
                         View File Copy-right
                       </Button>
-                              <Modal
-                                title="View File"
-                                open={showFileModal}
-                                onCancel={() => setShowFileModal(false)}
-                                footer={null}
-                                width="80%"
-                                height="80%"
-                              >
-                                {fileUrl ? (
-                                  <iframe
-                                    src={fileUrl}
-                                    title="File Preview"
-                                    width="100%"
-                                    height="500px"
-                                    style={{ border: "none" }}
-                                  />
-                                ) : (
-                                  <div className="flex justify-center items-center">
-                                    <Spin size="large" />
-                                  </div>
-                                )}
-                              </Modal>
+                      <Modal
+                        title="View File"
+                        open={showFileModal}
+                        onCancel={() => setShowFileModal(false)}
+                        footer={null}
+                        width={{ xs: "95%", sm: "90%", md: "85%", lg: "80%" }}
+                        style={{
+                          top: "5vh",
+                          maxWidth: "1400px",
+                          margin: "0 auto",
+                        }}
+                      >
+                        {fileUrl ? (
+                          <iframe
+                            src={fileUrl}
+                            title="File Preview"
+                            width="100%"
+                            style={{
+                              border: "none",
+                              height: "calc(90vh - 120px)", // Responsive height based on viewport
+                              minHeight: "400px", // Minimum height
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className="flex justify-center items-center"
+                            style={{ height: "50vh" }}
+                          >
+                            <Spin size="large" />
+                          </div>
+                        )}
+                      </Modal>
                       {!hiddenStatuses.includes(movie?.status) && (
                         <Link
                           key={movie.id}

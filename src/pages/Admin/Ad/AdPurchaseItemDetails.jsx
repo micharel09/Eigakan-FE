@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Card,
   Button,
@@ -34,15 +34,13 @@ import {
   FileImageOutlined,
   UserOutlined,
   IdcardOutlined,
-  MailOutlined,
-  CalendarFilled,
 } from "@ant-design/icons";
 import { Helmet } from "react-helmet";
 import adPurchaseItemService from "../../../apis/AdPurchaseItem/adPurchaseItem";
 import UserApi from "../../../apis/User/user";
 import dayjs from "dayjs";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { useToken } = theme;
 const { TabPane } = Tabs;
 
@@ -50,12 +48,24 @@ const AdPurchaseItemDetails = () => {
   const { token } = useToken();
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [itemDetails, setItemDetails] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
   const [loadingUser, setLoadingUser] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+
+  // Determine the return path based on the query parameter
+  const getReturnPath = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const from = searchParams.get("from");
+
+    if (from === "ad-history") {
+      return "/admin/ad-history";
+    }
+    return "/admin/ad-package";
+  };
 
   // Fetch user details by ID
   const fetchUserDetails = async (userId) => {
@@ -184,10 +194,10 @@ const AdPurchaseItemDetails = () => {
           <Button
             type="primary"
             key="back"
-            onClick={() => navigate("/manager/ad-package")}
+            onClick={() => navigate(getReturnPath())}
             icon={<ArrowLeftOutlined />}
           >
-            Back to Ad Package Management
+            Back to Ad History
           </Button>,
         ]}
       />
@@ -204,10 +214,10 @@ const AdPurchaseItemDetails = () => {
           <Button
             type="primary"
             key="back"
-            onClick={() => navigate("/manager/ad-package")}
+            onClick={() => navigate(getReturnPath())}
             icon={<ArrowLeftOutlined />}
           >
-            Back to Ad Package Management
+            Back to Ad History
           </Button>,
         ]}
       />
@@ -612,7 +622,41 @@ const AdPurchaseItemDetails = () => {
   };
 
   return (
-    <div style={{ padding: 24 }}>
+    <div
+      className="admin-ad-purchase-details"
+      style={{
+        padding: 24,
+        backgroundColor: "#fff",
+        minHeight: "100vh",
+        color: "#000",
+      }}
+    >
+      <style jsx>{`
+        .admin-ad-purchase-details {
+          background-color: #fff !important;
+          color: #000 !important;
+        }
+        .admin-ad-purchase-details * {
+          background-color: inherit;
+          color: inherit;
+        }
+        .admin-ad-purchase-details .ant-card {
+          background-color: #fff !important;
+        }
+        .admin-ad-purchase-details .ant-descriptions-item-label,
+        .admin-ad-purchase-details .ant-descriptions-item-content {
+          background-color: #fff !important;
+          color: rgba(0, 0, 0, 0.85) !important;
+        }
+        .admin-ad-purchase-details .ant-tabs-tab {
+          color: rgba(0, 0, 0, 0.85) !important;
+        }
+        .admin-ad-purchase-details
+          .ant-tabs-tab.ant-tabs-tab-active
+          .ant-tabs-tab-btn {
+          color: var(--eigakan-primary) !important;
+        }
+      `}</style>
       <Helmet>
         <title>Ad Purchase Details | EIGAKAN</title>
       </Helmet>
@@ -628,17 +672,18 @@ const AdPurchaseItemDetails = () => {
         <div>
           <Breadcrumb
             items={[
-              { title: "User", href: "/manager/users" },
-              { title: "User Detail" },
+              { title: "Admin", href: "/admin" },
+              { title: "Ad History", href: getReturnPath() },
+              { title: "Ad Purchase Item Detail" },
             ]}
             style={{ marginBottom: 8 }}
           />
         </div>
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/manager/ad-package")}
+          onClick={() => navigate(getReturnPath())}
         >
-          Back to Ad Package Management
+          Back to Ad History
         </Button>
       </div>
 
