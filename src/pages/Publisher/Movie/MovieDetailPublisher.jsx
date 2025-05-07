@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
 import {
   Breadcrumb,
   Layout,
@@ -21,7 +21,7 @@ import {
   Divider,
   Table,
   Pagination,
-} from "antd";
+} from "antd"
 import {
   PlayCircleOutlined,
   PictureOutlined,
@@ -29,32 +29,25 @@ import {
   StarOutlined,
   EditOutlined,
   UploadOutlined,
-  CalendarOutlined,
   BarChartOutlined,
-  CloseCircleOutlined,
   FileTextOutlined,
   UserOutlined,
-} from "@ant-design/icons";
-import { useParams } from "react-router-dom";
-import movieService from "../../../apis/Movie/movie";
-import genreService from "../../../apis/Genre/genre";
-import personService from "../../../apis/Person/person";
-import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow";
-import uploadFileApi from "../../../apis/Upload/upload";
-import { extractUrl } from "../../../utils/extractUrl";
-import { Link } from "react-router-dom";
-import MovieCount from "../../Admin/Movie/MovieCount";
-import movieEarningService from "../../../apis/MovieEarning/movieEarning";
+} from "@ant-design/icons"
+import { useParams } from "react-router-dom"
+import movieService from "../../../apis/Movie/movie"
+import genreService from "../../../apis/Genre/genre"
+import personService from "../../../apis/Person/person"
+import ProcessStatus from "../../../components/WorkFlow/MovieWorkflow"
+import uploadFileApi from "../../../apis/Upload/upload"
+import { extractUrl } from "../../../utils/extractUrl"
+import { Link } from "react-router-dom"
+import MovieCount from "../../Admin/Movie/MovieCount"
+import movieEarningService from "../../../apis/MovieEarning/movieEarning"
 
-const { Content } = Layout;
-const { TabPane } = Tabs;
-const { Title, Text, Paragraph } = Typography;
-const hiddenStatuses = [
-  "ACTIVE",
-  "ACCEPTED_NEGOTIATING",
-  "WAITING_FOR_UPLOADING",
-  "ARCHIVED",
-];
+const { Content } = Layout
+const { TabPane } = Tabs
+const { Title, Text, Paragraph } = Typography
+const hiddenStatuses = ["ACTIVE", "ACCEPTED_NEGOTIATING", "WAITING_FOR_UPLOADING", "ARCHIVED"]
 
 const MovieDetailPublisher = () => {
   const [movie, setMovie] = useState(null)
@@ -68,85 +61,80 @@ const MovieDetailPublisher = () => {
   const [total, setTotal] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(5)
-  const [fileUrl, setFileUrl] = useState(null);
-  const [showFileModal, setShowFileModal] =useState(false);
+  const [fileUrl, setFileUrl] = useState(null)
+  const [showFileModal, setShowFileModal] = useState(false)
   const { id } = useParams()
 
   useEffect(() => {
-    fetchMovieDetails();
-    fetchGenres();
-    fetchPersons();
-    fetchMovieEarningByMovieId(currentPage, pageSize);
-  }, []);
+    fetchMovieDetails()
+    fetchGenres()
+    fetchPersons()
+    fetchMovieEarningByMovieId(currentPage, pageSize)
+  }, [])
 
   const fetchMovieDetails = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const response = await movieService.getMovieById(id);
-      setMovie(response.data);
+      const response = await movieService.getMovieById(id)
+      setMovie(response.data)
     } catch (error) {
-      notification.error({ message: "Failed to fetch movie details" });
+      notification.error({ message: "Failed to fetch movie details" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const fetchMovieEarningByMovieId = async (page = 1, pageSize = 5) => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const result = await movieEarningService.getMovieEarningByMovieId(
-        id,
-        page,
-        pageSize
-      );
+      const result = await movieEarningService.getMovieEarningByMovieId(id, page, pageSize)
 
-      setMovieEarnings(result.movieEarningMovieId);
-      setTotalEarnings(result.totalEarnings);
-      setTotal(result.totalItems);
+      setMovieEarnings(result.movieEarningMovieId)
+      setTotalEarnings(result.totalEarnings)
+      setTotal(result.totalItems)
     } catch (error) {
-      notification.error({ message: "Failed to fetch movie earnings" });
+      notification.error({ message: "Failed to fetch movie earnings" })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const fetchGenres = async () => {
     try {
-      const response = await genreService.getGenres();
-      setGenres(response.data);
+      const response = await genreService.getGenres()
+      setGenres(response.data)
     } catch (error) {
-      console.error("Error fetching genres:", error);
-      notification.error({ message: "Failed to fetch genres" });
+      console.error("Error fetching genres:", error)
+      notification.error({ message: "Failed to fetch genres" })
     }
-  };
+  }
 
   const fetchPersons = async () => {
     try {
-      const response = await personService.getAllPerson();
-      console.log("Persons:", response.data);
-      setPersons(response.data);
+      const response = await personService.getAllPerson()
+      console.log("Persons:", response.data)
+      setPersons(response.data)
     } catch (error) {
-      console.error("Error fetching persons:", error);
-      notification.error({ message: "Failed to fetch persons" });
+      console.error("Error fetching persons:", error)
+      notification.error({ message: "Failed to fetch persons" })
     }
-  };
+  }
 
   const handleUpdate = async () => {
     try {
-      await movieService.updateMovie(id, editMovie);
-      notification.success({ message: "Movie updated successfully" });
-      setModal({ visible: false, type: "" });
-      fetchMovieDetails();
+      await movieService.updateMovie(id, editMovie)
+      notification.success({ message: "Movie updated successfully" })
+      setModal({ visible: false, type: "" })
+      fetchMovieDetails()
     } catch (error) {
-      notification.error({ message: "Failed to update movie" });
+      notification.error({ message: "Failed to update movie" })
     }
-  };
+  }
 
-  const getMediaUrl = (type) =>
-    movie?.medias?.find((m) => m.type === type)?.url || "";
+  const getMediaUrl = (type) => movie?.medias?.find((m) => m.type === type)?.url || ""
 
   const renderMedia = (type) => {
-    const url = getMediaUrl(type);
+    const url = getMediaUrl(type)
 
     if (type === "DASHBOARD") {
       return (
@@ -155,9 +143,7 @@ const MovieDetailPublisher = () => {
             <Title level={3} className="text-gray-800 mb-1">
               Movie Dashboard
             </Title>
-            <Text className="text-gray-500">
-              Comprehensive analytics and information
-            </Text>
+            <Text className="text-gray-500">Comprehensive analytics and information</Text>
           </div>
 
           {/* Performance Metrics - Bottom Row */}
@@ -210,20 +196,18 @@ const MovieDetailPublisher = () => {
               <div className="flex items-center">
                 <div className="bg-purple-500 w-1 h-6 mr-3 rounded-full"></div>
                 <span>
-                  Movie Earnings - Total Earnings: {totalEarnings} VND
+                  {/* MODIFIED: Only show Total Earnings for movies without contracts */}
+                  Movie Earnings{" "}
+                  {!movie?.isContract && totalEarnings > 0
+                    ? `- Total Earnings: ${totalEarnings.toLocaleString()} VND`
+                    : ""}
                 </span>
               </div>
             }
             bordered={false}
             className="shadow-md hover:shadow-lg transition-shadow duration-300"
           >
-            <Table
-              columns={columns}
-              dataSource={movieEarnings}
-              rowKey="id"
-              loading={loading}
-              pagination={false}
-            />
+            <Table columns={columns} dataSource={movieEarnings} rowKey="id" loading={loading} pagination={false} />
 
             <div className="flex justify-end mt-4">
               <Pagination
@@ -234,9 +218,16 @@ const MovieDetailPublisher = () => {
                 showSizeChanger={false}
               />
             </div>
+            {movie?.isContract && (
+              <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-md border border-blue-200">
+                <p className="text-sm">
+                  <strong>Note:</strong> Earnings details are not displayed for movies with active contracts.
+                </p>
+              </div>
+            )}
           </Card>
         </div>
-      );
+      )
     }
 
     if (["Actor/Acstress"].includes(type)) {
@@ -253,29 +244,17 @@ const MovieDetailPublisher = () => {
             </div>
           ))}
         </div>
-      );
+      )
     }
-    if (!url) return <p>No {type.toLowerCase()} available</p>;
+    if (!url) return <p>No {type.toLowerCase()} available</p>
     if (type === "POSTER")
       return (
         <div className="flex justify-center">
-          <Image
-            width="30%"
-            src={url || "/placeholder.svg"}
-            alt={`Movie ${type}`}
-          />
+          <Image width="30%" src={url || "/placeholder.svg"} alt={`Movie ${type}`} />
         </div>
-      );
-    if (type === "BANNER")
-      return (
-        <Image
-          width="100%"
-          src={url || "/placeholder.svg"}
-          alt={`Movie ${type}`}
-        />
-      );
-    if (type === "TRAILER")
-      return <iframe width="100%" height="400" src={url} allowFullScreen />;
+      )
+    if (type === "BANNER") return <Image width="100%" src={url || "/placeholder.svg"} alt={`Movie ${type}`} />
+    if (type === "TRAILER") return <iframe width="100%" height="400" src={url} allowFullScreen />
     if (type === "FILMVIP" && url.includes("iframe.mediadelivery.net")) {
       return (
         <iframe
@@ -288,7 +267,7 @@ const MovieDetailPublisher = () => {
           allow="autoplay; encrypted-media"
           allowFullScreen
         />
-      );
+      )
     }
     if (["FILM", "FILMVIP"].includes(type)) {
       return (
@@ -296,26 +275,21 @@ const MovieDetailPublisher = () => {
           <source src={url} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-      );
+      )
     }
-  };
+  }
 
   const renderContract = () => {
     if (!movie?.contracts || movie.contracts.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg">
-          <FileTextOutlined
-            style={{ fontSize: 64 }}
-            className="text-gray-300 mb-4"
-          />
+          <FileTextOutlined style={{ fontSize: 64 }} className="text-gray-300 mb-4" />
           <Title level={4} className="text-gray-500">
             No Contracts Available
           </Title>
-          <Text className="text-gray-400">
-            This movie doesn't have any contracts.
-          </Text>
+          <Text className="text-gray-400">This movie doesn't have any contracts.</Text>
         </div>
-      );
+      )
     }
 
     return (
@@ -324,9 +298,7 @@ const MovieDetailPublisher = () => {
           <Title level={3} className="text-gray-800 mb-1">
             Movie Contracts
           </Title>
-          <Text className="text-gray-500">
-            Contract information for this movie
-          </Text>
+          <Text className="text-gray-500">Contract information for this movie</Text>
         </div>
 
         {movie.contracts.map((contract) => (
@@ -336,21 +308,12 @@ const MovieDetailPublisher = () => {
             title={
               <div className="flex items-center">
                 <div className="bg-blue-500 w-1 h-6 mr-3 rounded-full"></div>
-                <Link
-                  to={`/publisher/contract/${contract.id}`}
-                  className="text-blue-600 hover:underline"
-                >
+                <Link to={`/publisher/contract/${contract.id}`} className="text-blue-600 hover:underline">
                   Contract Details
                 </Link>
               </div>
             }
-            extra={
-              <Tag
-                color={contract.status === "SIGNED" ? "success" : "processing"}
-              >
-                {contract.status}
-              </Tag>
-            }
+            extra={<Tag color={contract.status === "SIGNED" ? "success" : "processing"}>{contract.status}</Tag>}
             bordered={false}
           >
             <div className="space-y-4">
@@ -362,9 +325,7 @@ const MovieDetailPublisher = () => {
                   </Text>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
-                  <Paragraph className="text-gray-800 m-0 font-mono">
-                    {contract.id}
-                  </Paragraph>
+                  <Paragraph className="text-gray-800 m-0 font-mono">{contract.id}</Paragraph>
                 </div>
               </div>
 
@@ -376,17 +337,15 @@ const MovieDetailPublisher = () => {
                   </Text>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
-                  <Paragraph className="text-gray-800 m-0">
-                    {contract.distributorName}
-                  </Paragraph>
+                  <Paragraph className="text-gray-800 m-0">{contract.distributorName}</Paragraph>
                 </div>
               </div>
             </div>
           </Card>
         ))}
       </div>
-    );
-  };
+    )
+  }
 
   // const handleGetPreUrl = async () => {
   //   try {
@@ -410,21 +369,18 @@ const MovieDetailPublisher = () => {
 
   const handleGetPreUrl = async () => {
     try {
-      const extractLink = extractUrl(movie?.fileUrl);
+      const extractLink = extractUrl(movie?.fileUrl)
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
+        throw new Error("Failed to extract userId or fileName from URL")
       }
-      const response = await uploadFileApi.getPreFileUrlMovie(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      setFileUrl(response.data.url);
-      setShowFileModal(true); // 👈 mở modal tại đây
+      const response = await uploadFileApi.getPreFileUrlMovie(extractLink.userId, extractLink.fileName)
+      setFileUrl(response.data.url)
+      setShowFileModal(true) // 👈 mở modal tại đây
     } catch (error) {
-      notification.error({ message: error.message || "Not found" });
-      console.error("Error fetching preUrl:", error);
+      notification.error({ message: error.message || "Not found" })
+      console.error("Error fetching preUrl:", error)
     }
-  };
+  }
   // const handleGetPreUrlTemp = async () => {
   //   try {
   //     const extractLink = extractUrl(movie?.fileUrl)
@@ -447,21 +403,18 @@ const MovieDetailPublisher = () => {
 
   const handleGetPreUrlTemp = async () => {
     try {
-      const extractLink = extractUrl(movie?.fileUrl);
+      const extractLink = extractUrl(movie?.fileUrl)
       if (!extractLink || !extractLink.userId || !extractLink.fileName) {
-        throw new Error("Failed to extract userId or fileName from URL");
+        throw new Error("Failed to extract userId or fileName from URL")
       }
-      const response = await uploadFileApi.getPreFileUrlTemp(
-        extractLink.userId,
-        extractLink.fileName
-      );
-      setFileUrl(response.data.url);
-      setShowFileModal(true); // 👈 mở modal tại đây
+      const response = await uploadFileApi.getPreFileUrlTemp(extractLink.userId, extractLink.fileName)
+      setFileUrl(response.data.url)
+      setShowFileModal(true) // 👈 mở modal tại đây
     } catch (error) {
-      notification.error({ message: error.message || "Not found" });
-      console.error("Error fetching preUrl:", error);
+      notification.error({ message: error.message || "Not found" })
+      console.error("Error fetching preUrl:", error)
     }
-  };
+  }
   const columns = [
     {
       title: "Week (from - to)",
@@ -478,7 +431,15 @@ const MovieDetailPublisher = () => {
       title: "Earnings",
       dataIndex: "totalEarnings",
       key: "totalEarnings",
-      render: (value) => Number.parseFloat(value).toLocaleString() + " VND",
+      // MODIFIED: Hide earnings for movies with contracts
+      render: (value, record) => {
+        // If movie has a contract, don't show earnings
+        if (movie?.isContract) {
+          return "Not Available"
+        }
+        // Otherwise show earnings normally
+        return Number.parseFloat(value).toLocaleString() + " VND"
+      },
     },
     {
       title: "Created At",
@@ -486,7 +447,7 @@ const MovieDetailPublisher = () => {
       key: "createDate",
       render: (value) => new Date(value).toLocaleString(),
     },
-  ];
+  ]
 
   return (
     <Layout className="min-h-screen bg-gray-50">
@@ -531,16 +492,8 @@ const MovieDetailPublisher = () => {
                       <div className="flex flex-wrap gap-2 my-2">
                         <Tag color="blue">{movie?.releaseYear}</Tag>
                         <Tag color="green">{movie?.genreNames}</Tag>
-                        <Tag
-                          color={
-                            movie?.status === "ACTIVE" ? "success" : "warning"
-                          }
-                        >
-                          {movie?.status}
-                        </Tag>
-                        <Tag
-                          color={movie?.isContract === true ? "success" : "red"}
-                        >
+                        <Tag color={movie?.status === "ACTIVE" ? "success" : "warning"}>{movie?.status}</Tag>
+                        <Tag color={movie?.isContract === true ? "success" : "red"}>
                           {movie?.isContract ? "Has Contract" : "Not Contract"}
                         </Tag>
                       </div>
@@ -558,43 +511,36 @@ const MovieDetailPublisher = () => {
                         )}
 
                       <Button
-                        onClick={
-                          movie?.status === "WAITING_FOR_REVIEWING"
-                            ? handleGetPreUrlTemp
-                            : handleGetPreUrl
-                        }
+                        onClick={movie?.status === "WAITING_FOR_REVIEWING" ? handleGetPreUrlTemp : handleGetPreUrl}
                         type="primary"
                         className="bg-blue-500 hover:bg-blue-600"
                       >
                         View File Copy-right
                       </Button>
-                              <Modal
-                                title="View File"
-                                open={showFileModal}
-                                onCancel={() => setShowFileModal(false)}
-                                footer={null}
-                                width="80%"
-                                height="80%"
-                              >
-                                {fileUrl ? (
-                                  <iframe
-                                    src={fileUrl}
-                                    title="File Preview"
-                                    width="100%"
-                                    height="500px"
-                                    style={{ border: "none" }}
-                                  />
-                                ) : (
-                                  <div className="flex justify-center items-center">
-                                    <Spin size="large" />
-                                  </div>
-                                )}
-                              </Modal>
+                      <Modal
+                        title="View File"
+                        open={showFileModal}
+                        onCancel={() => setShowFileModal(false)}
+                        footer={null}
+                        width="80%"
+                        height="80%"
+                      >
+                        {fileUrl ? (
+                          <iframe
+                            src={fileUrl}
+                            title="File Preview"
+                            width="100%"
+                            height="500px"
+                            style={{ border: "none" }}
+                          />
+                        ) : (
+                          <div className="flex justify-center items-center">
+                            <Spin size="large" />
+                          </div>
+                        )}
+                      </Modal>
                       {!hiddenStatuses.includes(movie?.status) && (
-                        <Link
-                          key={movie.id}
-                          to={`/publisher/updateMovie/${movie.id}`}
-                        >
+                        <Link key={movie.id} to={`/publisher/updateMovie/${movie.id}`}>
                           <Button
                             type="primary"
                             icon={<EditOutlined />}
@@ -606,23 +552,18 @@ const MovieDetailPublisher = () => {
                       )}
                     </div>
                   </div>
-                  <Paragraph className="text-gray-700 my-4">
-                    {movie?.description}
-                  </Paragraph>
+                  <Paragraph className="text-gray-700 my-4">{movie?.description}</Paragraph>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                    {["Director", "Duration", "Nation", "Rating"].map(
-                      (field, index) => (
-                        <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                          <Text type="secondary" className="block mb-1">
-                            {field}
-                          </Text>
-                          <Paragraph strong className="m-0">
-                            {movie?.[field.toLowerCase().replace(/ /g, "")] ||
-                              "N/A"}
-                          </Paragraph>
-                        </div>
-                      )
-                    )}
+                    {["Director", "Duration", "Nation", "Rating"].map((field, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                        <Text type="secondary" className="block mb-1">
+                          {field}
+                        </Text>
+                        <Paragraph strong className="m-0">
+                          {movie?.[field.toLowerCase().replace(/ /g, "")] || "N/A"}
+                        </Paragraph>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -639,13 +580,7 @@ const MovieDetailPublisher = () => {
                   }
                 >
                   <Tabs defaultActiveKey="poster" tabPosition="left">
-                    {[
-                      "POSTER",
-                      "BANNER",
-                      "TRAILER",
-                      "FILMVIP",
-                      "Actor/Acstress",
-                    ].map((key) => (
+                    {["POSTER", "BANNER", "TRAILER", "FILMVIP", "Actor/Acstress"].map((key) => (
                       <TabPane
                         key={key.toLowerCase()}
                         tab={
@@ -706,9 +641,7 @@ const MovieDetailPublisher = () => {
               <Form.Item label="Title">
                 <Input
                   value={editMovie?.title}
-                  onChange={(e) =>
-                    setEditMovie((prev) => ({ ...prev, title: e.target.value }))
-                  }
+                  onChange={(e) => setEditMovie((prev) => ({ ...prev, title: e.target.value }))}
                 />
               </Form.Item>
 
@@ -791,9 +724,7 @@ const MovieDetailPublisher = () => {
                 mode="multiple"
                 placeholder="Select Genres"
                 value={editMovie?.genres}
-                onChange={(values) =>
-                  setEditMovie((prev) => ({ ...prev, genres: values }))
-                }
+                onChange={(values) => setEditMovie((prev) => ({ ...prev, genres: values }))}
                 className="w-full"
               >
                 {genres.map((genre) => (
@@ -809,9 +740,7 @@ const MovieDetailPublisher = () => {
                 mode="multiple"
                 placeholder="Select Persons"
                 value={editMovie?.persons}
-                onChange={(values) =>
-                  setEditMovie((prev) => ({ ...prev, persons: values }))
-                }
+                onChange={(values) => setEditMovie((prev) => ({ ...prev, persons: values }))}
                 className="w-full"
               >
                 {persons.map((person) => (
@@ -828,7 +757,7 @@ const MovieDetailPublisher = () => {
         </Modal>
       </Content>
     </Layout>
-  );
-};
+  )
+}
 
-export default MovieDetailPublisher;
+export default MovieDetailPublisher
