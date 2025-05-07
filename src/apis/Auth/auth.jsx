@@ -3,9 +3,6 @@ import { makePublicRequest, API_URLS } from "../../utils/api";
 
 const API_URL = API_URLS.AUTH;
 
-/**
- * Service for handling authentication operations
- */
 const authService = {
   listeners: [],
 
@@ -60,8 +57,14 @@ const authService = {
 
   // Local storage management
   getCurrentUser: () => {
-    const userString = localStorage.getItem("user");
-    return userString ? JSON.parse(userString) : null;
+    try {
+      const userString = localStorage.getItem("user");
+      if (!userString) return null;
+      return JSON.parse(userString);
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      return null;
+    }
   },
 
   logout: () => {

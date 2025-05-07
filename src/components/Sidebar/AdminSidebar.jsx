@@ -31,10 +31,19 @@ const hideScrollbarStyle = {
 };
 
 function AdminSidebar() {
-  const [user, setUser] = useState(authService.getCurrentUser());
+  const [user, setUser] = useState(null);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    try {
+      const currentUser = authService.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error("Error getting current user:", error);
+    }
+  }, []);
 
   useEffect(() => {
     // Auto-open dashboard menu if we're on one of its child routes
@@ -130,14 +139,14 @@ function AdminSidebar() {
               <div className="flex flex-col items-center gap-2">
                 <div className="relative">
                   <img
-                    src={user.picture || "/avatar2.jpg"}
+                    src={user?.picture || "/avatar2.jpg"}
                     alt="Avatar"
                     className="h-16 w-16 rounded-full cursor-pointer border-2 border-gray-300 object-cover shadow-md hover:shadow-lg transition-all duration-200"
                   />
                   <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
                 <span className="text-indigo-800 text-sm sm:text-base font-medium mt-2">
-                  {user.fullName}
+                  {user?.fullName || "User"}
                 </span>
               </div>
             </div>

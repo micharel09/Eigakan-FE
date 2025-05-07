@@ -3,7 +3,6 @@ import { makeAuthenticatedRequest, API_URLS } from "../../utils/api";
 
 const AD_PURCHASE_ITEM_URL = API_URLS.AD_PURCHASE_ITEM;
 const AD_PURCHASE_TRANSACTION_URL = API_URLS.AD_PURCHASE_TRANSACTION;
-// Removed: const AD_PURCHASE_SLOT_URL = API_URLS.AD_PURCHASE_SLOT;
 
 const adPurchaseService = {
   // ===== AdPurchaseItem API =====
@@ -49,8 +48,6 @@ const adPurchaseService = {
     }),
 
   // ===== AdPurchaseSlot API =====
-
-  // This method calls a different endpoint than getAdPurchaseTransactions
   getUserAdPurchaseTransactions: (page = 1, pageSize = 5) =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(
@@ -62,8 +59,6 @@ const adPurchaseService = {
       );
       return response.data;
     }),
-
-  // This method calls a different endpoint than getAllAdPurchaseTransactions
   getAllUserAdPurchaseTransactions: () =>
     makeAuthenticatedRequest(async (headers) => {
       const response = await axios.get(

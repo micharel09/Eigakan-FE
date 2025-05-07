@@ -10,8 +10,17 @@ import {
 } from "@ant-design/icons";
 
 const PublisherSidebar = () => {
-  const [user, setUser] = useState(authService.getCurrentUser());
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    try {
+      const currentUser = authService.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error("Error getting current user:", error);
+    }
+  }, []);
 
   useEffect(() => {
     const updateUser = () => {
@@ -53,12 +62,12 @@ const PublisherSidebar = () => {
           <li className="flex justify-center items-center">
             <div className="flex flex-col items-center gap-2">
               <img
-                src={user.picture || "/Linkvatar2.jpg"}
+                src={user?.picture || "/avatar2.jpg"}
                 alt="Avatar"
                 className="h-16 w-16 rounded-full cursor-pointer border-2 border-gray-300"
               />
               <span className="text-red-800 text-sm sm:text-base font-medium mt-2">
-                {user.fullName}
+                {user?.fullName || "User"}
               </span>
             </div>
           </li>

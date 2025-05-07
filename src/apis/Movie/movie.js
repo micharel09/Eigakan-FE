@@ -37,7 +37,7 @@ const movieService = {
       console.error("API Error:", error);
       return {
         success: false,
-        movies: [], // Trả về movies trực tiếp không qua data
+        movies: [],
         total: 0,
         message: error.response?.data || error.message
       };
