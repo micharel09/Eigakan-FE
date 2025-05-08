@@ -30,7 +30,7 @@ import {
   VideoCameraOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import { Line, Bar, Doughnut } from "react-chartjs-2";
+import { Bar, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -100,7 +100,6 @@ const AdvertiserDashboard = () => {
 
   // Chart data
   const [mediaStatusChartData, setMediaStatusChartData] = useState(null);
-  const [viewsChartData, setViewsChartData] = useState(null);
   const [spendingChartData, setSpendingChartData] = useState(null);
 
   const navigate = useNavigate();
@@ -232,9 +231,6 @@ const AdvertiserDashboard = () => {
 
         setRecentPayments(recentAds);
 
-        // Generate mock view data for chart
-        generateMockViewsChartData();
-
         // Generate spending chart data
         generateSpendingChartData(ads);
 
@@ -273,39 +269,6 @@ const AdvertiserDashboard = () => {
         payments: false,
       });
     }
-  };
-
-  // Generate mock views chart data
-  const generateMockViewsChartData = () => {
-    // Create data for the last 7 days
-    const dateViewsMap = {};
-
-    const today = dayjs();
-    for (let i = 6; i >= 0; i--) {
-      const date = today.subtract(i, "day").format("YYYY-MM-DD");
-      // Generate random view counts between 10-100
-      dateViewsMap[date] = Math.floor(Math.random() * 90) + 10;
-    }
-
-    // Sort dates chronologically
-    const sortedDates = Object.keys(dateViewsMap).sort();
-
-    const chartData = {
-      labels: sortedDates.map((date) => dayjs(date).format("MMM D")),
-      datasets: [
-        {
-          label: "Views",
-          data: sortedDates.map((date) => dateViewsMap[date]),
-          backgroundColor: "rgba(24, 144, 255, 0.2)",
-          borderColor: "rgba(24, 144, 255, 1)",
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4,
-        },
-      ],
-    };
-
-    setViewsChartData(chartData);
   };
 
   // Generate spending chart data from ads
@@ -592,100 +555,6 @@ const AdvertiserDashboard = () => {
       </Row>
 
       {/* Charts and analytics */}
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={24} lg={12}>
-          <Card
-            title={
-              <div className="flex items-center">
-                <EyeOutlined className="mr-2" />
-                <span>Views Over Time</span>
-              </div>
-            }
-            loading={loading.stats}
-          >
-            {viewsChartData ? (
-              <div style={{ height: "300px" }}>
-                <Line
-                  data={viewsChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          precision: 0,
-                        },
-                      },
-                    },
-                    plugins: {
-                      legend: {
-                        display: false,
-                      },
-                      tooltip: {
-                        callbacks: {
-                          label: (context) => {
-                            return `Views: ${context.parsed.y}`;
-                          },
-                        },
-                      },
-                    },
-                  }}
-                />
-              </div>
-            ) : (
-              <Empty description="No view data available" />
-            )}
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card
-            title={
-              <div className="flex items-center">
-                <DollarCircleOutlined className="mr-2" />
-                <span>Monthly Spending</span>
-              </div>
-            }
-            loading={loading.payments}
-          >
-            {spendingChartData ? (
-              <div style={{ height: "300px" }}>
-                <Bar
-                  data={spendingChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          callback: (value) => {
-                            return value.toLocaleString() + " đ";
-                          },
-                        },
-                      },
-                    },
-                    plugins: {
-                      legend: {
-                        display: false,
-                      },
-                      tooltip: {
-                        callbacks: {
-                          label: (context) => {
-                            return `${context.parsed.y.toLocaleString()} đ`;
-                          },
-                        },
-                      },
-                    },
-                  }}
-                />
-              </div>
-            ) : (
-              <Empty description="No spending data available" />
-            )}
-          </Card>
-        </Col>
-      </Row>
 
       {/* Media and Payments */}
       <Row gutter={[16, 16]}>
