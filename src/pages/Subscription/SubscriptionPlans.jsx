@@ -80,24 +80,20 @@ const SubscriptionPlans = () => {
       "Watch on 1 device at a time",
       "Limited movies access",
       "Basic support",
-      "Cancel subscription anytime",
     ],
     Premium: [
       "Watch movies in 4K Ultra HD",
-      "Watch on 4 devices at a time",
       "Full movies library access",
-      "Download movies for offline viewing",
       "Priority customer support",
       "Early access to new releases",
-      "Cancel subscription anytime",
+   
     ],
-    Standar: [
+    Standard: [
       "Watch movies in Full HD",
-      "Watch on 2 devices at a time",
       "Extended movies access",
       "Standard support",
       "Download selected movies",
-      "Cancel subscription anytime",
+    
     ],
   };
 
@@ -192,7 +188,7 @@ const SubscriptionPlans = () => {
           <p className="text-sm">
             * All plans include access to our movie library
           </p>
-          <p className="text-sm">* Prices include VAT</p>
+          {/* <p className="text-sm">* Prices include VAT</p> */}
         </div>
       </div>
     </div>

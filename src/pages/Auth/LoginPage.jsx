@@ -12,15 +12,6 @@ const initialFormState = {
   password: "",
 };
 
-const QUICK_LOGIN_CREDENTIALS = {
-  ADMIN: { email: "admin@gmail.com", password: "2" },
-  VIPMEMBER: { email: "user5@gmail.com", password: "123" },
-  MEMBER: { email: "user6@gmail.com", password: "123" },
-  MANAGER: { email: "minhquan.sguy@gmail.com", password: "123" },
-  PUBLISHER: { email: "comtambichatrung@gmail.com", password: "11111111" },
-  ADVERTISER: { email: "ads@gmail.com", password: "11111111" },
-};
-
 const LoginPage = () => {
   // Form state
   const [formData, setFormData] = useState(initialFormState);
@@ -111,33 +102,6 @@ const LoginPage = () => {
     }
   };
 
-  /**
-   * Handle quick login for demo purposes
-   * @param {string} role - User role
-   */
-  const handleQuickLogin = async (role) => {
-    const credentials = QUICK_LOGIN_CREDENTIALS[role];
-    setFormData(credentials);
-
-    try {
-      setError("");
-      setLoading(true);
-
-      const response = await authService.login(
-        credentials.email,
-        credentials.password
-      );
-
-      if (response?.success && response.data) {
-        handleLoginSuccess(response);
-      }
-    } catch (error) {
-      handleLoginError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen pt-20 h-screen w-full hero-bg">
       <Helmet>
@@ -177,11 +141,6 @@ const LoginPage = () => {
             <ForgotPasswordLink />
             <SubmitButton loading={loading} />
           </form>
-
-          <QuickLoginSection
-            onQuickLogin={handleQuickLogin}
-            disabled={loading}
-          />
 
           <SignUpLinks />
         </div>
@@ -285,7 +244,7 @@ const ForgotPasswordLink = () => (
 const SubmitButton = ({ loading }) => (
   <button
     type="submit"
-    className={`w-full py-3 text-white rounded-lg transition-colors duration-300 
+    className={`w-full py-3 text-white rounded-lg transition-colors duration-300
     flex items-center justify-center gap-2
     ${loading ? "bg-[#D1007F]" : "bg-[#FF009F] hover:bg-[#D1007F]"}`}
     disabled={loading}
@@ -296,27 +255,6 @@ const SubmitButton = ({ loading }) => (
       "Login"
     )}
   </button>
-);
-
-/**
- * Quick Login Section Component
- */
-const QuickLoginSection = ({ onQuickLogin, disabled }) => (
-  <div className="mt-6">
-    <div className="text-center mb-4 text-gray-300">Quick Login Demo</div>
-    <div className="grid grid-cols-2 gap-4">
-      {Object.entries(QUICK_LOGIN_CREDENTIALS).map(([role]) => (
-        <button
-          key={role}
-          onClick={() => onQuickLogin(role)}
-          className={`py-2 px-4 text-white rounded-lg ${getButtonColor(role)}`}
-          disabled={disabled}
-        >
-          {role.charAt(0) + role.slice(1).toLowerCase()}
-        </button>
-      ))}
-    </div>
-  </div>
 );
 
 /**
@@ -338,22 +276,5 @@ const SignUpLinks = () => (
     </div>
   </>
 );
-
-/**
- * Get button color based on role
- * @param {string} role - User role
- * @returns {string} Tailwind CSS classes for button color
- */
-const getButtonColor = (role) => {
-  const colors = {
-    ADMIN: "bg-orange-500 hover:bg-orange-600",
-    VIPMEMBER: "bg-pink-500 hover:bg-pink-600",
-    MEMBER: "bg-green-500 hover:bg-green-600",
-    MANAGER: "bg-blue-500 hover:bg-blue-600",
-    PUBLISHER: "bg-purple-500 hover:bg-purple-600",
-    ADVERTISER: "bg-red-500 hover:bg-red-600",
-  };
-  return colors[role] || "bg-gray-500 hover:bg-gray-600";
-};
 
 export default LoginPage;
