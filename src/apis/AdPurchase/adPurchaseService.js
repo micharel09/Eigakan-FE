@@ -6,9 +6,12 @@ const AD_PURCHASE_TRANSACTION_URL = API_URLS.AD_PURCHASE_TRANSACTION;
 
 const adPurchaseService = {
   // ===== AdPurchaseItem API =====
-  getAdPurchaseItemsByLogin: () =>
+  getAdPurchaseItemsByLogin: (page = 1, pageSize = 10) =>
     makeAuthenticatedRequest(async (headers) => {
-      const response = await axios.get(`${AD_PURCHASE_ITEM_URL}/GetAdPurchaseItemsByLogin`, { headers });
+      const response = await axios.get(`${AD_PURCHASE_ITEM_URL}/GetAdPurchaseItemsByLogin`, {
+        headers,
+        params: { page, pageSize }
+      });
       return response.data;
     }),
 

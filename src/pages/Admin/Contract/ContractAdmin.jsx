@@ -90,8 +90,7 @@ const ContractAdmin = () => {
             .includes(searchTerm.toLowerCase()) ||
           contract.distributorName
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          contract.user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+            .includes(searchTerm.toLowerCase())
       );
       setContracts(filteredResults);
     } else {
@@ -105,12 +104,14 @@ const ContractAdmin = () => {
         <title>Contract Management</title>
       </Helmet>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Contract Management</h1>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Contract Management
+        </h1>
       </div>
 
       <div className="flex flex-wrap gap-4 mb-6">
         <Input
-          placeholder="Search by title, distributor or email..."
+          placeholder="Search by title or distributor..."
           prefix={<SearchOutlined className="text-gray-400" />}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 min-w-[250px] text-lg"
@@ -195,19 +196,28 @@ const ContractAdmin = () => {
                           {contract.distributorName || "Unknown"}
                         </p>
                         <p>
-                          <CalendarOutlined /> <strong>Email:</strong>{" "}
-                          {contract.user?.email || "N/A"}
+                          <CalendarOutlined /> <strong>Price:</strong>{" "}
+                          {contract.price
+                            ? new Intl.NumberFormat("vi-VN", {
+                                style: "currency",
+                                currency: "VND",
+                              }).format(contract.price)
+                            : "N/A"}
                         </p>
                       </div>
                       {/* Start Time & End Time chung hàng */}
                       <div className="flex justify-between">
                         <p>
                           <FieldTimeOutlined /> <strong>Start:</strong>{" "}
-                          {new Date(contract.startDate).toLocaleDateString()}
+                          {new Date(contract.startDate).toLocaleDateString(
+                            "en-GB"
+                          )}
                         </p>
                         <p>
                           <FieldTimeOutlined /> <strong>End:</strong>{" "}
-                          {new Date(contract.endDate).toLocaleDateString()}
+                          {new Date(contract.endDate).toLocaleDateString(
+                            "en-GB"
+                          )}
                         </p>
                       </div>
                       {/* Duration riêng hàng */}

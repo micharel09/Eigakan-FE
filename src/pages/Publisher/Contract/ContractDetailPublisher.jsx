@@ -411,8 +411,8 @@ const ContractDetailPublisher = () => {
                       width="100%"
                       style={{
                         border: "none",
-                        height: "calc(90vh - 120px)", 
-                        minHeight: "400px", 
+                        height: "calc(90vh - 120px)",
+                        minHeight: "400px",
                       }}
                     />
                   ) : (
@@ -455,15 +455,9 @@ const ContractDetailPublisher = () => {
               )}
 
               <Descriptions.Item
-                label={<span className="font-semibold">Created</span>}
-                labelStyle={{ backgroundColor: "#f9fafb" }}
-              >
-                {formatDate(contract.createDate)}
-              </Descriptions.Item>
-
-              <Descriptions.Item
                 label={<span className="font-semibold">Updated</span>}
                 labelStyle={{ backgroundColor: "#f9fafb" }}
+                span={2}
               >
                 {contract.updateDate ? formatDate(contract.updateDate) : "N/A"}
               </Descriptions.Item>

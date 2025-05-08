@@ -50,7 +50,7 @@ const PaymentHistory = () => {
   });
   const [totalAmount, setTotalAmount] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
-  const [totalViews, setTotalViews] = useState(0);
+  const [totalRefunded, setTotalRefunded] = useState(0);
   const [userDetails, setUserDetails] = useState({});
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
 
@@ -96,9 +96,9 @@ const PaymentHistory = () => {
         );
         setTotalAmount(total);
 
-        // Calculate total items and views
+        // Calculate total items and refunded amount
         let itemCount = 0;
-        let viewCount = 0;
+        let refundedAmount = 0;
 
         allResponse.data.forEach((transaction) => {
           if (
@@ -108,13 +108,15 @@ const PaymentHistory = () => {
             itemCount += transaction.adPurchaseItems.length;
 
             transaction.adPurchaseItems.forEach((item) => {
-              viewCount += item.viewQuantity || 0;
+              if (item.status === "REFUNDED") {
+                refundedAmount += item.price || 0;
+              }
             });
           }
         });
 
         setTotalItems(itemCount);
-        setTotalViews(viewCount);
+        setTotalRefunded(refundedAmount);
       } else {
         setError(response.message || "Failed to load transaction data");
       }
@@ -527,7 +529,7 @@ const PaymentHistory = () => {
             }}
           >
             <DollarOutlined style={{ marginRight: 4 }} />
-            {transaction.paymentMethod || "VNPay"}
+            {transaction.paymentMethod || "Wallet"}
           </Tag>
         </div>
 
@@ -621,7 +623,7 @@ const PaymentHistory = () => {
             }}
           >
             <Statistic
-              title="Total Successful Payments"
+              title="Total Purchased"
               value={totalAmount}
               precision={0}
               formatter={(value) => formatVND(value)}
@@ -660,12 +662,13 @@ const PaymentHistory = () => {
             }}
           >
             <Statistic
-              title="Total Ad Views"
-              value={totalViews}
-              prefix={<EyeOutlined style={{ color: "#722ed1" }} />}
+              title="Total Refunded"
+              value={totalRefunded}
+              precision={0}
+              formatter={(value) => formatVND(value)}
+              prefix={<DollarOutlined style={{ color: "#faad14" }} />}
               loading={loading}
-              valueStyle={{ color: "#722ed1" }}
-              suffix="views"
+              valueStyle={{ color: "#faad14" }}
             />
           </Card>
         </Col>

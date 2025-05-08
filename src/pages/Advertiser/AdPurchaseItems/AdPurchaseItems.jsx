@@ -38,16 +38,27 @@ const AdPurchaseItems = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [adsData, setAdsData] = useState([]);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
-  const fetchAdsData = async () => {
+  const fetchAdsData = async (
+    page = pagination.current,
+    pageSize = pagination.pageSize
+  ) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await adPurchaseService.getAdPurchaseItemsByLogin();
+      const response = await adPurchaseService.getAdPurchaseItemsByLogin(
+        page,
+        pageSize
+      );
 
       if (response.success) {
         // Log the data to see what we're getting
-        console.log("Ad purchase items data:", response.data);
+        console.log("Ad purchase items data:", response);
 
         // Process the data to ensure video URLs are correctly identified
         const processedData = (response.data || []).map((item) => {
@@ -61,6 +72,11 @@ const AdPurchaseItems = () => {
         });
 
         setAdsData(processedData);
+        setPagination({
+          ...pagination,
+          current: page,
+          total: response.total || 0,
+        });
       } else {
         setError(response.message || "Failed to load ads data");
       }
@@ -77,7 +93,11 @@ const AdPurchaseItems = () => {
   }, []);
 
   const handleRefresh = () => {
-    fetchAdsData();
+    fetchAdsData(1, pagination.pageSize);
+  };
+
+  const handleTableChange = (pagination, filters, sorter) => {
+    fetchAdsData(pagination.current, pagination.pageSize);
   };
 
   const getStatusColor = (status) => {
@@ -431,11 +451,14 @@ const AdPurchaseItems = () => {
           rowKey="id"
           loading={loading}
           pagination={{
-            pageSize: 10,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
             showSizeChanger: true,
             pageSizeOptions: [5, 10, 20],
             showTotal: (total) => `Total ${total} items`,
           }}
+          onChange={handleTableChange}
           locale={{
             emptyText: (
               <Empty

@@ -177,6 +177,7 @@ const AdPackageManagement = () => {
   const [totalPaymentAmount, setTotalPaymentAmount] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
+  const [totalRefunded, setTotalRefunded] = useState(0);
   const [userDetails, setUserDetails] = useState({});
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
   const { token } = theme.useToken();
@@ -326,25 +327,23 @@ const AdPackageManagement = () => {
       let allTransactions = [];
 
       try {
+        // Fetch ad purchase items data for total purchased and consumed
+        const adPurchaseItemsResponse =
+          await adPurchaseService.getAllAdPurchaseItems(1, 5);
+        if (adPurchaseItemsResponse && adPurchaseItemsResponse.success) {
+          setTotalPaymentAmount(adPurchaseItemsResponse.totalPurchased || 0);
+          setTotalViews(adPurchaseItemsResponse.totalConsumed || 0);
+        }
+
         const totalResponse =
           await adPurchaseService.getAllAdPurchaseTransactionTotal();
         if (totalResponse && totalResponse.success) {
           totalItems = totalResponse.total || 0;
           allTransactions = totalResponse.data || [];
 
-          // Calculate total amount from successful transactions
-          const successfulTransactions = allTransactions.filter(
-            (item) => item.status === "SUCCESS"
-          );
-          const total = successfulTransactions.reduce(
-            (sum, item) => sum + (item.totalPrice || 0),
-            0
-          );
-          setTotalPaymentAmount(total);
-
-          // Calculate total items and views
+          // Calculate total items and refunded amount
           let itemCount = 0;
-          let viewCount = 0;
+          let refundedAmount = 0;
 
           allTransactions.forEach((transaction) => {
             if (
@@ -353,14 +352,17 @@ const AdPackageManagement = () => {
             ) {
               itemCount += transaction.adPurchaseItems.length;
 
+              // Calculate refunded amount from items with REFUNDED status
               transaction.adPurchaseItems.forEach((item) => {
-                viewCount += item.viewQuantity || 0;
+                if (item.status === "REFUNDED") {
+                  refundedAmount += item.price || 0;
+                }
               });
             }
           });
 
           setTotalItems(itemCount);
-          setTotalViews(viewCount);
+          setTotalRefunded(refundedAmount);
         }
       } catch (error) {
         console.error("Error fetching total payment data:", error);
@@ -852,7 +854,7 @@ const AdPackageManagement = () => {
       title: "Price Per View",
       dataIndex: "pricePerView",
       key: "pricePerView",
-      render: (price) => `$${price.toFixed(2)}`,
+      render: (price) => formatVND(price),
       sorter: (a, b) => a.pricePerView - b.pricePerView,
     },
     {
@@ -1253,10 +1255,10 @@ const AdPackageManagement = () => {
 
             {/* Statistics cards */}
             <Row gutter={[16, 16]} className="mb-6">
-              <Col xs={24} md={8}>
+              <Col xs={24} md={6}>
                 <Card hoverable style={{ transition: "all 0.3s ease" }}>
                   <Statistic
-                    title="Total Successful Payments"
+                    title="Total Purchased"
                     value={totalPaymentAmount}
                     precision={0}
                     formatter={(value) => formatVND(value)}
@@ -1266,7 +1268,33 @@ const AdPackageManagement = () => {
                   />
                 </Card>
               </Col>
-              <Col xs={24} md={8}>
+              <Col xs={24} md={6}>
+                <Card hoverable style={{ transition: "all 0.3s ease" }}>
+                  <Statistic
+                    title="Total Consumed"
+                    value={totalViews}
+                    precision={0}
+                    formatter={(value) => formatVND(value)}
+                    prefix={<DollarOutlined style={{ color: "#f5222d" }} />}
+                    loading={adPaymentTotalLoading}
+                    valueStyle={{ color: "#f5222d" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} md={6}>
+                <Card hoverable style={{ transition: "all 0.3s ease" }}>
+                  <Statistic
+                    title="Total Refunded"
+                    value={totalRefunded}
+                    precision={0}
+                    formatter={(value) => formatVND(value)}
+                    prefix={<DollarOutlined style={{ color: "#faad14" }} />}
+                    loading={adPaymentTotalLoading}
+                    valueStyle={{ color: "#faad14" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} md={6}>
                 <Card hoverable style={{ transition: "all 0.3s ease" }}>
                   <Statistic
                     title="Total Ad Items"
@@ -1422,7 +1450,7 @@ const AdPackageManagement = () => {
                               }}
                             >
                               <DollarOutlined style={{ marginRight: 4 }} />
-                              {transaction.paymentMethod || "VNPay"}
+                              {transaction.paymentMethod || "Wallet"}
                             </Tag>
                           </div>
 

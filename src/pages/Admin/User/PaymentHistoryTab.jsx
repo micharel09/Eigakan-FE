@@ -567,7 +567,7 @@ const PaymentHistoryTab = ({ userId }) => {
             }}
           >
             <DollarOutlined style={{ marginRight: 4 }} />
-            {transaction.paymentMethod || "VNPay"}
+            {transaction.paymentMethod || "Wallet"}
           </Tag>
         </div>
 

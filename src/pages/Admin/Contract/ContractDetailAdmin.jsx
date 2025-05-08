@@ -401,13 +401,6 @@ const ContractDetailAdmin = () => {
               )}
 
               <Descriptions.Item
-                label={<span className="font-semibold">Created</span>}
-                labelStyle={{ backgroundColor: "#f9fafb" }}
-              >
-                {formatDate(contract.createDate)}
-              </Descriptions.Item>
-
-              <Descriptions.Item
                 label={<span className="font-semibold">Updated</span>}
                 labelStyle={{ backgroundColor: "#f9fafb" }}
               >
@@ -509,7 +502,12 @@ const ContractDetailAdmin = () => {
             label="Start Date"
             rules={[{ required: true, message: "Please select a start date" }]}
           >
-            <DatePicker style={{ width: "100%" }} />
+            <DatePicker
+              style={{ width: "100%" }}
+              disabledDate={(current) =>
+                current && current < dayjs().startOf("day")
+              }
+            />
           </Form.Item>
 
           <Form.Item

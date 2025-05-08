@@ -58,6 +58,7 @@ const AdHistory = () => {
     total: 0,
   });
   const [totalAmount, setTotalAmount] = useState(0);
+  const [totalRefunded, setTotalRefunded] = useState(0);
   const [filteredData, setFilteredData] = useState([]);
   const [userDetails, setUserDetails] = useState({});
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
@@ -97,6 +98,22 @@ const AdHistory = () => {
             0
           );
           setTotalAmount(total);
+
+          // Calculate total refunded amount
+          let refundedAmount = 0;
+          allTransactions.forEach((transaction) => {
+            if (
+              transaction.adPurchaseItems &&
+              transaction.adPurchaseItems.length > 0
+            ) {
+              transaction.adPurchaseItems.forEach((item) => {
+                if (item.status === "REFUNDED") {
+                  refundedAmount += item.price || 0;
+                }
+              });
+            }
+          });
+          setTotalRefunded(refundedAmount);
         }
       } catch (error) {
         console.error("Error fetching total payment data:", error);
@@ -159,6 +176,22 @@ const AdHistory = () => {
           0
         );
         setTotalAmount(total);
+
+        // Calculate total refunded amount
+        let refundedAmount = 0;
+        response.data.forEach((transaction) => {
+          if (
+            transaction.adPurchaseItems &&
+            transaction.adPurchaseItems.length > 0
+          ) {
+            transaction.adPurchaseItems.forEach((item) => {
+              if (item.status === "REFUNDED") {
+                refundedAmount += item.price || 0;
+              }
+            });
+          }
+        });
+        setTotalRefunded(refundedAmount);
       }
     } catch (error) {
       console.error("Error fetching all transaction data:", error);
@@ -487,13 +520,26 @@ const AdHistory = () => {
           <Col xs={24} md={8}>
             <Card hoverable style={{ transition: "all 0.3s ease" }}>
               <Statistic
-                title="Total Successful Payments"
+                title="Total Purchased"
                 value={totalAmount}
                 precision={0}
                 formatter={(value) => formatVND(value)}
                 prefix={<DollarOutlined style={{ color: "#52c41a" }} />}
                 loading={totalLoading}
                 valueStyle={{ color: "#52c41a" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card hoverable style={{ transition: "all 0.3s ease" }}>
+              <Statistic
+                title="Total Refunded"
+                value={totalRefunded}
+                precision={0}
+                formatter={(value) => formatVND(value)}
+                prefix={<DollarOutlined style={{ color: "#faad14" }} />}
+                loading={totalLoading}
+                valueStyle={{ color: "#faad14" }}
               />
             </Card>
           </Col>
@@ -677,7 +723,7 @@ const AdHistory = () => {
                           }}
                         >
                           <DollarOutlined style={{ marginRight: 4 }} />
-                          {transaction.paymentMethod || "VNPay"}
+                          {transaction.paymentMethod || "Wallet"}
                         </Tag>
                       </div>
 

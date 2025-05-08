@@ -17,8 +17,8 @@ const QUICK_LOGIN_CREDENTIALS = {
   VIPMEMBER: { email: "user5@gmail.com", password: "123" },
   MEMBER: { email: "user6@gmail.com", password: "123" },
   MANAGER: { email: "minhquan.sguy@gmail.com", password: "123" },
-  PUBLISHER: { email: "minhtuankf@gmail.com", password: "1" },
-  ADVERTISER: { email: "minhquan.riotgs@gmail.com", password: "123" },
+  PUBLISHER: { email: "comtambichatrung@gmail.com", password: "11111111" },
+  ADVERTISER: { email: "ads@gmail.com", password: "11111111" },
 };
 
 const LoginPage = () => {

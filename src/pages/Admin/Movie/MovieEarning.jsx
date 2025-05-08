@@ -146,7 +146,7 @@ const MovieEarning = () => {
       title: "Created At",
       dataIndex: "createDate",
       key: "createDate",
-      render: (date) => dayjs(date).format("DD/MM/YYYY HH:mm"),
+      render: (date) => dayjs(date).format("DD/MM/YYYY"),
       width: "15%",
     },
   ];
@@ -245,10 +245,11 @@ const MovieEarning = () => {
           pagination={pagination}
           onChange={handleTableChange}
           scroll={{ x: 800 }}
-          rowClassName={(record) =>
-            record.isCotract
-              ? "bg-red-100" // Màu nền cho các dòng có contract (red)
-              : "bg-green-100" // Màu nền cho các dòng không có contract (green)
+          rowClassName={
+            (record) =>
+              record.isCotract
+                ? "bg-red-100" // Màu nền cho các dòng có contract (red)
+                : "bg-green-100" // Màu nền cho các dòng không có contract (green)
           }
         />
       </Card>

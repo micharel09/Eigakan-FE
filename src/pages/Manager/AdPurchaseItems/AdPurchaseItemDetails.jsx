@@ -291,14 +291,6 @@ const AdPurchaseItemDetails = () => {
               icon={!userDetails.picture && <UserOutlined />}
               style={{ marginRight: 24 }}
             />
-            <div>
-              <Title level={3} style={{ margin: 0 }}>
-                {userDetails.fullName}
-              </Title>
-              <Tag color="orange" style={{ marginTop: 8 }}>
-                VIP MEMBER
-              </Tag>
-            </div>
           </div>
         </div>
 

@@ -96,7 +96,6 @@ const AdvertiserDashboard = () => {
   const [totalViewsCount, setTotalViewsCount] = useState(0);
 
   // Financial data
-  const [totalSpent, setTotalSpent] = useState(0);
   const [recentPayments, setRecentPayments] = useState([]);
 
   // Chart data
@@ -224,9 +223,7 @@ const AdvertiserDashboard = () => {
 
         setTotalViewsCount(totalUsedViews);
 
-        // Calculate total spent
-        const totalSpent = ads.reduce((sum, ad) => sum + ad.price, 0);
-        setTotalSpent(totalSpent);
+        // No longer calculating total spent
 
         // Create recent payments data from ads
         const recentAds = [...ads]
@@ -542,7 +539,7 @@ const AdvertiserDashboard = () => {
 
       {/* Key metrics */}
       <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={8} md={8}>
           <Card loading={loading.media}>
             <Statistic
               title="Total Media"
@@ -559,7 +556,7 @@ const AdvertiserDashboard = () => {
             </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={8} md={8}>
           <Card loading={loading.ads}>
             <Statistic
               title="Active Ads"
@@ -579,7 +576,7 @@ const AdvertiserDashboard = () => {
             </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={24} sm={8} md={8}>
           <Card loading={loading.stats}>
             <Statistic
               title="Total Views"
@@ -589,19 +586,6 @@ const AdvertiserDashboard = () => {
             />
             <div className="mt-2 text-xs text-gray-500">
               Across all your ad media
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading.payments}>
-            <Statistic
-              title="Total Spent"
-              value={formatVND(totalSpent)}
-              prefix={<DollarCircleOutlined />}
-              valueStyle={{ color: "#fa8c16" }}
-            />
-            <div className="mt-2 text-xs text-gray-500">
-              On successful ad campaigns
             </div>
           </Card>
         </Col>

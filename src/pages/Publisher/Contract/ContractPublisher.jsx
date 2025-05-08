@@ -16,7 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import contractApi from "../../../apis/Contract/contract";
 import axios from "axios";
-import { Helmet } from "react-helmet"
+import { Helmet } from "react-helmet";
 
 const pageSize = 10; // Number of contracts per page
 
@@ -114,20 +114,15 @@ const ContractPublisher = () => {
           const distributorMatch = contract.distributorName
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase());
-          const emailMatch = contract.user?.email
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase());
 
           console.log(`Contract ${contract.id}:`, {
             title: contract.movie?.title,
             titleMatch,
             distributor: contract.distributorName,
             distributorMatch,
-            email: contract.user?.email,
-            emailMatch,
           });
 
-          return titleMatch || distributorMatch || emailMatch;
+          return titleMatch || distributorMatch;
         });
 
         console.log("Filtered contracts:", filtered);
@@ -154,7 +149,7 @@ const ContractPublisher = () => {
 
       <div className="flex flex-wrap gap-4 mb-6">
         <Input
-          placeholder="Search by movie name, distributor or email..."
+          placeholder="Search by movie name or distributor..."
           prefix={<SearchOutlined className="text-gray-400" />}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 min-w-[250px] text-lg"
@@ -234,8 +229,13 @@ const ContractPublisher = () => {
                           {contract.distributorName || "Unknown"}
                         </p>
                         <p>
-                          <CalendarOutlined /> <strong>Email:</strong>{" "}
-                          {contract.user?.email || "N/A"}
+                          <CalendarOutlined /> <strong>Price:</strong>{" "}
+                          {contract.price
+                            ? new Intl.NumberFormat("vi-VN", {
+                                style: "currency",
+                                currency: "VND",
+                              }).format(contract.price)
+                            : "N/A"}
                         </p>
                       </div>
                       <div className="flex justify-between">
