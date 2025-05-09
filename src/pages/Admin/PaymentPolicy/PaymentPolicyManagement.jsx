@@ -789,9 +789,15 @@ const PaymentPolicyManagement = () => {
               format="DD/MM/YYYY"
               placeholder="Select effective date"
               disabledDate={(current) => {
-                // Allow only dates 1, 8, 15, 22 of each month
+                // Allow only dates 1, 8, 15, 22 of each month from today onwards
                 const day = current.date();
-                return day !== 1 && day !== 8 && day !== 15 && day !== 22;
+                const isAllowedDay =
+                  day === 1 || day === 8 || day === 15 || day === 22;
+                const isBeforeToday =
+                  current && current < dayjs().startOf("day");
+
+                // Disable if not an allowed day OR if date is before today
+                return !isAllowedDay || isBeforeToday;
               }}
             />
           </Form.Item>
